@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Atlas del Cosmere",
+    "slug": "atlas-cosmere",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#090d16",
+    "splash": {
+      "backgroundColor": "#090d16",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tfg.atlascosmere"
+    },
+    "android": {
+      "package": "com.tfg.atlascosmere",
+      "adaptiveIcon": {
+        "backgroundColor": "#090d16"
+      }
+    }
+  }
+}

@@ -160,11 +160,11 @@ export const ToolsScreen: React.FC = () => {
           </View>
         )}
 
-        {/* HERRAMIENTA 2: VALIDADOR DE TEORÍAS DE PETER AHLSTROM */}
+        {/* HERRAMIENTA 2: MOTOR HEURÍSTICO DE CONTINUIDAD */}
         {subTab === 'validador' && (
           <View>
-            <Text style={styles.secTitle}>VALIDADOR DE CONTINUIDAD CANÓNICA</Text>
-            <Text style={styles.secSub}>Introduce una hipótesis o mezcla mágica. El motor analizará si viola las Tres Leyes de Sanderson:</Text>
+            <Text style={styles.secTitle}>ANALIZADOR ORIENTATIVO DE CONTINUIDAD</Text>
+            <Text style={styles.secSub}>Herramienta orientativa basada en reglas simplificadas; no es una validación oficial ni sustituye las fuentes canónicas. Introduce una hipótesis o mezcla mágica para analizar su coherencia:</Text>
 
             <TextInput
               style={styles.theoryInput}

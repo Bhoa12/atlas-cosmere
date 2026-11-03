@@ -159,4 +159,5 @@ const styles = StyleSheet.create({
   navText: { color: '#64748b', fontSize: 9, fontWeight: '700' },
   navTextActive: { color: '#38bdf8' }
 });
+
 registerRootComponent(App);

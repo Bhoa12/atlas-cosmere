@@ -2,20 +2,31 @@
 
 ## Decisiones de producto
 - Entrada inicial: vista galáctica del Cosmere.
-- Escala: artística. Las posiciones, radios y tamaños de la representación no son datos astronómicos canónicos.
-- Los textos y metadatos descriptivos se reutilizan del catálogo existente de Atlas.
+- Escala: artística. Las posiciones, radios y tamaños son recursos de composición visual, no datos astronómicos canónicos.
+- Los nombres y metadatos descriptivos se reutilizan del catálogo actual de Atlas.
 
 ## Implementación incluida
-- Pantalla independiente `src/screens/ObservatoryScreen.tsx`.
+- Pantalla independiente: `src/screens/ObservatoryScreen.tsx`.
 - Acceso desde la navegación principal mediante la pestaña Cosmere.
-- Selección de sistemas y ficha resumida contextual.
-- Modelo de dominio inicial en `models/celestialBody.ts`, con separación explícita entre metadatos de canon y parámetros de presentación artística.
+- Escena 3D inicial con React Three Fiber v8 y Three.js: núcleo luminoso, campo de estrellas, anillos orbitales ilustrativos y cuerpos que representan los sistemas del catálogo.
+- Rotación ambiental lenta y resaltado del sistema seleccionado desde los controles nativos de la pantalla.
+- Modelo de dominio inicial en `models/celestialBody.ts`, que separa metadatos de canon y parámetros de presentación artística.
 
-## Límite deliberado de esta fase
-La vista galáctica actual es una primera maqueta interactiva 2D hecha con componentes nativos de React Native. No se presenta como el motor 3D final. Se evita añadir dependencias gráficas antes de validar compatibilidad con Expo SDK 51 / React Native 0.74.5 y definir una ruta de actualización segura. La siguiente fase debe probar una escena mínima 3D en Android físico antes de sustituir esta maqueta.
+## Compatibilidad de dependencias
+El proyecto permanece en Expo SDK 51, React 18.2 y React Native 0.74.5. Se han añadido versiones de la línea compatible:
+- `@react-three/fiber ^8.17.10` (Fiber 8 corresponde a React 18).
+- `three ^0.164.1`.
+- `expo-gl ~14.0.2`.
+- `expo-asset ~10.0.6`.
+- `expo-file-system ~17.0.1`.
+
+Instalar las dependencias con `npm install` y después ejecutar `npx expo start`. No se ha actualizado Expo ni React Native. No se ha generado lockfile porque el repositorio no contenía uno.
+
+## Límites de esta fase
+Esto es una prueba de integración 3D, no todavía la experiencia final. La cámara está fija y la rotación es ambiental; aún faltan rotación manual, zoom, recentrado y transiciones de vista galáctica a sistema estelar. No se ha podido ejecutar una compilación ni validar el contexto GL en un dispositivo Android físico desde esta edición remota.
 
 ## Próximos hitos
-1. Validar navegación, TypeScript y layout en Android.
-2. Instalar dependencias y ejecutar la app en un Android físico para validar el contexto GL, la carga de la escena y el rendimiento.
-3. Añadir cámara/gestos (rotación manual, zoom y recentrado) y transiciones galáctica → sistema estelar.
-4. Incorporar sistemas y cuerpos únicamente cuando sus datos estén documentados; marcar explícitamente lo aproximado o desconocido.
+1. Instalar dependencias y validar la escena en un Android físico: contexto GL, renderizado, memoria y estabilidad.
+2. Añadir controles táctiles de cámara: arrastre para rotar, gesto de pinza para zoom y botón de recentrado.
+3. Implementar la transición galáctica → sistema estelar y después la exploración planetaria.
+4. Incorporar cuerpos celestes solo cuando sus datos estén documentados; marcar explícitamente lo aproximado o desconocido.

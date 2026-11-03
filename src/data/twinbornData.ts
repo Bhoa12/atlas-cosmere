@@ -8,19 +8,19 @@ export const METALES_COSMERE: { [key: string]: MetalInfo } = {
   acero: { nombre: 'Acero', alomancia: 'Empujar metales', feruquimia: 'Almacenar velocidad física' },
   hierro: { nombre: 'Hierro', alomancia: 'Tirar de metales', feruquimia: 'Almacenar peso físico' },
   estano: { nombre: 'Estaño', alomancia: 'Agudizar sentidos', feruquimia: 'Almacenar agudeza sensorial' },
-  peltre: { nombre: 'Peltre', alomancia: 'Fuerza física muscular', feruquimia: 'Almacenar vigor y salud' },
-  cobre: { nombre: 'Cobre', alomancia: 'Nube de humo de pulsos', feruquimia: 'Almacenar recuerdos (Coppermind)' },
+  peltre: { nombre: 'Peltre', alomancia: 'Aumentar fuerza física', feruquimia: 'Almacenar fuerza física' },
+  cobre: { nombre: 'Cobre', alomancia: 'Ocultar pulsos alománticos', feruquimia: 'Almacenar recuerdos' },
   bronce: { nombre: 'Bronce', alomancia: 'Detectar pulsos alománticos', feruquimia: 'Almacenar vigilia' },
-  zinc: { nombre: 'Zinc', alomancia: 'Inflamar emociones', feruquimia: 'Almacenar velocidad mental' },
-  laton: { nombre: 'Latón', alomancia: 'Apagar emociones', feruquimia: 'Almacenar calor corporal' },
-  oro: { nombre: 'Oro', alomancia: 'Ver el pasado alternativo', feruquimia: 'Almacenar salud biológica profunda' },
-  electrum: { nombre: 'Electrum', alomancia: 'Ver el propio futuro inmediato', feruquimia: 'Almacenar determinación' },
-  duraluminio: { nombre: 'Duraluminio', alomancia: 'Quema súbita de reservas', feruquimia: 'Almacenar Conexión espiritual' },
-  aluminio: { nombre: 'Aluminio', alomancia: 'Vaciar reservas de metales', feruquimia: 'Almacenar Identidad espiritual' },
-  cadmio: { nombre: 'Cadmio', alomancia: 'Burbuja de tiempo lento', feruquimia: 'Almacenar respiración/oxígeno' },
-  bendalloy: { nombre: 'Bendalloy', alomancia: 'Burbuja de tiempo veloz', feruquimia: 'Almacenar nutrición' },
-  cromo: { nombre: 'Cromo', alomancia: 'Drenar alomancia ajena', feruquimia: 'Almacenar Fortuna/Suerte' },
-  nicrosil: { nombre: 'Nicrosil', alomancia: 'Potenciar alomancia ajena', feruquimia: 'Almacenar Investidura directa' }
+  zinc: { nombre: 'Zinc', alomancia: 'Avivar emociones', feruquimia: 'Almacenar velocidad mental' },
+  laton: { nombre: 'Latón', alomancia: 'Calmar emociones', feruquimia: 'Almacenar calor corporal' },
+  oro: { nombre: 'Oro', alomancia: 'Ver una versión alternativa de uno mismo', feruquimia: 'Almacenar salud' },
+  electrum: { nombre: 'Electrum', alomancia: 'Ver posibles futuros propios', feruquimia: 'Almacenar determinación' },
+  duraluminio: { nombre: 'Duraluminio', alomancia: 'Potenciar de golpe la quema de otros metales', feruquimia: 'Almacenar Conexión' },
+  aluminio: { nombre: 'Aluminio', alomancia: 'Agotar las propias reservas alománticas', feruquimia: 'Almacenar Identidad' },
+  cadmio: { nombre: 'Cadmio', alomancia: 'Crear una burbuja de tiempo ralentizado', feruquimia: 'Almacenar aliento' },
+  bendalloy: { nombre: 'Bendalloy', alomancia: 'Crear una burbuja de tiempo acelerado', feruquimia: 'Almacenar nutrición' },
+  cromo: { nombre: 'Cromo', alomancia: 'Drenar Investidura al tocar a alguien', feruquimia: 'Almacenar Fortuna' },
+  nicrosil: { nombre: 'Nicrosil', alomancia: 'Potenciar la quema de metales de otra persona', feruquimia: 'Almacenar Investidura' }
 };
 
 export interface ResonanciaTwinborn {
@@ -29,31 +29,25 @@ export interface ResonanciaTwinborn {
 }
 
 export function calcularResonancia(metalAlomancia: string, metalFeruquimia: string): ResonanciaTwinborn {
-  // Composición pura (Compounding)
+  const alomancia = METALES_COSMERE[metalAlomancia];
+  const feruquimia = METALES_COSMERE[metalFeruquimia];
+
+  if (!alomancia || !feruquimia) {
+    return {
+      nombreTitulo: 'Combinación no válida',
+      efectoEspecial: 'Selecciona un metal alomántico y uno feruquímico del catálogo.'
+    };
+  }
+
   if (metalAlomancia === metalFeruquimia) {
     return {
-      nombreTitulo: `Compositor de ${METALES_COSMERE[metalAlomancia].nombre} (Compounder)`,
-      efectoEspecial: '¡ACCESO A RESERVAS INFINITAS! Al quemar alománticamente una mente feruquímica, multiplicas el atributo por diez de forma inagotable (inmortalidad o fuerza infinita).'
-    };
-  }
-
-  // Resonancias canónicas famosas
-  if (metalAlomancia === 'acero' && metalFeruquimia === 'hierro') {
-    return {
-      nombreTitulo: 'Rompedor (Crashmaker)',
-      efectoEspecial: 'Manipulación cinética extrema: puedes reducir tu peso a cero para saltar a velocidades supersónicas y aumentarlo a miles de kilos en pleno impacto.'
-    };
-  }
-
-  if (metalAlomancia === 'bendalloy' && metalFeruquimia === 'oro') {
-    return {
-      nombreTitulo: 'Brumoso Sagrado',
-      efectoEspecial: 'Curación acelerada dentro de burbujas temporales: te regeneras de heridas mortales en fracciones de segundo objetivo.'
+      nombreTitulo: `Nacido Doble compuesto de ${alomancia.nombre}`,
+      efectoEspecial: `Puedes quemar tu propio metalmInda de ${alomancia.nombre} para multiplicar el atributo almacenado. La amplificación consume el metalmInda y no proporciona reservas infinitas por sí sola; su rendimiento depende de las reservas disponibles y de las reglas de la Composición.`
     };
   }
 
   return {
-    nombreTitulo: `Nacido Doble: ${METALES_COSMERE[metalAlomancia].nombre} / ${METALES_COSMERE[metalFeruquimia].nombre}`,
-    efectoEspecial: `Resonancia armónica: Combina ${METALES_COSMERE[metalAlomancia].alomancia} con la capacidad de ${METALES_COSMERE[metalFeruquimia].feruquimia}.`
+    nombreTitulo: `Nacido Doble: ${alomancia.nombre} / ${feruquimia.nombre}`,
+    efectoEspecial: `Combinación de ${alomancia.alomancia.toLowerCase()} con ${feruquimia.feruquimia.toLowerCase()}. Esta ficha describe las dos capacidades individuales; no presupone una resonancia especial ni un efecto combinado confirmado para esta pareja.`
   };
 }

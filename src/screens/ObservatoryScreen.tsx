@@ -12,10 +12,7 @@ export const ObservatoryScreen = () => {
     [selectedId],
   );
 
-  const getNodePosition = (index: number) => {
-    const angle = (index / Math.max(SISTEMAS_COSMERE_COMPLETO.length, 1)) * Math.PI * 2 - Math.PI / 2;
-    return { left: `${50 + Math.cos(angle) * 34}%`, top: `${50 + Math.sin(angle) * 34}%` };
-  };
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

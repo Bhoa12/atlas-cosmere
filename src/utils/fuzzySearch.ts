@@ -1,22 +1,37 @@
+function normalizarTexto(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 export function levenshteinDistance(a: string, b: string): number {
-  const matrix: number[][] = [];
-  const lenA = a.length;
-  const lenB = b.length;
+  const textoA = normalizarTexto(a);
+  const textoB = normalizarTexto(b);
+  if (textoA === textoB) return 0;
+  if (!textoA.length) return textoB.length;
+  if (!textoB.length) return textoA.length;
 
-  for (let i = 0; i <= lenA; i++) matrix[i] = [i];
-  for (let j = 0; j <= lenB; j++) matrix[0][j] = j;
+  // Memoria O(min(n, m)) en lugar de reservar una matriz completa.
+  const corto = textoA.length <= textoB.length ? textoA : textoB;
+  const largo = textoA.length <= textoB.length ? textoB : textoA;
+  let anterior = Array.from({ length: corto.length + 1 }, (_, indice) => indice);
 
-  for (let i = 1; i <= lenA; i++) {
-    for (let j = 1; j <= lenB; j++) {
-      const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,      // borrado
-        matrix[i][j - 1] + 1,      // inserción
-        matrix[i - 1][j - 1] + cost // sustitución
+  for (let i = 1; i <= largo.length; i++) {
+    const actual = [i];
+    for (let j = 1; j <= corto.length; j++) {
+      const coste = largo[i - 1] === corto[j - 1] ? 0 : 1;
+      actual[j] = Math.min(
+        anterior[j] + 1,
+        actual[j - 1] + 1,
+        anterior[j - 1] + coste
       );
     }
+    anterior = actual;
   }
-  return matrix[lenA][lenB];
+
+  return anterior[corto.length];
 }
 
 export function buscarConTolerancia<T>(
@@ -25,15 +40,20 @@ export function buscarConTolerancia<T>(
   consulta: string,
   umbralTolerancia: number = 2
 ): T[] {
-  if (!consulta.trim()) return lista;
-  const q = consulta.trim().toLowerCase();
+  const consultaNormalizada = normalizarTexto(consulta);
+  if (!consultaNormalizada) return lista;
 
+  const terminos = consultaNormalizada.split(/\s+/).filter(Boolean);
   return lista.filter(item => {
-    const texto = campoTexto(item).toLowerCase();
-    if (texto.includes(q)) return true;
-    
-    // Comparar palabras individuales para tolerar nombres compuestos
-    const palabras = texto.split(/\s+/);
-    return palabras.some(palabra => levenshteinDistance(palabra, q) <= umbralTolerancia);
+    const texto = normalizarTexto(campoTexto(item));
+    if (texto.includes(consultaNormalizada)) return true;
+
+    const palabras = texto.split(/\s+/).filter(Boolean);
+    return terminos.every(termino => {
+      const distanciaMaxima = Math.min(umbralTolerancia, termino.length <= 4 ? 1 : 2);
+      return palabras.some(palabra =>
+        palabra.includes(termino) || levenshteinDistance(palabra, termino) <= distanciaMaxima
+      );
+    });
   });
 }

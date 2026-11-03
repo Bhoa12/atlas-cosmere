@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useRef, useState } from 'react';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 
@@ -50,6 +50,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [apodoActivo, setApodoActivo] = useState<string>('Ojo de Estaño');
   const [nombreUsuario, setNombreUsuario] = useState<string>('Trotamundos de Silverlight');
   const [testsCompletadosExitosos, setTestsCompletadosExitosos] = useState<{ [testId: string]: boolean }>({});
+  const testsCompletadosRef = useRef<{ [testId: string]: boolean }>({});
+  const comentarioCounterRef = useRef(0);
 
   const [comentarios, setComentarios] = useState<ComentarioComunidad[]>([
     {
@@ -67,20 +69,24 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setReinoCognitivoActivo(prev => !prev);
   };
 
-  const totalLibrosEnUniverso = SISTEMAS_COSMERE_COMPLETO.reduce((acc, sis) => acc + sis.libros.length, 0);
-  const totalLeidosCount = Object.values(librosLeidos).filter(Boolean).length;
-  const todosLosLibrosLeidos = totalLeidosCount >= totalLibrosEnUniverso;
+  const librosDelCatalogo = SISTEMAS_COSMERE_COMPLETO.flatMap(sis => sis.libros);
+  const todosLosLibrosLeidos = librosDelCatalogo.length > 0 && librosDelCatalogo.every(libro => !!librosLeidos[libro.id]);
 
   const toggleLibroLeido = (libroId: string) => {
     setLibrosLeidos(prev => ({ ...prev, [libroId]: !prev[libroId] }));
   };
 
   const setCapituloLibro = (libroId: string, cap: number) => {
-    setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: cap }));
+    const libro = librosDelCatalogo.find(item => item.id === libroId);
+    if (!libro || !Number.isFinite(cap)) return;
+    const capituloSeguro = Math.min(libro.totalCapitulos, Math.max(0, Math.floor(cap)));
+    setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: capituloSeguro }));
   };
 
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {
-    if (testsCompletadosExitosos[testId]) return false;
+    if (!testId || !Number.isFinite(puntos) || puntos <= 0 || testsCompletadosRef.current[testId]) return false;
+    // El ref bloquea dobles envíos antes del siguiente render; el estado mantiene la UI sincronizada.
+    testsCompletadosRef.current[testId] = true;
     setTestsCompletadosExitosos(prev => ({ ...prev, [testId]: true }));
     setPuntosInvestidura(prev => prev + puntos);
     return true;
@@ -100,16 +106,20 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const esContenidoDesbloqueado = (desbloqueoLibroId: string) => !!librosLeidos[desbloqueoLibroId];
 
   const agregarComentario = (sagaId: string, libroId: string, capitulo: number, texto: string) => {
+    const libro = librosDelCatalogo.find(item => item.id === libroId);
+    const contenido = texto.trim();
+    if (!libro || !contenido) return;
+    const capituloSeguro = Math.min(libro.totalCapitulos, Math.max(1, Math.floor(capitulo)));
     const nuevo: ComentarioComunidad = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${++comentarioCounterRef.current}`,
       usuario: nombreUsuario,
       sagaId,
       libroId,
-      capituloMaximo: capitulo,
-      contenido: texto,
+      capituloMaximo: capituloSeguro,
+      contenido,
       luzTormentosaLikes: 0
     };
-    setComentarios([nuevo, ...comentarios]);
+    setComentarios(prev => [nuevo, ...prev]);
   };
 
   const darLuzTormentosa = (id: string) => {

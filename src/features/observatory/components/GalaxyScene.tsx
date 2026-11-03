@@ -141,12 +141,12 @@ const GalaxyModel = ({
 
 export const GalaxyScene = ({ selectedSystemId }: GalaxySceneProps) => {
   const cameraRig = useRef<CameraRig>({ ...DEFAULT_CAMERA });
-  const dragOrigin = useRef({ yaw: 0, pitch: 0 });
+  const dragOrigin = useRef({ yaw: 0, pitch: 0, dx: 0, dy: 0 });
   const pinchOrigin = useRef<{ distance: number; zoom: number } | null>(null);
   const previousTouchCount = useRef(0);
 
   const handleGrant = (event: GestureResponderEvent) => {
-    dragOrigin.current = { yaw: cameraRig.current.yaw, pitch: cameraRig.current.pitch };
+    dragOrigin.current = { yaw: cameraRig.current.yaw, pitch: cameraRig.current.pitch, dx: 0, dy: 0 };
     const distance = touchDistance(event);
     pinchOrigin.current = distance === null ? null : { distance, zoom: cameraRig.current.distance };
     previousTouchCount.current = event.nativeEvent.touches.length;
@@ -168,9 +168,12 @@ export const GalaxyScene = ({ selectedSystemId }: GalaxySceneProps) => {
         }
       }
     } else if (count === 1) {
-      cameraRig.current.yaw = dragOrigin.current.yaw + gesture.dx * 0.006;
+      if (previousTouchCount.current >= 2) {
+        dragOrigin.current = { yaw: cameraRig.current.yaw, pitch: cameraRig.current.pitch, dx: gesture.dx, dy: gesture.dy };
+      }
+      cameraRig.current.yaw = dragOrigin.current.yaw + (gesture.dx - dragOrigin.current.dx) * 0.006;
       cameraRig.current.pitch = THREE.MathUtils.clamp(
-        dragOrigin.current.pitch + gesture.dy * 0.004,
+        dragOrigin.current.pitch + (gesture.dy - dragOrigin.current.dy) * 0.004,
         -1.05,
         1.05,
       );
@@ -198,7 +201,7 @@ export const GalaxyScene = ({ selectedSystemId }: GalaxySceneProps) => {
 
   const resetCamera = () => {
     cameraRig.current = { ...DEFAULT_CAMERA };
-    dragOrigin.current = { yaw: DEFAULT_CAMERA.yaw, pitch: DEFAULT_CAMERA.pitch };
+    dragOrigin.current = { yaw: DEFAULT_CAMERA.yaw, pitch: DEFAULT_CAMERA.pitch, dx: 0, dy: 0 };
     pinchOrigin.current = null;
   };
 

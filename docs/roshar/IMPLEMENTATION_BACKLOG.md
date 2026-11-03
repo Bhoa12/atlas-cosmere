@@ -227,3 +227,14 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 - [ ] Verificar el orden editorial y crear unidades de lectura a partir de índices de ediciones concretas.
 
 **Resultado:** se ha añadido la primera capa de tipos y el adaptador de obras. No se ha cambiado aún la persistencia ni el comportamiento de desbloqueo; tampoco se ha declarado completa la auditoría R0.
+
+
+### Iteración 2 — primer selector de spoilers
+
+- [x] Añadir `src/data/roshar/spoilers.ts` con evaluación pura de gates `allOf` / `anyOf`.
+- [x] Fallar de forma cerrada ante gates vacíos, requisitos malformados o unidades que no coinciden con la obra declarada.
+- [x] Exponer un selector que solo devuelve afirmaciones publicadas, con referencias y gate satisfecho.
+- [ ] Añadir suite ejecutable de pruebas unitarias y casos de regresión.
+- [ ] Conectar los selectores con las pantallas; no hacerlo hasta disponer de catálogo de unidades y progreso nuevo.
+
+**Resultado:** existe el primer núcleo de evaluación, todavía no está conectado a la UI ni puede desbloquear contenido porque aún no se ha cargado el catálogo de unidades editoriales.

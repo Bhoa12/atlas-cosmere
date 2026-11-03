@@ -10,6 +10,8 @@
 - Acceso desde la navegación principal mediante la pestaña Cosmere.
 - Escena 3D inicial con React Three Fiber v8 y Three.js: núcleo luminoso, campo de estrellas, anillos orbitales ilustrativos y cuerpos que representan los sistemas del catálogo.
 - Rotación ambiental lenta y resaltado del sistema seleccionado desde los controles nativos de la pantalla.
+- Cámara orbital táctil: arrastre con un dedo para rotar, pinza con dos dedos para acercar/alejar y botón para restablecer el encuadre.
+- Límites de zoom y de inclinación para evitar perder la escena.
 - Modelo de dominio inicial en `models/celestialBody.ts`, que separa metadatos de canon y parámetros de presentación artística.
 
 ## Compatibilidad de dependencias
@@ -27,6 +29,7 @@ Esto es una prueba de integración 3D, no todavía la experiencia final. La cám
 
 ## Próximos hitos
 1. Instalar dependencias y validar la escena en un Android físico: contexto GL, renderizado, memoria y estabilidad.
-2. Añadir controles táctiles de cámara: arrastre para rotar, gesto de pinza para zoom y botón de recentrado.
-3. Implementar la transición galáctica → sistema estelar y después la exploración planetaria.
-4. Incorporar cuerpos celestes solo cuando sus datos estén documentados; marcar explícitamente lo aproximado o desconocido.
+2. Validar los gestos en Android físico y ajustar sensibilidad/rendimiento según el dispositivo.
+3. Añadir selección directa tocando un sistema y desplazamiento lateral de cámara.
+4. Implementar la transición galáctica → sistema estelar y después la exploración planetaria.
+5. Incorporar cuerpos celestes solo cuando sus datos estén documentados; marcar explícitamente lo aproximado o desconocido.

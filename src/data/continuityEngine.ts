@@ -1,58 +1,55 @@
 export interface EvaluacionContinuidad {
-  viabilidadPorcentaje: number;
+  /** Null means the heuristic cannot calculate a defensible probability. */
+  viabilidadPorcentaje: number | null;
   veredicto: string;
-  primeraLey: string; // Explicación vs Solución
-  segundaLey: string; // Límites y debilidades
-  terceraLey: string; // Extrapolación de lo existente
-  analisisEspiritual: string; // Identidad, Conexión y Resistencia
+  primeraLey: string;
+  segundaLey: string;
+  terceraLey: string;
+  analisisEspiritual: string;
 }
 
+const contiene = (texto: string, terminos: string[]) =>
+  terminos.some(termino => texto.includes(termino));
+
+/**
+ * This is a lightweight keyword-based guide, not a canon checker.
+ * It deliberately avoids claiming that a theory is confirmed or assigning
+ * unsupported probability scores.
+ */
 export function evaluarTeoriaMagica(teoriaTexto: string): EvaluacionContinuidad {
-  const t = teoriaTexto.toLowerCase();
+  const t = teoriaTexto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
-  // 1. Caso: Mezcla de Alomancia con Potenciación
-  if ((t.includes('aloman') || t.includes('metal') || t.includes('atium')) && (t.includes('radiante') || t.includes('potencia') || t.includes('luz tormentosa'))) {
+  if (!t) {
     return {
-      viabilidadPorcentaje: 92,
-      veredicto: 'ALTAMENTE FACTIBLE (COMPATIBILIDAD CANÓNICA CONFIRMADA)',
-      primeraLey: 'Cumple la 1ª Ley: La magia alomántica actúa como llave de paso genética, mientras que la Potenciación usa Investidura ambiental directa.',
-      segundaLey: 'Límites claros (2ª Ley): Un Radiante que queme metales requerirá una perla de Lerasium o grapado hemalúrgico previo para alterar su red espiritual.',
-      terceraLey: 'Extrapolación (3ª Ley): Ya observado en Hoid (Sagaz), quien posee ambos sistemas simultáneamente.',
-      analisisEspiritual: 'La Identidad espiritual del esprec no rechaza el metal físico, pues el metal actúa como filtro de frecuencia para el alma.'
+      viabilidadPorcentaje: null,
+      veredicto: 'FALTA UNA TEORÍA QUE ANALIZAR',
+      primeraLey: 'Describe el mecanismo mágico que propones y qué Investidura lo alimentaría.',
+      segundaLey: 'Indica qué límites, costes o condiciones tendría el fenómeno.',
+      terceraLey: 'Explica qué precedentes conocidos apoyan la extrapolación.',
+      analisisEspiritual: 'Aclara qué papel tendrían la Identidad, la Conexión y la intención.'
     };
   }
 
-  // 2. Caso: Romper el límite de Investidura o revivir muertos completos
-  if (t.includes('revivir') || t.includes('resucitar') || t.includes('inmortal') || t.includes('mas alla')) {
-    return {
-      viabilidadPorcentaje: 25,
-      veredicto: 'VIOLACIÓN DE LEY MAYOR (CONTRADICCIÓN TEOLÓGICA)',
-      primeraLey: 'Falla la 1ª Ley: Brandon ha establecido como regla inviolable que lo que cruza al "Más Allá" (Beyond) jamás regresa.',
-      segundaLey: 'Límites absolutos (2ª Ley): Solo se puede revivir si la Sombra Cognitiva aún no se ha disuelto por completo (como Kelsier o los Retornados).',
-      terceraLey: 'Extrapolación (3ª Ley): Ninguna Esquirla, ni siquiera Armonía o Odium, tiene poder sobre el Más Allá.',
-      analisisEspiritual: 'La Conexión espiritual se corta de forma irreversible cuando el cordón de plata se extingue.'
-    };
-  }
+  const mencionaMuerte = contiene(t, ['revivir', 'resucitar', 'muerto', 'mas alla', 'mas alla']);
+  const mencionaHemalurgia = contiene(t, ['hemalurg', 'clavo', 'robar atributo']);
+  const mencionaSistemas = contiene(t, ['alomancia', 'alomant', 'feruquimia', 'radiante', 'investidura', 'luz tormentosa', 'aliento', 'dor']);
 
-  // 3. Caso: Uso de Hemalurgia sobre spren o fabriales
-  if (t.includes('clavo') || t.includes('hemalurg') || t.includes('robar')) {
-    return {
-      viabilidadPorcentaje: 88,
-      veredicto: 'FACTIBLE Y CANÓNICAMENTE COHERENTE',
-      primeraLey: 'Cumple la 1ª Ley: La Hemalurgia es universal en todo el Cosmere porque mutila la red espiritual de cualquier ser consciente.',
-      segundaLey: 'Límites (2ª Ley): Decay de Investidura: El clavo pierde potencia rápidamente si pasa por el aire sin sangre o linfa investida.',
-      terceraLey: 'Extrapolación (3ª Ley): Un clavo de trellium (metal de Autonomía) puede interferir en vínculos spren.',
-      analisisEspiritual: 'Riesgo de contaminación de Identidad extremo entre el donante y el receptor.'
-    };
-  }
-
-  // Evaluación genérica estándar
   return {
-    viabilidadPorcentaje: 65,
-    veredicto: 'TEORÍA EN DISCUSIÓN (REQUIERE DATOS DE ERA ESPACIAL)',
-    primeraLey: 'Principio de Conservación: Toda manifestación requiere una fuente de Investidura (Aliento, Luz, Metales o Dor).',
-    segundaLey: 'Resistencia: Los cuerpos vivos con Investidura previa repelen la manipulación externa (Inercia de Investidura).',
-    terceraLey: 'Consistencia: Respeta las reglas conocidas siempre que no intente crear energía de la nada.',
-    analisisEspiritual: 'La Conexión y la Intención son los catalizadores obligatorios para que el fenómeno se produzca.'
+    viabilidadPorcentaje: null,
+    veredicto: 'ANÁLISIS ORIENTATIVO — NO ES UNA VALIDACIÓN CANÓNICA',
+    primeraLey: mencionaSistemas
+      ? 'Has mencionado uno o varios sistemas de Investidura. Comprueba qué fuente de poder utiliza cada uno y si el mecanismo propuesto tiene un precedente explícito.'
+      : 'No se identifica con claridad un sistema de Investidura. Especifica la fuente de poder y el mecanismo que permitiría el efecto.',
+    segundaLey: mencionaMuerte
+      ? 'La teoría trata sobre muerte o retorno. Distingue entre curación, Retornados, Sombras Cognitivas y aquello que se encuentra más allá; no son fenómenos equivalentes.'
+      : mencionaHemalurgia
+        ? 'La teoría trata sobre Hemalurgia. Considera el atributo robado, el punto de inserción, la compatibilidad espiritual y la pérdida de Investidura.'
+        : 'Explicita los costes, límites, condiciones y posibles efectos secundarios. No basta con que dos sistemas compartan una fuente de Investidura.',
+    terceraLey: 'Busca un precedente textual concreto antes de extrapolar. Una semejanza temática o una aparición aislada no demuestra que dos mecanismos sean intercambiables.',
+    analisisEspiritual: 'Valora por separado Identidad, Conexión, Alma e intención. Su funcionamiento depende del contexto y no debe darse por supuesto.',
   };
 }

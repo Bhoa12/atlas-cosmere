@@ -5,7 +5,26 @@ import { LOGROS_DISPONIBLES } from '../data/gamification';
 import { PROXIMOS_LANZAMIENTOS } from '../data/upcomingReleases';
 
 export const ProfileScreen: React.FC = () => {
-  const { nombreUsuario, apodoActivo, rangoActual, puntosInvestidura, setApodoActivo, todosLosLibrosLeidos } = useCosmere();
+  const { nombreUsuario, apodoActivo, rangoActual, puntosInvestidura, setApodoActivo, todosLosLibrosLeidos, librosLeidos } = useCosmere();
+
+  const condicionesLogros: { [id: string]: boolean } = {
+    '1': !!librosLeidos.tfe,
+    '2': !!librosLeidos.twok,
+    '3': !!librosLeidos.wor,
+    '4': !!librosLeidos.soul,
+    '5': !!librosLeidos.warbreaker,
+    '6': !!librosLeidos.whitesand,
+    '7': !!librosLeidos.tlm && !!librosLeidos.sh,
+    '8': !!librosLeidos.tress,
+    '9': !!librosLeidos.sunlit,
+    '10': puntosInvestidura >= 2000,
+    '11': puntosInvestidura >= 4000,
+    '12': false,
+    '13': !!librosLeidos.o && !!librosLeidos.row,
+    '14': !!librosLeidos.tfe && !!librosLeidos.woa && !!librosLeidos.hoa,
+    '15': !!librosLeidos.aol && !!librosLeidos.sos && !!librosLeidos.bom && !!librosLeidos.tlm,
+    '16': false
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -52,24 +71,29 @@ export const ProfileScreen: React.FC = () => {
 
       {/* CATÁLOGO DE 16 APODOS DESBLOQUEABLES */}
       <Text style={styles.sectionTitle}>TÍTULOS Y APODOS DESBLOQUEABLES</Text>
-      {LOGROS_DISPONIBLES.map(logro => (
-        <View key={logro.id} style={styles.achievementCard}>
+      {LOGROS_DISPONIBLES.map(logro => {
+        const desbloqueado = !!condicionesLogros[logro.id];
+        return (
+        <View key={logro.id} style={[styles.achievementCard, !desbloqueado && styles.achievementLocked]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.achTitle}>{logro.titulo}</Text>
             <Text style={styles.achDesc}>{logro.descripcion}</Text>
             <Text style={styles.achReward}>Título: "{logro.recompensaApodo}"</Text>
+            <Text style={styles.achStatus}>{desbloqueado ? '✓ DESBLOQUEADO' : (logro.id === '12' || logro.id === '16' ? 'EN DESARROLLO' : '🔒 BLOQUEADO')}</Text>
           </View>
           <TouchableOpacity
-            style={styles.equipBtn}
-            onPress={() => {
+            disabled={!desbloqueado}
+            style={[styles.equipBtn, !desbloqueado && styles.equipBtnDisabled]}
+            onPress={() => {}
               setApodoActivo(logro.recompensaApodo);
               Alert.alert('¡Apodo Equipado!', `Tu título activo es ahora: "${logro.recompensaApodo}"`);
             }}
           >
-            <Text style={styles.equipBtnText}>Equipar</Text>
+            <Text style={styles.equipBtnText}>{desbloqueado ? 'Equipar' : 'Bloqueado'}</Text>
           </TouchableOpacity>
         </View>
-      ))}
+      );
+      })}
     </ScrollView>
   );
 };
@@ -98,9 +122,12 @@ const styles = StyleSheet.create({
   progressBarBg: { height: 6, backgroundColor: '#1e293b', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#38bdf8' },
   achievementCard: { flexDirection: 'row', backgroundColor: '#0f172a', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#1e293b', marginBottom: 8, alignItems: 'center' },
+  achievementLocked: { opacity: 0.65 },
   achTitle: { color: '#f8fafc', fontSize: 12, fontWeight: 'bold' },
   achDesc: { color: '#64748b', fontSize: 10, marginVertical: 2 },
   achReward: { color: '#f59e0b', fontSize: 11, fontWeight: '600' },
+  achStatus: { color: '#94a3b8', fontSize: 9, fontWeight: '800', marginTop: 4 },
   equipBtn: { backgroundColor: '#1e293b', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
+  equipBtnDisabled: { backgroundColor: '#111827' },
   equipBtnText: { color: '#38bdf8', fontSize: 11, fontWeight: 'bold' }
 });

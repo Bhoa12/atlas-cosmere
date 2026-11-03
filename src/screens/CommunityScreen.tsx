@@ -8,7 +8,7 @@ export const CommunityScreen: React.FC = () => {
   const [sagaSeleccionada, setSagaSeleccionada] = useState<string>('Archivo de las Tormentas');
   const [libroSeleccionadoId, setLibroSeleccionadoId] = useState<string>('twok');
   const [nuevoTexto, setNuevoTexto] = useState('');
-  const [capituloTeoria, setCapituloTeoria] = useState('75');
+  const [capituloTeoria, setCapituloTeoria] = useState('1');
   const [reveladosManualmente, setReveladosManualmente] = useState<{ [id: string]: boolean }>({});
 
   // Extraer todas las sagas únicas

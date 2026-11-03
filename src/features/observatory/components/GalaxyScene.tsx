@@ -309,8 +309,7 @@ export const GalaxyScene = ({
 
   const resetCamera = () => {
     cameraRig.current = { ...DEFAULT_CAMERA };
-    cameraTargetRef.current.set(0, 0, 0);
-    cameraDistanceRef.current = DEFAULT_CAMERA.distance;
+    // Deja que useFrame interpole el destino y la distancia también al restablecer.
     dragOrigin.current = { yaw: DEFAULT_CAMERA.yaw, pitch: DEFAULT_CAMERA.pitch, dx: 0, dy: 0 };
     pinchOrigin.current = null;
     onReset?.();

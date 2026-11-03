@@ -1,0 +1,27 @@
+name: Observatory Android bundle check
+
+on:
+  push:
+    branches:
+      - feat/cosmere-observatory-galaxy
+  workflow_dispatch:
+
+jobs:
+  android-bundle:
+    name: Export Android bundle (Expo SDK 51)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Export Android bundle
+        run: npx expo export --platform android --output-dir dist

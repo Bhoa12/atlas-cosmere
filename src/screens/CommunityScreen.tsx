@@ -36,6 +36,13 @@ export const CommunityScreen: React.FC = () => {
       Alert.alert('Capítulo no válido', `Introduce un capítulo entre 1 y ${libroSeleccionado.totalCapitulos}.`);
       return;
     }
+    const capituloLeido = librosLeidos[libroSeleccionadoId]
+      ? libroSeleccionado.totalCapitulos
+      : (capituloActualPorLibro[libroSeleccionadoId] ?? 0);
+    if (capitulo > capituloLeido) {
+      Alert.alert('Límite de lectura', `Solo puedes publicar teorías hasta el capítulo ${capituloLeido}, que es tu progreso actual en este libro.`);
+      return;
+    }
     agregarComentario(sagaSeleccionada, libroSeleccionadoId, capitulo, texto);
     setNuevoTexto('');
   };
@@ -129,7 +136,7 @@ export const CommunityScreen: React.FC = () => {
           const estaRevelado = reveladosManualmente[item.id];
 
           return (
-            <View style={styles.card}>
+            <View key={item.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.author}>{item.usuario}</Text>
                 <Text style={styles.bookTag}>Cap. {item.capituloMaximo}</Text>

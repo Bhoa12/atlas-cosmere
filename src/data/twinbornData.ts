@@ -42,7 +42,7 @@ export function calcularResonancia(metalAlomancia: string, metalFeruquimia: stri
   if (metalAlomancia === metalFeruquimia) {
     return {
       nombreTitulo: `Nacido Doble compuesto de ${alomancia.nombre}`,
-      efectoEspecial: `Puedes quemar tu propio metalmInda de ${alomancia.nombre} para multiplicar el atributo almacenado. La amplificación consume el metalmInda y no proporciona reservas infinitas por sí sola; su rendimiento depende de las reservas disponibles y de las reglas de la Composición.`
+      efectoEspecial: `Puedes quemar tu propio metalmind de ${alomancia.nombre} para multiplicar el atributo almacenado. La amplificación consume el metalmind y no proporciona reservas infinitas por sí sola; su rendimiento depende de las reservas disponibles y de las reglas de la Composición.`
     };
   }
 

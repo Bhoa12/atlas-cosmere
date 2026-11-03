@@ -13,21 +13,21 @@ interface ComentarioComunidad {
 }
 
 interface CosmereContextType {
+  reinoCognitivoActivo: boolean; // INTERRUPTOR DE SHADESMAR
   librosLeidos: { [libroId: string]: boolean };
   capituloActualPorLibro: { [libroId: string]: number };
   puntosInvestidura: number;
   rangoActual: RangoCosmere;
   apodoActivo: string;
   nombreUsuario: string;
-  fondoActivo: string;
   comentarios: ComentarioComunidad[];
   testsCompletadosExitosos: { [testId: string]: boolean };
+  toggleReinoCognitivo: () => void;
   toggleLibroLeido: (libroId: string) => void;
   setCapituloLibro: (libroId: string, cap: number) => void;
   sumarPuntosTestUnico: (testId: string, puntos: number) => boolean;
   setApodoActivo: (apodo: string) => void;
   setNombreUsuario: (nombre: string) => void;
-  setFondoActivo: (fondo: string) => void;
   agregarComentario: (sagaId: string, libroId: string, capitulo: number, texto: string) => void;
   darLuzTormentosa: (comentarioId: string) => void;
   esContenidoDesbloqueado: (desbloqueoLibroId: string) => boolean;
@@ -37,6 +37,7 @@ interface CosmereContextType {
 const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
 
 export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [reinoCognitivoActivo, setReinoCognitivoActivo] = useState(false);
   const [librosLeidos, setLibrosLeidos] = useState<{ [libroId: string]: boolean }>({
     'tfe': true,
     'twok': true
@@ -48,7 +49,6 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [puntosInvestidura, setPuntosInvestidura] = useState<number>(450);
   const [apodoActivo, setApodoActivo] = useState<string>('Ojo de Estaño');
   const [nombreUsuario, setNombreUsuario] = useState<string>('Trotamundos de Silverlight');
-  const [fondoActivo, setFondoActivo] = useState<string>('#090d16');
   const [testsCompletadosExitosos, setTestsCompletadosExitosos] = useState<{ [testId: string]: boolean }>({});
 
   const [comentarios, setComentarios] = useState<ComentarioComunidad[]>([
@@ -60,19 +60,13 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       capituloMaximo: 75,
       contenido: 'El puente cuatro saltando el abismo al final sigue poniéndome la piel de gallina.',
       luzTormentosaLikes: 34
-    },
-    {
-      id: 'c2',
-      usuario: 'LuthadelShadow',
-      sagaId: 'Nacidos de la Bruma Era 1',
-      libroId: 'tfe',
-      capituloMaximo: 34,
-      contenido: 'Kelsier sonriendo frente al Lord Legislador... jamás habrá un personaje igual.',
-      luzTormentosaLikes: 52
     }
   ]);
 
-  // Contar si todos los libros están leídos
+  const toggleReinoCognitivo = () => {
+    setReinoCognitivoActivo(prev => !prev);
+  };
+
   const totalLibrosEnUniverso = SISTEMAS_COSMERE_COMPLETO.reduce((acc, sis) => acc + sis.libros.length, 0);
   const totalLeidosCount = Object.values(librosLeidos).filter(Boolean).length;
   const todosLosLibrosLeidos = totalLeidosCount >= totalLibrosEnUniverso;
@@ -85,33 +79,25 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: cap }));
   };
 
-  // Anti-Farming: Si ya lo acertó una vez, devuelve false y NO suma puntos
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {
-    if (testsCompletadosExitosos[testId]) {
-      return false;
-    }
+    if (testsCompletadosExitosos[testId]) return false;
     setTestsCompletadosExitosos(prev => ({ ...prev, [testId]: true }));
     setPuntosInvestidura(prev => prev + puntos);
     return true;
   };
 
-  // Cálculo del Rango con exigencia de lectura completa para el rango máximo
   const rangoActual = (() => {
     const rangosOrdenados = [...RANGOS_COSMERICOS].reverse();
     for (const r of rangosOrdenados) {
       if (puntosInvestidura >= r.puntosMinimos) {
-        if (r.requiereTodosLosLibros && !todosLosLibrosLeidos) {
-          continue; // No puede ascender a Vaso de Esquirla si no ha leído todo
-        }
+        if (r.requiereTodosLosLibros && !todosLosLibrosLeidos) continue;
         return r;
       }
     }
     return RANGOS_COSMERICOS[0];
   })();
 
-  const esContenidoDesbloqueado = (desbloqueoLibroId: string) => {
-    return !!librosLeidos[desbloqueoLibroId];
-  };
+  const esContenidoDesbloqueado = (desbloqueoLibroId: string) => !!librosLeidos[desbloqueoLibroId];
 
   const agregarComentario = (sagaId: string, libroId: string, capitulo: number, texto: string) => {
     const nuevo: ComentarioComunidad = {
@@ -132,21 +118,21 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   return (
     <CosmereContext.Provider value={{
+      reinoCognitivoActivo,
       librosLeidos,
       capituloActualPorLibro,
       puntosInvestidura,
       rangoActual,
       apodoActivo,
       nombreUsuario,
-      fondoActivo,
       comentarios,
       testsCompletadosExitosos,
+      toggleReinoCognitivo,
       toggleLibroLeido,
       setCapituloLibro,
       sumarPuntosTestUnico,
       setApodoActivo,
       setNombreUsuario,
-      setFondoActivo,
       agregarComentario,
       darLuzTormentosa,
       esContenidoDesbloqueado,

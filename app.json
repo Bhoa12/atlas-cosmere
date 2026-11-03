@@ -2,6 +2,7 @@
   "expo": {
     "name": "Atlas del Cosmere",
     "slug": "atlas-cosmere",
+    "owner": "bhoa12s-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",

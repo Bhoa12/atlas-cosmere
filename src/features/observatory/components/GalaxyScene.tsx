@@ -100,6 +100,8 @@ const GalaxyModel = ({
   cameraRig,
   cameraRef,
   sceneRef,
+  cameraTargetRef,
+  cameraDistanceRef,
 }: {
   selectedSystemId?: string;
   focusedSystemId?: string;
@@ -107,6 +109,8 @@ const GalaxyModel = ({
   cameraRig: React.MutableRefObject<CameraRig>;
   cameraRef: React.MutableRefObject<THREE.Camera | null>;
   sceneRef: React.MutableRefObject<THREE.Scene | null>;
+  cameraTargetRef: React.MutableRefObject<THREE.Vector3>;
+  cameraDistanceRef: React.MutableRefObject<number>;
 }) => {
   const rotation = useRef<THREE.Group | null>(null);
   const { camera, scene } = useThree();
@@ -116,7 +120,12 @@ const GalaxyModel = ({
   useFrame((_, delta) => {
     const focusedIndex = SISTEMAS_COSMERE_COMPLETO.findIndex((system) => system.id === focusedSystemId);
     if (rotation.current) {
-      rotation.current.rotation.y = focusedIndex >= 0 ? 0 : rotation.current.rotation.y + delta * 0.018;
+      if (focusedIndex >= 0) {
+        // Endereza suavemente el plano galáctico al enfocar un sistema.
+        rotation.current.rotation.y = THREE.MathUtils.damp(rotation.current.rotation.y, 0, 2.4, delta);
+      } else {
+        rotation.current.rotation.y += delta * 0.018;
+      }
     }
 
     const { yaw, pitch, distance } = cameraRig.current;
@@ -127,16 +136,23 @@ const GalaxyModel = ({
       Math.cos(yaw) * horizontal,
     ).normalize();
 
-    let target = new THREE.Vector3(0, 0, 0);
-    let cameraDistance = distance;
+    const target = new THREE.Vector3(0, 0, 0);
+    let desiredDistance = distance;
     if (viewMode === 'system') {
-      cameraDistance = 5.2;
+      // Conserva el encuadre inicial de 5.2 unidades y permite zoom con pinza.
+      desiredDistance = THREE.MathUtils.clamp(distance * (5.2 / DEFAULT_CAMERA.distance), 2.6, 9);
     } else if (focusedIndex >= 0) {
-      target = new THREE.Vector3(...getSystemPosition(focusedIndex));
-      cameraDistance = 1.35;
+      target.set(...getSystemPosition(focusedIndex));
+      // El nodo aún puede estar girando hacia su orientación frontal.
+      target.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation.current?.rotation.y ?? 0);
+      desiredDistance = THREE.MathUtils.clamp(1.35 * (distance / DEFAULT_CAMERA.distance), 0.75, 2.5);
     }
-    camera.position.copy(target).add(direction.multiplyScalar(cameraDistance));
-    camera.lookAt(target);
+
+    const blend = 1 - Math.exp(-4.2 * delta);
+    cameraTargetRef.current.lerp(target, blend);
+    cameraDistanceRef.current = THREE.MathUtils.damp(cameraDistanceRef.current, desiredDistance, 4.2, delta);
+    camera.position.copy(cameraTargetRef.current).add(direction.multiplyScalar(cameraDistanceRef.current));
+    camera.lookAt(cameraTargetRef.current);
     camera.updateMatrixWorld();
     scene.updateMatrixWorld(true);
   });
@@ -205,6 +221,8 @@ export const GalaxyScene = ({
   const touchCountOnGrant = useRef(0);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraTargetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const cameraDistanceRef = useRef(DEFAULT_CAMERA.distance);
   const stageSize = useRef({ width: 1, height: 1 });
   const raycaster = useRef(new THREE.Raycaster());
   const viewModeRef = useRef(viewMode);
@@ -291,6 +309,8 @@ export const GalaxyScene = ({
 
   const resetCamera = () => {
     cameraRig.current = { ...DEFAULT_CAMERA };
+    cameraTargetRef.current.set(0, 0, 0);
+    cameraDistanceRef.current = DEFAULT_CAMERA.distance;
     dragOrigin.current = { yaw: DEFAULT_CAMERA.yaw, pitch: DEFAULT_CAMERA.pitch, dx: 0, dy: 0 };
     pinchOrigin.current = null;
     onReset?.();
@@ -317,6 +337,8 @@ export const GalaxyScene = ({
           cameraRig={cameraRig}
           cameraRef={cameraRef}
           sceneRef={sceneRef}
+          cameraTargetRef={cameraTargetRef}
+          cameraDistanceRef={cameraDistanceRef}
         />
       </Canvas>
       <View pointerEvents="none" style={styles.hint}>

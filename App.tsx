@@ -13,7 +13,7 @@ const MainNavigator = () => {
   const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState(SISTEMAS_COSMERE_COMPLETO[0]);
   const [libroModal, setLibroModal] = useState<Libro | null>(null);
-  const { toggleLibroLeido, librosLeidos, reinoCognitivoActivo, toggleReinoCognitivo } = useCosmere();
+  const { toggleLibroLeido, librosLeidos, capituloActualPorLibro, setCapituloLibro, reinoCognitivoActivo, toggleReinoCognitivo } = useCosmere();
 
   const themeBg = reinoCognitivoActivo ? '#030712' : '#090d16';
   const themeCard = reinoCognitivoActivo ? '#0b0f19' : '#0f172a';
@@ -97,6 +97,31 @@ const MainNavigator = () => {
                     <Text style={styles.bookTitle}>{lib.titulo} ℹ️</Text>
                     <Text style={styles.bookMeta}>{lib.saga} • {lib.totalCapitulos} Caps</Text>
                   </TouchableOpacity>
+                  <View style={styles.bookProgress}>
+                    <Text style={styles.bookProgressText}>
+                      {Math.min(capituloActualPorLibro[lib.id] ?? 0, lib.totalCapitulos)}/{lib.totalCapitulos}
+                    </Text>
+                    <View style={styles.bookProgressControls}>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Restar capítulo de ${lib.titulo}`}
+                        disabled={(capituloActualPorLibro[lib.id] ?? 0) <= 0}
+                        onPress={() => setCapituloLibro(lib.id, (capituloActualPorLibro[lib.id] ?? 0) - 1)}
+                        style={styles.chapterStepBtn}
+                      >
+                        <Text style={styles.chapterStepText}>−</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Avanzar capítulo de ${lib.titulo}`}
+                        disabled={(capituloActualPorLibro[lib.id] ?? 0) >= lib.totalCapitulos}
+                        onPress={() => setCapituloLibro(lib.id, (capituloActualPorLibro[lib.id] ?? 0) + 1)}
+                        style={styles.chapterStepBtn}
+                      >
+                        <Text style={styles.chapterStepText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                   <TouchableOpacity
                     style={[styles.readToggleBtn, leido && styles.readToggleBtnActive]}
                     onPress={() => toggleLibroLeido(lib.id)}
@@ -225,6 +250,11 @@ const styles = StyleSheet.create({
   bookRowRead: { borderColor: '#10b981' },
   bookTitle: { color: '#f8fafc', fontSize: 13, fontWeight: '700' },
   bookMeta: { color: '#64748b', fontSize: 11, marginTop: 2 },
+  bookProgress: { alignItems: 'center', justifyContent: 'center', marginHorizontal: 8 },
+  bookProgressText: { color: '#94a3b8', fontSize: 9, fontWeight: '700', marginBottom: 3 },
+  bookProgressControls: { flexDirection: 'row', gap: 4 },
+  chapterStepBtn: { width: 24, height: 24, borderRadius: 6, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' },
+  chapterStepText: { color: '#38bdf8', fontSize: 16, fontWeight: 'bold', lineHeight: 18 },
   readToggleBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, backgroundColor: '#1e293b' },
   readToggleBtnActive: { backgroundColor: '#064e3b' },
   statusTag: { fontSize: 11, fontWeight: '800' },

@@ -15,22 +15,22 @@ export const PROXIMOS_LANZAMIENTOS: ProximoLanzamiento[] = [
     id: 'fires_of_december',
     titulo: 'The Fires of December',
     saga: 'Cosmere · Novela independiente narrada por Hoid',
-    fechaLanzamientoISO: '2026-12-01',
+    fechaLanzamientoISO: null,
     descripcion: 'Novela independiente del Cosmere anunciada para edición comercial en diciembre de 2026. La fecha exacta puede variar según la edición y el mercado.',
     planeta: 'Cosmere',
     progresoEscrituraBrandon: null,
-    estado: 'Anunciado oficialmente',
+    estado: 'Diciembre de 2026 · mes anunciado',
     fuente: 'https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025'
   },
   {
     id: 'ghostbloods_1',
     titulo: 'Mistborn: Ghostbloods 1',
     saga: 'Nacidos de la Bruma · Era 3',
-    fechaLanzamientoISO: '2028-12-01',
+    fechaLanzamientoISO: null,
     descripcion: 'Primera novela de la siguiente era de Nacidos de la Bruma.',
     planeta: 'Scadrial',
     progresoEscrituraBrandon: null,
-    estado: 'Ventana prevista: diciembre de 2028',
+    estado: 'Diciembre de 2028 · ventana prevista',
     fuente: 'https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025'
   },
   {

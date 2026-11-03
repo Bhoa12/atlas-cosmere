@@ -62,7 +62,7 @@ const GalaxyBody = ({ index, color, selected }: { index: number; color: string; 
 };
 
 const GalaxyModel = ({ selectedSystemId }: GalaxySceneProps) => {
-  const rotation = useRef<THREE.Group>(null);
+  const rotation = useRef<THREE.Group | null>(null);
   useFrame((_, delta) => {
     if (rotation.current) rotation.current.rotation.y += delta * 0.035;
   });

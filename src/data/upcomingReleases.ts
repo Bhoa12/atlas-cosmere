@@ -2,47 +2,57 @@ export interface ProximoLanzamiento {
   id: string;
   titulo: string;
   saga: string;
-  fechaLanzamientoISO: string; // Formato AAAA-MM-DD
+  fechaLanzamientoISO: string | null;
   descripcion: string;
   planeta: string;
-  progresoEscrituraBrandon: number; // Porcentaje oficial
+  progresoEscrituraBrandon: number | null;
+  estado: string;
+  fuente: string;
 }
 
 export const PROXIMOS_LANZAMIENTOS: ProximoLanzamiento[] = [
   {
-    id: 'horneater',
-    titulo: 'Comecuernos (Horneater)',
-    saga: 'El Archivo de las Tormentas (Novela 4.5)',
-    fechaLanzamientoISO: '2026-12-15T00:00:00Z',
-    descripcion: 'La esperada novela centrada en Numuhukumakiaki\'aialunamor (Roca) regresando a los Picos de los Comecuernos.',
-    planeta: 'Roshar',
-    progresoEscrituraBrandon: 85
-  },
-  {
-    id: 'whitesand_prose',
-    titulo: 'Arena Blanca (Versión Novela en Prosa)',
-    saga: 'Taldain',
-    fechaLanzamientoISO: '2027-06-20T00:00:00Z',
-    descripcion: 'Reescritura y canonización definitiva en formato novela de la historia de Kenton y Khriss.',
-    planeta: 'Taldain',
-    progresoEscrituraBrandon: 100
+    id: 'fires_of_december',
+    titulo: 'The Fires of December',
+    saga: 'Cosmere · Novela independiente narrada por Hoid',
+    fechaLanzamientoISO: '2026-12-01',
+    descripcion: 'Novela independiente del Cosmere anunciada para edición comercial en diciembre de 2026. La fecha exacta puede variar según la edición y el mercado.',
+    planeta: 'Cosmere',
+    progresoEscrituraBrandon: null,
+    estado: 'Anunciado oficialmente',
+    fuente: 'https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025'
   },
   {
     id: 'ghostbloods_1',
-    titulo: 'Nacidos de la Bruma Era 3: Ghostbloods 1',
-    saga: 'Nacidos de la Bruma Era 3',
-    fechaLanzamientoISO: '2028-12-08T00:00:00Z',
-    descripcion: 'Thriller de espionaje tecnológico ambientado en un Scadrial con tecnología de principios de los años 80 e informática básica.',
+    titulo: 'Mistborn: Ghostbloods 1',
+    saga: 'Nacidos de la Bruma · Era 3',
+    fechaLanzamientoISO: '2028-12-01',
+    descripcion: 'Primera novela de la siguiente era de Nacidos de la Bruma.',
     planeta: 'Scadrial',
-    progresoEscrituraBrandon: 45
+    progresoEscrituraBrandon: null,
+    estado: 'Ventana prevista: diciembre de 2028',
+    fuente: 'https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025'
   },
   {
     id: 'elantris_2',
     titulo: 'Elantris 2',
-    saga: 'Sel',
-    fechaLanzamientoISO: '2029-10-15T00:00:00Z',
-    descripcion: 'Secuela oficial explorando el impacto del nuevo AonDor en otras naciones de Sel como Fjorden.',
+    saga: 'Elantris',
+    fechaLanzamientoISO: null,
+    descripcion: 'Secuela prevista, sin fecha de publicación confirmada en la actualización oficial consultada.',
     planeta: 'Sel',
-    progresoEscrituraBrandon: 15
+    progresoEscrituraBrandon: null,
+    estado: 'Sin fecha confirmada',
+    fuente: 'https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025'
+  },
+  {
+    id: 'horneater',
+    titulo: 'Horneater',
+    saga: 'El Archivo de las Tormentas · Novela 4.5',
+    fechaLanzamientoISO: null,
+    descripcion: 'Novela centrada en Roca. No se debe presentar una fecha anterior como confirmada sin una actualización oficial vigente.',
+    planeta: 'Roshar',
+    progresoEscrituraBrandon: null,
+    estado: 'Sin fecha confirmada',
+    fuente: 'https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025'
   }
 ];

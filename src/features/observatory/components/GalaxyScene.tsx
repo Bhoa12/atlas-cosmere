@@ -257,6 +257,7 @@ export const GalaxyScene = ({
       onPanResponderRelease: (event, gesture) => {
         if (
           viewModeRef.current === 'galaxy'
+          && touchCountOnGrant.current === 1
           && Math.abs(gesture.dx) < 12
           && Math.abs(gesture.dy) < 12
           && cameraRef.current
@@ -274,10 +275,12 @@ export const GalaxyScene = ({
         }
         pinchOrigin.current = null;
         previousTouchCount.current = 0;
+        touchCountOnGrant.current = 0;
       },
       onPanResponderTerminate: () => {
         pinchOrigin.current = null;
         previousTouchCount.current = 0;
+        touchCountOnGrant.current = 0;
       },
     }),
   ).current;

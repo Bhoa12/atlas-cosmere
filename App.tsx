@@ -242,5 +242,3 @@ const styles = StyleSheet.create({
   navIcon: { fontSize: 16, marginBottom: 2 },
   navText: { color: '#64748b', fontSize: 8, fontWeight: '700' }
 });
-
-registerRootComponent(App);

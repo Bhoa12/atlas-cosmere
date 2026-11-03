@@ -50,7 +50,7 @@ export const ProfileScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* TODOS LOS PRÓXIMOS LANZAMIENTOS OFICIALES */}
+      {/* Proyectos anunciados; fechas y avances no confirmados se indican expresamente. */}
       <Text style={styles.sectionTitle}>CALENDARIO DE PROYECTOS Y LANZAMIENTOS</Text>
       {PROXIMOS_LANZAMIENTOS.map(lan => (
         <View key={lan.id} style={styles.releaseCard}>
@@ -59,14 +59,14 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.releasePlanet}>{lan.planeta}</Text>
           </View>
           <Text style={styles.releaseTitle}>{lan.titulo}</Text>
-          <Text style={styles.releaseDate}>Fecha prevista: {new Date(lan.fechaLanzamientoISO).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+          <Text style={styles.releaseDate}>{lan.fechaLanzamientoISO ? `Fecha prevista: ${new Date(lan.fechaLanzamientoISO + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}` : lan.estado}</Text>
           <Text style={styles.releaseDesc}>{lan.descripcion}</Text>
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>Avance registrado en la ficha: {lan.progresoEscrituraBrandon}%</Text>
+          {lan.progresoEscrituraBrandon !== null && <View style={styles.progressContainer}>
+            <Text style={styles.progressLabel}>Progreso publicado: {lan.progresoEscrituraBrandon}%</Text>
             <View style={styles.progressBarBg}>
               <View style={[styles.progressBarFill, { width: `${lan.progresoEscrituraBrandon}%` }]} />
             </View>
-          </View>
+          </View>}
         </View>
       ))}
 

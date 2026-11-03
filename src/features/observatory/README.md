@@ -16,6 +16,6 @@ La vista galáctica actual es una primera maqueta interactiva 2D hecha con compo
 
 ## Próximos hitos
 1. Validar navegación, TypeScript y layout en Android.
-2. Crear una prueba aislada de render 3D con versiones compatibles con el SDK del proyecto.
-3. Añadir cámara/gestos y transiciones galáctica → sistema estelar.
+2. Instalar dependencias y ejecutar la app en un Android físico para validar el contexto GL, la carga de la escena y el rendimiento.
+3. Añadir cámara/gestos (rotación manual, zoom y recentrado) y transiciones galáctica → sistema estelar.
 4. Incorporar sistemas y cuerpos únicamente cuando sus datos estén documentados; marcar explícitamente lo aproximado o desconocido.

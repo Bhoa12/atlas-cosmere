@@ -51,7 +51,7 @@ export const ProfileScreen: React.FC = () => {
       </View>
 
       {/* TODOS LOS PRÓXIMOS LANZAMIENTOS OFICIALES */}
-      <Text style={styles.sectionTitle}>CALENDARIO DE LANZAMIENTOS DE BRANDON</Text>
+      <Text style={styles.sectionTitle}>CALENDARIO DE PROYECTOS Y LANZAMIENTOS</Text>
       {PROXIMOS_LANZAMIENTOS.map(lan => (
         <View key={lan.id} style={styles.releaseCard}>
           <View style={styles.releaseHeader}>
@@ -59,9 +59,10 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.releasePlanet}>{lan.planeta}</Text>
           </View>
           <Text style={styles.releaseTitle}>{lan.titulo}</Text>
+          <Text style={styles.releaseDate}>Fecha prevista: {new Date(lan.fechaLanzamientoISO).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
           <Text style={styles.releaseDesc}>{lan.descripcion}</Text>
           <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>Progreso de Escritura: {lan.progresoEscrituraBrandon}%</Text>
+            <Text style={styles.progressLabel}>Avance registrado en la ficha: {lan.progresoEscrituraBrandon}%</Text>
             <View style={styles.progressBarBg}>
               <View style={[styles.progressBarFill, { width: `${lan.progresoEscrituraBrandon}%` }]} />
             </View>
@@ -116,6 +117,7 @@ const styles = StyleSheet.create({
   releaseSaga: { color: '#38bdf8', fontSize: 10, fontWeight: 'bold' },
   releasePlanet: { color: '#64748b', fontSize: 10 },
   releaseTitle: { color: '#f8fafc', fontSize: 14, fontWeight: '900', marginVertical: 2 },
+  releaseDate: { color: '#a3a3a3', fontSize: 10, marginBottom: 5 },
   releaseDesc: { color: '#94a3b8', fontSize: 11, lineHeight: 16, marginBottom: 8 },
   progressContainer: { marginTop: 4 },
   progressLabel: { color: '#cbd5e1', fontSize: 10, marginBottom: 3 },

@@ -1,3 +1,4 @@
+import { registerRootComponent } from 'expo';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from 'react-native';
 import { CosmereProvider, useCosmere } from './src/context/CosmereContext';
@@ -158,3 +159,4 @@ const styles = StyleSheet.create({
   navText: { color: '#64748b', fontSize: 9, fontWeight: '700' },
   navTextActive: { color: '#38bdf8' }
 });
+registerRootComponent(App);

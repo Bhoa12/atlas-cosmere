@@ -84,7 +84,7 @@ export const ProfileScreen: React.FC = () => {
           <TouchableOpacity
             disabled={!desbloqueado}
             style={[styles.equipBtn, !desbloqueado && styles.equipBtnDisabled]}
-            onPress={() => {}
+            onPress={() => {
               setApodoActivo(logro.recompensaApodo);
               Alert.alert('¡Apodo Equipado!', `Tu título activo es ahora: "${logro.recompensaApodo}"`);
             }}

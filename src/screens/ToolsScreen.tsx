@@ -458,6 +458,8 @@ const styles = StyleSheet.create({
   evalCard: { backgroundColor: '#0f172a', padding: 16, borderRadius: 14, borderWidth: 2, borderColor: '#10b981', marginTop: 10 },
   evalScoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   evalPercent: { color: '#34d399', fontSize: 24, fontWeight: '900' },
+  evalScoreValue: { alignItems: 'center' },
+  evalMetricLabel: { color: '#64748b', fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
   evalVerdict: { color: '#f8fafc', fontSize: 11, fontWeight: 'bold', flex: 1, textAlign: 'right' },
   lawBox: { backgroundColor: '#090d16', padding: 10, borderRadius: 8, marginBottom: 8 },
   lawTitle: { color: '#38bdf8', fontSize: 10, fontWeight: 'bold', marginBottom: 2 },

@@ -10,7 +10,7 @@ interface Mensaje {
 }
 
 export const HoidScreen: React.FC = () => {
-  const { librosLeidos } = useCosmere();
+  const { librosLeidos, todosLosLibrosLeidos } = useCosmere();
   const [apiKey, setApiKey] = useState('');
   const [cargando, setCargando] = useState(false);
   const [mostrarConfigKey, setMostrarConfigKey] = useState(false);
@@ -90,10 +90,12 @@ Si te preguntan por algo que no ha leído, evádelo con estilo de Hoid diciendo 
       let respuesta = '';
       const minus = textoUsuario.toLowerCase();
 
-      if ((minus.includes('thaidakar') || minus.includes('kelsier')) && !librosLeidos['sh']) {
+      if ((minus.includes('thaidakar') || minus.includes('kelsier')) && (!librosLeidos['sh'] || !librosLeidos['tlm'])) {
         respuesta = '¿Thaidakar? Ah, pronuncias nombres que resuenan en las sombras del Reino Cognitivo. Tus ojos aún no han visto esa historia (requiere "Historia Secreta"). Sé paciente.';
-      } else if (minus.includes('espada') && !librosLeidos['wor']) {
+      } else if (minus.includes('espada') && (!librosLeidos['warbreaker'] || !librosLeidos['o'])) {
         respuesta = 'Ciertas hojas de metal negro tienen un apetito voraz por la Investidura... pero aún no has presenciado ese reencuentro en las llanuras.';
+      } else if ((minus.includes('shards') || minus.includes('esquirlas') || minus.includes('adonalsium')) && !todosLosLibrosLeidos) {
+        respuesta = 'Ah, preguntas por asuntos que se encuentran muy lejos en el mapa. No quisiera robarte el placer de descubrirlos en las páginas que aún te esperan.';
       } else if (minus.includes('shards') || minus.includes('esquirlas') || minus.includes('adonalsium')) {
         respuesta = 'Dieciséis Esquirlas surgieron de la Fragmentación. Yo rechacé tomar una. Llevar un fragmento de dios en el bolsillo te deforma la perspectiva y arruina la ropa.';
       } else {

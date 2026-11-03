@@ -6,24 +6,24 @@
 - Los nombres y metadatos descriptivos se reutilizan del catálogo actual de Atlas.
 
 ## Implementación incluida
-- Pantalla independiente: \`src/screens/ObservatoryScreen.tsx\`.
+- Pantalla independiente: `src/screens/ObservatoryScreen.tsx`.
 - Acceso desde la navegación principal mediante la pestaña Cosmere.
 - Escena 3D con React Three Fiber v8 y Three.js: núcleo luminoso, campo de estrellas, anillos orbitales ilustrativos y cuerpos que representan los sistemas del catálogo.
 - Cámara orbital táctil: arrastre con un dedo para rotar, pinza con dos dedos para acercar/alejar y botón para restablecer el encuadre.
 - Selección directa de un sistema mediante toque: raycasting sobre las esferas 3D, resaltado y enfoque de cámara sobre el sistema seleccionado.
 - Entrada a una vista de sistema estelar con esquema abstracto de estrella y órbitas ilustrativas, además de navegación para volver a la galaxia.
 - La vista de sistema no representa planetas, lunas ni órbitas concretas: el catálogo todavía no proporciona datos verificados suficientes. No se generan cuerpos ficticios.
-- Modelo de dominio inicial en \`models/celestialBody.ts\`, que separa metadatos de canon y parámetros de presentación artística.
+- Modelo de dominio inicial en `models/celestialBody.ts`, que separa metadatos de canon y parámetros de presentación artística.
 
 ## Compatibilidad de dependencias
 El proyecto permanece en Expo SDK 51, React 18.2 y React Native 0.74.5. Se han añadido versiones de la línea compatible:
-- \`@react-three/fiber ^8.17.10\` (Fiber 8 corresponde a React 18).
-- \`three ^0.164.1\`.
-- \`expo-gl ~14.0.2\`.
-- \`expo-asset ~10.0.6\`.
-- \`expo-file-system ~17.0.1\`.
+- `@react-three/fiber ^8.17.10` (Fiber 8 corresponde a React 18).
+- `three ^0.164.1`.
+- `expo-gl ~14.0.2`.
+- `expo-asset ~10.0.6`.
+- `expo-file-system ~17.0.1`.
 
-Instalar las dependencias con \`npm install\` y después ejecutar \`npx expo start\`. No se ha actualizado Expo ni React Native. No se ha generado lockfile porque el repositorio no contenía uno.
+Instalar las dependencias con `npm install` y después ejecutar `npx expo start`. No se ha actualizado Expo ni React Native. No se ha generado lockfile porque el repositorio no contenía uno.
 
 ## Límites de esta fase
 Esto sigue siendo una implementación inicial, pendiente de validación. No se ha ejecutado TypeScript, una compilación de Expo ni una prueba en dispositivo Android físico desde esta edición remota. La selección por raycasting, los gestos y el contexto GL deben verificarse en Android real. El esquema de sistema es conceptual y no constituye una afirmación de canon.

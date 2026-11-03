@@ -49,7 +49,14 @@ export const ObservatoryScreen = () => {
         {SISTEMAS_COSMERE_COMPLETO.map((system) => {
           const active = selectedSystem?.id === system.id;
           return (
-            <TouchableOpacity key={system.id} onPress={() => { setSelectedId(system.id); setFocusedId(system.id); setViewMode('galaxy'); }} style={[styles.systemChip, active && { borderColor: system.colorAura, backgroundColor: '#172235' }]}>
+            <TouchableOpacity
+              key={system.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Seleccionar sistema ${system.planeta}`}
+              accessibilityState={{ selected: active }}
+              onPress={() => { setSelectedId(system.id); setFocusedId(system.id); setViewMode('galaxy'); }}
+              style={[styles.systemChip, active && { borderColor: system.colorAura, backgroundColor: '#172235' }]}
+            >
               <View style={[styles.chipDot, { backgroundColor: system.colorAura }]} />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{system.planeta}</Text>
             </TouchableOpacity>
@@ -111,15 +118,6 @@ const styles = StyleSheet.create({
   modePill: { borderRadius: 20, borderWidth: 1, borderColor: '#756449', paddingHorizontal: 8, paddingVertical: 4 },
   modeText: { color: '#d6b477', fontSize: 8, fontWeight: '800', letterSpacing: 0.7 },
   galaxyStage: { height: 270, marginTop: 8, position: 'relative', overflow: 'hidden' },
-  star: { position: 'absolute', borderRadius: 5, backgroundColor: '#d9e7f5', opacity: 0.75 },
-  nebulaOne: { position: 'absolute', width: 210, height: 100, left: '18%', top: '30%', borderRadius: 100, backgroundColor: '#32436b', opacity: 0.28, transform: [{ rotate: '-24deg' }] },
-  nebulaTwo: { position: 'absolute', width: 150, height: 72, left: '46%', top: '44%', borderRadius: 100, backgroundColor: '#75506f', opacity: 0.2, transform: [{ rotate: '28deg' }] },
-  galaxyCoreOuter: { position: 'absolute', width: 82, height: 82, left: '50%', top: '50%', marginLeft: -41, marginTop: -41, borderRadius: 50, borderWidth: 1, borderColor: '#d6b47766', backgroundColor: '#d6b47712' },
-  galaxyCoreInner: { position: 'absolute', width: 24, height: 24, left: '50%', top: '50%', marginLeft: -12, marginTop: -12, borderRadius: 20, backgroundColor: '#e6c88d', opacity: 0.8 },
-  systemNode: { position: 'absolute', width: 38, height: 38, marginLeft: -19, marginTop: -19, borderRadius: 22, borderWidth: 1.5, backgroundColor: '#0b1220', alignItems: 'center', justifyContent: 'center' },
-  nodeText: { color: '#e7edf5', fontSize: 9, fontWeight: '800' },
-  activeNodeText: { color: '#111827' },
-  coreCaption: { position: 'absolute', left: '50%', top: '50%', marginTop: 48, marginLeft: -25, color: '#d6b477', fontSize: 8, letterSpacing: 1, fontWeight: '800' },
   legend: { color: '#718096', fontSize: 9, lineHeight: 14, marginTop: 2 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 22, marginBottom: 10 },
   sectionTitle: { color: '#f1e7d4', fontSize: 15, fontWeight: '800' },

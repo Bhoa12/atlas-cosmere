@@ -6,7 +6,7 @@ import { GalaxyScene } from '../features/observatory/components/GalaxyScene';
 
 
 export const ObservatoryScreen = () => {
-  const [selectedId, setSelectedId] = useState(SISTEMAS_COSMERE_COMPLETO[0]?.id);
+  const [selectedId, setSelectedId] = useState(SISTEMAS_COSMERE_COMPLETO[0]?.id);\n  const [focusedId, setFocusedId] = useState<string | undefined>();\n  const [viewMode, setViewMode] = useState<'galaxy' | 'system'>('galaxy');
   const selectedSystem = useMemo(
     () => SISTEMAS_COSMERE_COMPLETO.find((system) => system.id === selectedId) || SISTEMAS_COSMERE_COMPLETO[0],
     [selectedId],
@@ -24,11 +24,11 @@ export const ObservatoryScreen = () => {
 
       <View style={styles.galaxyPanel}>
         <View style={styles.panelTopline}>
-          <Text style={styles.panelLabel}>VISTA GALÁCTICA</Text>
+          <Text style={styles.panelLabel}>{viewMode === 'galaxy' ? 'VISTA GALÁCTICA' : 'SISTEMA ESTELAR'}</Text>
           <View style={styles.modePill}><Text style={styles.modeText}>ESCALA ARTÍSTICA</Text></View>
         </View>
         <View style={styles.galaxyStage}>
-          <GalaxyScene selectedSystemId={selectedId} />
+          <GalaxyScene\n            selectedSystemId={selectedId}\n            focusedSystemId={focusedId}\n            viewMode={viewMode}\n            onSelectSystem={(id) => { setSelectedId(id); setFocusedId(id); }}\n            onReset={() => { setFocusedId(undefined); setViewMode('galaxy'); }}\n          />
         </View>
         <Text style={styles.legend}>Representación artística: posiciones, tamaños y distancias no están a escala astronómica.</Text>
       </View>
@@ -41,7 +41,7 @@ export const ObservatoryScreen = () => {
         {SISTEMAS_COSMERE_COMPLETO.map((system) => {
           const active = selectedSystem?.id === system.id;
           return (
-            <TouchableOpacity key={system.id} onPress={() => setSelectedId(system.id)} style={[styles.systemChip, active && { borderColor: system.colorAura, backgroundColor: '#172235' }]}>
+            <TouchableOpacity key={system.id} onPress={() => { setSelectedId(system.id); setFocusedId(system.id); setViewMode('galaxy'); }} style={[styles.systemChip, active && { borderColor: system.colorAura, backgroundColor: '#172235' }]}>
               <View style={[styles.chipDot, { backgroundColor: system.colorAura }]} />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{system.planeta}</Text>
             </TouchableOpacity>
@@ -61,7 +61,7 @@ export const ObservatoryScreen = () => {
               <View style={[styles.planetOrbCore, { backgroundColor: selectedSystem.colorAura }]} />
             </View>
           </View>
-          <Text style={styles.description}>{selectedSystem.descripcion}</Text>
+          <Text style={styles.description}>{selectedSystem.descripcion}</Text>\n          {viewMode === 'galaxy' ? (\n            <TouchableOpacity style={styles.exploreButton} onPress={() => setViewMode('system')} accessibilityRole=\"button\">\n              <Text style={styles.exploreButtonText}>EXPLORAR SISTEMA ESTELAR  ↗</Text>\n            </TouchableOpacity>\n          ) : (\n            <View style={styles.systemNotice}>\n              <Text style={styles.systemNoticeTitle}>CARTOGRAFÍA DEL SISTEMA</Text>\n              <Text style={styles.systemNoticeText}>Esta vista es un esquema artístico de navegación. El catálogo todavía no contiene datos verificados suficientes para representar planetas, lunas u órbitas de este sistema; no se muestran cuerpos inventados.</Text>\n              <TouchableOpacity onPress={() => setViewMode('galaxy')} style={styles.backButton}>\n                <Text style={styles.backButtonText}>← VOLVER A LA GALAXIA</Text>\n              </TouchableOpacity>\n            </View>\n          )}
           <View style={styles.divider} />
           <Text style={styles.metaLabel}>ESQUIRLAS ASOCIADAS</Text>
           <View style={styles.shardRow}>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   systemName: { color: '#94a3b8', fontSize: 11, marginTop: 2 },
   planetOrb: { width: 58, height: 58, borderRadius: 30, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   planetOrbCore: { width: 35, height: 35, borderRadius: 20, opacity: 0.75 },
-  description: { color: '#c5cfdb', fontSize: 12, lineHeight: 19, marginTop: 14 },
+  description: { color: '#c5cfdb', fontSize: 12, lineHeight: 19, marginTop: 14 },\n  exploreButton: { alignSelf: 'flex-start', backgroundColor: '#d6b477', borderRadius: 18, paddingHorizontal: 13, paddingVertical: 10, marginTop: 16 },\n  exploreButtonText: { color: '#17202c', fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },\n  systemNotice: { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: '#0b1422', borderWidth: 1, borderColor: '#35445a' },\n  systemNoticeTitle: { color: '#d6b477', fontSize: 9, fontWeight: '900', letterSpacing: 1 },\n  systemNoticeText: { color: '#aab7c8', fontSize: 11, lineHeight: 17, marginTop: 7 },\n  backButton: { alignSelf: 'flex-start', marginTop: 12, paddingVertical: 6 },\n  backButtonText: { color: '#d6b477', fontSize: 9, fontWeight: '800', letterSpacing: 0.6 },
   divider: { height: 1, backgroundColor: '#29364a', marginVertical: 13 },
   metaLabel: { color: '#d6b477', fontSize: 8, fontWeight: '800', letterSpacing: 1.2, marginTop: 9, marginBottom: 6 },
   shardRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

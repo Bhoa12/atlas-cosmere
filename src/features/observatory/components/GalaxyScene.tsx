@@ -197,7 +197,8 @@ export const GalaxyScene = ({
   const cameraRig = useRef<CameraRig>({ ...DEFAULT_CAMERA });
   const dragOrigin = useRef({ yaw: 0, pitch: 0, dx: 0, dy: 0 });
   const pinchOrigin = useRef<{ distance: number; zoom: number } | null>(null);
-  const previousTouchCount = useRef(0);\n  const touchCountOnGrant = useRef(0);
+  const previousTouchCount = useRef(0);
+  const touchCountOnGrant = useRef(0);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const stageSize = useRef({ width: 1, height: 1 });
@@ -211,7 +212,8 @@ export const GalaxyScene = ({
     dragOrigin.current = { yaw: cameraRig.current.yaw, pitch: cameraRig.current.pitch, dx: 0, dy: 0 };
     const distance = touchDistance(event);
     pinchOrigin.current = distance === null ? null : { distance, zoom: cameraRig.current.distance };
-    previousTouchCount.current = event.nativeEvent.touches.length;\n    touchCountOnGrant.current = event.nativeEvent.touches.length;
+    previousTouchCount.current = event.nativeEvent.touches.length;
+    touchCountOnGrant.current = event.nativeEvent.touches.length;
   };
 
   const handleMove = (event: GestureResponderEvent, gesture: PanResponderGestureState) => {

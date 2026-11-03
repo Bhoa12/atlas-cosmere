@@ -213,3 +213,17 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 - Comunidad y cambios de Hoid IA.
 - Publicación o merge a `main`.
 - Afirmar cobertura canónica completa sin revisión fuente por fuente.
+
+
+## Registro de implementación
+
+### Iteración 1 — R0 inicial y contratos base
+
+- [x] Inspección inicial de `CosmereContext`, catálogo planetario, navegación principal, rueda de Investidura, tests, herramientas, comunidad, perfil y gamificación.
+- [x] Documentar consumidores principales y riesgos de migración en `docs/roshar/R0_AUDIT.md`.
+- [x] Añadir contratos de dominio en `src/data/roshar/model.ts`.
+- [x] Añadir adaptador del catálogo actual de obras de Roshar en `src/data/roshar/catalog/works.ts`, conservando los IDs legados.
+- [ ] Completar búsqueda exhaustiva de referencias y validar los contratos en CI.
+- [ ] Verificar el orden editorial y crear unidades de lectura a partir de índices de ediciones concretas.
+
+**Resultado:** se ha añadido la primera capa de tipos y el adaptador de obras. No se ha cambiado aún la persistencia ni el comportamiento de desbloqueo; tampoco se ha declarado completa la auditoría R0.

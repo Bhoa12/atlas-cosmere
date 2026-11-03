@@ -1,0 +1,30 @@
+name: Atlas Android validation
+
+on:
+  push:
+    branches:
+      - fix/atlas-core-audit
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: TypeScript and Android bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Export Android bundle
+        run: npx expo export --platform android --output-dir dist

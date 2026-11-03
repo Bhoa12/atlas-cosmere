@@ -181,7 +181,10 @@ export const ToolsScreen: React.FC = () => {
             {evaluacion && (
               <View style={styles.evalCard}>
                 <View style={styles.evalScoreRow}>
-                  <Text style={styles.evalPercent}>{evaluacion.viabilidadPorcentaje}%</Text>
+                  <View style={styles.evalScoreValue}>
+                    <Text style={styles.evalPercent}>{evaluacion.viabilidadPorcentaje}%</Text>
+                    <Text style={styles.evalMetricLabel}>ESTIMACIÓN HEURÍSTICA</Text>
+                  </View>
                   <Text style={styles.evalVerdict}>{evaluacion.veredicto}</Text>
                 </View>
                 <View style={styles.lawBox}>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
+import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 
 interface Mensaje {
   id: string;
@@ -22,7 +23,11 @@ export const HoidScreen: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
 
-  const librosLeidosList = Object.keys(librosLeidos).filter(k => librosLeidos[k]).join(', ');
+  const librosLeidosList = SISTEMAS_COSMERE_COMPLETO
+    .flatMap(sistema => sistema.libros)
+    .filter(libro => !!librosLeidos[libro.id])
+    .map(libro => libro.titulo)
+    .join(', ');
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando) return;
@@ -65,14 +70,18 @@ Si te preguntan por algo que no ha leído, evádelo con estilo de Hoid diciendo 
         });
 
         const data = await response.json();
-        if (data.choices && data.choices[0]) {
+        if (!response.ok) {
+          throw new Error(data?.error?.message || `Error HTTP ${response.status}`);
+        }
+        if (data.choices && data.choices[0] && typeof data.choices[0].message?.content === 'string') {
           const respuesta = data.choices[0].message.content;
           setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: respuesta }]);
           setCargando(false);
           return;
         }
       } catch (e) {
-        // En caso de fallo de red, recurre al motor de guardia
+        const detalle = e instanceof Error ? e.message : 'Error de conexión desconocido';
+        Alert.alert('No se pudo conectar con la IA', `${detalle}. Hoid responderá con el motor local.`);
       }
     }
 

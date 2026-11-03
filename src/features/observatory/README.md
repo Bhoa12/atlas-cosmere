@@ -9,7 +9,7 @@
 - Pantalla independiente: `src/screens/ObservatoryScreen.tsx`.
 - Acceso desde la navegación principal mediante la pestaña Cosmere.
 - Escena 3D con React Three Fiber v8 y Three.js: núcleo luminoso, campo de estrellas, anillos orbitales ilustrativos y cuerpos que representan los sistemas del catálogo.
-- Cámara orbital táctil: arrastre con un dedo para rotar, pinza con dos dedos para acercar/alejar y botón para restablecer el encuadre.
+- Cámara orbital táctil: arrastre con un dedo para rotar, pinza con dos dedos para acercar/alejar y botón para restablecer el encuadre. El enfoque y el cambio entre escalas interpolan la posición y distancia de cámara; el zoom también funciona en la vista de sistema.
 - Selección directa de un sistema mediante toque: raycasting sobre las esferas 3D, resaltado y enfoque de cámara sobre el sistema seleccionado.
 - Entrada a una vista de sistema estelar con esquema abstracto de estrella y órbitas ilustrativas, además de navegación para volver a la galaxia.
 - La vista de sistema no representa planetas, lunas ni órbitas concretas: el catálogo todavía no proporciona datos verificados suficientes. No se generan cuerpos ficticios.
@@ -30,6 +30,6 @@ Esto sigue siendo una implementación inicial, pendiente de validación. No se h
 
 ## Próximos hitos
 1. Instalar dependencias y validar renderizado GL, selección táctil, gestos, memoria y estabilidad en Android físico.
-2. Añadir desplazamiento lateral de cámara y transiciones animadas entre galaxia y sistema.
+2. Añadir desplazamiento lateral de cámara y probar la legibilidad de los encuadres en distintos tamaños de pantalla.
 3. Integrar cuerpos celestes y sus fichas únicamente cuando existan datos documentados, marcando lo confirmado, aproximado y desconocido.
 4. Revisar rendimiento, accesibilidad y adaptación a distintos tamaños de pantalla.

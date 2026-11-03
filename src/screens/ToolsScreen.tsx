@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { buscarConTolerancia } from '../utils/fuzzySearch';
@@ -54,6 +54,7 @@ export const ToolsScreen: React.FC = () => {
   // Estados Quiz Órdenes
   const [respuestasQuiz, setRespuestasQuiz] = useState<{ [preguntaIdx: number]: string }>({});
   const [ordenGanadora, setOrdenGanadora] = useState<string | null>(null);
+  const testRadianteCompletadoRef = useRef(false);
 
   const ejecutarValidacion = () => {
     if (!teoriaInput.trim()) return;
@@ -62,17 +63,24 @@ export const ToolsScreen: React.FC = () => {
   };
 
   const responderPreguntaOrden = (preguntaIdx: number, orden: string) => {
+    if (testRadianteCompletadoRef.current) return;
     const nuevas = { ...respuestasQuiz, [preguntaIdx]: orden };
     setRespuestasQuiz(nuevas);
 
-    if (Object.keys(nuevas).length === PREGUNTAS_ORDEN_RADIANTE.length) {
+    if (Object.keys(nuevas).length >= PREGUNTAS_ORDEN_RADIANTE.length) {
+      testRadianteCompletadoRef.current = true;
       const conteo: { [orden: string]: number } = {};
       Object.values(nuevas).forEach(o => { conteo[o] = (conteo[o] || 0) + 1; });
       const ganadora = Object.keys(conteo).reduce((a, b) => conteo[a] > conteo[b] ? a : b);
+      const orden = ORDENES_RADIANTE[ganadora];
+      if (!orden) {
+        testRadianteCompletadoRef.current = false;
+        return;
+      }
       setOrdenGanadora(ganadora);
-      setApodoActivo(ORDENES_RADIANTE[ganadora].nombre);
-      sumarPuntosTestUnico('radiant_affinity', 300);
-      Alert.alert('¡Juramento Pronunciado!', `Has sido aceptado entre los ${ORDENES_RADIANTE[ganadora].nombre}. Título equipado en tu perfil.`);
+      setApodoActivo(orden.nombre);
+      const puntosConcedidos = sumarPuntosTestUnico('radiant_affinity', 300);
+      Alert.alert('¡Juramento Pronunciado!', `Has sido aceptado entre los ${orden.nombre}. ${puntosConcedidos ? 'Has ganado 300 puntos de Investidura.' : 'Este test ya estaba recompensado.'} Título equipado en tu perfil.`);
     }
   };
 

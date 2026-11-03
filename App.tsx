@@ -31,8 +31,11 @@ const MainNavigator = () => {
         </View>
 
         {/* BOTÓN INTERRUPTOR DE REINOS */}
-        <TouchableOpacity 
-          style={[styles.realmToggleBtn, { borderColor: themeAccent }]} 
+        <TouchableOpacity
+          style={[styles.realmToggleBtn, { borderColor: themeAccent }]}
+          accessibilityRole="switch"
+          accessibilityLabel="Cambiar entre Reino Físico y Reino Cognitivo"
+          accessibilityState={{ checked: reinoCognitivoActivo }}
           onPress={toggleReinoCognitivo}
         >
           <Text style={styles.realmToggleIcon}>{reinoCognitivoActivo ? '🔮' : '🪐'}</Text>
@@ -182,31 +185,73 @@ const MainNavigator = () => {
 
       {/* BARRA DE NAVEGACIÓN INFERIOR */}
       <View style={[styles.bottomNav, { backgroundColor: themeCard }]}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('atlas')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Atlas`}
+          accessibilityState={{ selected: tab === 'atlas' }}
+          onPress={() => setTab('atlas')}
+        >
           <Text style={styles.navIcon}>🪐</Text>
           <Text style={[styles.navText, tab === 'atlas' && { color: themeAccent }]}>Atlas</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('wheel')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Códice`}
+          accessibilityState={{ selected: tab === 'wheel' }}
+          onPress={() => setTab('wheel')}
+        >
           <Text style={styles.navIcon}>☸️</Text>
           <Text style={[styles.navText, tab === 'wheel' && { color: themeAccent }]}>Códice</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('tools')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Bóveda`}
+          accessibilityState={{ selected: tab === 'tools' }}
+          onPress={() => setTab('tools')}
+        >
           <Text style={styles.navIcon}>🛠️</Text>
           <Text style={[styles.navText, tab === 'tools' && { color: themeAccent }]}>Bóveda</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('hoid')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Hoid IA`}
+          accessibilityState={{ selected: tab === 'hoid' }}
+          onPress={() => setTab('hoid')}
+        >
           <Text style={styles.navIcon}>🧙‍♂️</Text>
           <Text style={[styles.navText, tab === 'hoid' && { color: themeAccent }]}>Hoid IA</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('quiz')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Tests`}
+          accessibilityState={{ selected: tab === 'quiz' }}
+          onPress={() => setTab('quiz')}
+        >
           <Text style={styles.navIcon}>⚡</Text>
           <Text style={[styles.navText, tab === 'quiz' && { color: themeAccent }]}>Tests</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('comunidad')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Foro`}
+          accessibilityState={{ selected: tab === 'comunidad' }}
+          onPress={() => setTab('comunidad')}
+        >
           <Text style={styles.navIcon}>💬</Text>
           <Text style={[styles.navText, tab === 'comunidad' && { color: themeAccent }]}>Foro</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('perfil')}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir pestaña Perfil`}
+          accessibilityState={{ selected: tab === 'perfil' }}
+          onPress={() => setTab('perfil')}
+        >
           <Text style={styles.navIcon}>🛡️</Text>
           <Text style={[styles.navText, tab === 'perfil' && { color: themeAccent }]}>Perfil</Text>
         </TouchableOpacity>

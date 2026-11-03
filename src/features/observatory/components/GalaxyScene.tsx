@@ -75,6 +75,10 @@ const GalaxyBody = ({ index, color, selected, systemId }: {
 
   return (
     <group position={position}>
+      <mesh userData={{ systemId }}>
+        <sphereGeometry args={[0.34, 12, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
       {selected && (
         <mesh>
           <torusGeometry args={[size * 1.65, 0.018, 6, 32]} />

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, Alert } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 
 export const CommunityScreen: React.FC = () => {
-  const { comentarios, agregarComentario, darLuzTormentosa, capituloActualPorLibro } = useCosmere();
+  const { comentarios, agregarComentario, darLuzTormentosa, capituloActualPorLibro, librosLeidos } = useCosmere();
   const [sagaSeleccionada, setSagaSeleccionada] = useState<string>('Archivo de las Tormentas');
   const [libroSeleccionadoId, setLibroSeleccionadoId] = useState<string>('twok');
   const [nuevoTexto, setNuevoTexto] = useState('');
@@ -21,11 +21,22 @@ export const CommunityScreen: React.FC = () => {
     .flatMap(s => s.libros)
     .filter(l => l.saga === sagaSeleccionada);
 
+  const libroSeleccionado = librosDeSaga.find(libro => libro.id === libroSeleccionadoId);
   const comentariosFiltrados = comentarios.filter(c => c.libroId === libroSeleccionadoId);
 
   const publicar = () => {
-    if (!nuevoTexto.trim()) return;
-    agregarComentario(sagaSeleccionada, libroSeleccionadoId, parseInt(capituloTeoria) || 1, nuevoTexto.trim());
+    const texto = nuevoTexto.trim();
+    const capitulo = Number.parseInt(capituloTeoria, 10);
+    if (!texto) return;
+    if (!libroSeleccionado) {
+      Alert.alert('Selecciona un libro', 'Elige una obra antes de publicar tu teoría.');
+      return;
+    }
+    if (!Number.isInteger(capitulo) || capitulo < 1 || capitulo > libroSeleccionado.totalCapitulos) {
+      Alert.alert('Capítulo no válido', `Introduce un capítulo entre 1 y ${libroSeleccionado.totalCapitulos}.`);
+      return;
+    }
+    agregarComentario(sagaSeleccionada, libroSeleccionadoId, capitulo, texto);
     setNuevoTexto('');
   };
 
@@ -105,7 +116,10 @@ export const CommunityScreen: React.FC = () => {
           <Text style={styles.emptyText}>No hay teorías publicadas aún para este libro. ¡Sé el primero!</Text>
         }
         renderItem={({ item }) => {
-          const capUsuarioEnEseLibro = capituloActualPorLibro[item.libroId] || 0;
+          const libroComentario = SISTEMAS_COSMERE_COMPLETO.flatMap(s => s.libros).find(libro => libro.id === item.libroId);
+          const capUsuarioEnEseLibro = librosLeidos[item.libroId]
+            ? (libroComentario?.totalCapitulos ?? 0)
+            : (capituloActualPorLibro[item.libroId] ?? 0);
           const esSpoiler = item.capituloMaximo > capUsuarioEnEseLibro;
           const estaRevelado = reveladosManualmente[item.id];
 

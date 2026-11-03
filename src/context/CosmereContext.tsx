@@ -73,7 +73,12 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const todosLosLibrosLeidos = librosDelCatalogo.length > 0 && librosDelCatalogo.every(libro => !!librosLeidos[libro.id]);
 
   const toggleLibroLeido = (libroId: string) => {
+    const libro = librosDelCatalogo.find(item => item.id === libroId);
+    const marcarComoLeido = !librosLeidos[libroId];
     setLibrosLeidos(prev => ({ ...prev, [libroId]: !prev[libroId] }));
+    if (marcarComoLeido && libro) {
+      setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: libro.totalCapitulos }));
+    }
   };
 
   const setCapituloLibro = (libroId: string, cap: number) => {

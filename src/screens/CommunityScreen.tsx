@@ -60,6 +60,7 @@ export const CommunityScreen: React.FC = () => {
               setSagaSeleccionada(saga);
               const primerLibro = SISTEMAS_COSMERE_COMPLETO.flatMap(s => s.libros).find(l => l.saga === saga);
               if (primerLibro) setLibroSeleccionadoId(primerLibro.id);
+              setCapituloTeoria('1');
             }}
             style={[styles.sagaChip, sagaSeleccionada === saga && styles.sagaChipActive]}
           >
@@ -73,7 +74,10 @@ export const CommunityScreen: React.FC = () => {
         {librosDeSaga.map(lib => (
           <TouchableOpacity
             key={lib.id}
-            onPress={() => setLibroSeleccionadoId(lib.id)}
+            onPress={() => {
+              setLibroSeleccionadoId(lib.id);
+              setCapituloTeoria('1');
+            }}
             style={[styles.bookChip, libroSeleccionadoId === lib.id && styles.bookChipActive]}
           >
             <Text style={[styles.bookChipText, libroSeleccionadoId === lib.id && styles.bookChipTextActive]}>
@@ -117,9 +121,10 @@ export const CommunityScreen: React.FC = () => {
         }
         renderItem={({ item }) => {
           const libroComentario = SISTEMAS_COSMERE_COMPLETO.flatMap(s => s.libros).find(libro => libro.id === item.libroId);
-          const capUsuarioEnEseLibro = librosLeidos[item.libroId]
-            ? (libroComentario?.totalCapitulos ?? 0)
-            : (capituloActualPorLibro[item.libroId] ?? 0);
+          const capUsuarioEnEseLibro = Math.max(
+            librosLeidos[item.libroId] ? (libroComentario?.totalCapitulos ?? 0) : 0,
+            capituloActualPorLibro[item.libroId] ?? 0
+          );
           const esSpoiler = item.capituloMaximo > capUsuarioEnEseLibro;
           const estaRevelado = reveladosManualmente[item.id];
 

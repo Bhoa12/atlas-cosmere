@@ -72,7 +72,7 @@ export const ObservatoryScreen = () => {
           <Text style={styles.disclaimer}>Los datos descriptivos proceden del catálogo actual de Atlas. La geometría de esta vista es ilustrativa, no una afirmación de canon.</Text>
         </View>
       )}
-      <Text style={styles.footer}>FASE I · NAVEGACIÓN GALÁCTICA</Text>
+      <Text style={styles.footer}>FASE II · CÁMARA TÁCTIL</Text>
     </ScrollView>
   );
 };

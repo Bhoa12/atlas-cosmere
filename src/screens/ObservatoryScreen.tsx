@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SISTEMAS_COSMERE_COMPLETO, SistemaPlanetario } from '../data/cosmereUniverse';
+import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 
 const STAR_POSITIONS = [
   { left: '8%', top: '13%', size: 2 }, { left: '21%', top: '28%', size: 3 },

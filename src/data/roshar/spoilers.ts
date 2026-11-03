@@ -33,8 +33,9 @@ export function isSpoilerGateSatisfied(
   completedUnitIds: ReadonlySet<string>,
   unitWorkById: ReadonlyMap<string, string>
 ): boolean {
-  if (!gate || !Array.isArray(gate.allOf) || gate.allOf.length === 0) return false;
+  if (!gate || !Array.isArray(gate.allOf)) return false;
   if (gate.anyOf !== undefined && !Array.isArray(gate.anyOf)) return false;
+  if (gate.allOf.length === 0 && (!gate.anyOf || gate.anyOf.length === 0)) return false;
 
   const allRequirementsMet = gate.allOf.every(requirement =>
     requirementSatisfied(requirement, completedUnitIds, unitWorkById)

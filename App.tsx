@@ -1,4 +1,3 @@
-import { registerRootComponent } from 'expo';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Modal } from 'react-native';
 import { CosmereProvider, useCosmere } from './src/context/CosmereContext';

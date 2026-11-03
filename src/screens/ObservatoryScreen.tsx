@@ -1,16 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
+import { GalaxyScene } from '../features/observatory/components/GalaxyScene';
 
-const STAR_POSITIONS = [
-  { left: '8%', top: '13%', size: 2 }, { left: '21%', top: '28%', size: 3 },
-  { left: '34%', top: '9%', size: 2 }, { left: '48%', top: '21%', size: 2 },
-  { left: '63%', top: '10%', size: 3 }, { left: '79%', top: '24%', size: 2 },
-  { left: '91%', top: '12%', size: 2 }, { left: '13%', top: '72%', size: 2 },
-  { left: '29%', top: '83%', size: 2 }, { left: '44%', top: '69%', size: 3 },
-  { left: '71%', top: '78%', size: 2 }, { left: '88%', top: '67%', size: 3 },
-  { left: '56%', top: '91%', size: 2 }, { left: '5%', top: '48%', size: 2 },
-];
+
 
 export const ObservatoryScreen = () => {
   const [selectedId, setSelectedId] = useState(SISTEMAS_COSMERE_COMPLETO[0]?.id);
@@ -38,29 +31,7 @@ export const ObservatoryScreen = () => {
           <View style={styles.modePill}><Text style={styles.modeText}>ESCALA ARTÍSTICA</Text></View>
         </View>
         <View style={styles.galaxyStage}>
-          {STAR_POSITIONS.map((star, index) => (
-            <View key={index} style={[styles.star, { left: star.left, top: star.top, width: star.size, height: star.size }]} />
-          ))}
-          <View style={styles.nebulaOne} />
-          <View style={styles.nebulaTwo} />
-          <View style={styles.galaxyCoreOuter} />
-          <View style={styles.galaxyCoreInner} />
-          {SISTEMAS_COSMERE_COMPLETO.map((system, index) => {
-            const position = getNodePosition(index);
-            const active = selectedSystem?.id === system.id;
-            return (
-              <TouchableOpacity
-                key={system.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Seleccionar sistema ${system.nombre}`}
-                onPress={() => setSelectedId(system.id)}
-                style={[styles.systemNode, position, { borderColor: system.colorAura }, active && { backgroundColor: system.colorAura, transform: [{ scale: 1.18 }] }]}
-              >
-                <Text style={[styles.nodeText, active && styles.activeNodeText]}>{system.planeta.slice(0, 3).toUpperCase()}</Text>
-              </TouchableOpacity>
-            );
-          })}
-          <Text style={styles.coreCaption}>COSMERE</Text>
+          <GalaxyScene selectedSystemId={selectedId} />
         </View>
         <Text style={styles.legend}>Representación artística: posiciones, tamaños y distancias no están a escala astronómica.</Text>
       </View>

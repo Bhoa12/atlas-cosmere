@@ -4,13 +4,14 @@ import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar, Scro
 import { CosmereProvider, useCosmere } from './src/context/CosmereContext';
 import { SISTEMAS_COSMERE_COMPLETO, Libro } from './src/data/cosmereUniverse';
 import { InvestitureWheel } from './src/components/InvestitureWheel';
+import { ToolsScreen } from './src/screens/ToolsScreen';
 import { HoidScreen } from './src/screens/HoidScreen';
 import { QuizzesScreen } from './src/screens/QuizzesScreen';
 import { CommunityScreen } from './src/screens/CommunityScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 
 const MainNavigator = () => {
-  const [tab, setTab] = useState<'atlas' | 'wheel' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
+  const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState(SISTEMAS_COSMERE_COMPLETO[0]);
   const [libroModal, setLibroModal] = useState<Libro | null>(null);
   const { toggleLibroLeido, librosLeidos } = useCosmere();
@@ -19,18 +20,20 @@ const MainNavigator = () => {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" />
 
+      {/* CUERPO CENTRAL DE LA APLICACIÓN */}
       <View style={styles.body}>
+        {/* PESTAÑA 1: ATLAS ESTELAR Y CARTOGRAFÍA */}
         {tab === 'atlas' && (
           <ScrollView contentContainerStyle={styles.scroll}>
             <Text style={styles.brandSubtitle}>MAPA ESTELAR DEL REINO FÍSICO</Text>
             <Text style={styles.brandTitle}>ATLAS DEL COSMERE</Text>
 
-            {/* SISTEMA GALÁCTICO UNIFICADO (REPRESENTACIÓN ESPACIAL CONJUNTA) */}
+            {/* Sistema Galáctico Unificado */}
             <View style={styles.galaxyMapBox}>
               <Text style={styles.galaxyTitle}>SISTEMA ESTELAR Y PERPENDICULARIDADES</Text>
               <Text style={styles.galaxySub}>Toca un mundo para orbitar hacia su sector:</Text>
               <View style={styles.galaxyOrbits}>
-                {SISTEMAS_COSMERE_COMPLETO.map((sis, idx) => (
+                {SISTEMAS_COSMERE_COMPLETO.map(sis => (
                   <TouchableOpacity
                     key={sis.id}
                     onPress={() => setSistemaSeleccionado(sis)}
@@ -48,7 +51,7 @@ const MainNavigator = () => {
               </View>
             </View>
 
-            {/* FICHA DETALLADA DEL PLANETA Y MAPAS */}
+            {/* Ficha Detallada del Planeta y Mapas Territoriales */}
             <View style={[styles.planetCard, { borderColor: sistemaSeleccionado.colorAura }]}>
               <Text style={[styles.planetBigTitle, { color: sistemaSeleccionado.colorAura }]}>
                 {sistemaSeleccionado.planeta.toUpperCase()}
@@ -63,8 +66,8 @@ const MainNavigator = () => {
               <Text style={styles.desc}>{sistemaSeleccionado.descripcion}</Text>
             </View>
 
-            {/* BIBLIOGRAFÍA CON ACCESO A DETALLES */}
-            <Text style={styles.subHeader}>BIBLIOGRAFÍA (PULSA PARA VER SINOPSIS & PERSONAJES)</Text>
+            {/* Bibliografía y Estado de Lectura */}
+            <Text style={styles.subHeader}>BIBLIOGRAFÍA (TOCA PARA VER SINOPSIS & PERSONAJES)</Text>
             {sistemaSeleccionado.libros.map(lib => {
               const leido = !!librosLeidos[lib.id];
               return (
@@ -87,19 +90,30 @@ const MainNavigator = () => {
           </ScrollView>
         )}
 
+        {/* PESTAÑA 2: CÓDICE & CÍRCULO DE INVESTIDURA */}
         {tab === 'wheel' && (
           <ScrollView contentContainerStyle={styles.scroll}>
             <InvestitureWheel />
           </ScrollView>
         )}
 
+        {/* PESTAÑA 3: HERRAMIENTAS, BUSCADOR Y SIMULADOR */}
+        {tab === 'tools' && <ToolsScreen />}
+
+        {/* PESTAÑA 4: ASISTENTE HOID IA */}
         {tab === 'hoid' && <HoidScreen />}
+
+        {/* PESTAÑA 5: TESTS Y RANGOS */}
         {tab === 'quiz' && <QuizzesScreen />}
+
+        {/* PESTAÑA 6: FORO POR SAGAS */}
         {tab === 'comunidad' && <CommunityScreen />}
+
+        {/* PESTAÑA 7: PERFIL, LOGROS Y LANZAMIENTOS */}
         {tab === 'perfil' && <ProfileScreen />}
       </View>
 
-      {/* MODAL CON SINOPSIS Y PERSONAJES DE CADA LIBRO */}
+      {/* MODAL DETALLES DEL LIBRO (SINOPSIS & PERSONAJES) */}
       <Modal visible={!!libroModal} transparent={true} animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -108,7 +122,7 @@ const MainNavigator = () => {
                 <Text style={styles.modalSaga}>{libroModal.saga.toUpperCase()}</Text>
                 <Text style={styles.modalTitle}>{libroModal.titulo}</Text>
                 <ScrollView style={{ maxHeight: 300, marginVertical: 10 }}>
-                  <Text style={styles.modalSectionTitle}>SINOPSIS OFICIAL:</Text>
+                  <Text style={styles.modalSectionTitle}>SINOPSIS CANÓNICA:</Text>
                   <Text style={styles.modalBodyText}>{libroModal.sinopsis}</Text>
 
                   <Text style={styles.modalSectionTitle}>PERSONAJES PRINCIPALES:</Text>
@@ -130,7 +144,7 @@ const MainNavigator = () => {
         </View>
       </Modal>
 
-      {/* BARRA DE NAVEGACIÓN INFERIOR */}
+      {/* BARRA DE NAVEGACIÓN INFERIOR (BOTTOM TABS) */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navBtn} onPress={() => setTab('atlas')}>
           <Text style={styles.navIcon}>🪐</Text>
@@ -139,6 +153,10 @@ const MainNavigator = () => {
         <TouchableOpacity style={styles.navBtn} onPress={() => setTab('wheel')}>
           <Text style={styles.navIcon}>☸️</Text>
           <Text style={[styles.navText, tab === 'wheel' && styles.navTextActive]}>Códice</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('tools')}>
+          <Text style={styles.navIcon}>🛠️</Text>
+          <Text style={[styles.navText, tab === 'tools' && styles.navTextActive]}>Simulador</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navBtn} onPress={() => setTab('hoid')}>
           <Text style={styles.navIcon}>🧙‍♂️</Text>
@@ -206,9 +224,9 @@ const styles = StyleSheet.create({
   closeModalBtn: { backgroundColor: '#0284c7', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 12 },
   closeModalBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   bottomNav: { flexDirection: 'row', backgroundColor: '#0b1120', borderTopWidth: 1, borderColor: '#1e293b', paddingVertical: 8, justifyContent: 'space-around' },
-  navBtn: { alignItems: 'center', paddingVertical: 4 },
-  navIcon: { fontSize: 18, marginBottom: 2 },
-  navText: { color: '#64748b', fontSize: 9, fontWeight: '700' },
+  navBtn: { alignItems: 'center', paddingVertical: 2, flex: 1 },
+  navIcon: { fontSize: 16, marginBottom: 2 },
+  navText: { color: '#64748b', fontSize: 8, fontWeight: '700' },
   navTextActive: { color: '#38bdf8' }
 });
 

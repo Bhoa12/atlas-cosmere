@@ -59,7 +59,7 @@ El usuario ÚNICAMENTE ha leído estos libros: [${librosLeidosList}].
 PROHIBIDO TERMINANTEMENTE revelar cualquier dato, muerte, magia o secreto que ocurra en libros no listados.
 Si te preguntan por algo que no ha leído, evádelo con estilo de Hoid diciendo que la historia aún no le pertenece.`
               },
-              ...mensajes.map(m => ({
+              ...mensajes.slice(-20).map(m => ({
                 role: m.emisor === 'usuario' ? 'user' as const : 'assistant' as const,
                 content: m.texto
               })),

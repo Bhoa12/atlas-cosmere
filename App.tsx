@@ -9,9 +9,10 @@ import { HoidScreen } from './src/screens/HoidScreen';
 import { QuizzesScreen } from './src/screens/QuizzesScreen';
 import { CommunityScreen } from './src/screens/CommunityScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { ObservatoryScreen } from './src/screens/ObservatoryScreen';
 
 const MainNavigator = () => {
-  const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
+  const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil' | 'observatory'>('atlas');
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState(SISTEMAS_COSMERE_COMPLETO[0]);
   const [libroModal, setLibroModal] = useState<Libro | null>(null);
   const { toggleLibroLeido, librosLeidos, reinoCognitivoActivo, toggleReinoCognitivo } = useCosmere();
@@ -123,6 +124,7 @@ const MainNavigator = () => {
         {tab === 'quiz' && <QuizzesScreen />}
         {tab === 'comunidad' && <CommunityScreen />}
         {tab === 'perfil' && <ProfileScreen />}
+        {tab === 'observatory' && <ObservatoryScreen />}
       </View>
 
       {/* MODAL DETALLES DEL LIBRO */}
@@ -185,6 +187,10 @@ const MainNavigator = () => {
         <TouchableOpacity style={styles.navBtn} onPress={() => setTab('perfil')}>
           <Text style={styles.navIcon}>🛡️</Text>
           <Text style={[styles.navText, tab === 'perfil' && { color: themeAccent }]}>Perfil</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => setTab('observatory')}>
+          <Text style={styles.navIcon}>🌌</Text>
+          <Text style={[styles.navText, tab === 'observatory' && { color: themeAccent }]}>Cosmere</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

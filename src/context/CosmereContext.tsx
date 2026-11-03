@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 
@@ -35,6 +37,7 @@ interface CosmereContextType {
 }
 
 const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
+const COSMERE_STORAGE_KEY = '@atlas-cosmere/state-v1';
 
 export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [reinoCognitivoActivo, setReinoCognitivoActivo] = useState(false);
@@ -52,6 +55,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [testsCompletadosExitosos, setTestsCompletadosExitosos] = useState<{ [testId: string]: boolean }>({});
   const testsCompletadosRef = useRef<{ [testId: string]: boolean }>({});
   const comentarioCounterRef = useRef(0);
+  const [estadoHidratado, setEstadoHidratado] = useState(false);
 
   const [comentarios, setComentarios] = useState<ComentarioComunidad[]>([
     {
@@ -65,6 +69,77 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   ]);
 
+  useEffect(() => {
+    let activo = true;
+    const cargarEstado = async () => {
+      try {
+        const guardado = await AsyncStorage.getItem(COSMERE_STORAGE_KEY);
+        if (guardado && activo) {
+          const datos = JSON.parse(guardado);
+          const idsLibros = new Set(librosDelCatalogo.map(libro => libro.id));
+          if (datos.librosLeidos && typeof datos.librosLeidos === 'object') {
+            const lecturas: { [id: string]: boolean } = {};
+            Object.entries(datos.librosLeidos).forEach(([id, valor]) => {
+              if (idsLibros.has(id) && typeof valor === 'boolean') lecturas[id] = valor;
+            });
+            setLibrosLeidos(lecturas);
+          }
+          if (datos.capituloActualPorLibro && typeof datos.capituloActualPorLibro === 'object') {
+            const capitulos: { [id: string]: number } = {};
+            Object.entries(datos.capituloActualPorLibro).forEach(([id, valor]) => {
+              const libro = librosDelCatalogo.find(item => item.id === id);
+              if (libro && typeof valor === 'number' && Number.isFinite(valor)) {
+                capitulos[id] = Math.min(libro.totalCapitulos, Math.max(0, Math.floor(valor)));
+              }
+            });
+            setCapituloActualPorLibro(capitulos);
+          }
+          if (typeof datos.reinoCognitivoActivo === 'boolean') setReinoCognitivoActivo(datos.reinoCognitivoActivo);
+          if (typeof datos.puntosInvestidura === 'number' && Number.isFinite(datos.puntosInvestidura)) setPuntosInvestidura(Math.max(0, datos.puntosInvestidura));
+          if (typeof datos.apodoActivo === 'string') setApodoActivo(datos.apodoActivo);
+          if (typeof datos.nombreUsuario === 'string') setNombreUsuario(datos.nombreUsuario);
+          if (Array.isArray(datos.comentarios)) {
+            const comentariosValidos = datos.comentarios.filter((item: any) =>
+              item && typeof item.id === 'string' && typeof item.usuario === 'string' &&
+              typeof item.sagaId === 'string' && idsLibros.has(item.libroId) &&
+              typeof item.contenido === 'string' && Number.isFinite(item.capituloMaximo) &&
+              Number.isFinite(item.luzTormentosaLikes)
+            );
+            setComentarios(comentariosValidos);
+          }
+          if (datos.testsCompletadosExitosos && typeof datos.testsCompletadosExitosos === 'object') {
+            const tests = Object.fromEntries(Object.entries(datos.testsCompletadosExitosos).filter(([, valor]) => valor === true)) as { [id: string]: boolean };
+            testsCompletadosRef.current = tests;
+            setTestsCompletadosExitosos(tests);
+          }
+        }
+      } catch {
+        // Si el almacenamiento está dañado o no disponible, la app conserva los valores iniciales.
+      } finally {
+        if (activo) setEstadoHidratado(true);
+      }
+    };
+    cargarEstado();
+    return () => { activo = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!estadoHidratado) return;
+    const estado = {
+      reinoCognitivoActivo,
+      librosLeidos,
+      capituloActualPorLibro,
+      puntosInvestidura,
+      apodoActivo,
+      nombreUsuario,
+      comentarios,
+      testsCompletadosExitosos
+    };
+    AsyncStorage.setItem(COSMERE_STORAGE_KEY, JSON.stringify(estado)).catch(() => {
+      // La app sigue funcionando aunque el dispositivo no permita persistir datos.
+    });
+  }, [estadoHidratado, reinoCognitivoActivo, librosLeidos, capituloActualPorLibro, puntosInvestidura, apodoActivo, nombreUsuario, comentarios, testsCompletadosExitosos]);
+
   const toggleReinoCognitivo = () => {
     setReinoCognitivoActivo(prev => !prev);
   };
@@ -74,11 +149,10 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const toggleLibroLeido = (libroId: string) => {
     const libro = librosDelCatalogo.find(item => item.id === libroId);
+    if (!libro) return;
     const marcarComoLeido = !librosLeidos[libroId];
-    setLibrosLeidos(prev => ({ ...prev, [libroId]: !prev[libroId] }));
-    if (marcarComoLeido && libro) {
-      setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: libro.totalCapitulos }));
-    }
+    setLibrosLeidos(prev => ({ ...prev, [libroId]: marcarComoLeido }));
+    setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: marcarComoLeido ? libro.totalCapitulos : 0 }));
   };
 
   const setCapituloLibro = (libroId: string, cap: number) => {
@@ -86,6 +160,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!libro || !Number.isFinite(cap)) return;
     const capituloSeguro = Math.min(libro.totalCapitulos, Math.max(0, Math.floor(cap)));
     setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: capituloSeguro }));
+    if (capituloSeguro === libro.totalCapitulos) setLibrosLeidos(prev => ({ ...prev, [libroId]: true }));
+    else setLibrosLeidos(prev => prev[libroId] ? { ...prev, [libroId]: false } : prev);
   };
 
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {
@@ -130,6 +206,10 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const darLuzTormentosa = (id: string) => {
     setComentarios(prev => prev.map(c => c.id === id ? { ...c, luzTormentosaLikes: c.luzTormentosaLikes + 1 } : c));
   };
+
+  if (!estadoHidratado) {
+    return <View style={{ flex: 1, backgroundColor: '#090d16', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#38bdf8" size="large" /></View>;
+  }
 
   return (
     <CosmereContext.Provider value={{

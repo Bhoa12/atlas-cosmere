@@ -645,3 +645,14 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Iniciar la ingestión editorial real únicamente cuando los pasajes de los EPUB estén accesibles para revisión directa y trazabilidad por unidad.
 
 **Resultado:** el seguimiento de lectura queda mejor protegido frente a estados de posición que no representan avance narrativo. La frontera, el porcentaje y la recomendación continúan derivándose solo de unidades explícitamente completadas y requeridas por la política editorial.
+
+
+### Iteración 32 — progreso ambiguo fail-closed (2026-11-04)
+
+- [x] Detectado que las proyecciones de progreso asumían el primer registro cuando existían registros duplicados para una misma obra.
+- [x] Añadido `getUnambiguousReadingProgress`: un estado duplicado se trata como ambiguo y no concede progreso, finalización ni orientación avanzada.
+- [x] Actualizados los selectores de resumen y la frontera de lectura para usar la misma política conservadora.
+- [x] Añadida una regresión que verifica que dos registros contradictorios no pueden desbloquear una obra ni adelantar la siguiente unidad requerida.
+- [ ] Confirmar CI completo sobre el commit final de esta iteración.
+
+**Resultado:** un almacenamiento malformado con registros duplicados deja de poder otorgar accidentalmente progreso narrativo o abrir contenido protegido. La capa de saneamiento sigue pudiendo reparar datos persistidos; las proyecciones públicas, mientras tanto, fallan de forma cerrada.

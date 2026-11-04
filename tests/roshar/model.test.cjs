@@ -64,6 +64,7 @@ test('validates section containers and edition-specific unit locators', () => {
     provenance: 'user-supplied-file',
     sourceFile: 'user.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   }];
   const valid = unit('twok:prologue', 1, {

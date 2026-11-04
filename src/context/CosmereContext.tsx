@@ -194,7 +194,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
   const rosharAchievements = selectVisibleRosharAchievements(
     rosharAchievementProjections,
-    readingProgress
+    readingProgress,
+    rosharAchievementState.unlockedAchievementIds
   );
 
   useEffect(() => {

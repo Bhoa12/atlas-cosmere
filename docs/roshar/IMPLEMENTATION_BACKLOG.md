@@ -527,3 +527,18 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Ejecutar CI completo sobre el commit final de la iteración y corregir cualquier regresión.
 
 **Resultado:** progreso de lectura y recompensas ya disponen de fronteras de persistencia independientes y versionadas; la integración con el estado de React sigue siendo el siguiente paso para evitar cambios de UI sin una migración controlada.
+
+
+### Iteración 22 — integración segura de logros con el estado de la aplicación (2026-11-04)
+
+- [x] Integrado el estado versionado de logros de Roshar en `CosmereContext`, separado del estado legado y del progreso granular.
+- [x] La hidratación espera el progreso y los logros antes de exponer la aplicación, evitando evaluar recompensas sobre datos parcialmente cargados.
+- [x] Los logros se recalculan desde unidades completadas explícitamente y se fusionan de forma monotónica con el inventario persistido.
+- [x] Los IDs de logros y recompensas ya concedidos no se revocan por una corrección posterior del progreso.
+- [x] Datos inválidos o almacenamiento no disponible permanecen sin sobrescribirse automáticamente durante la hidratación.
+- [x] Expuestas al contexto las proyecciones de presentación protegidas contra spoilers y el estado persistente de logros.
+- [ ] Conectar la presentación de logros a una pantalla React específica sin mostrar definiciones bloqueadas fuera del selector seguro.
+- [ ] Añadir pruebas de integración de hidratación del contexto en un entorno React/AsyncStorage simulado.
+- [ ] Confirmar CI completo sobre el SHA final de esta iteración.
+
+**Resultado:** la persistencia de recompensas ya está conectada al flujo real de la aplicación sin migrar ni reinterpretar el estado legado. La siguiente capa debe ser de UI y pruebas de integración, no una nueva lógica de desbloqueo.

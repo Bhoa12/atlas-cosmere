@@ -45,3 +45,13 @@ test('preserves source anomalies without silently reclassifying them', () => {
 test('catalog validation reports no structural or edition-provenance errors', () => {
   assert.deepEqual(validateRosharReadingCatalog(), []);
 });
+
+test('passes the shared domain validator with the complete edition registry', () => {
+  const { validateReadingUnits } = require('../../src/data/roshar/model.ts');
+  const { ROSHAR_WORK_IDS } = require('../../src/data/roshar/catalog/works.ts');
+  const { ROSHAR_EDITION_VARIANTS } = require('../../src/data/roshar/catalog/editionVariants.ts');
+  assert.deepEqual(
+    validateReadingUnits(ROSHAR_WORK_IDS, ROSHAR_READING_UNITS, ROSHAR_READING_SECTIONS, ROSHAR_EDITION_VARIANTS),
+    []
+  );
+});

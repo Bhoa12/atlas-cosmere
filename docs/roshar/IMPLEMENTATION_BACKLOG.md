@@ -443,3 +443,15 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Automatizar la validación del dataset editorial dentro de CI cuando existan lotes publicados.
 
 **Resultado:** el repositorio puede preparar y validar contenido, pero se niega explícitamente a publicar hechos de ficción sin una revisión trazable hasta una unidad concreta del texto fuente.
+
+
+### Iteración 19 — corrección de CI y seguimiento de lectura (2026-11-04)
+
+- [x] Corregido el fallo de las pruebas de enciclopedia introducido al añadir la validación editorial estricta.
+- [x] Añadido un resumen determinista del progreso por obra: unidades completadas, unidades narrativas requeridas, porcentaje y siguiente unidad.
+- [x] La interfaz de lectura muestra ahora el porcentaje calculado exclusivamente a partir de unidades completadas explícitamente.
+- [x] Añadida una prueba para asegurar que el material suplementario no infla el porcentaje narrativo.
+- [ ] Verificar una ejecución completa de CI sobre el commit final de esta iteración.
+- [ ] Ingerir contenido editorial real desde los EPUB con locators de pasaje exactos.
+
+**Resultado:** el seguimiento granular ya dispone de una métrica única y reproducible para la UI y futuros logros; el porcentaje no depende de contadores heredados ni de inferencias de capítulos.

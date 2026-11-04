@@ -92,8 +92,16 @@ export function validateCatalog(
       if (workIds.has(work.id)) errors.push(`Duplicate work id: ${work.id}`);
       workIds.add(work.id);
 
+      const unitIds = new Set<string>();
       let previous = -1;
       for (const unit of work.units) {
+        if (unitIds.has(unit.id)) {
+          errors.push(`Duplicate unit id: ${unit.id}`);
+        }
+        unitIds.add(unit.id);
+        if (!Number.isInteger(unit.order) || unit.order < 0) {
+          errors.push(`Invalid unit order for ${unit.id}`);
+        }
         if (unit.workId !== work.id) {
           errors.push(`Unit ${unit.id} has incorrect work id`);
         }

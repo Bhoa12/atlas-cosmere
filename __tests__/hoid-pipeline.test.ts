@@ -16,6 +16,25 @@ test("solo entrega contexto autorizado al proveedor contextual", async () => {
     },
   };
   const pipeline = new HoidPipeline(provider, knowledge);
-  await pipeline.answer({ question: "permitido bloqueado", reading: [{ bookId: "mistborn-1", chapter: 2 }] });
+  await pipeline.answer({ question: "permitido", reading: [{ bookId: "mistborn-1", chapter: 2 }] });
   expect(received.map(item => item.id)).toEqual(["allowed"]);
+});
+
+test("falla de forma segura si la pregunta mezcla contenido desbloqueado y bloqueado", async () => {
+  let called = false;
+  const provider: ContextualHoidProvider = {
+    answer: async () => "ok",
+    answerWithContext: async () => {
+      called = true;
+      return "ok";
+    },
+  };
+  const pipeline = new HoidPipeline(provider, knowledge);
+  const answer = await pipeline.answer({
+    question: "permitido bloqueado",
+    reading: [{ bookId: "mistborn-1", chapter: 2 }],
+  });
+  expect(answer.blocked).toBe(true);
+  expect(answer.reason).toBe("reading-position");
+  expect(called).toBe(false);
 });

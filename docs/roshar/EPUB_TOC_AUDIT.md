@@ -78,3 +78,8 @@ Las unidades incluyen los capítulos y entradas complementarias visibles que se 
 - Cada unidad conserva `editionVariantId` y ruta NCX; los ISBN impresos no se asocian a estos EPUB.
 
 La validación automatizada comprueba recuentos de capítulos por obra, ordinales de progreso contiguos, IDs únicos, localizadores, pertenencia a variante editorial, secciones y conservación de las anomalías. La importación es una transcripción estructural del NCX; no constituye cotejo con las ediciones impresas ni revisión del texto narrativo.
+
+
+### Verificación de destinos NCX
+
+Se resolvieron las 684 rutas relativas registradas contra la raíz `OEBPS/` de sus respectivos archivos EPUB. Resultado de la inspección directa de los ZIP: **684 destinos existentes de 684 unidades; 0 rutas ausentes**. Por ello las variantes registran `contentRoot: 'OEBPS'` y cada unidad conserva el `href` relativo tal como aparece en el NCX. Esta comprobación valida la existencia del archivo de destino, no que el texto XHTML coincida editorialmente con el rótulo del índice.

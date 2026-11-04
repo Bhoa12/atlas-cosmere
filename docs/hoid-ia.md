@@ -1,16 +1,22 @@
 # Hoid IA: arquitectura segura
 
-Hoid IA se mantiene deliberadamente desacoplado de cualquier proveedor externo.
+Hoid IA está desacoplado de cualquier proveedor externo.
 
 ## Flujo
 
-`UI -> HoidService -> SpoilerGuard -> HoidProvider (opcional)`
+`UI -> HoidService -> guardQuestion -> HoidProvider (opcional) -> redactProviderAnswer -> UI`
 
-- La UI entrega una posición de lectura por libro y capítulo.
-- `SpoilerGuard` bloquea temas registrados antes de que salgan del dispositivo.
-- Si no hay proveedor configurado, Hoid devuelve un estado explícito `unavailable`; no simula una respuesta de IA.
-- Los adaptadores futuros deben implementar `HoidProvider` y no deben contener claves en componentes de React Native.
+- La UI entrega progreso real por libro y capítulo desde `CosmereContext`.
+- Los spoiler gates requieren un libro y capítulo explícitos; no se desbloquean por la posición de un array.
+- La pregunta se bloquea antes de invocar un proveedor.
+- La respuesta del proveedor pasa por una segunda comprobación determinista antes de mostrarse.
+- Si no hay proveedor o falla, el sistema responde de forma explícita y no inventa contenido.
+- Ninguna clave de proveedor pertenece a un componente de React Native.
 
-## Siguiente paso
+## Límites actuales
 
-El guardia actual es intencionadamente conservador y depende de gates explícitos. La siguiente fase debe conectar un índice canónico de entidades y eventos con su primera aparición segura por libro/capítulo. Las respuestas externas deberán incluir procedencia o referencias internas para validar la respuesta antes de mostrarla al lector.
+Los gates actuales son una base técnica, no un índice canónico completo. La siguiente fase debe construir un catálogo de entidades, eventos y conceptos con su primera aparición segura por libro/capítulo y utilizar recuperación de contexto autorizada. Hasta entonces, cualquier adaptador externo debe tratarse como experimental y mantener el principio de fallo seguro.
+
+## Contrato de integración
+
+Los proveedores futuros implementarán `HoidProvider`. La aplicación no debe depender de SDKs concretos ni exponer secretos de servidor en el cliente.

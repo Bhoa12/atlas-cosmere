@@ -103,3 +103,14 @@ test('duplicate progress records fail closed and cannot combine into spoiler acc
   }];
   assert.deepEqual(selectVisibleClaims(claims, unambiguous, unitWorkById).map(item => item.id), ['guarded']);
 });
+
+
+test('malformed persisted progress fails closed instead of throwing or unlocking content', () => {
+  const claims = [{ id: 'guarded', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
+  const malformed = [
+    { workId: 'twok', completedUnitIds: null, updatedAt: 't0' },
+    { workId: 42, completedUnitIds: ['twok:prologue'], updatedAt: 't1' },
+    null
+  ];
+  assert.deepEqual(selectVisibleClaims(claims, malformed, unitWorkById), []);
+});

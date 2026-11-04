@@ -16,13 +16,17 @@ function completedUnitsFromUnambiguousProgress(
 ): ReadonlySet<string> {
   const counts = new Map<string, number>();
   for (const item of progress) {
+    if (!item || typeof item.workId !== 'string' || !Array.isArray(item.completedUnitIds)) continue;
     counts.set(item.workId, (counts.get(item.workId) ?? 0) + 1);
   }
 
   const completed = new Set<string>();
   for (const item of progress) {
+    if (!item || typeof item.workId !== 'string' || !Array.isArray(item.completedUnitIds)) continue;
     if (counts.get(item.workId) !== 1) continue;
-    for (const unitId of item.completedUnitIds) completed.add(unitId);
+    for (const unitId of item.completedUnitIds) {
+      if (typeof unitId === 'string') completed.add(unitId);
+    }
   }
   return completed;
 }
@@ -86,7 +90,9 @@ export function selectVisibleClaims(
   const completedUnitIds = completedUnitsFromUnambiguousProgress(progress);
 
   return claims.filter(claim =>
+    !!claim &&
     claim.editorialStatus === 'published' &&
+    Array.isArray(claim.sourceRefs) &&
     claim.sourceRefs.length > 0 &&
     isSpoilerGateSatisfied(claim.spoilerGate, completedUnitIds, unitWorkById)
   );

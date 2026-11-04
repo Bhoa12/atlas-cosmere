@@ -501,3 +501,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Sustituir el logro de ejemplo por hitos editoriales reales cuando el texto fuente sea revisado.
 
 **Resultado:** la gamificación ya no constituye una vía alternativa para filtrar spoilers a través de nombres o descripciones de logros.
+
+
+### Iteración 21 — persistencia monotónica de logros (2026-11-04)
+
+- [x] Separado el estado persistente de logros y recompensas de sus definiciones globales.
+- [x] Los desbloqueos son monotónicos: una reevaluación o corrección posterior no revoca una recompensa ya concedida.
+- [x] Deduplicadas recompensas compartidas entre varios logros.
+- [x] Añadido saneamiento del estado persistido para descartar valores corruptos o duplicados.
+- [x] Añadidas pruebas de persistencia, idempotencia y recuperación de datos malformados.
+- [ ] Conectar este estado al almacenamiento real de la aplicación y a una migración versionada.
+- [ ] Revisar el catálogo de recompensas visuales y eliminar textos globales que puedan filtrar spoilers.
+
+**Resultado:** la evaluación de logros ya puede integrarse con persistencia sin perder recompensas legítimas durante relecturas o correcciones de progreso.

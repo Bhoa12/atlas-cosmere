@@ -588,3 +588,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Ingerir el primer lote editorial real desde los EPUB cuando el texto fuente vuelva a estar accesible a las herramientas de revisión.
 
 **Resultado:** la última regresión de presentación de logros está validada por CI. El siguiente trabajo técnico pendiente es ampliar la cobertura de integración de hidratación sin debilitar los contratos de dominio ya existentes; el siguiente trabajo editorial continúa bloqueado por la ausencia del texto de los EPUB en el entorno de recuperación actual.
+
+
+### Iteración 27 — revalidación de fuentes EPUB y endurecimiento del catálogo (2026-11-04)
+
+- [x] Recuperados directamente en el entorno de revisión los tres EPUB privados aportados: la recopilación de las cinco novelas principales, *Danzante del Filo* y *Esquirla del amanecer*.
+- [x] Reinspeccionadas sus tablas de contenido NCX; las estructuras observadas confirman la disponibilidad de las siete obras para continuar la revisión editorial sin inventar unidades.
+- [x] Endurecido `validateRosharReadingCatalog` para detectar localizadores NCX duplicados dentro de una variante editorial, localizadores con espacios no normalizados y referencias de sección que crucen accidentalmente entre obras.
+- [x] Mantenida la política de no tratar la mera estructura del índice como evidencia de hechos canónicos: personajes, lugares, fauna, flora, clima y magia siguen requiriendo pasajes y referencias propias.
+- [ ] Añadir pruebas de regresión específicas para los tres nuevos invariantes del validador.
+- [ ] Iniciar el primer lote editorial real a partir de pasajes revisados del EPUB, con localizador exacto, resumen original y spoiler gate explícito.
+- [ ] Confirmar CI completo sobre el SHA final de esta iteración.
+
+**Resultado:** el catálogo estructural queda mejor protegido frente a errores de procedencia y mezcla accidental entre obras. Las fuentes privadas ya están disponibles para desbloquear el siguiente bloque editorial, pero no se publica contenido narrativo hasta que cada afirmación sea revisada y trazable.

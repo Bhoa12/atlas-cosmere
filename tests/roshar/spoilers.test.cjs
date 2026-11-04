@@ -82,3 +82,24 @@ test('search matches visible claim text only and never matches locked claim text
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, 'hidden secret'), []);
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, '   '), []);
 });
+
+
+test('duplicate progress records fail closed and cannot combine into spoiler access', () => {
+  const claims = [
+    { id: 'guarded', entityId: 'kaladin', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: {
+      allOf: [req('twok', 'twok:prologue'), req('twok', 'twok:chapter:001')]
+    } }
+  ];
+  const ambiguous = [
+    { workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' },
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001'], updatedAt: 't1' }
+  ];
+  assert.deepEqual(selectVisibleClaims(claims, ambiguous, unitWorkById), []);
+
+  const unambiguous = [{
+    workId: 'twok',
+    completedUnitIds: ['twok:prologue', 'twok:chapter:001'],
+    updatedAt: 't2'
+  }];
+  assert.deepEqual(selectVisibleClaims(claims, unambiguous, unitWorkById).map(item => item.id), ['guarded']);
+});

@@ -430,3 +430,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Añadir una herramienta de revisión para comprobar fuente, unidad de desbloqueo y estado editorial antes de publicar.
 
 **Resultado:** Atlas ya tiene una ruta segura de ingestión editorial. El siguiente cuello de botella no es técnico: es revisar el texto fuente y registrar afirmaciones verificables sin inventar contenido.
+
+
+### Iteración 18 — control de publicación editorial (2026-11-04)
+
+- [x] Endurecida la validación: una afirmación publicada debe tener fecha de revisión.
+- [x] Las afirmaciones publicadas basadas en una novela requieren una fuente con unidad de lectura y locator exactos.
+- [x] Añadido un inspector de lotes editoriales para conocer si un conjunto de contenido es publicable.
+- [x] Añadidas pruebas que bloquean contenido publicado sin revisión, fuente exacta o spoiler gate.
+- [ ] Recuperar el texto fuente de las obras aportadas; la búsqueda actual de archivos no encontró material indexado disponible en la conversación o biblioteca.
+- [ ] Ingerir el primer lote real de El camino de los reyes una vez el texto fuente esté accesible.
+- [ ] Automatizar la validación del dataset editorial dentro de CI cuando existan lotes publicados.
+
+**Resultado:** el repositorio puede preparar y validar contenido, pero se niega explícitamente a publicar hechos de ficción sin una revisión trazable hasta una unidad concreta del texto fuente.

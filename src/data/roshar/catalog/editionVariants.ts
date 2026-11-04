@@ -13,6 +13,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: 'El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   },
   {

@@ -325,3 +325,17 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Implementar migración de progreso legado y navegación capítulo por capítulo solo después de cerrar R0 y aprobar el catálogo.
 
 **Resultado:** el catálogo ya contiene una transcripción estructural completa de los índices de las siete obras aportadas. No está conectado todavía a persistencia, pantallas ni motor de spoilers. La fuente digital sigue separada de ediciones impresas y no se declara equivalencia editorial.
+
+
+### Iteración 9 — operaciones puras de progreso explícito (2026-11-04)
+
+- [x] Añadido `src/data/roshar/progress.ts` con creación de progreso vacío, selección del punto actual, finalización explícita de una unidad, saneamiento y validación.
+- [x] Separada la acción «abrir/seleccionar unidad» de «marcar unidad completada».
+- [x] Una unidad posterior completada no marca unidades anteriores ni intermedias.
+- [x] El saneador acepta únicamente el esquema granular nuevo; los objetos legados `librosLeidos` / `capituloActualPorLibro` no se convierten en unidades completadas.
+- [x] Añadidas pruebas para lectura no lineal, asignaciones entre obras, datos duplicados y entrada legado.
+- [ ] Integrar estas operaciones en una capa de almacenamiento versionada y transaccional, con respaldo y recuperación.
+- [ ] Añadir pruebas de migración real de AsyncStorage antes de tocar `CosmereContext`.
+- [ ] Mantener la UI antigua como compatibilidad hasta que exista una ruta de migración segura y una navegación capítulo por capítulo.
+
+**Resultado:** ya existe la lógica de dominio para el progreso explícito, aislada de React y AsyncStorage. No está conectada a la aplicación y no modifica datos del usuario.

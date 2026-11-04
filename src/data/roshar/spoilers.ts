@@ -92,3 +92,36 @@ export function isEntityFullyRevealed(
   );
   return entityClaims.every(claim => visibleIds.has(claim.id));
 }
+
+
+/**
+ * Returns only visible claims belonging to one entity. Callers receive no
+ * placeholder for an entity that has no currently visible claims.
+ */
+export function selectVisibleClaimsForEntity(
+  claims: EncyclopediaClaim[],
+  entityId: string,
+  progress: ReadingProgress[],
+  unitWorkById: ReadonlyMap<string, string>
+): EncyclopediaClaim[] {
+  if (!entityId) return [];
+  return selectVisibleClaims(claims, progress, unitWorkById)
+    .filter(claim => claim.entityId === entityId);
+}
+
+/**
+ * Search projection over visible claim text only. Hidden claims are filtered
+ * before matching, so a match cannot reveal a blocked description.
+ * Entity names/aliases must be gated separately before being added to indexes.
+ */
+export function selectVisibleClaimsForSearch(
+  claims: EncyclopediaClaim[],
+  progress: ReadingProgress[],
+  unitWorkById: ReadonlyMap<string, string>,
+  query: string
+): EncyclopediaClaim[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) return [];
+  return selectVisibleClaims(claims, progress, unitWorkById)
+    .filter(claim => claim.text.toLocaleLowerCase().includes(normalizedQuery));
+}

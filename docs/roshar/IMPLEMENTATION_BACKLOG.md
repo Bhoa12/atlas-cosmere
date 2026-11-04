@@ -565,3 +565,15 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar la ejecución completa de CI sobre el commit de corrección.
 
 **Resultado:** los logros ocultos siguen protegidos antes de alcanzar su gate, y los títulos no ocultos pueden revelarse correctamente cuando el progreso explícito satisface el requisito. La publicación editorial de la enciclopedia continúa siendo independiente de la presentación de logros.
+
+
+### Iteración 25 — coherencia monotónica entre persistencia y presentación de logros (2026-11-04)
+
+- [x] Detectada una discrepancia entre el estado persistente monotónico y la pantalla: un logro concedido podía volver a mostrarse como pendiente tras una corrección posterior del progreso.
+- [x] Extendida la proyección de presentación para aceptar IDs de logros ya concedidos y tratarlos como desbloqueados.
+- [x] Conectada la pantalla, a través de `CosmereContext`, al inventario persistente de IDs desbloqueados.
+- [x] Mantenida la evaluación de spoiler gates: un logro persistido se presenta como concedido, pero el sistema no vuelve a calcular ni duplica recompensas.
+- [x] Añadida una prueba de regresión para una corrección posterior del progreso.
+- [ ] Confirmar CI completo sobre el SHA final de esta iteración.
+
+**Resultado:** el contrato de desbloqueo monotónico ya es coherente entre almacenamiento, estado de aplicación y presentación, evitando que una recompensa obtenida legítimamente parezca desaparecer de la UI.

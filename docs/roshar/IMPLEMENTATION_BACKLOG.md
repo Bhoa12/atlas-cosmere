@@ -339,3 +339,17 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Mantener la UI antigua como compatibilidad hasta que exista una ruta de migración segura y una navegación capítulo por capítulo.
 
 **Resultado:** ya existe la lógica de dominio para el progreso explícito, aislada de React y AsyncStorage. No está conectada a la aplicación y no modifica datos del usuario.
+
+
+### Iteración 10 — almacenamiento granular versionado aislado (2026-11-04)
+
+- [x] Añadido `src/data/roshar/progressStorage.ts` con clave independiente `@atlas-cosmere/reading-progress-v2`.
+- [x] El lector acepta exclusivamente el esquema v2 y sanea IDs/unidades antes de devolverlos.
+- [x] JSON corrupto, versión desconocida y almacenamiento no disponible devuelven progreso vacío de forma controlada.
+- [x] La capa nunca lee, sobrescribe ni elimina `@atlas-cosmere/state-v1`.
+- [x] El guardado escribe solo en la clave v2 y devuelve un resultado explícito si falla.
+- [x] Añadidas pruebas con almacenamiento simulado para ausencia de datos, esquema inválido, JSON corrupto, errores de lectura/escritura y conservación de state-v1.
+- [ ] Integrar el adaptador en `CosmereContext` con hidratación y guardado coordinados; no activar hasta definir rollback y transición de UX.
+- [ ] Añadir respaldo exportable y pruebas de recuperación ante interrupción entre lectura y escritura.
+
+**Resultado:** la persistencia granular ya tiene una vía técnica independiente y no destructiva. Sigue desconectada del contexto React; el progreso legado permanece intacto.

@@ -4,6 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 import { ReadingProgress } from '../data/roshar/model';
+import { ROSHAR_READING_ACHIEVEMENTS } from '../data/gamification';
+import { RosharAchievementState, createEmptyRosharAchievementState, applyRosharAchievementProjections } from '../data/roshar/achievementState';
+import { loadRosharAchievementState, saveRosharAchievementState } from '../data/roshar/achievementStorage';
+import { evaluateRosharReadingAchievements, selectVisibleRosharAchievements, RosharAchievementPresentation } from '../data/roshar/achievements';
 import {
   ROSHAR_READING_UNITS,
   ROSHAR_READING_UNIT_WORK_BY_ID
@@ -50,6 +54,8 @@ interface CosmereContextType {
   readingProgress: ReadingProgress[];
   setUnidadLecturaActual: (workId: string, readingUnitId: string) => void;
   completarUnidadLectura: (workId: string, readingUnitId: string) => void;
+  rosharAchievementState: RosharAchievementState;
+  rosharAchievements: RosharAchievementPresentation[];
 }
 
 const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
@@ -76,6 +82,9 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
   const [progresoLecturaHidratado, setProgresoLecturaHidratado] = useState(false);
   const [persistenciaProgresoDisponible, setPersistenciaProgresoDisponible] = useState(false);
+  const [rosharAchievementState, setRosharAchievementState] = useState<RosharAchievementState>(() => createEmptyRosharAchievementState(new Date().toISOString()));
+  const [logrosRosharHidratados, setLogrosRosharHidratados] = useState(false);
+  const [persistenciaLogrosDisponible, setPersistenciaLogrosDisponible] = useState(false);
 
   const [comentarios, setComentarios] = useState<ComentarioComunidad[]>([
     {
@@ -163,6 +172,51 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     cargarProgresoGranular();
     return () => { activo = false; };
   }, []);
+
+  useEffect(() => {
+    let activo = true;
+    const cargarLogrosRoshar = async () => {
+      const result = await loadRosharAchievementState(AsyncStorage, new Date().toISOString());
+      if (!activo) return;
+      setRosharAchievementState(result.state);
+      // Invalid or unavailable payloads are never overwritten automatically.
+      setPersistenciaLogrosDisponible(result.status === 'loaded' || result.status === 'empty');
+      setLogrosRosharHidratados(true);
+    };
+    cargarLogrosRoshar();
+    return () => { activo = false; };
+  }, []);
+
+  const rosharAchievementProjections = evaluateRosharReadingAchievements(
+    ROSHAR_READING_ACHIEVEMENTS,
+    ROSHAR_READING_UNITS,
+    readingProgress
+  );
+  const rosharAchievements = selectVisibleRosharAchievements(
+    rosharAchievementProjections,
+    readingProgress
+  );
+
+  useEffect(() => {
+    if (!logrosRosharHidratados) return;
+    setRosharAchievementState(previous => {
+      const next = applyRosharAchievementProjections(
+        previous,
+        rosharAchievementProjections,
+        new Date().toISOString()
+      );
+      const unchanged = previous.unlockedAchievementIds.length === next.unlockedAchievementIds.length &&
+        previous.unlockedRewardIds.length === next.unlockedRewardIds.length &&
+        previous.unlockedAchievementIds.every((id, index) => id === next.unlockedAchievementIds[index]) &&
+        previous.unlockedRewardIds.every((id, index) => id === next.unlockedRewardIds[index]);
+      return unchanged ? previous : next;
+    });
+  }, [logrosRosharHidratados, readingProgress]);
+
+  useEffect(() => {
+    if (!logrosRosharHidratados || !persistenciaLogrosDisponible) return;
+    saveRosharAchievementState(AsyncStorage, rosharAchievementState, new Date().toISOString()).catch(() => false);
+  }, [logrosRosharHidratados, persistenciaLogrosDisponible, rosharAchievementState]);
 
   useEffect(() => {
     if (!progresoLecturaHidratado || !persistenciaProgresoDisponible) return;
@@ -279,7 +333,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setComentarios(prev => prev.map(c => c.id === id ? { ...c, luzTormentosaLikes: c.luzTormentosaLikes + 1 } : c));
   };
 
-  if (!estadoHidratado || !progresoLecturaHidratado) {
+  if (!estadoHidratado || !progresoLecturaHidratado || !logrosRosharHidratados) {
     return <View style={{ flex: 1, backgroundColor: '#090d16', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#38bdf8" size="large" /></View>;
   }
 
@@ -306,7 +360,9 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       todosLosLibrosLeidos,
       readingProgress,
       setUnidadLecturaActual,
-      completarUnidadLectura
+      completarUnidadLectura,
+      rosharAchievementState,
+      rosharAchievements
     }}>
       {children}
     </CosmereContext.Provider>

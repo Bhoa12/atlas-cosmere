@@ -555,3 +555,13 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el SHA final y corregir cualquier regresión.
 
 **Resultado:** los logros de Roshar ya disponen de una superficie visible en la aplicación sin abrir una nueva vía de filtración de spoilers.
+
+
+### Iteración 24 — corrección del gate de presentación de logros (2026-11-04)
+
+- [x] Investigado el fallo de CI del commit de la pantalla de logros: 55 de 56 contratos pasaban y fallaba la revelación tras completar el spoiler gate.
+- [x] Corregida la proyección para evaluar el gate directamente con `isSpoilerGateSatisfied`, compartiendo el mismo evaluador fail-closed del motor de spoilers.
+- [x] Eliminada la reutilización incorrecta del selector editorial de enciclopedia, que exige publicación y referencias de fuente y por tanto ocultaba siempre los metadatos de logros.
+- [ ] Confirmar la ejecución completa de CI sobre el commit de corrección.
+
+**Resultado:** los logros ocultos siguen protegidos antes de alcanzar su gate, y los títulos no ocultos pueden revelarse correctamente cuando el progreso explícito satisface el requisito. La publicación editorial de la enciclopedia continúa siendo independiente de la presentación de logros.

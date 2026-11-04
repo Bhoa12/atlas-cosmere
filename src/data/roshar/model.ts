@@ -271,7 +271,7 @@ export function validateReadingUnits(
 
     if (unit.source) {
       const edition = knownEditionVariants.get(unit.source.editionVariantId);
-      if (!edition || edition.workId !== unit.workId || !unit.source.locator) {
+      if (!edition || edition.workId !== unit.workId || !edition.contentRoot || !unit.source.locator) {
         issues.push({
           code: 'invalid-source',
           itemId: unit.id,

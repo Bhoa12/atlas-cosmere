@@ -634,3 +634,14 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el commit de corrección antes de dar la iteración por validada.
 
 **Resultado:** la suite vuelve a expresar una única semántica para seguimiento y orientación: el porcentaje y la siguiente lectura requerida usan el mismo conjunto de unidades narrativas, mientras el material suplementario sigue siendo registrable sin bloquear la obra.
+
+
+### Iteración 31 — invariantes de frontera y posición de lectura (2026-11-04)
+
+- [x] Confirmado CI verde para el SHA de la Iteración 30: **Atlas Android validation #173** terminó correctamente.
+- [x] Añadidas regresiones para una posición actual situada en material suplementario: puede registrarse como completada sin avanzar artificialmente la frontera narrativa.
+- [x] Añadida regresión para una unidad actual desconocida: el panel no la interpreta como progreso completado ni altera la primera unidad narrativa pendiente.
+- [ ] Ejecutar CI completo sobre el commit de estas nuevas regresiones.
+- [ ] Iniciar la ingestión editorial real únicamente cuando los pasajes de los EPUB estén accesibles para revisión directa y trazabilidad por unidad.
+
+**Resultado:** el seguimiento de lectura queda mejor protegido frente a estados de posición que no representan avance narrativo. La frontera, el porcentaje y la recomendación continúan derivándose solo de unidades explícitamente completadas y requeridas por la política editorial.

@@ -320,7 +320,7 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [x] Añadidas pruebas de cobertura de los 589 capítulos numerados, 684 unidades importadas y 54 secciones estructurales, además de IDs, localizadores y procedencia editorial.
 - [x] Documentados los recuentos y las reglas de importación en `EPUB_TOC_AUDIT.md`.
 - [ ] Validar CI en el último commit de esta iteración.
-- [ ] Cotejar las rutas/etiquetas NCX contra los XHTML internos de cada EPUB, en especial anomalías y material complementario.
+- [x] Verificar que las 684 rutas relativas NCX resuelven a un XHTML existente bajo la raíz `OEBPS/` de los EPUB; 0 destinos ausentes. El cotejo textual de encabezados XHTML frente a rótulos NCX queda pendiente.
 - [ ] Confirmar la política de producto para marcar agradecimientos, Ars Arcanum y notas finales como leídos; por ahora se conservan como unidades explícitas, separadas de capítulos.
 - [ ] Implementar migración de progreso legado y navegación capítulo por capítulo solo después de cerrar R0 y aprobar el catálogo.
 

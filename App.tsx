@@ -8,12 +8,15 @@ import { HoidScreen } from './src/screens/HoidScreen';
 import { QuizzesScreen } from './src/screens/QuizzesScreen';
 import { CommunityScreen } from './src/screens/CommunityScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { RosharReadingNavigator } from './src/components/RosharReadingNavigator';
+import { ROSHAR_READING_UNITS } from './src/data/roshar/catalog/readingUnits';
 
 const MainNavigator = () => {
   const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState(SISTEMAS_COSMERE_COMPLETO[0]);
   const [libroModal, setLibroModal] = useState<Libro | null>(null);
-  const { toggleLibroLeido, librosLeidos, capituloActualPorLibro, setCapituloLibro, reinoCognitivoActivo, toggleReinoCognitivo } = useCosmere();
+  const [libroLecturaAbierto, setLibroLecturaAbierto] = useState<string | null>(null);
+  const { toggleLibroLeido, librosLeidos, capituloActualPorLibro, setCapituloLibro, reinoCognitivoActivo, toggleReinoCognitivo, readingProgress } = useCosmere();
 
   const themeBg = reinoCognitivoActivo ? '#030712' : '#090d16';
   const themeCard = reinoCognitivoActivo ? '#0b0f19' : '#0f172a';
@@ -94,16 +97,32 @@ const MainNavigator = () => {
             <Text style={styles.subHeader}>BIBLIOGRAFÍA (PULSA PARA SINOPSIS & PERSONAJES)</Text>
             {sistemaSeleccionado.libros.map(lib => {
               const leido = !!librosLeidos[lib.id];
+              const esGranular = ROSHAR_READING_UNITS.some(unit => unit.workId === lib.id);
+              const progresoGranular = readingProgress.find(item => item.workId === lib.id);
+              const unidadesCompletadas = progresoGranular?.completedUnitIds.length ?? 0;
               return (
-                <View key={lib.id} style={[styles.bookRow, leido && styles.bookRowRead, { backgroundColor: themeCard }]}>
+                <React.Fragment key={lib.id}>
+                <View style={[styles.bookRow, leido && styles.bookRowRead, { backgroundColor: themeCard }]}>
                   <TouchableOpacity style={{ flex: 1 }} onPress={() => setLibroModal(lib)}>
                     <Text style={styles.bookTitle}>{lib.titulo} ℹ️</Text>
                     <Text style={styles.bookMeta}>{lib.saga} • {lib.totalCapitulos} Caps</Text>
                   </TouchableOpacity>
                   <View style={styles.bookProgress}>
                     <Text style={styles.bookProgressText}>
-                      {Math.min(capituloActualPorLibro[lib.id] ?? 0, lib.totalCapitulos)}/{lib.totalCapitulos}
+                      {esGranular
+                        ? `${unidadesCompletadas}/${ROSHAR_READING_UNITS.filter(unit => unit.workId === lib.id).length}`
+                        : `${Math.min(capituloActualPorLibro[lib.id] ?? 0, lib.totalCapitulos)}/${lib.totalCapitulos}`}
                     </Text>
+                    {esGranular ? (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Abrir lectura capítulo por capítulo de ${lib.titulo}`}
+                        onPress={() => setLibroLecturaAbierto(libroLecturaAbierto === lib.id ? null : lib.id)}
+                        style={styles.chapterStepBtn}
+                      >
+                        <Text style={styles.chapterStepText}>{libroLecturaAbierto === lib.id ? '×' : '≡'}</Text>
+                      </TouchableOpacity>
+                    ) : (
                     <View style={styles.bookProgressControls}>
                       <TouchableOpacity
                         accessibilityRole="button"
@@ -124,6 +143,7 @@ const MainNavigator = () => {
                         <Text style={styles.chapterStepText}>+</Text>
                       </TouchableOpacity>
                     </View>
+                    )}
                   </View>
                   <TouchableOpacity
                     style={[styles.readToggleBtn, leido && styles.readToggleBtnActive]}
@@ -134,6 +154,8 @@ const MainNavigator = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
+                {esGranular && libroLecturaAbierto === lib.id && <RosharReadingNavigator workId={lib.id} />}
+              </React.Fragment>
               );
             })}
           </ScrollView>

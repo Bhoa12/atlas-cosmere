@@ -246,9 +246,22 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 - [x] Incluidos `Elsecaller` y `King Lopen: The First of Alethkar` como relatos oficiales separados (IDs nuevos), sin inventar unidades ni recuentos.
 - [x] Corregida la lectura recomendada local de Roshar: se deja de heredar el campo legado global (valores 5, 7, 8...) y se usa la numeración oficial de la serie (1, 2, 2.5, 3, 3.5, 4, 5); los relatos Story Deck se sitúan como 2.6 y 2.7.
 - [x] Documentado que Horneater no se añade como obra publicada/unidades hasta que exista confirmación editorial de publicación.
-- [ ] Confirmar la edición española de referencia mediante ISBN y cotejar índices completos de cada obra antes de generar unidades.
+- [x] Confirmar el alcance lingüístico inicial en español y registrar ISBN españoles de referencia para las seis primeras obras con edición verificada; inglés queda para una fase posterior. Los títulos sin ISBN español independiente verificado permanecen pendientes.
 - [ ] Publicar un inventario completo de unidades con variante de edición y referencias de localización.
 
 ### Estado de CI de las pruebas
 
 La primera ejecución de `npm test` detectó correctamente un fixture defectuoso en la prueba de IDs duplicados (el caso no contenía realmente un ID repetido). Se corrigió el fixture; la nueva ejecución debe confirmarse antes de marcar las pruebas como verdes. La ejecución anterior no se considera validación satisfactoria.
+
+
+### Iteración 4 — referencia editorial española (2026-11-04)
+
+- [x] Confirmado por el usuario: el primer lanzamiento de Roshar se trabajará en español; el inglés queda para una fase posterior.
+- [x] Registrados ISBN de cotejo inicial para El camino de los reyes, Palabras radiantes, Danzante del Filo, Juramentada, Esquirla del Amanecer y El ritmo de la guerra en `docs/roshar/EDITORIAL_SOURCES.md`.
+- [x] Documentadas variantes de edición y la regla de separar IDs semánticos de lectura de localizadores físicos/paginación.
+- [ ] Verificar ISBN y estructura española de Viento y verdad.
+- [ ] Verificar si Elsecaller y King Lopen disponen de edición española independiente; mantenerlos en catálogo oficial, pero sin unidades hasta confirmar.
+- [ ] Cotejar el índice completo de El camino de los reyes contra el ejemplar de referencia (ISBN `9788466647946`) y registrar todas las secciones en el catálogo.
+- [ ] Extender el mismo procedimiento al resto de obras.
+
+**Validación CI:** el workflow `41744870889` terminó correctamente: tests de contratos de Roshar, TypeScript y exportación Android completados con éxito. Resultado válido para el SHA `8862ee4244cc19eb2b36763ca2f78f6ee6543757`; no implica que el catálogo editorial esté completo.

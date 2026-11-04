@@ -1,0 +1,3 @@
+import { WorkId } from './catalog';
+export interface ReadingProgress { workId: WorkId; completedUnitOrder: number; }
+export function normalizeProgress(records: ReadingProgress[]): Map<WorkId, ReadingProgress> { const normalized=new Map<WorkId,ReadingProgress>(); for(const record of records){ if(!Number.isInteger(record.completedUnitOrder)||record.completedUnitOrder < -1) continue; const current=normalized.get(record.workId); if(!current||record.completedUnitOrder>current.completedUnitOrder) normalized.set(record.workId,{...record}); } return normalized; }

@@ -7,7 +7,8 @@ const {
   markReadingUnitCompleted,
   sanitizeReadingProgress,
   validateReadingProgress,
-  isRequiredForNarrativeCompletion
+  isRequiredForNarrativeCompletion,
+  isNarrativeWorkComplete
 } = require('../../src/data/roshar/progress.ts');
 
 const unitWorkById = new Map([
@@ -79,4 +80,17 @@ test('narrative units and unclassified entries remain required for completion', 
   for (const kind of ['prelude', 'prologue', 'chapter', 'interlude', 'epilogue', 'postlude', 'other']) {
     assert.equal(isRequiredForNarrativeCompletion(unit(kind)), true, kind);
   }
+});
+
+
+test('narrative completion requires every narrative unit but ignores supplementary units', () => {
+  const units = [
+    { id: 'twok:prologue:001', workId: 'twok', ordinal: 1, kind: 'prologue', label: 'Prologue' },
+    { id: 'twok:chapter:001', workId: 'twok', ordinal: 2, kind: 'chapter', label: 'Chapter 1' },
+    { id: 'twok:ars-arcanum:001', workId: 'twok', ordinal: 3, kind: 'ars-arcanum', label: 'Ars Arcanum' }
+  ];
+  assert.equal(isNarrativeWorkComplete('twok', units, [{ workId: 'twok', completedUnitIds: ['twok:prologue:001'], updatedAt: 't0' }]), false);
+  assert.equal(isNarrativeWorkComplete('twok', units, [{ workId: 'twok', completedUnitIds: ['twok:prologue:001', 'twok:chapter:001'], updatedAt: 't1' }]), true);
+  assert.equal(isNarrativeWorkComplete('missing', units, []), false);
+  assert.equal(isNarrativeWorkComplete('empty', [], []), false);
 });

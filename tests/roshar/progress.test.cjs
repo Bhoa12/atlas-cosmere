@@ -94,3 +94,15 @@ test('narrative completion requires every narrative unit but ignores supplementa
   assert.equal(isNarrativeWorkComplete('missing', units, []), false);
   assert.equal(isNarrativeWorkComplete('empty', [], []), false);
 });
+
+
+test('completed unit count uses explicit granular progress only', () => {
+  const { getCompletedReadingUnitCount } = require('../../src/data/roshar/progress.ts');
+  const progress = [
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001', 'twok:chapter:002'], updatedAt: 't0' },
+    { workId: 'wor', completedUnitIds: ['wor:chapter:001'], updatedAt: 't0' }
+  ];
+  assert.equal(getCompletedReadingUnitCount(progress), 3);
+  assert.equal(getCompletedReadingUnitCount(progress, 'twok'), 2);
+  assert.equal(getCompletedReadingUnitCount(progress, 'missing'), 0);
+});

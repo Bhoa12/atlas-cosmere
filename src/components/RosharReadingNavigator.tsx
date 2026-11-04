@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { ROSHAR_READING_SECTIONS, ROSHAR_READING_UNITS } from '../data/roshar/catalog/readingUnits';
+import { isNarrativeWorkComplete } from '../data/roshar/progress';
 
 export function RosharReadingNavigator({ workId }: { workId: string }) {
   const { readingProgress, setUnidadLecturaActual, completarUnidadLectura } = useCosmere();
@@ -10,11 +11,13 @@ export function RosharReadingNavigator({ workId }: { workId: string }) {
   const completed = new Set(progress?.completedUnitIds ?? []);
   const sections = new Map(ROSHAR_READING_SECTIONS.filter(section => section.workId === workId).map(section => [section.id, section]));
   let lastSectionId: string | undefined;
+  const narrativeComplete = isNarrativeWorkComplete(workId, units, readingProgress);
   if (units.length === 0) return null;
 
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>LECTURA CAPÍTULO A CAPÍTULO</Text>
+      {narrativeComplete && <Text style={styles.completeWork}>✓ HISTORIA NARRATIVA COMPLETADA</Text>}
       {units.map(unit => {
         const done = completed.has(unit.id);
         const current = progress?.currentUnitId === unit.id;
@@ -55,6 +58,7 @@ export function RosharReadingNavigator({ workId }: { workId: string }) {
 const styles = StyleSheet.create({
   panel: { borderTopWidth: 1, borderColor: '#1e293b', padding: 10, backgroundColor: '#090d16' },
   title: { color: '#7dd3fc', fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 8 },
+  completeWork: { color: '#34d399', fontSize: 9, fontWeight: '800', letterSpacing: 1, marginBottom: 6 },
   section: { color: '#94a3b8', fontSize: 9, fontWeight: '800', letterSpacing: 1, marginTop: 9, marginBottom: 4 },
   row: { flexDirection: 'row', alignItems: 'center', padding: 9, borderRadius: 7, marginBottom: 4, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b' },
   done: { borderColor: '#047857', backgroundColor: '#052e2b' },

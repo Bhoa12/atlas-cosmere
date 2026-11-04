@@ -455,3 +455,15 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Ingerir contenido editorial real desde los EPUB con locators de pasaje exactos.
 
 **Resultado:** el seguimiento granular ya dispone de una métrica única y reproducible para la UI y futuros logros; el porcentaje no depende de contadores heredados ni de inferencias de capítulos.
+
+
+### Iteración 19 — frontera explícita de lectura (2026-11-04)
+
+- [x] Añadida una proyección de panel de lectura basada exclusivamente en unidades completadas explícitamente.
+- [x] Añadido cálculo de frontera consecutiva: completar una unidad posterior no rellena huecos anteriores.
+- [x] El panel distingue el porcentaje narrativo de la siguiente unidad narrativa pendiente; el material suplementario no bloquea la frontera.
+- [x] Añadidas pruebas para progreso no lineal y para ignorar material suplementario en la continuidad narrativa.
+- [ ] Conectar la proyección con las pantallas de React existentes sin reintroducir el contador legado.
+- [ ] Recuperar el texto fuente para iniciar el primer lote editorial real de afirmaciones verificadas.
+
+**Resultado:** la capa de dominio ya puede mostrar una posición de lectura honesta incluso cuando el usuario lee de forma no lineal, sin conceder progreso ni desbloqueos por inferencia.

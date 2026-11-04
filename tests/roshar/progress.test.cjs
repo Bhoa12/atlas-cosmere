@@ -106,3 +106,21 @@ test('completed unit count uses explicit granular progress only', () => {
   assert.equal(getCompletedReadingUnitCount(progress, 'twok'), 2);
   assert.equal(getCompletedReadingUnitCount(progress, 'missing'), 0);
 });
+
+
+test('summarizeReadingWork counts only explicit required-unit completion', () => {
+  const units = [
+    { id: 'w:1', workId: 'w', ordinal: 1, kind: 'chapter', label: 'Uno', chapterNumber: 1 },
+    { id: 'w:2', workId: 'w', ordinal: 2, kind: 'ars-arcanum', label: 'Ars' },
+    { id: 'w:3', workId: 'w', ordinal: 3, kind: 'chapter', label: 'Dos', chapterNumber: 2 }
+  ];
+  const summary = progress.summarizeReadingWork('w', units, [{
+    workId: 'w', completedUnitIds: ['w:1'], updatedAt: 't'
+  }]);
+  assert.equal(summary.completedUnits, 1);
+  assert.equal(summary.requiredUnits, 2);
+  assert.equal(summary.completedRequiredUnits, 1);
+  assert.equal(summary.percent, 50);
+  assert.equal(summary.nextUnitId, 'w:2');
+  assert.equal(summary.narrativeComplete, false);
+});

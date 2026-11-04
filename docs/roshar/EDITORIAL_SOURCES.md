@@ -44,7 +44,6 @@ Estos índices muestran que las ediciones y formatos pueden tener localizadores 
 - Cronología interna: dimensión independiente; no se asignará sin una fuente clara y específica.
 - Los IDs legados `twok`, `wor`, `edgedancer`, `o`, `dawnshard`, `row`, `wat` no se renombrarán.
 
-
 ## Referencia editorial española inicial (2026-11-04)
 
 Se confirma el alcance lingüístico inicial: **español**. El inglés no forma parte del primer inventario de unidades; podrá añadirse después como variante editorial independiente.
@@ -67,8 +66,15 @@ ISBN españoles localizados para iniciar el cotejo:
 
 Los ISBN anteriores se usan como **referencias de cotejo inicial**, no como afirmación de que sean las únicas ediciones válidas. En particular, El camino de los reyes tiene ediciones españolas posteriores (incluida B de Bolsillo, ISBN `9788413143941`) con paginación diferente. La aplicación deberá permitir declarar otra edición sin alterar el progreso semántico.
 
-Antes de dar por cerrado el inventario de una obra, hay que cotejar el índice y la secuencia de secciones del ejemplar/edición de referencia. Cuando no se disponga de evidencia editorial suficiente, la unidad queda pendiente; no se completa por analogía con el original inglés o con una wiki.
+### Cotejo de El camino de los reyes (2026-11-04)
 
+- **Edición identificada:** Ediciones B, 2012, castellano, traducción de Rafael Marín Trechera, ISBN `9788466647946`. La ficha editorial de Ediciones B confirma título, autor, fecha, formato e ISBN. Google Books confirma editorial, año, traductor, ISBN y extensión bibliográfica de 1196 páginas.
+- **Límite de la evidencia disponible:** no se ha localizado en abierto un índice editorial completo de ese ejemplar español. El índice de Coppermind ES ofrece un inventario secundario de capítulos, pero no constituye por sí solo prueba de correspondencia exacta con el ISBN seleccionado. La vista accesible de Google Books muestra el índice de una edición inglesa, no del ejemplar español.
+- **Estructura de referencia no española:** el índice de Open Library para la edición inglesa enumera preludio, prólogo, cinco partes, tres bloques de interludios, epílogo, nota final y Ars Arcanum. Se conserva únicamente como lista de comprobación para el cotejo; **no se ha importado al catálogo español ni se han creado unidades a partir de ella**.
+- **Decisión:** mantener `twok` sin unidades de lectura publicadas hasta cotejar un ejemplar o índice verificable de la edición española. No asignar páginas españolas por conversión ni deducirlas de la edición inglesa.
+- **Siguiente evidencia necesaria:** fotografías o consulta del índice del ejemplar ISBN `9788466647946`, o una vista digital/editorial que identifique inequívocamente esa edición y muestre su índice completo.
+
+Antes de dar por cerrado el inventario de una obra, hay que cotejar el índice y la secuencia de secciones del ejemplar/edición de referencia. Cuando no se disponga de evidencia editorial suficiente, la unidad queda pendiente; no se completa por analogía con el original inglés o con una wiki.
 
 ## Fuentes oficiales consultadas
 
@@ -76,6 +82,9 @@ Antes de dar por cerrado el inventario de una obra, hay que cotejar el índice y
 - Macmillan, [The Stormlight Archive](https://us.macmillan.com/series/thestormlightarchive): catálogo editorial de novelas y novelas cortas.
 - Brandon Sanderson, [State of the Sanderson 2025](https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2025): estado editorial de Elsecaller.
 - Brandon Sanderson, [State of the Sanderson 2024](https://www.brandonsanderson.com/blogs/blog/state-of-the-sanderson-2024): estado y planificación de Horneater.
+- Ediciones B, [El camino de los reyes: La guerra de las tormentas I](https://www.edicionesb.com.mx/Fondo-Editorial/Ediciones-B/El-camino-de-los-reyes-La-guerra-de-las-tormentas-I.html): ficha editorial española con ISBN y formato.
+- Google Books, [El camino de los reyes (Ediciones B, 2012)](https://books.google.com/books/about/El_camino_de_los_reyes.html?id=LcqipwAACAAJ): datos bibliográficos y traductor.
+- Open Library, [The Way of Kings — índice de la edición inglesa](https://openlibrary.org/books/OL24383834M/The_Way_of_Kings): estructura inglesa usada solo como lista de cotejo, no como catálogo español.
 
 ## Pendiente antes de publicar unidades
 

@@ -3,7 +3,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   evaluateRosharReadingAchievements,
-  selectUnlockedRosharRewardIds
+  selectUnlockedRosharRewardIds,
+  selectVisibleRosharAchievements
 } = require('../../src/data/roshar/achievements.ts');
 
 const units = [
@@ -37,4 +38,20 @@ test('reward projection is idempotent and deduplicated', () => {
     { achievement: { id: 'b', title: 'B', description: '', reward }, unlocked: true }
   ];
   assert.deepEqual(selectUnlockedRosharRewardIds(projections), ['same']);
+});
+
+
+test('persisted achievement grants remain visible after a later progress correction', () => {
+  const achievement = {
+    id: 'monotonic',
+    requiredCompletedUnits: 2,
+    title: 'Granted once',
+    description: 'Persists after correction.',
+    reward: { type: 'badge', id: 'badge-1', label: 'Badge' }
+  };
+  const projections = evaluateRosharReadingAchievements([achievement], units, []);
+  const visible = selectVisibleRosharAchievements(projections, [], ['monotonic']);
+  assert.equal(visible[0].unlocked, true);
+  assert.equal(visible[0].title, 'Granted once');
+  assert.equal(visible[0].reward.id, 'badge-1');
 });

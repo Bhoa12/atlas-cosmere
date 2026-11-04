@@ -92,3 +92,29 @@ Antes de dar por cerrado el inventario de una obra, hay que cotejar el índice y
 - Contrastar la estructura completa de cada obra contra su índice editorial/ejemplar: partes, prólogos, capítulos, interludios, epílogos, apéndices y Ars Arcanum.
 - Verificar qué elementos son unidades independientes de lectura y cuáles son material preliminar/final opcional.
 - Añadir referencias con localizador de sección por cada afirmación de enciclopedia; un índice de capítulos no es una fuente de canon.
+
+
+## Índices de los EPUB aportados por el usuario (2026-11-04)
+
+Se han inspeccionado los metadatos OPF y las tablas de contenido NCX de tres archivos EPUB aportados por el usuario. Los archivos identifican Epublibre como distribuidor/editor digital y no exponen ISBN de edición impresa en los metadatos inspeccionados. Por tanto, se registran como **variantes digitales de referencia**, no como prueba de correspondencia exacta con los ISBN impresos Nova/Ediciones B.
+
+| Archivo | Obras | Traducción declarada |
+|---|---|---|
+| `El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub` | El camino de los reyes, Palabras radiantes, Juramentada, El ritmo de la guerra, Viento y verdad | Rafael Marín Trechera |
+| `4 Danzante del Filo Brandon Sanderson.epub` | Danzante del Filo | Manu Viciano y Rafael Marín Trechera |
+| `6 Esquirla del amanecer Brandon Sanderson.epub` | Esquirla del amanecer | Manu Viciano |
+
+Recuentos extraídos del NCX:
+- El camino de los reyes: 5 partes, 75 capítulos, 9 interludios, preludio, prólogo, epílogo y Ars Arcanum.
+- Palabras radiantes: 5 partes, 89 capítulos, 14 interludios, prólogo, epílogo y Ars Arcanum.
+- Juramentada: 5 partes, 122 capítulos, 14 interludios, dos entradas rotuladas como prólogo, epílogo y Ars Arcanum.
+- El ritmo de la guerra: 5 partes, 117 capítulos, 12 interludios, prólogo, epílogo, nota final y Ars Arcanum.
+- Viento y verdad: 10 días, 147 capítulos en la secuencia principal, 16 interludios, prólogo, epílogo, postludio y nota final. Dos entradas numéricas aparecen dentro de bloques de interludios ("12. El dios divino" y "14. La lección equivocada"); se registran como anomalías sin corregirlas por inferencia.
+- Danzante del Filo: prólogo, 20 capítulos y nota final.
+- Esquirla del amanecer: prólogo, 19 capítulos y epílogo.
+
+La biografía del autor, la cubierta y otros elementos de producción no se convierten en unidades narrativas. Agradecimientos, Ars Arcanum y notas finales quedan identificados como material complementario cuyo tratamiento en progreso requiere decisión uniforme.
+
+El inventario completo y las anomalías están documentados en [EPUB_TOC_AUDIT.md](EPUB_TOC_AUDIT.md). Los títulos de capítulos se conservarán tal como aparecen en el archivo de origen hasta su cotejo editorial; no se corregirán erratas silenciosamente.
+
+El usuario indica que no dispone de Elsecaller ni King Lopen. Ambas obras permanecen en el catálogo general sin unidades de lectura ni contenido. No bloquean el trabajo con las siete obras cubiertas por los EPUB.

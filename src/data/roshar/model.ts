@@ -43,6 +43,8 @@ export interface ReadingEditionVariant {
   provenance: 'user-supplied-file';
   sourceFile: string;
   navigationDocument: 'NCX';
+  /** Archive directory against which relative NCX hrefs resolve. */
+  contentRoot: string;
   /** No ISBN is implied for these digital files. */
   isbn: null;
 }

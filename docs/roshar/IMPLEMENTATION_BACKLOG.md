@@ -417,3 +417,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Añadir revisión editorial por lote antes de publicar afirmaciones en la aplicación.
 
 **Resultado:** la infraestructura ya permite cargar contenido real de forma incremental y mostrar únicamente las afirmaciones cuyo punto de lectura se ha alcanzado.
+
+
+### Iteración 17 — pipeline editorial antes de publicar contenido (2026-11-04)
+
+- [x] Creado un registro de procedencia para los EPUB españoles aportados y auditados en el repositorio.
+- [x] Creado un dataset público conservador que no inventa personajes, lugares o hechos a partir de una tabla de contenidos.
+- [x] Formalizada la política: las afirmaciones publicadas requieren revisión, fuente y un spoiler gate explícito.
+- [x] Añadidas pruebas para asegurar que el dataset inicial no contiene hechos canónicos sin revisar.
+- [ ] Recuperar/leer los pasajes de los archivos fuente necesarios para crear afirmaciones editoriales reales.
+- [ ] Crear el primer lote de entidades y afirmaciones revisadas, empezando por El camino de los reyes.
+- [ ] Añadir una herramienta de revisión para comprobar fuente, unidad de desbloqueo y estado editorial antes de publicar.
+
+**Resultado:** Atlas ya tiene una ruta segura de ingestión editorial. El siguiente cuello de botella no es técnico: es revisar el texto fuente y registrar afirmaciones verificables sin inventar contenido.

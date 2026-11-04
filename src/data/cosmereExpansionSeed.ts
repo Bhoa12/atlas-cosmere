@@ -1,4 +1,4 @@
-import type { WorldCatalogEntry } from './cosmereCatalog';
+import type { WorldCatalogEntry } from '../domain/cosmereCatalog';
 
 /**
  * Structural seed only. No lore is published from this file.

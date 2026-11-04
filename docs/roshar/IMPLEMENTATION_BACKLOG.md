@@ -577,3 +577,14 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el SHA final de esta iteración.
 
 **Resultado:** el contrato de desbloqueo monotónico ya es coherente entre almacenamiento, estado de aplicación y presentación, evitando que una recompensa obtenida legítimamente parezca desaparecer de la UI.
+
+
+### Iteración 26 — verificación final de CI de la coherencia monotónica (2026-11-04)
+
+- [x] Confirmada la ejecución completa de GitHub Actions para el SHA final de la Iteración 25: `67bf87f13183eb8c9b8301bb285020399b5baf29`.
+- [x] La ejecución **Atlas Android validation #162** terminó correctamente (`success`) el 2026-11-04.
+- [x] Con ello queda validada en CI la corrección que mantiene visible un logro concedido después de una corrección posterior del progreso.
+- [ ] Añadir pruebas de integración de hidratación del contexto en un entorno React/AsyncStorage simulado; el repositorio actual no incluye un renderer de pruebas de React, por lo que conviene introducir esa infraestructura de forma deliberada en lugar de simular la UI con pruebas de texto.
+- [ ] Ingerir el primer lote editorial real desde los EPUB cuando el texto fuente vuelva a estar accesible a las herramientas de revisión.
+
+**Resultado:** la última regresión de presentación de logros está validada por CI. El siguiente trabajo técnico pendiente es ampliar la cobertura de integración de hidratación sin debilitar los contratos de dominio ya existentes; el siguiente trabajo editorial continúa bloqueado por la ausencia del texto de los EPUB en el entorno de recuperación actual.

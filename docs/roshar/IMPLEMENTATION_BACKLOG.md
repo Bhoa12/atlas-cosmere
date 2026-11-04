@@ -601,3 +601,15 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el SHA final de esta iteración.
 
 **Resultado:** el catálogo estructural queda mejor protegido frente a errores de procedencia y mezcla accidental entre obras. Las fuentes privadas ya están disponibles para desbloquear el siguiente bloque editorial, pero no se publica contenido narrativo hasta que cada afirmación sea revisada y trazable.
+
+
+### Iteración 28 — pruebas de regresión de procedencia NCX (2026-11-04)
+
+- [x] Extraído el validador del catálogo a una función pura con entrada explícita, conservando el wrapper que valida el catálogo real.
+- [x] Añadida una regresión para rechazar localizadores NCX duplicados dentro de la misma variante editorial.
+- [x] Añadida una regresión para rechazar espacios no normalizados en localizadores NCX.
+- [x] Añadida una regresión para rechazar referencias de sección que crucen entre obras.
+- [ ] Confirmar CI completo sobre los commits finales de esta iteración.
+- [ ] Empezar el primer lote editorial real únicamente con pasajes accesibles y revisados, sin derivar hechos de la tabla de contenidos.
+
+**Resultado:** los tres invariantes de procedencia añadidos en la Iteración 27 quedan ahora cubiertos por pruebas directas. La validación puede ejercitar catálogos sintéticos sin mutar el dataset real, reduciendo el riesgo de que futuros cambios vuelvan a aceptar errores de mezcla de obras o de localizadores.

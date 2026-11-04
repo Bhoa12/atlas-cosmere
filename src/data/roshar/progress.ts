@@ -122,3 +122,19 @@ export function validateReadingProgress(
   }
   return issues;
 }
+
+/**
+ * Returns whether a catalog unit is required to declare the narrative work read.
+ * Structural sections are not ReadingUnits and therefore cannot be passed here.
+ * Supplementary matter remains trackable but does not block narrative completion.
+ * Unknown 'other' entries are treated as required until editorially classified,
+ * preventing an unreviewed narrative entry from being silently skipped.
+ */
+export function isRequiredForNarrativeCompletion(unit: ReadingUnit): boolean {
+  return !(
+    unit.kind === 'ars-arcanum' ||
+    unit.kind === 'afterword' ||
+    unit.kind === 'acknowledgements' ||
+    unit.kind === 'appendix'
+  );
+}

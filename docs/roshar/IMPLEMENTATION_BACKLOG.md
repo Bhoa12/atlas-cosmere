@@ -490,3 +490,14 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar la ejecución completa de CI sobre el commit de corrección.
 
 **Resultado:** el fallo detectado era de compilación, no de comportamiento del dominio; la siguiente ejecución valida el arreglo sobre la rama de trabajo.
+
+
+### Iteración 20 — logros ocultos seguros frente a spoilers (2026-11-04)
+
+- [x] Añadida una proyección de presentación para logros que aplica el mismo motor de spoiler gates que la enciclopedia.
+- [x] Los logros ocultos no revelan título, descripción ni recompensa antes de desbloquearse o alcanzar su gate editorial.
+- [x] Las recompensas solo se incluyen en la proyección visible cuando el logro está realmente desbloqueado.
+- [x] Añadidas pruebas para títulos bloqueados y revelación tras completar la unidad requerida.
+- [ ] Sustituir el logro de ejemplo por hitos editoriales reales cuando el texto fuente sea revisado.
+
+**Resultado:** la gamificación ya no constituye una vía alternativa para filtrar spoilers a través de nombres o descripciones de logros.

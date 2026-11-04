@@ -138,3 +138,25 @@ export function isRequiredForNarrativeCompletion(unit: ReadingUnit): boolean {
     unit.kind === 'appendix'
   );
 }
+
+
+/**
+ * Determines narrative completion from the catalog and explicit completed IDs.
+ * Supplementary units are excluded by policy; an empty/unknown work never
+ * counts as complete.
+ */
+export function isNarrativeWorkComplete(
+  workId: string,
+  units: readonly ReadingUnit[],
+  progress: readonly ReadingProgress[]
+): boolean {
+  if (!workId) return false;
+  const requiredUnits = units.filter(unit =>
+    unit.workId === workId && isRequiredForNarrativeCompletion(unit)
+  );
+  if (requiredUnits.length === 0) return false;
+  const completedUnitIds = new Set(
+    progress.find(item => item.workId === workId)?.completedUnitIds ?? []
+  );
+  return requiredUnits.every(unit => completedUnitIds.has(unit.id));
+}

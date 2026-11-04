@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { ROSHAR_READING_SECTIONS, ROSHAR_READING_UNITS } from '../data/roshar/catalog/readingUnits';
-import { isNarrativeWorkComplete } from '../data/roshar/progress';
+import { summarizeReadingWork } from '../data/roshar/progress';
 
 export function RosharReadingNavigator({ workId }: { workId: string }) {
   const { readingProgress, setUnidadLecturaActual, completarUnidadLectura } = useCosmere();
@@ -11,12 +11,13 @@ export function RosharReadingNavigator({ workId }: { workId: string }) {
   const completed = new Set(progress?.completedUnitIds ?? []);
   const sections = new Map(ROSHAR_READING_SECTIONS.filter(section => section.workId === workId).map(section => [section.id, section]));
   let lastSectionId: string | undefined;
-  const narrativeComplete = isNarrativeWorkComplete(workId, units, readingProgress);
+  const summary = summarizeReadingWork(workId, units, readingProgress);
+  const narrativeComplete = summary.narrativeComplete;
   if (units.length === 0) return null;
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.title}>LECTURA CAPÍTULO A CAPÍTULO</Text>
+      <Text style={styles.title}>LECTURA CAPÍTULO A CAPÍTULO · {summary.percent}%</Text>
       {narrativeComplete && <Text style={styles.completeWork}>✓ HISTORIA NARRATIVA COMPLETADA</Text>}
       {units.map(unit => {
         const done = completed.has(unit.id);

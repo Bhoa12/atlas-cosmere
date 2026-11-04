@@ -170,3 +170,42 @@ export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[
   }
   return progress.reduce((total, entry) => total + entry.completedUnitIds.length, 0);
 }
+
+
+export interface ReadingWorkSummary {
+  totalUnits: number;
+  completedUnits: number;
+  requiredUnits: number;
+  completedRequiredUnits: number;
+  percent: number;
+  narrativeComplete: boolean;
+  nextUnitId?: string;
+}
+
+/**
+ * Produces a deterministic work-level summary from explicit unit completion.
+ * The next unit is the first catalog unit not explicitly completed.
+ */
+export function summarizeReadingWork(
+  workId: string,
+  units: readonly ReadingUnit[],
+  progress: readonly ReadingProgress[]
+): ReadingWorkSummary {
+  const workUnits = units
+    .filter(unit => unit.workId === workId)
+    .sort((a, b) => a.ordinal - b.ordinal);
+  const completed = new Set(
+    progress.find(item => item.workId === workId)?.completedUnitIds ?? []
+  );
+  const required = workUnits.filter(isRequiredForNarrativeCompletion);
+  const completedRequired = required.filter(unit => completed.has(unit.id)).length;
+  return {
+    totalUnits: workUnits.length,
+    completedUnits: workUnits.filter(unit => completed.has(unit.id)).length,
+    requiredUnits: required.length,
+    completedRequiredUnits: completedRequired,
+    percent: required.length === 0 ? 0 : Math.round((completedRequired / required.length) * 100),
+    narrativeComplete: required.length > 0 && completedRequired === required.length,
+    nextUnitId: workUnits.find(unit => !completed.has(unit.id))?.id
+  };
+}

@@ -41,13 +41,19 @@ export function evaluateRosharReadingAchievements(
  */
 export function selectVisibleRosharAchievements(
   projections: readonly RosharAchievementProjection[],
-  progress: readonly ReadingProgress[]
+  progress: readonly ReadingProgress[],
+  persistentlyUnlockedAchievementIds: readonly string[] = []
 ): RosharAchievementPresentation[] {
   const completedUnitIds = new Set(
     progress.flatMap(item => item.completedUnitIds)
   );
 
-  return projections.map(({ achievement, unlocked }) => {
+  const persistentIds = new Set(persistentlyUnlockedAchievementIds);
+
+  return projections.map(({ achievement, unlocked: currentlyUnlocked }) => {
+    // Achievement grants are monotonic once persisted. A later correction to
+    // reading progress must not make an already granted achievement disappear.
+    const unlocked = currentlyUnlocked || persistentIds.has(achievement.id);
     const hiddenUntilUnlocked = achievement.hiddenUntilUnlocked === true;
     const gateVisible = !achievement.spoilerGate || isSpoilerGateSatisfied(
       achievement.spoilerGate,

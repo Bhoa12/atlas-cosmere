@@ -308,3 +308,20 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Ejecutar y confirmar CI en el último SHA tras estos cambios.
 
 **Resultado:** queda definida la representación técnica necesaria para importar las tablas de contenido sin confundir contenedores con unidades de progreso ni mezclar EPUB con ediciones impresas. Todavía no se han cargado unidades narrativas reales ni se ha conectado el catálogo al progreso o al motor de spoilers.
+
+
+### Iteración 8 — importación completa de índices NCX (2026-11-04)
+
+- [x] Importadas las entradas de lectura de las siete obras disponibles a partir de los tres NCX aportados.
+- [x] Creados módulos de inventario por obra bajo `src/data/roshar/catalog/readingUnits/`.
+- [x] Añadido el agregador `src/data/roshar/catalog/readingUnits.ts`, que genera IDs semánticos y ordinales de progreso por obra y adjunta la variante EPUB y su ruta NCX.
+- [x] Representadas partes, días y bloques de interludios como contenedores estructurales que no se marcan como completados.
+- [x] Conservadas las dos entradas numéricas anómalas de Viento y verdad como `other`, sin número de capítulo; conservados los dos prólogos de Juramentada.
+- [x] Añadidas pruebas de cobertura de los 589 capítulos numerados, 684 unidades importadas y 54 secciones estructurales, además de IDs, localizadores y procedencia editorial.
+- [x] Documentados los recuentos y las reglas de importación en `EPUB_TOC_AUDIT.md`.
+- [ ] Validar CI en el último commit de esta iteración.
+- [ ] Cotejar las rutas/etiquetas NCX contra los XHTML internos de cada EPUB, en especial anomalías y material complementario.
+- [ ] Confirmar la política de producto para marcar agradecimientos, Ars Arcanum y notas finales como leídos; por ahora se conservan como unidades explícitas, separadas de capítulos.
+- [ ] Implementar migración de progreso legado y navegación capítulo por capítulo solo después de cerrar R0 y aprobar el catálogo.
+
+**Resultado:** el catálogo ya contiene una transcripción estructural completa de los índices de las siete obras aportadas. No está conectado todavía a persistencia, pantallas ni motor de spoilers. La fuente digital sigue separada de ediciones impresas y no se declara equivalencia editorial.

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
+import { HoidService } from '../hoid/HoidService';
 
 interface Mensaje {
   id: string;
@@ -10,9 +11,7 @@ interface Mensaje {
 
 export const HoidScreen: React.FC = () => {
   const { librosLeidos } = useCosmere();
-  const [apiKey, setApiKey] = useState('');
   const [cargando, setCargando] = useState(false);
-  const [mostrarConfigKey, setMostrarConfigKey] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
       id: '1',
@@ -22,7 +21,6 @@ export const HoidScreen: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
 
-  const librosLeidosList = Object.keys(librosLeidos).filter(k => librosLeidos[k]).join(', ');
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando) return;
@@ -33,63 +31,11 @@ export const HoidScreen: React.FC = () => {
     setInput('');
     setCargando(true);
 
-    // Si el usuario configuró una API Key, conecta con la IA en la nube
-    if (apiKey.trim()) {
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey.trim()}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `Eres Hoid (Sagaz), personaje del universo Cosmere de Brandon Sanderson.
-Personalidad: Sarcástico, ingenioso, sabio, cuentacuentos y enigmático.
-LÍMITE ESTRICTO ANTIESPOILER:
-El usuario ÚNICAMENTE ha leído estos libros: [${librosLeidosList}].
-PROHIBIDO TERMINANTEMENTE revelar cualquier dato, muerte, magia o secreto que ocurra en libros no listados.
-Si te preguntan por algo que no ha leído, evádelo con estilo de Hoid diciendo que la historia aún no le pertenece.`
-              },
-              { role: 'user', content: textoUsuario }
-            ],
-            temperature: 0.8
-          })
-        });
-
-        const data = await response.json();
-        if (data.choices && data.choices[0]) {
-          const respuesta = data.choices[0].message.content;
-          setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: respuesta }]);
-          setCargando(false);
-          return;
-        }
-      } catch (e) {
-        // En caso de fallo de red, recurre al motor de guardia
-      }
-    }
-
-    // Motor de guardia local cuando no hay API Key configurada
-    setTimeout(() => {
-      let respuesta = '';
-      const minus = textoUsuario.toLowerCase();
-
-      if ((minus.includes('thaidakar') || minus.includes('kelsier')) && !librosLeidos['sh']) {
-        respuesta = '¿Thaidakar? Ah, pronuncias nombres que resuenan en las sombras del Reino Cognitivo. Tus ojos aún no han visto esa historia (requiere "Historia Secreta"). Sé paciente.';
-      } else if (minus.includes('espada') && !librosLeidos['wor']) {
-        respuesta = 'Ciertas hojas de metal negro tienen un apetito voraz por la Investidura... pero aún no has presenciado ese reencuentro en las llanuras.';
-      } else if (minus.includes('shards') || minus.includes('esquirlas') || minus.includes('adonalsium')) {
-        respuesta = 'Dieciséis Esquirlas surgieron de la Fragmentación. Yo rechacé tomar una. Llevar un fragmento de dios en el bolsillo te deforma la perspectiva y arruina la ropa.';
-      } else {
-        respuesta = `Interesante reflexión sobre "${textoUsuario}". Recuerda que las historias no son para enseñar cómo pensar, sino para recordarnos que somos capaces de sentir. Sigue leyendo, viajero.`;
-      }
-
-      setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: respuesta }]);
-      setCargando(false);
-    }, 600);
+    const service = new HoidService();
+    const reading = Object.keys(librosLeidos).filter(bookId => librosLeidos[bookId]).map((bookId, index) => ({ bookId, order: index }));
+    const result = await service.answer({ question: textoUsuario, reading });
+    setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: result.texto }]);
+    setCargando(false);
   };
 
   return (
@@ -99,24 +45,7 @@ Si te preguntan por algo que no ha leído, evádelo con estilo de Hoid diciendo 
           <Text style={styles.headerTitle}>HOID (SAGAZ) • IA CANÓNICA</Text>
           <Text style={styles.headerSub}>Filtro de conocimiento adaptado a tus lecturas</Text>
         </View>
-        <TouchableOpacity style={styles.keyBtn} onPress={() => setMostrarConfigKey(!mostrarConfigKey)}>
-          <Text style={styles.keyBtnText}>🔑 {apiKey ? 'IA Activa' : 'Añadir Key'}</Text>
-        </TouchableOpacity>
       </View>
-
-      {mostrarConfigKey && (
-        <View style={styles.keyBox}>
-          <Text style={styles.keyLabel}>Introduce tu OpenAI / OpenRouter Key para respuestas infinitas:</Text>
-          <TextInput
-            style={styles.keyInput}
-            placeholder="sk-..."
-            placeholderTextColor="#64748b"
-            value={apiKey}
-            onChangeText={setApiKey}
-            secureTextEntry
-          />
-        </View>
-      )}
 
       <FlatList
         data={mensajes}

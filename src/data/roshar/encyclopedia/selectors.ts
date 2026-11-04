@@ -60,14 +60,20 @@ export function validateEncyclopediaContent(
   const issues: string[] = [];
   const entityIds = new Set(entities.map(entity => entity.id));
   const sourceIds = new Set(sources.map(source => source.id));
+  const sourcesById = new Map(sources.map(source => [source.id, source]));
   const unitIds = new Set(ROSHAR_READING_UNITS.map(unit => unit.id));
 
   for (const claim of claims) {
     if (!entityIds.has(claim.entityId)) issues.push('Claim ' + claim.id + ' references an unknown entity');
     if (claim.editorialStatus === 'published' && !claim.text.trim()) issues.push('Published claim ' + claim.id + ' has no text');
     if (claim.editorialStatus === 'published' && claim.sourceRefs.length === 0) issues.push('Published claim ' + claim.id + ' has no source');
+    if (claim.editorialStatus === 'published' && !claim.reviewedAt) issues.push('Published claim ' + claim.id + ' has not been reviewed');
     for (const sourceId of claim.sourceRefs) {
       if (!sourceIds.has(sourceId)) issues.push('Claim ' + claim.id + ' references an unknown source');
+      const source = sourcesById.get(sourceId);
+      if (claim.editorialStatus === 'published' && source?.sourceType === 'novel' && (!source.readingUnitId || !source.locator)) {
+        issues.push('Published novel claim ' + claim.id + ' requires an exact source locator and reading unit');
+      }
     }
     const requirements = [...claim.spoilerGate.allOf, ...(claim.spoilerGate.anyOf ?? [])];
     if (requirements.length === 0) issues.push('Claim ' + claim.id + ' has an empty spoiler gate');

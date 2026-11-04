@@ -23,6 +23,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: 'El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   },
   {
@@ -32,6 +33,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: 'El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   },
   {
@@ -41,6 +43,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: 'El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   },
   {
@@ -50,6 +53,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: 'El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   },
   {
@@ -59,6 +63,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: '4 Danzante del Filo Brandon Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   },
   {
@@ -68,6 +73,7 @@ export const ROSHAR_EDITION_VARIANTS: ReadingEditionVariant[] = [
     provenance: 'user-supplied-file',
     sourceFile: '6 Esquirla del amanecer Brandon Sanderson.epub',
     navigationDocument: 'NCX',
+    contentRoot: 'OEBPS',
     isbn: null
   }
 ];

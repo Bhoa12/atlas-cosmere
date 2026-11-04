@@ -116,11 +116,11 @@ Estados editoriales:
 **Aceptación:** inventario de consumidores completo; ningún ID legado se rompe; catálogo de obras revisado; migración especificada antes de implementarse.
 
 ### R1 — Catálogo editorial de Roshar
-- [ ] Crear `src/data/roshar/catalog/works.ts`.
-- [ ] Crear `src/data/roshar/catalog/readingUnits.ts` con prólogos, capítulos, interludios, epílogos y secciones especiales.
+- [x] Crear `src/data/roshar/catalog/works.ts`.
+- [x] Crear `src/data/roshar/catalog/readingUnits.ts` y los inventarios NCX de las siete obras aportadas, con prólogos, capítulos, interludios, epílogos y secciones especiales.
 - [ ] Guardar por separado orden de publicación, recomendado y cronología.
-- [ ] Incorporar variantes de edición solo cuando haya diferencias verificadas.
-- [ ] Crear validador de IDs duplicados, ordinales repetidos, huecos no explicados y referencias a unidades inexistentes.
+- [x] Registrar variantes digitales EPUB verificadas; las variantes impresas siguen separadas y no se infiere equivalencia.
+- [x] Crear validadores de IDs, ordinales, referencias, variantes editoriales y secuencias de capítulos numerados; el cotejo de etiquetas XHTML y diferencias entre ediciones sigue pendiente.
 
 **Aceptación:** cada obra del alcance tiene estructura editorial revisada; cada unidad tiene ID estable; ninguna referencia apunta a un ID inexistente.
 

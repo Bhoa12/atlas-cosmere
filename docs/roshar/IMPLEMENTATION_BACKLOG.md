@@ -292,3 +292,19 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Conectar el catálogo al progreso y motor de spoilers solo después de superar esas validaciones.
 
 **Resultado:** ya existe una fuente de índice en español para las siete obras aportadas. Los EPUB permiten construir un inventario digital de referencia, pero no prueban equivalencia exacta con las ediciones impresas identificadas previamente. No se ha creado todavía el catálogo de unidades ni se ha conectado a la aplicación.
+
+
+### Iteración 7 — contrato de unidades y variantes EPUB (2026-11-04)
+
+- [x] Ampliado `ReadingUnitKind` para distinguir preludios, prólogos, capítulos, interludios, epílogos, postludios, Ars Arcanum, agradecimientos y notas finales.
+- [x] Introducidos contenedores editoriales `ReadingSection` para partes, días y bloques de interludios; no son unidades completables.
+- [x] Añadidos localizadores de origen por unidad (`editionVariantId` + ruta NCX), sin paginación ni ISBN inferidos.
+- [x] Registradas siete variantes de obra/EPUB a partir de los tres archivos aportados, con procedencia explícita y `isbn: null`.
+- [x] Ampliada la validación para comprobar sección, jerarquía y correspondencia de la variante editorial con la obra.
+- [x] Añadidas pruebas de contrato para secciones y localizadores específicos de edición.
+- [ ] Incorporar los 7 índices NCX al catálogo ejecutable de unidades, preservando el árbol de partes/días y los bloques de interludios.
+- [ ] Resolver antes de publicar las anomalías documentadas de Viento y verdad y Juramentada.
+- [ ] Añadir validación de cobertura esperada por obra y auditoría de IDs semánticos.
+- [ ] Ejecutar y confirmar CI en el último SHA tras estos cambios.
+
+**Resultado:** queda definida la representación técnica necesaria para importar las tablas de contenido sin confundir contenedores con unidades de progreso ni mezclar EPUB con ediciones impresas. Todavía no se han cargado unidades narrativas reales ni se ha conectado el catálogo al progreso o al motor de spoilers.

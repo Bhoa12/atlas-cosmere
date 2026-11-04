@@ -390,3 +390,17 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Conectar la navegación de lectura de la UI a estas operaciones y retirar gradualmente los controles +/- para las obras con catálogo granular.
 
 **Resultado:** el progreso granular ya está disponible para la aplicación, pero convive de forma aislada con el estado v1. No se ha reinterpretado el historial antiguo como progreso real.
+
+
+### Iteración 15 — progreso con consecuencias y base de recompensas (2026-11-04)
+
+- [x] Definida una primera colección declarativa de hitos de lectura de Roshar con recompensas cosméticas.
+- [x] Las condiciones de los hitos se basan exclusivamente en progreso granular explícito y finalización narrativa calculada.
+- [x] Añadido un selector de recuento de unidades completadas, sin usar contadores legados.
+- [x] Añadidas pruebas para asegurar que los recuentos desconocidos devuelven cero y no infieren lectura.
+- [ ] Persistir logros desbloqueados y el inventario de recompensas cosméticas.
+- [ ] Crear marcos, fondos y apodos visuales en el perfil y permitir equiparlos.
+- [ ] Añadir hitos por obra, parte y rachas una vez exista un modelo de sesiones/fechas de lectura.
+- [ ] Conectar el progreso granular con el contenido editorial y sus spoiler gates.
+
+**Resultado:** los primeros desbloqueos ya tienen un modelo declarativo seguro, pero todavía no se muestran ni se guardan como inventario del perfil.

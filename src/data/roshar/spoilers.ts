@@ -6,6 +6,29 @@ import {
 } from './model';
 
 /**
+ * Builds a completion set only from unambiguous work records. Duplicate
+ * persistence entries are treated as unknown state, so they cannot combine to
+ * satisfy a spoiler gate. This mirrors the fail-closed policy used by reading
+ * progress projections.
+ */
+function completedUnitsFromUnambiguousProgress(
+  progress: readonly ReadingProgress[]
+): ReadonlySet<string> {
+  const counts = new Map<string, number>();
+  for (const item of progress) {
+    counts.set(item.workId, (counts.get(item.workId) ?? 0) + 1);
+  }
+
+  const completed = new Set<string>();
+  for (const item of progress) {
+    if (counts.get(item.workId) !== 1) continue;
+    for (const unitId of item.completedUnitIds) completed.add(unitId);
+  }
+  return completed;
+}
+
+
+/**
  * Evaluates one reading requirement against explicitly completed units.
  * A unit is never inferred as complete from a later chapter or a book flag.
  */
@@ -60,9 +83,7 @@ export function selectVisibleClaims(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
-  const completedUnitIds = new Set(
-    progress.flatMap(item => item.completedUnitIds)
-  );
+  const completedUnitIds = completedUnitsFromUnambiguousProgress(progress);
 
   return claims.filter(claim =>
     claim.editorialStatus === 'published' &&

@@ -1,7 +1,7 @@
 import { RosharReadingAchievement } from '../gamification';
-import { ReadingProgress, ReadingUnit, SpoilerGate } from './model';
+import { ReadingProgress, ReadingUnit } from './model';
 import { isNarrativeWorkComplete, getCompletedReadingUnitCount } from './progress';
-import { selectVisibleClaims } from './spoilers';
+import { isSpoilerGateSatisfied } from './spoilers';
 import { ROSHAR_READING_UNIT_WORK_BY_ID } from './catalog/readingUnits';
 
 export interface RosharAchievementProjection {
@@ -35,33 +35,25 @@ export function evaluateRosharReadingAchievements(
 
 /**
  * Projects achievements for UI without leaking locked spoiler-bearing titles or
- * descriptions. Hidden definitions need an explicit spoiler gate; unlocked
- * achievements always reveal their own presentation.
+ * descriptions. Spoiler-gated presentation is evaluated directly with the
+ * shared fail-closed gate evaluator; encyclopedia publication requirements do
+ * not apply to achievement metadata.
  */
 export function selectVisibleRosharAchievements(
   projections: readonly RosharAchievementProjection[],
   progress: readonly ReadingProgress[]
 ): RosharAchievementPresentation[] {
-  const claims = projections
-    .filter(item => item.achievement.spoilerGate)
-    .map(item => ({
-      id: item.achievement.id,
-      entityId: item.achievement.id,
-      sectionKey: 'achievement',
-      text: item.achievement.id,
-      claimType: 'achievement',
-      sourceRefs: [],
-      confidence: 'confirmed' as const,
-      editorialStatus: 'draft' as const,
-      spoilerGate: item.achievement.spoilerGate as SpoilerGate
-    }));
-  const visibleIds = new Set(
-    selectVisibleClaims(claims, [...progress], ROSHAR_READING_UNIT_WORK_BY_ID).map(claim => claim.id)
+  const completedUnitIds = new Set(
+    progress.flatMap(item => item.completedUnitIds)
   );
 
   return projections.map(({ achievement, unlocked }) => {
     const hiddenUntilUnlocked = achievement.hiddenUntilUnlocked === true;
-    const gateVisible = !achievement.spoilerGate || visibleIds.has(achievement.id);
+    const gateVisible = !achievement.spoilerGate || isSpoilerGateSatisfied(
+      achievement.spoilerGate,
+      completedUnitIds,
+      ROSHAR_READING_UNIT_WORK_BY_ID
+    );
     const hidden = !unlocked && (hiddenUntilUnlocked || !gateVisible);
     return hidden
       ? { id: achievement.id, title: '???', description: 'Logro aún oculto.', hidden: true, unlocked }

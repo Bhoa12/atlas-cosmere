@@ -172,6 +172,26 @@ export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[
 }
 
 
+/**
+ * Returns the first unread narrative unit in catalog order.
+ * Supplementary material remains trackable but is not presented as the next
+ * required reading step, so reading guidance and completion use the same policy.
+ */
+export function getNextRequiredReadingUnitId(
+  workId: string,
+  units: readonly ReadingUnit[],
+  progress: readonly ReadingProgress[]
+): string | undefined {
+  const completed = new Set(
+    progress.find(item => item.workId === workId)?.completedUnitIds ?? []
+  );
+  return units
+    .filter(unit => unit.workId === workId && isRequiredForNarrativeCompletion(unit))
+    .sort((a, b) => a.ordinal - b.ordinal)
+    .find(unit => !completed.has(unit.id))?.id;
+}
+
+
 export interface ReadingWorkSummary {
   totalUnits: number;
   completedUnits: number;
@@ -206,6 +226,6 @@ export function summarizeReadingWork(
     completedRequiredUnits: completedRequired,
     percent: required.length === 0 ? 0 : Math.round((completedRequired / required.length) * 100),
     narrativeComplete: required.length > 0 && completedRequired === required.length,
-    nextUnitId: workUnits.find(unit => !completed.has(unit.id))?.id
+    nextUnitId: getNextRequiredReadingUnitId(workId, workUnits, progress)
   };
 }

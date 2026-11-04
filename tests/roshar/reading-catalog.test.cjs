@@ -5,7 +5,8 @@ const {
   ROSHAR_READING_UNITS,
   ROSHAR_READING_SECTIONS,
   ROSHAR_NCX_EXPECTED_CHAPTER_COUNTS,
-  validateRosharReadingCatalog
+  validateRosharReadingCatalog,
+  validateRosharReadingCatalogData
 } = require('../../src/data/roshar/catalog/readingUnits.ts');
 
 test('imports the complete NCX chapter inventory for all seven supplied works', () => {
@@ -53,5 +54,56 @@ test('passes the shared domain validator with the complete edition registry', ()
   assert.deepEqual(
     validateReadingUnits(ROSHAR_WORK_IDS, ROSHAR_READING_UNITS, ROSHAR_READING_SECTIONS, ROSHAR_EDITION_VARIANTS),
     []
+  );
+});
+
+
+function validationInput(units, sections) {
+  const { ROSHAR_WORK_IDS } = require('../../src/data/roshar/catalog/works.ts');
+  const { ROSHAR_EDITION_VARIANTS } = require('../../src/data/roshar/catalog/editionVariants.ts');
+  return {
+    units,
+    sections,
+    workIds: ROSHAR_WORK_IDS,
+    editionVariants: ROSHAR_EDITION_VARIANTS,
+    expectedChapterCounts: ROSHAR_NCX_EXPECTED_CHAPTER_COUNTS
+  };
+}
+
+test('catalog validator rejects duplicate NCX locators within one edition variant', () => {
+  const first = ROSHAR_READING_UNITS.find(unit => unit.workId === 'twok');
+  const second = ROSHAR_READING_UNITS.find(unit => unit.workId === 'twok' && unit.id !== first.id);
+  const duplicate = {
+    ...second,
+    source: { ...second.source, locator: first.source.locator }
+  };
+  const units = ROSHAR_READING_UNITS.map(unit => unit.id === second.id ? duplicate : unit);
+  assert.ok(
+    validateRosharReadingCatalogData(validationInput(units, ROSHAR_READING_SECTIONS))
+      .some(issue => issue.includes('Duplicate NCX locator'))
+  );
+});
+
+test('catalog validator rejects NCX locators with unnormalized surrounding whitespace', () => {
+  const first = ROSHAR_READING_UNITS[0];
+  const malformed = {
+    ...first,
+    source: { ...first.source, locator: ` ${first.source.locator} ` }
+  };
+  const units = [malformed, ...ROSHAR_READING_UNITS.slice(1)];
+  assert.ok(
+    validateRosharReadingCatalogData(validationInput(units, ROSHAR_READING_SECTIONS))
+      .some(issue => issue === `Unnormalized NCX locator for ${first.id}`)
+  );
+});
+
+test('catalog validator rejects section references that cross works', () => {
+  const first = ROSHAR_READING_UNITS.find(unit => unit.workId === 'twok' && unit.sectionId);
+  const foreignSection = ROSHAR_READING_SECTIONS.find(section => section.workId === 'wor');
+  const malformed = { ...first, sectionId: foreignSection.id };
+  const units = ROSHAR_READING_UNITS.map(unit => unit.id === first.id ? malformed : unit);
+  assert.ok(
+    validateRosharReadingCatalogData(validationInput(units, ROSHAR_READING_SECTIONS))
+      .some(issue => issue === `Cross-work section ${foreignSection.id} for ${first.id}`)
   );
 });

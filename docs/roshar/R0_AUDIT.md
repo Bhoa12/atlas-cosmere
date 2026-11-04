@@ -47,3 +47,37 @@
 3. Verificar bibliografía y orden de lectura con fuentes autorizadas.
 4. Construir el catálogo de unidades de lectura solo a partir de índices/ediciones comprobados.
 5. Añadir tests unitarios y validadores de catálogo antes de activar el motor de spoilers en la UI.
+
+
+## Barrido de compatibilidad — segunda pasada
+
+Se revisaron los archivos de aplicación y datos que consumen el modelo legado en la rama de trabajo. Los usos encontrados son:
+
+| Archivo | Referencias encontradas | Decisión |
+|---|---|---|
+| `App.tsx` | `librosLeidos`, `capituloActualPorLibro`, `totalCapitulos`, `setCapituloLibro`, `toggleLibroLeido` | Mantener como UI de compatibilidad hasta disponer del catálogo completo de unidades; después sustituir los controles +/- por navegación de unidades. |
+| `src/context/CosmereContext.tsx` | Persistencia `@atlas-cosmere/state-v1`, hidratación, guardado y cálculo de lectura por libro/capítulo | Punto único para la migración versionada. No derivar unidades completadas desde el contador antiguo. |
+| `src/components/InvestitureWheel.tsx` | `esContenidoDesbloqueado` y `desbloqueoLibroId` | Migrar al selector de afirmaciones; evitar gates alternativos en el componente. |
+| `src/screens/CommunityScreen.tsx` | `librosLeidos`, `capituloActualPorLibro`, `totalCapitulos` | Conservar temporalmente el límite de spoilers legado de publicaciones; adaptar a progreso granular en la fase de comunidad. |
+| `src/screens/ToolsScreen.tsx` | `librosLeidos` | Reemplazar habilitaciones por libro por selectores de visibilidad comunes. |
+| `src/screens/ProfileScreen.tsx` | `librosLeidos` | Migrar los criterios de logros a eventos/progreso granular cuando se implemente R7. |
+| `src/data/cosmereUniverse.ts` | Declaración de `totalCapitulos` y `desbloqueoLibroId`; datos de Roshar y otros planetas | Mantener temporalmente la forma pública legado; no tratar sus textos como afirmaciones verificadas/publicables por sección. |
+| `src/data/gamification.ts`, `src/screens/QuizzesScreen.tsx`, `src/data/continuityEngine.ts` | Sin referencias directas a los cuatro campos buscados | Siguen teniendo migraciones propias por criterios de logros, metadatos de tests y cobertura de spoilers. |
+
+La búsqueda de código de GitHub opera sobre la rama por defecto, por lo que esta pasada se hizo leyendo los archivos de la rama `fix/atlas-core-audit` directamente. No se considera una prueba formal de ausencia de referencias en archivos no inspeccionados; se debe repetir como comprobación automatizada en el repositorio local/CI antes de retirar las interfaces legadas.
+
+## Política conservadora de migración state-v1
+
+1. Mantener intacta la clave `@atlas-cosmere/state-v1` durante la transición; no sobrescribirla con un esquema incompatible.
+2. Leer y validar los campos antiguos conocidos de forma independiente, como ya hace el contexto. Un campo corrupto no debe invalidar los demás.
+3. Conservar `librosLeidos` y `capituloActualPorLibro` como progreso legado visible mientras dure la compatibilidad.
+4. No convertir `capituloActualPorLibro[n]` en una lista de unidades completadas: el dato solo expresa una posición numérica y no aclara si representa lectura continua, último capítulo visitado o una selección manual.
+5. No convertir los valores iniciales de demostración (`twok` y `tfe`) en unidades completadas. El almacenamiento histórico no contiene un marcador fiable que permita distinguir todos los datos demo de progreso confirmado.
+6. El nuevo progreso granular se inicia vacío y se guarda bajo una clave/esquema versionado independiente. Una futura migración solo podrá importar una unidad cuando exista evidencia inequívoca y una regla aprobada; nunca rellenará huecos ni prólogos/interludios/epílogos por inferencia.
+7. No borrar la clave antigua hasta que la nueva estructura esté validada, persistida y recuperable; incluir respaldo/rollback y pruebas de JSON corrupto y almacenamiento no disponible.
+
+## Pruebas automatizadas añadidas
+
+- Se añadió un runner sin dependencias adicionales basado en `node:test` y el compilador TypeScript ya instalado.
+- `npm test` cubre validación de unidades, IDs/ordinales, gates vacíos y desconocidos, evaluación `allOf`/`anyOf`, lectura no lineal, correspondencia obra-unidad y filtrado de afirmaciones no publicadas o sin fuente.
+- La suite está añadida al repositorio; su ejecución real queda pendiente de CI.

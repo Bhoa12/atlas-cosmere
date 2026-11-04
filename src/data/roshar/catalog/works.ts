@@ -2,11 +2,10 @@ import { SISTEMAS_COSMERE_COMPLETO } from '../../cosmereUniverse';
 import { RosharWork } from '../model';
 
 /**
- * Adaptador inicial del catálogo legado.
- *
- * No establece todavía el orden de publicación ni crea unidades de lectura.
- * Esos datos se añadirán cuando se contrasten con bibliografía y ediciones
- * oficiales. Conserva los IDs históricos usados por AsyncStorage y pantallas.
+ * Adaptador del catálogo legado más relatos cortos oficiales publicados.
+ * Publication order is deliberately left null until each first-publication
+ * date is verified independently. Recommended order follows official series
+ * numbering; it is not an in-world chronology.
  */
 const ROSHAR_WORK_METADATA: Record<string, Pick<RosharWork, 'workType'>> = {
   twok: { workType: 'novel' },
@@ -24,7 +23,7 @@ if (!rosharSystem) {
   throw new Error('Roshar is missing from SISTEMAS_COSMERE_COMPLETO');
 }
 
-export const ROSHAR_WORKS: RosharWork[] = rosharSystem.libros.map(book => {
+const LEGACY_ROSHAR_WORKS: RosharWork[] = rosharSystem.libros.map(book => {
   const metadata = ROSHAR_WORK_METADATA[book.id];
   if (!metadata) {
     throw new Error(`Missing Roshar work metadata for legacy ID: ${book.id}`);
@@ -42,5 +41,36 @@ export const ROSHAR_WORKS: RosharWork[] = rosharSystem.libros.map(book => {
       : null
   };
 });
+
+/**
+ * These stories are part of the official Stormlight Archive catalog, but are
+ * not present in the legacy planet dataset. Keep separate IDs and no chapter
+ * counts until an edition-specific unit inventory has been verified.
+ */
+const ADDITIONAL_ROSHAR_WORKS: RosharWork[] = [
+  {
+    id: 'elsecaller',
+    planetId: 'roshar',
+    seriesId: 'stormlight-archive',
+    title: 'Elsecaller',
+    workType: 'short-story',
+    publicationOrder: null,
+    recommendedReadingOrder: 2.6
+  },
+  {
+    id: 'king-lopen',
+    planetId: 'roshar',
+    seriesId: 'stormlight-archive',
+    title: 'King Lopen: The First of Alethkar',
+    workType: 'short-story',
+    publicationOrder: null,
+    recommendedReadingOrder: 2.7
+  }
+];
+
+export const ROSHAR_WORKS: RosharWork[] = [
+  ...LEGACY_ROSHAR_WORKS,
+  ...ADDITIONAL_ROSHAR_WORKS
+];
 
 export const ROSHAR_WORK_IDS = ROSHAR_WORKS.map(work => work.id);

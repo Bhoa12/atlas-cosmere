@@ -32,3 +32,9 @@ La base incluye ahora el contrato `src/data/hoidContinuityCatalog.ts` para regis
 Las funciones del catálogo permiten comprobar si una entrada está desbloqueada y detectar coincidencias todavía bloqueadas. La comparación exige coincidencia del libro correcto: haber avanzado mucho en otra obra no desbloquea contenido futuro de un libro distinto.
 
 El catálogo empieza deliberadamente vacío de afirmaciones editoriales. Debe poblarse a partir de fuentes verificadas y revisión humana, y las respuestas de proveedores externos siguen pasando por la guardia final.
+
+## Bibliografía privada y trazabilidad
+
+Hoid mantiene una bibliografía **solo de metadatos** en `src/hoid/bibliography.ts` con las obras aportadas para el proyecto, incluyendo el catálogo de `cosmere.epub` y los EPUB privados de Roshar. Esta lista no contiene pasajes, texto extraído ni afirma que un archivo haya sido leído en un entorno donde no esté accesible.
+
+Las referencias futuras de conocimiento deben pasar por `sourcePolicy.ts`: una obra desconocida o una referencia de capítulo inválida se rechaza. Una referencia conocida tampoco convierte por sí sola una afirmación en verificada; la verificación editorial sigue siendo necesaria antes de usar un hecho como contexto para Hoid.

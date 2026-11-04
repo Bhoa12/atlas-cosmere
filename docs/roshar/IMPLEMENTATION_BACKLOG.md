@@ -377,3 +377,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Ejecutar CI completo sobre el SHA final.
 
 **Resultado:** las proyecciones puras para claims por entidad y búsqueda están disponibles y probadas por contrato; todavía no hay contenido de enciclopedia publicado ni consumidores UI conectados.
+
+
+### Iteración 13 — integración controlada del progreso granular (2026-11-04)
+
+- [x] Integrado el esquema v2 de Roshar en `CosmereContext` sin modificar ni migrar `@atlas-cosmere/state-v1`.
+- [x] Expuestos `readingProgress`, `setUnidadLecturaActual` y `completarUnidadLectura` como operaciones explícitas por unidad.
+- [x] La hidratación espera tanto el estado legado como el progreso granular antes de mostrar la aplicación.
+- [x] Si la lectura v2 devuelve `invalid` o `unavailable`, el contexto conserva el estado vacío en memoria pero no sobrescribe automáticamente el almacenamiento problemático.
+- [x] Los contadores y banderas legados siguen funcionando sin conversión automática a capítulos completados.
+- [ ] Añadir una pantalla de recuperación/exportación para datos v2 inválidos o almacenamiento no disponible.
+- [ ] Conectar la navegación de lectura de la UI a estas operaciones y retirar gradualmente los controles +/- para las obras con catálogo granular.
+
+**Resultado:** el progreso granular ya está disponible para la aplicación, pero convive de forma aislada con el estado v1. No se ha reinterpretado el historial antiguo como progreso real.

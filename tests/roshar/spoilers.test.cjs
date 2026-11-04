@@ -4,7 +4,9 @@ const assert = require('node:assert/strict');
 const {
   isSpoilerGateSatisfied,
   selectVisibleClaims,
-  isEntityFullyRevealed
+  isEntityFullyRevealed,
+  selectVisibleClaimsForEntity,
+  selectVisibleClaimsForSearch
 } = require('../../src/data/roshar/spoilers.ts');
 
 const unitWorkById = new Map([
@@ -57,4 +59,26 @@ test('an entity is fully revealed only when all its published claims are visible
   assert.equal(isEntityFullyRevealed(claims, 'kaladin', progress, unitWorkById), false);
   progress[0].completedUnitIds.push('twok:chapter:001');
   assert.equal(isEntityFullyRevealed(claims, 'kaladin', progress, unitWorkById), true);
+});
+
+
+test('entity selector returns only visible claims and no empty entity placeholder', () => {
+  const claims = [
+    { id: 'visible', entityId: 'kaladin', text: 'A visible fact', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } },
+    { id: 'locked', entityId: 'kaladin', text: 'A hidden fact', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:chapter:001')] } }
+  ];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaimsForEntity(claims, 'kaladin', progress, unitWorkById).map(item => item.id), ['visible']);
+  assert.deepEqual(selectVisibleClaimsForEntity(claims, 'unknown', progress, unitWorkById), []);
+});
+
+test('search matches visible claim text only and never matches locked claim text', () => {
+  const claims = [
+    { id: 'visible', entityId: 'kaladin', text: 'Kaladin trains with the bridge crew', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } },
+    { id: 'locked', entityId: 'kaladin', text: 'Kaladin discovers a hidden secret', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:chapter:001')] } }
+  ];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, 'bridge').map(item => item.id), ['visible']);
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, 'hidden secret'), []);
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, '   '), []);
 });

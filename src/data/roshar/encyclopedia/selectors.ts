@@ -1,0 +1,80 @@
+import {
+  EncyclopediaClaim,
+  EncyclopediaEntity,
+  ReadingProgress,
+  SourceReference
+} from '../model';
+import {
+  ROSHAR_READING_UNIT_WORK_BY_ID,
+  ROSHAR_READING_UNITS
+} from '../catalog/readingUnits';
+import { selectVisibleClaims, selectVisibleClaimsForEntity } from '../spoilers';
+
+export interface EncyclopediaEntityProjection {
+  entity: EncyclopediaEntity;
+  claims: EncyclopediaClaim[];
+  fullyVisible: boolean;
+}
+
+/**
+ * Public encyclopedia projection. Entities without an unlocked published claim
+ * are omitted entirely so names and aliases cannot become spoiler indexes.
+ */
+export function selectVisibleEncyclopediaEntities(
+  entities: readonly EncyclopediaEntity[],
+  claims: readonly EncyclopediaClaim[],
+  progress: readonly ReadingProgress[]
+): EncyclopediaEntityProjection[] {
+  return entities.reduce<EncyclopediaEntityProjection[]>((result, entity) => {
+    const visible = selectVisibleClaimsForEntity(
+      [...claims],
+      entity.id,
+      [...progress],
+      ROSHAR_READING_UNIT_WORK_BY_ID
+    );
+    if (visible.length === 0) return result;
+    const published = claims.filter(claim =>
+      claim.entityId === entity.id && claim.editorialStatus === 'published'
+    );
+    result.push({
+      entity,
+      claims: visible,
+      fullyVisible: published.length > 0 && visible.length === published.length
+    });
+    return result;
+  }, []);
+}
+
+export function selectVisibleEncyclopediaClaims(
+  claims: readonly EncyclopediaClaim[],
+  progress: readonly ReadingProgress[]
+): EncyclopediaClaim[] {
+  return selectVisibleClaims([...claims], [...progress], ROSHAR_READING_UNIT_WORK_BY_ID);
+}
+
+export function validateEncyclopediaContent(
+  entities: readonly EncyclopediaEntity[],
+  claims: readonly EncyclopediaClaim[],
+  sources: readonly SourceReference[]
+): string[] {
+  const issues: string[] = [];
+  const entityIds = new Set(entities.map(entity => entity.id));
+  const sourceIds = new Set(sources.map(source => source.id));
+  const unitIds = new Set(ROSHAR_READING_UNITS.map(unit => unit.id));
+
+  for (const claim of claims) {
+    if (!entityIds.has(claim.entityId)) issues.push('Claim ' + claim.id + ' references an unknown entity');
+    if (claim.editorialStatus === 'published' && !claim.text.trim()) issues.push('Published claim ' + claim.id + ' has no text');
+    if (claim.editorialStatus === 'published' && claim.sourceRefs.length === 0) issues.push('Published claim ' + claim.id + ' has no source');
+    for (const sourceId of claim.sourceRefs) {
+      if (!sourceIds.has(sourceId)) issues.push('Claim ' + claim.id + ' references an unknown source');
+    }
+    const requirements = [...claim.spoilerGate.allOf, ...(claim.spoilerGate.anyOf ?? [])];
+    if (requirements.length === 0) issues.push('Claim ' + claim.id + ' has an empty spoiler gate');
+    for (const requirement of requirements) {
+      if (!unitIds.has(requirement.readingUnitId)) issues.push('Claim ' + claim.id + ' references an unknown reading unit');
+      if (ROSHAR_READING_UNIT_WORK_BY_ID.get(requirement.readingUnitId) !== requirement.workId) issues.push('Claim ' + claim.id + ' has a work/unit mismatch');
+    }
+  }
+  return issues;
+}

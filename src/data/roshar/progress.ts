@@ -1,7 +1,7 @@
 import { ReadingProgress, ReadingUnit } from './model';
 
 export interface ReadingProgressIssue {
-  code: 'unknown-work' | 'unknown-unit' | 'wrong-work' | 'duplicate-unit' | 'invalid-current-unit';
+  code: 'unknown-work' | 'duplicate-work' | 'unknown-unit' | 'wrong-work' | 'duplicate-unit' | 'invalid-current-unit';
   workId: string;
   readingUnitId?: string;
 }
@@ -107,7 +107,7 @@ export function validateReadingProgress(
       issues.push({ code: 'unknown-work', workId: item.workId });
       continue;
     }
-    if (seenWorks.has(item.workId)) issues.push({ code: 'unknown-work', workId: item.workId });
+    if (seenWorks.has(item.workId)) issues.push({ code: 'duplicate-work', workId: item.workId });
     seenWorks.add(item.workId);
     const seenUnits = new Set<string>();
     for (const id of item.completedUnitIds) {

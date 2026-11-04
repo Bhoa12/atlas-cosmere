@@ -214,7 +214,6 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 - Publicación o merge a `main`.
 - Afirmar cobertura canónica completa sin revisión fuente por fuente.
 
-
 ## Registro de implementación
 
 ### Iteración 1 — R0 inicial y contratos base
@@ -228,7 +227,6 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 
 **Resultado:** se ha añadido la primera capa de tipos y el adaptador de obras. No se ha cambiado aún la persistencia ni el comportamiento de desbloqueo; tampoco se ha declarado completa la auditoría R0.
 
-
 ### Iteración 2 — primer selector de spoilers
 
 - [x] Añadir `src/data/roshar/spoilers.ts` con evaluación pura de gates `allOf` / `anyOf`.
@@ -238,7 +236,6 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 - [ ] Conectar los selectores con las pantallas; no hacerlo hasta disponer de catálogo de unidades y progreso nuevo.
 
 **Resultado:** existe el primer núcleo de evaluación, todavía no está conectado a la UI ni puede desbloquear contenido porque aún no se ha cargado el catálogo de unidades editoriales.
-
 
 ## Iteración 3 — catálogo editorial y fuentes (2026-11-04)
 
@@ -253,7 +250,6 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 
 La primera ejecución de `npm test` detectó correctamente un fixture defectuoso en la prueba de IDs duplicados (el caso no contenía realmente un ID repetido). Se corrigió el fixture; la nueva ejecución debe confirmarse antes de marcar las pruebas como verdes. La ejecución anterior no se considera validación satisfactoria.
 
-
 ### Iteración 4 — referencia editorial española (2026-11-04)
 
 - [x] Confirmado por el usuario: el primer lanzamiento de Roshar se trabajará en español; el inglés queda para una fase posterior.
@@ -265,3 +261,17 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Extender el mismo procedimiento al resto de obras.
 
 **Validación CI:** el workflow `41744870889` terminó correctamente: tests de contratos de Roshar, TypeScript y exportación Android completados con éxito. Resultado válido para el SHA `8862ee4244cc19eb2b36763ca2f78f6ee6543757`; no implica que el catálogo editorial esté completo.
+
+### Iteración 5 — cotejo documental de El camino de los reyes (2026-11-04)
+
+- [x] Confirmada la ficha bibliográfica de Ediciones B para el ISBN `9788466647946`: título, autor, publicación en 2012, formato e ISBN.
+- [x] Corroborados en Google Books la editorial, año, traductor Rafael Marín Trechera, ISBN y extensión bibliográfica de 1196 páginas.
+- [x] Localizado un índice secundario en Coppermind ES como pista de inventario.
+- [x] Localizado el índice de Open Library para una edición inglesa; se registra solo como lista de comprobación, no como sustituto del índice español.
+- [ ] Obtener y cotejar el índice completo del ejemplar español ISBN `9788466647946`.
+- [ ] Solo después del cotejo, crear unidades españolas con IDs semánticos y localizadores de edición.
+- [ ] Ejecutar validador de catálogo y pruebas de integridad para `twok`.
+
+**Resultado:** la edición española está identificada, pero el índice español completo no está verificado. No se ha creado un catálogo de unidades ficticio ni se ha alterado el comportamiento de la aplicación.
+
+---

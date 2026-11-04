@@ -624,3 +624,13 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el SHA final de esta iteración.
 
 **Resultado:** el seguimiento granular deja de mezclar dos semánticas distintas: una obra puede conservar suplementos sin leer y, aun así, mostrar correctamente que no queda ninguna unidad narrativa requerida.
+
+
+### Iteración 30 — corrección de regresión de CI en la guía de lectura (2026-11-04)
+
+- [x] Investigado el fallo del workflow **Atlas Android validation #171** del SHA `34f4f9402b8e37f08efbf2b0705c292cd72685ea`.
+- [x] Identificada la causa: una prueba anterior seguía esperando que `summarizeReadingWork` devolviera un suplemento como siguiente unidad, contradiciendo la política introducida en la Iteración 29.
+- [x] Corregida la expectativa de regresión para exigir la siguiente unidad narrativa requerida (`w:3`) después de omitir `w:2` como material suplementario.
+- [ ] Confirmar CI completo sobre el commit de corrección antes de dar la iteración por validada.
+
+**Resultado:** la suite vuelve a expresar una única semántica para seguimiento y orientación: el porcentaje y la siguiente lectura requerida usan el mismo conjunto de unidades narrativas, mientras el material suplementario sigue siendo registrable sin bloquear la obra.

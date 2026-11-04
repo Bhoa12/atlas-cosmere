@@ -3,6 +3,19 @@ import { ActivityIndicator, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
+import { ReadingProgress } from '../data/roshar/model';
+import {
+  ROSHAR_READING_UNITS,
+  ROSHAR_READING_UNIT_WORK_BY_ID
+} from '../data/roshar/catalog/readingUnits';
+import {
+  markReadingUnitCompleted,
+  setCurrentReadingUnit
+} from '../data/roshar/progress';
+import {
+  loadReadingProgress,
+  saveReadingProgress
+} from '../data/roshar/progressStorage';
 
 interface ComentarioComunidad {
   id: string;
@@ -34,6 +47,9 @@ interface CosmereContextType {
   darLuzTormentosa: (comentarioId: string) => void;
   esContenidoDesbloqueado: (desbloqueoLibroId: string) => boolean;
   todosLosLibrosLeidos: boolean;
+  readingProgress: ReadingProgress[];
+  setUnidadLecturaActual: (workId: string, readingUnitId: string) => void;
+  completarUnidadLectura: (workId: string, readingUnitId: string) => void;
 }
 
 const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
@@ -56,6 +72,9 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const testsCompletadosRef = useRef<{ [testId: string]: boolean }>({});
   const comentarioCounterRef = useRef(0);
   const [estadoHidratado, setEstadoHidratado] = useState(false);
+  const rosharWorkIds = Array.from(new Set(ROSHAR_READING_UNITS.map(unit => unit.workId)));
+  const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
+  const [progresoLecturaHidratado, setProgresoLecturaHidratado] = useState(false);
 
   const [comentarios, setComentarios] = useState<ComentarioComunidad[]>([
     {
@@ -124,6 +143,35 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   useEffect(() => {
+    let activo = true;
+    const cargarProgresoGranular = async () => {
+      const result = await loadReadingProgress(
+        AsyncStorage,
+        rosharWorkIds,
+        ROSHAR_READING_UNIT_WORK_BY_ID,
+        new Date().toISOString()
+      );
+      if (activo) {
+        setReadingProgress(result.progress);
+        setProgresoLecturaHidratado(true);
+      }
+    };
+    cargarProgresoGranular();
+    return () => { activo = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!progresoLecturaHidratado) return;
+    saveReadingProgress(
+      AsyncStorage,
+      readingProgress,
+      rosharWorkIds,
+      ROSHAR_READING_UNIT_WORK_BY_ID,
+      new Date().toISOString()
+    ).catch(() => false);
+  }, [progresoLecturaHidratado, readingProgress]);
+
+  useEffect(() => {
     if (!estadoHidratado) return;
     const estado = {
       reinoCognitivoActivo,
@@ -139,6 +187,26 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // La app sigue funcionando aunque el dispositivo no permita persistir datos.
     });
   }, [estadoHidratado, reinoCognitivoActivo, librosLeidos, capituloActualPorLibro, puntosInvestidura, apodoActivo, nombreUsuario, comentarios, testsCompletadosExitosos]);
+
+  const setUnidadLecturaActual = (workId: string, readingUnitId: string) => {
+    setReadingProgress(prev => setCurrentReadingUnit(
+      prev,
+      workId,
+      readingUnitId,
+      ROSHAR_READING_UNIT_WORK_BY_ID,
+      new Date().toISOString()
+    ));
+  };
+
+  const completarUnidadLectura = (workId: string, readingUnitId: string) => {
+    setReadingProgress(prev => markReadingUnitCompleted(
+      prev,
+      workId,
+      readingUnitId,
+      ROSHAR_READING_UNIT_WORK_BY_ID,
+      new Date().toISOString()
+    ));
+  };
 
   const toggleReinoCognitivo = () => {
     setReinoCognitivoActivo(prev => !prev);
@@ -207,7 +275,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setComentarios(prev => prev.map(c => c.id === id ? { ...c, luzTormentosaLikes: c.luzTormentosaLikes + 1 } : c));
   };
 
-  if (!estadoHidratado) {
+  if (!estadoHidratado || !progresoLecturaHidratado) {
     return <View style={{ flex: 1, backgroundColor: '#090d16', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#38bdf8" size="large" /></View>;
   }
 
@@ -231,7 +299,10 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       agregarComentario,
       darLuzTormentosa,
       esContenidoDesbloqueado,
-      todosLosLibrosLeidos
+      todosLosLibrosLeidos,
+      readingProgress,
+      setUnidadLecturaActual,
+      completarUnidadLectura
     }}>
       {children}
     </CosmereContext.Provider>

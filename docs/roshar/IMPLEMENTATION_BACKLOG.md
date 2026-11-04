@@ -106,12 +106,12 @@ Estados editoriales:
 ## Backlog ejecutable
 
 ### R0 — Auditoría y contratos (bloqueante)
-- [ ] Inventariar navegación, catálogos, componentes, persistencia y usos de `totalCapitulos`, `desbloqueoLibroId`, `librosLeidos` y `capituloActualPorLibro`.
+- [ ] Cerrar inventario exhaustivo automatizado de navegación, catálogos, componentes, persistencia y usos de `totalCapitulos`, `desbloqueoLibroId`, `librosLeidos` y `capituloActualPorLibro` (barrido manual principal documentado en R0).
 - [ ] Identificar todos los consumidores del modelo legado antes de cambiar interfaces.
 - [ ] Confirmar la lista y el orden editorial de las obras de Roshar, incluidas las novelas cortas y el alcance de material complementario.
 - [ ] Definir IDs estables para cada unidad; no inventar números de capítulo ni títulos.
-- [ ] Separar datos demo de datos reales y documentar migración.
-- [ ] Añadir scripts de validación y pruebas a `package.json`.
+- [x] Documentar política conservadora: mantener progreso legado, no inferir unidades completadas y no desbloquear con valores demo; implementación versionada pendiente.
+- [x] Añadir script `npm test` y pruebas automatizadas de contratos de catálogo y motor de spoilers (ejecución CI pendiente).
 
 **Aceptación:** inventario de consumidores completo; ningún ID legado se rompe; catálogo de obras revisado; migración especificada antes de implementarse.
 

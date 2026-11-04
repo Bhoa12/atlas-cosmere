@@ -81,3 +81,22 @@ La búsqueda de código de GitHub opera sobre la rama por defecto, por lo que es
 - Se añadió un runner sin dependencias adicionales basado en `node:test` y el compilador TypeScript ya instalado.
 - `npm test` cubre validación de unidades, IDs/ordinales, gates vacíos y desconocidos, evaluación `allOf`/`anyOf`, lectura no lineal, correspondencia obra-unidad y filtrado de afirmaciones no publicadas o sin fuente.
 - La suite está añadida al repositorio; su ejecución real queda pendiente de CI.
+
+
+## Hallazgos de la segunda inspección de implementación
+
+La lectura directa de `CosmereContext.tsx`, `App.tsx`, `CommunityScreen.tsx` e `InvestitureWheel.tsx` confirma riesgos que deben resolverse antes de conectar el catálogo:
+
+- `toggleLibroLeido` marca el libro como leído y fija el contador legado a `totalCapitulos`; `setCapituloLibro` interpreta el contador como una frontera continua y marca el libro completo al alcanzar ese total. Ninguna operación equivale a completar unidades editoriales explícitas.
+- Si no existe estado guardado, el contexto parte de valores demo (`twok` y `tfe`) y, tras hidratarse, persiste el estado inicial. No se pueden importar esos valores como progreso real.
+- El modal de `App.tsx` expone sinopsis y personajes desde el catálogo legado sin gates por afirmación. La rueda usa gates por libro y no puede proteger información dentro de una misma obra.
+- La comunidad acota publicaciones por número de capítulo y permite revelar manualmente el texto de una publicación marcada como spoiler. Es un sistema separado, no una garantía de aislamiento de datos.
+- La tabla NCX de referencia contradice dos valores del catálogo legado: `dawnshard.totalCapitulos = 21` frente a 19 capítulos numerados; `wat.totalCapitulos = 115` frente a 147 capítulos numerados en el NCX. No se debe modificar el catálogo legado a ciegas ni utilizar esos totales para construir progreso nuevo.
+- Los demás recuentos principales coinciden con el NCX: `twok` 75, `wor` 89, `o` 122, `row` 117 y `edgedancer` 20. La coincidencia numérica no valida el tratamiento de material complementario.
+
+### Estado actualizado de R0/R1
+
+- El script `npm test` y la suite automatizada sí existen ya; la afirmación anterior de que faltaban se considera obsoleta.
+- El catálogo NCX de las siete obras ya está importado y sus 684 destinos relativos resuelven a archivos existentes dentro de los EPUB.
+- R0 no se cierra todavía: falta un barrido automatizado de referencias de código, cerrar la política de compatibilidad del progreso legado y cotejar los rótulos NCX contra los encabezados XHTML.
+- R1 tiene un inventario estructural importado, pero no se considera editorialmente definitivo ni se conecta aún a UI/persistencia.

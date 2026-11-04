@@ -1,6 +1,6 @@
 import { ReadingProgress, ReadingUnit } from './model';
 
-export interface ReadingProgressIssue {
+/**\n * Returns the only progress record for a work. Duplicate records are treated as\n * ambiguous and therefore yield no usable progress, preventing stale or malformed\n * persistence from granting spoiler access or completion.\n */\nexport function getUnambiguousReadingProgress(\n  progress: readonly ReadingProgress[],\n  workId: string\n): ReadingProgress | undefined {\n  const matches = progress.filter(item => item.workId === workId);\n  return matches.length === 1 ? matches[0] : undefined;\n}\n\nexport interface ReadingProgressIssue {
   code: 'unknown-work' | 'duplicate-work' | 'unknown-unit' | 'wrong-work' | 'duplicate-unit' | 'invalid-current-unit';
   workId: string;
   readingUnitId?: string;

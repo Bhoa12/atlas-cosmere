@@ -83,21 +83,35 @@ export const ROSHAR_NCX_EXPECTED_CHAPTER_COUNTS: Record<string, number> = {
   dawnshard: 19
 };
 
-export function validateRosharReadingCatalog(): string[] {
+export interface RosharReadingCatalogValidationInput {
+  units: readonly ReadingUnit[];
+  sections: readonly ReadingSection[];
+  workIds: readonly string[];
+  editionVariants: readonly { id: string; workId: string }[];
+  expectedChapterCounts: Record<string, number>;
+}
+
+export function validateRosharReadingCatalogData({
+  units,
+  sections,
+  workIds,
+  editionVariants,
+  expectedChapterCounts
+}: RosharReadingCatalogValidationInput): string[] {
   const issues: string[] = [];
-  const knownWorks = new Set(ROSHAR_WORK_IDS);
-  const knownEditions = new Map(ROSHAR_EDITION_VARIANTS.map(edition => [edition.id, edition]));
+  const knownWorks = new Set(workIds);
+  const knownEditions = new Map(editionVariants.map(edition => [edition.id, edition]));
   const seenUnitIds = new Set<string>();
   const seenSectionIds = new Set<string>();
   const seenLocatorsByEdition = new Set<string>();
 
-  for (const section of ROSHAR_READING_SECTIONS) {
+  for (const section of sections) {
     if (!knownWorks.has(section.workId)) issues.push(`Unknown work in section ${section.id}`);
     if (seenSectionIds.has(section.id)) issues.push(`Duplicate section ID ${section.id}`);
     seenSectionIds.add(section.id);
   }
 
-  for (const unit of ROSHAR_READING_UNITS) {
+  for (const unit of units) {
     if (!knownWorks.has(unit.workId)) issues.push(`Unknown work in unit ${unit.id}`);
     if (seenUnitIds.has(unit.id)) issues.push(`Duplicate unit ID ${unit.id}`);
     seenUnitIds.add(unit.id);
@@ -105,7 +119,7 @@ export function validateRosharReadingCatalog(): string[] {
     const edition = unit.source && knownEditions.get(unit.source.editionVariantId);
     if (!edition || edition.workId !== unit.workId) issues.push(`Wrong edition variant for ${unit.id}`);
     if (unit.sectionId) {
-      const section = ROSHAR_READING_SECTIONS.find(candidate => candidate.id === unit.sectionId);
+      const section = sections.find(candidate => candidate.id === unit.sectionId);
       if (!section) {
         issues.push(`Unknown section ${unit.sectionId} for ${unit.id}`);
       } else if (section.workId !== unit.workId) {
@@ -124,16 +138,26 @@ export function validateRosharReadingCatalog(): string[] {
     }
   }
 
-  for (const [workId, expected] of Object.entries(ROSHAR_NCX_EXPECTED_CHAPTER_COUNTS)) {
-    const actual = ROSHAR_READING_UNITS.filter(unit => unit.workId === workId && unit.kind === 'chapter').length;
+  for (const [workId, expected] of Object.entries(expectedChapterCounts)) {
+    const actual = units.filter(unit => unit.workId === workId && unit.kind === 'chapter').length;
     if (actual !== expected) issues.push(`Work ${workId}: expected ${expected} NCX chapters, found ${actual}`);
   }
 
-  for (const workId of Object.keys(ROSHAR_NCX_EXPECTED_CHAPTER_COUNTS)) {
-    const units = ROSHAR_READING_UNITS.filter(unit => unit.workId === workId);
-    if (units.some((unit, index) => unit.ordinal !== index + 1)) {
+  for (const workId of Object.keys(expectedChapterCounts)) {
+    const workUnits = units.filter(unit => unit.workId === workId);
+    if (workUnits.some((unit, index) => unit.ordinal !== index + 1)) {
       issues.push(`Work ${workId}: reading-unit ordinals are not contiguous`);
     }
   }
   return issues;
+}
+
+export function validateRosharReadingCatalog(): string[] {
+  return validateRosharReadingCatalogData({
+    units: ROSHAR_READING_UNITS,
+    sections: ROSHAR_READING_SECTIONS,
+    workIds: ROSHAR_WORK_IDS,
+    editionVariants: ROSHAR_EDITION_VARIANTS,
+    expectedChapterCounts: ROSHAR_NCX_EXPECTED_CHAPTER_COUNTS
+  });
 }

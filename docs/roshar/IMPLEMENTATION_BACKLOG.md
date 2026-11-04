@@ -666,3 +666,13 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el commit final de esta iteración.
 
 **Resultado:** la política fail-closed ahora es coherente entre seguimiento de lectura y desbloqueo de contenido. Un almacenamiento ambiguo no puede sumar progreso de varios registros para revelar una afirmación enciclopédica protegida.
+
+
+### Iteración 34 — datos persistidos malformados también fallan de forma cerrada (2026-11-04)
+
+- [x] Endurecido el proyector de progreso usado por los selectores anti-spoiler para ignorar registros sin `workId` válido o sin una lista válida de unidades completadas.
+- [x] Las unidades no textuales también se descartan antes de evaluar requisitos de desbloqueo.
+- [x] Añadida regresión con registros persistidos malformados y `null`: el selector no lanza una excepción ni concede acceso.
+- [ ] Confirmar CI completo sobre el SHA final de esta iteración.
+
+**Resultado:** la política fail-closed cubre ahora no solo progreso contradictorio, sino también datos de almacenamiento corruptos o con forma inesperada. Un error de persistencia no puede convertirse en una excepción que rompa el panel ni en un desbloqueo accidental.

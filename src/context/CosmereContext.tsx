@@ -75,6 +75,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const rosharWorkIds = Array.from(new Set(ROSHAR_READING_UNITS.map(unit => unit.workId)));
   const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
   const [progresoLecturaHidratado, setProgresoLecturaHidratado] = useState(false);
+  const [persistenciaProgresoDisponible, setPersistenciaProgresoDisponible] = useState(false);
 
   const [comentarios, setComentarios] = useState<ComentarioComunidad[]>([
     {
@@ -153,6 +154,9 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       );
       if (activo) {
         setReadingProgress(result.progress);
+        // Never overwrite an unreadable/corrupt v2 payload during hydration.
+        // A later explicit recovery flow can decide whether to replace it.
+        setPersistenciaProgresoDisponible(result.status === 'loaded' || result.status === 'empty');
         setProgresoLecturaHidratado(true);
       }
     };
@@ -161,7 +165,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   useEffect(() => {
-    if (!progresoLecturaHidratado) return;
+    if (!progresoLecturaHidratado || !persistenciaProgresoDisponible) return;
     saveReadingProgress(
       AsyncStorage,
       readingProgress,
@@ -169,7 +173,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ROSHAR_READING_UNIT_WORK_BY_ID,
       new Date().toISOString()
     ).catch(() => false);
-  }, [progresoLecturaHidratado, readingProgress]);
+  }, [progresoLecturaHidratado, persistenciaProgresoDisponible, readingProgress]);
 
   useEffect(() => {
     if (!estadoHidratado) return;

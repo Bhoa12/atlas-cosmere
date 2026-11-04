@@ -238,3 +238,17 @@ No empezar la carga masiva de contenido ni la generación IA antes de que R1–R
 - [ ] Conectar los selectores con las pantallas; no hacerlo hasta disponer de catálogo de unidades y progreso nuevo.
 
 **Resultado:** existe el primer núcleo de evaluación, todavía no está conectado a la UI ni puede desbloquear contenido porque aún no se ha cargado el catálogo de unidades editoriales.
+
+
+## Iteración 3 — catálogo editorial y fuentes (2026-11-04)
+
+- [x] Añadida documentación de jerarquía de fuentes y política de edición en `docs/roshar/EDITORIAL_SOURCES.md`.
+- [x] Incluidos `Elsecaller` y `King Lopen: The First of Alethkar` como relatos oficiales separados (IDs nuevos), sin inventar unidades ni recuentos.
+- [x] Corregida la lectura recomendada local de Roshar: se deja de heredar el campo legado global (valores 5, 7, 8...) y se usa la numeración oficial de la serie (1, 2, 2.5, 3, 3.5, 4, 5); los relatos Story Deck se sitúan como 2.6 y 2.7.
+- [x] Documentado que Horneater no se añade como obra publicada/unidades hasta que exista confirmación editorial de publicación.
+- [ ] Confirmar la edición española de referencia mediante ISBN y cotejar índices completos de cada obra antes de generar unidades.
+- [ ] Publicar un inventario completo de unidades con variante de edición y referencias de localización.
+
+### Estado de CI de las pruebas
+
+La primera ejecución de `npm test` detectó correctamente un fixture defectuoso en la prueba de IDs duplicados (el caso no contenía realmente un ID repetido). Se corrigió el fixture; la nueva ejecución debe confirmarse antes de marcar las pruebas como verdes. La ejecución anterior no se considera validación satisfactoria.

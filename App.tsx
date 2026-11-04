@@ -9,10 +9,11 @@ import { QuizzesScreen } from './src/screens/QuizzesScreen';
 import { CommunityScreen } from './src/screens/CommunityScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { RosharReadingNavigator } from './src/components/RosharReadingNavigator';
+import { RosharAchievementsScreen } from './src/screens/RosharAchievementsScreen';
 import { ROSHAR_READING_UNITS } from './src/data/roshar/catalog/readingUnits';
 
 const MainNavigator = () => {
-  const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
+  const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil' | 'logros'>('atlas');
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState(SISTEMAS_COSMERE_COMPLETO[0]);
   const [libroModal, setLibroModal] = useState<Libro | null>(null);
   const [libroLecturaAbierto, setLibroLecturaAbierto] = useState<string | null>(null);
@@ -172,6 +173,7 @@ const MainNavigator = () => {
         {tab === 'quiz' && <QuizzesScreen />}
         {tab === 'comunidad' && <CommunityScreen />}
         {tab === 'perfil' && <ProfileScreen />}
+        {tab === 'logros' && <RosharAchievementsScreen />}
       </View>
 
       {/* MODAL DETALLES DEL LIBRO */}
@@ -266,6 +268,16 @@ const MainNavigator = () => {
         >
           <Text style={styles.navIcon}>💬</Text>
           <Text style={[styles.navText, tab === 'comunidad' && { color: themeAccent }]}>Foro</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Abrir pestaña Logros de Roshar"
+          accessibilityState={{ selected: tab === 'logros' }}
+          onPress={() => setTab('logros')}
+        >
+          <Text style={styles.navIcon}>🏆</Text>
+          <Text style={[styles.navText, tab === 'logros' && { color: themeAccent }]}>Logros</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.navBtn}

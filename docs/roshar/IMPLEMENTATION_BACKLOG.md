@@ -28,7 +28,7 @@ Inspección realizada en `fix/atlas-core-audit`:
 - `App.tsx` presenta el planeta, bibliografía y controles +/-; no hay navegador de unidades editoriales.
 - `src/data/gamification.ts` mezcla rangos y logros globales; los logros actuales entregan apodos y no tienen inventario tipado de marcos, fondos, insignias o efectos.
 - `src/screens/QuizzesScreen.tsx` contiene un banco pequeño y estático de preguntas de varias obras; no existe un catálogo de tests por obra/sección ni metadatos de procedencia y spoiler por pregunta.
-- `package.json` no declara todavía scripts de test ni una suite de pruebas automatizadas.
+- `package.json` declara `npm test`; existen pruebas automatizadas de contratos de Roshar, progreso, almacenamiento y motor de spoilers. La última ejecución verde confirmada corresponde a un SHA anterior, no al commit actual.
 
 ## Principios no negociables
 

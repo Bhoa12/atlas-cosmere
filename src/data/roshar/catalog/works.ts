@@ -7,14 +7,14 @@ import { RosharWork } from '../model';
  * date is verified independently. Recommended order follows official series
  * numbering; it is not an in-world chronology.
  */
-const ROSHAR_WORK_METADATA: Record<string, Pick<RosharWork, 'workType'>> = {
-  twok: { workType: 'novel' },
-  wor: { workType: 'novel' },
-  edgedancer: { workType: 'novella' },
-  o: { workType: 'novel' },
-  dawnshard: { workType: 'novella' },
-  row: { workType: 'novel' },
-  wat: { workType: 'novel' }
+const ROSHAR_WORK_METADATA: Record<string, { workType: RosharWork['workType']; recommendedReadingOrder: number }> = {
+  twok: { workType: 'novel', recommendedReadingOrder: 1 },
+  wor: { workType: 'novel', recommendedReadingOrder: 2 },
+  edgedancer: { workType: 'novella', recommendedReadingOrder: 2.5 },
+  o: { workType: 'novel', recommendedReadingOrder: 3 },
+  dawnshard: { workType: 'novella', recommendedReadingOrder: 3.5 },
+  row: { workType: 'novel', recommendedReadingOrder: 4 },
+  wat: { workType: 'novel', recommendedReadingOrder: 5 }
 };
 
 const rosharSystem = SISTEMAS_COSMERE_COMPLETO.find(system => system.id === 'roshar');
@@ -36,9 +36,7 @@ const LEGACY_ROSHAR_WORKS: RosharWork[] = rosharSystem.libros.map(book => {
     title: book.titulo,
     workType: metadata.workType,
     publicationOrder: null,
-    recommendedReadingOrder: Number.isFinite(book.ordenLecturaRecomendado)
-      ? book.ordenLecturaRecomendado
-      : null
+    recommendedReadingOrder: metadata.recommendedReadingOrder
   };
 });
 

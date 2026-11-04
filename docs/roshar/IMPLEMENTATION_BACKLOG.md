@@ -359,7 +359,7 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 
 - [x] Definida la diferencia entre unidades narrativas obligatorias y material complementario opcional en `docs/roshar/READING_COMPLETION_POLICY.md`.
 - [x] Añadida la función pura `isRequiredForNarrativeCompletion` en `src/data/roshar/progress.ts`.
-- [x] Añadidas pruebas: capítulos y unidades narrativas siguen siendo requeridos; Ars Arcanum, agradecimientos, apéndices y material editorial posterior no bloquean la finalización narrativa.
+- [x] Añadidas pruebas: capítulos y unidades narrativas siguen siendo requeridos; Ars Arcanum, agradecimientos, apéndices y material editorial posterior no bloquean la finalización narrativa.\n- [x] Añadido `isNarrativeWorkComplete`, que calcula la finalización a partir de todas las unidades narrativas requeridas y los IDs completados explícitamente; obras desconocidas o sin unidades no aparecen como terminadas.
 - [x] Las unidades `other` permanecen requeridas hasta revisión editorial, evitando clasificar silenciosamente anomalías como material opcional.
 - [ ] Conectar el cálculo de finalización narrativa al navegador de lectura y a los logros, sin cambiar todavía el estado legado.
 - [ ] Ejecutar CI completo sobre el commit resultante.

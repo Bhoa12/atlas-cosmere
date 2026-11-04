@@ -12,9 +12,10 @@ modelos específicos.
 2. **Reading units**: representa prólogos, capítulos, interludios y otras
    unidades ordenadas.
 3. **Reader progress**: guarda el último orden completado por obra.
-4. **Spoiler gates**: cada pieza editorial exige una coordenada mínima
+4. **Progress adapter**: normaliza el progreso de sistemas existentes sin perder el punto de lectura más avanzado.
+5. **Spoiler gates**: cada pieza editorial exige una coordenada mínima
    `workId + minimumUnitOrder`.
-5. **Content source**: todo contenido publicado debe conservar un localizador de
+6. **Content source**: todo contenido publicado debe conservar un localizador de
    fuente. La capa estructural no inventa sinopsis ni hechos.
 
 ## Integración propuesta
@@ -23,6 +24,7 @@ modelos específicos.
 - Adaptar gradualmente los consumidores para aceptar `WorldCatalogEntry`.
 - Añadir obras y unidades de Scadrial, Sel, Nalthis y Taldain únicamente tras
   validar sus fuentes.
+- Normalizar primero el progreso de cada consumidor con `normalizeReaderProgress`.
 - Migrar el contenido editorial a `CatalogContent<T>` para que el mismo filtro
   anti-spoilers funcione en todos los mundos.
 

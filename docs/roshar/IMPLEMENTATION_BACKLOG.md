@@ -275,3 +275,20 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 **Resultado:** la edición española está identificada, pero el índice español completo no está verificado. No se ha creado un catálogo de unidades ficticio ni se ha alterado el comportamiento de la aplicación.
 
 ---
+
+
+### Iteración 6 — auditoría de EPUB aportados por el usuario (2026-11-04)
+
+- [x] Inspeccionados metadatos OPF y tabla de contenidos NCX del EPUB recopilatorio de las cinco novelas principales.
+- [x] Inspeccionado el EPUB de Danzante del Filo.
+- [x] Inspeccionado el EPUB de Esquirla del amanecer.
+- [x] Registrados traductores declarados, estructura y recuentos de índice en `docs/roshar/EPUB_TOC_AUDIT.md`.
+- [x] Identificadas anomalías de origen: dos rótulos numéricos en interludios de Viento y verdad y dos entradas de prólogo en Juramentada. No se normalizan sin cotejo.
+- [x] Confirmado por el usuario que no dispone de Elsecaller ni King Lopen; se mantienen sin unidades y no bloquean las siete obras disponibles.
+- [ ] Generar `src/data/roshar/catalog/readingUnits.ts` para las siete obras, conservando la variante digital de origen separada de ISBN impresos.
+- [ ] Añadir tipos/validaciones para partes, días, bloques de interludios y material complementario.
+- [ ] Resolver con evidencia las anomalías de índice antes de publicar el catálogo definitivo.
+- [ ] Añadir pruebas de cobertura por obra y validación de IDs/ordinales.
+- [ ] Conectar el catálogo al progreso y motor de spoilers solo después de superar esas validaciones.
+
+**Resultado:** ya existe una fuente de índice en español para las siete obras aportadas. Los EPUB permiten construir un inventario digital de referencia, pero no prueban equivalencia exacta con las ediciones impresas identificadas previamente. No se ha creado todavía el catálogo de unidades ni se ha conectado a la aplicación.

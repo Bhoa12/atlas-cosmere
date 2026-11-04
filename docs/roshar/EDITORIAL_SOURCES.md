@@ -44,6 +44,32 @@ Estos índices muestran que las ediciones y formatos pueden tener localizadores 
 - Cronología interna: dimensión independiente; no se asignará sin una fuente clara y específica.
 - Los IDs legados `twok`, `wor`, `edgedancer`, `o`, `dawnshard`, `row`, `wat` no se renombrarán.
 
+
+## Referencia editorial española inicial (2026-11-04)
+
+Se confirma el alcance lingüístico inicial: **español**. El inglés no forma parte del primer inventario de unidades; podrá añadirse después como variante editorial independiente.
+
+Para evitar que la paginación de una edición contamine el progreso, cada unidad tendrá un ID semántico estable (obra + tipo + ordinal) y los localizadores físicos se asociarán a una variante editorial identificada por ISBN/formato. La selección de ISBN de referencia sirve para cotejar títulos y estructura; no convierte el número de página en clave de progreso.
+
+ISBN españoles localizados para iniciar el cotejo:
+
+| ID | Título | Edición española de referencia para el primer cotejo | ISBN | Estado |
+|---|---|---|---|---|
+| `twok` | El camino de los reyes | Ediciones B, 2012, castellano | `9788466647946` | Identificada; existen ediciones posteriores con distinta paginación |
+| `wor` | Palabras radiantes | Nova, 2015, castellano | `9788466657549` | Identificada |
+| `edgedancer` | Danzante del Filo | Nova, 2026, castellano | `9788410466678` | Identificada |
+| `o` | Juramentada | Nova, 2018, castellano | `9788417347000` | Identificada |
+| `dawnshard` | Esquirla del Amanecer | Nova, 2021, castellano | `9788418037238` | Identificada |
+| `row` | El ritmo de la guerra | Nova, 2020, castellano | `9788417347932` | Identificada |
+| `wat` | Viento y verdad | — | — | ISBN/formato español pendiente de cotejo |
+| `elsecaller` | Elsecaller | — | — | Edición española independiente no verificada |
+| `king-lopen` | King Lopen: The First of Alethkar | — | — | Edición española independiente no verificada |
+
+Los ISBN anteriores se usan como **referencias de cotejo inicial**, no como afirmación de que sean las únicas ediciones válidas. En particular, El camino de los reyes tiene ediciones españolas posteriores (incluida B de Bolsillo, ISBN `9788413143941`) con paginación diferente. La aplicación deberá permitir declarar otra edición sin alterar el progreso semántico.
+
+Antes de dar por cerrado el inventario de una obra, hay que cotejar el índice y la secuencia de secciones del ejemplar/edición de referencia. Cuando no se disponga de evidencia editorial suficiente, la unidad queda pendiente; no se completa por analogía con el original inglés o con una wiki.
+
+
 ## Fuentes oficiales consultadas
 
 - Brandon Sanderson, [The Stormlight Archive Series](https://www.brandonsanderson.com/pages/the-stormlight-archive-series): numeración de libros y relatos, introducciones y descripciones de las obras.

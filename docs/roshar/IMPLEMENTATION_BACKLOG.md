@@ -656,3 +656,13 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el commit final de esta iteración.
 
 **Resultado:** un almacenamiento malformado con registros duplicados deja de poder otorgar accidentalmente progreso narrativo o abrir contenido protegido. La capa de saneamiento sigue pudiendo reparar datos persistidos; las proyecciones públicas, mientras tanto, fallan de forma cerrada.
+
+
+### Iteración 33 — anti-spoilers coherente ante progreso ambiguo (2026-11-04)
+
+- [x] Detectada una discrepancia: las proyecciones de progreso trataban los registros duplicados como ambiguos, pero los selectores de enciclopedia podían combinar sus unidades completadas.
+- [x] Endurecido el selector de reclamaciones visibles para construir su conjunto de unidades únicamente a partir de registros inequívocos por obra.
+- [x] Añadida una regresión que verifica que dos registros parciales duplicados no pueden combinarse para satisfacer un spoiler gate.
+- [ ] Confirmar CI completo sobre el commit final de esta iteración.
+
+**Resultado:** la política fail-closed ahora es coherente entre seguimiento de lectura y desbloqueo de contenido. Un almacenamiento ambiguo no puede sumar progreso de varios registros para revelar una afirmación enciclopédica protegida.

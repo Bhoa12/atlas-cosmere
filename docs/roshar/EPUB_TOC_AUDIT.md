@@ -50,3 +50,31 @@ El usuario confirma que no dispone de `Elsecaller` ni `King Lopen: The First of 
 ## Siguiente paso
 
 Crear el catálogo TypeScript de unidades de las siete obras presentes en los EPUB, conservando partes, días, prólogos, capítulos, interludios, epílogos y material complementario en tipos distintos. Antes de conectarlo al progreso o al motor de spoilers, añadir validaciones específicas para anomalías de origen y revisar los datos extraídos frente a la secuencia de lectura de cada EPUB.
+
+
+## Importación del índice a catálogo ejecutable
+
+Se ha importado el inventario de entradas de lectura desde los tres NCX, preservando orden y rutas de contenido de cada EPUB. El catálogo se encuentra en `src/data/roshar/catalog/readingUnits.ts` y en los módulos por obra bajo `src/data/roshar/catalog/readingUnits/`.
+
+| Obra | Unidades importadas | Capítulos numerados | Secciones estructurales |
+|---|---:|---:|---:|
+| El camino de los reyes | 89 | 75 | 8 |
+| Palabras radiantes | 107 | 89 | 9 |
+| Juramentada | 141 | 122 | 9 |
+| El ritmo de la guerra | 134 | 117 | 9 |
+| Viento y verdad | 170 | 147 | 19 |
+| Danzante del Filo | 22 | 20 | 0 |
+| Esquirla del amanecer | 21 | 19 | 0 |
+| **Total** | **684** | **589** | **54** |
+
+Las unidades incluyen los capítulos y entradas complementarias visibles que se clasificaron de forma explícita: agradecimientos, preludio, prólogos, interludios, epílogos, postludio, Ars Arcanum y notas finales. Los contenedores de partes, días y bloques de interludios son `ReadingSection`, no unidades completables.
+
+### Tratamiento de anomalías
+
+- En Viento y verdad, `12. El dios divino` y `14. La lección equivocada` se importan con tipo `other`, conservan su localizador NCX y siguen dentro de su bloque de interludios. No se les asigna `chapterNumber`.
+- En Juramentada se conservan dos unidades de tipo `prologue`, cada una con ID y localizador independientes.
+- Los rótulos se copian literalmente del NCX, incluidas posibles erratas de origen. No se normalizan en esta importación.
+- Cubiertas, páginas de título y biografías no se importan como progreso de lectura.
+- Cada unidad conserva `editionVariantId` y ruta NCX; los ISBN impresos no se asocian a estos EPUB.
+
+La validación automatizada comprueba recuentos de capítulos por obra, ordinales de progreso contiguos, IDs únicos, localizadores, pertenencia a variante editorial, secciones y conservación de las anomalías. La importación es una transcripción estructural del NCX; no constituye cotejo con las ediciones impresas ni revisión del texto narrativo.

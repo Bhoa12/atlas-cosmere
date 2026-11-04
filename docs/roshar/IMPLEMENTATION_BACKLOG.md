@@ -404,3 +404,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Conectar el progreso granular con el contenido editorial y sus spoiler gates.
 
 **Resultado:** los primeros desbloqueos ya tienen un modelo declarativo seguro, pero todavía no se muestran ni se guardan como inventario del perfil.
+
+
+### Iteración 16 — proyección segura de la enciclopedia (2026-11-04)
+
+- [x] Añadido un selector de entidades visible que omite por completo entidades sin ninguna afirmación publicada y desbloqueada.
+- [x] Las fichas pueden revelar información parcialmente: cada afirmación mantiene su propio spoiler gate.
+- [x] Añadada validación editorial para entidades, fuentes, unidades de lectura y coherencia obra/unidad.
+- [x] Añadidas pruebas para impedir que una entidad completamente bloqueada aparezca en la proyección pública.
+- [ ] Crear los primeros datasets editoriales reales de Roshar con referencias verificadas.
+- [ ] Diseñar la pantalla de enciclopedia para consumir estas proyecciones sin indexar nombres o alias bloqueados.
+- [ ] Añadir revisión editorial por lote antes de publicar afirmaciones en la aplicación.
+
+**Resultado:** la infraestructura ya permite cargar contenido real de forma incremental y mostrar únicamente las afirmaciones cuyo punto de lectura se ha alcanzado.

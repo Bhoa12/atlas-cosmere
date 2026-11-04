@@ -353,3 +353,15 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Añadir respaldo exportable y pruebas de recuperación ante interrupción entre lectura y escritura.
 
 **Resultado:** la persistencia granular ya tiene una vía técnica independiente y no destructiva. Sigue desconectada del contexto React; el progreso legado permanece intacto.
+
+
+### Iteración 11 — política de finalización narrativa (2026-11-04)
+
+- [x] Definida la diferencia entre unidades narrativas obligatorias y material complementario opcional en `docs/roshar/READING_COMPLETION_POLICY.md`.
+- [x] Añadida la función pura `isRequiredForNarrativeCompletion` en `src/data/roshar/progress.ts`.
+- [x] Añadidas pruebas: capítulos y unidades narrativas siguen siendo requeridos; Ars Arcanum, agradecimientos, apéndices y material editorial posterior no bloquean la finalización narrativa.
+- [x] Las unidades `other` permanecen requeridas hasta revisión editorial, evitando clasificar silenciosamente anomalías como material opcional.
+- [ ] Conectar el cálculo de finalización narrativa al navegador de lectura y a los logros, sin cambiar todavía el estado legado.
+- [ ] Ejecutar CI completo sobre el commit resultante.
+
+**Resultado:** existe una regla técnica explícita y testeable. No cambia aún la UI ni la persistencia; el progreso v1 continúa intacto.

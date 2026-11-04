@@ -1,0 +1,25 @@
+export const edgedancerRows = [
+["prologue","Prólogo",null,null,"Text/000.xhtml"],
+["chapter","Capítulo 1",1,null,"Text/001.xhtml"],
+["chapter","Capítulo 2",2,null,"Text/002.xhtml"],
+["chapter","Capítulo 3",3,null,"Text/003.xhtml"],
+["chapter","Capítulo 4",4,null,"Text/004.xhtml"],
+["chapter","Capítulo 5",5,null,"Text/005.xhtml"],
+["chapter","Capítulo 6",6,null,"Text/006.xhtml"],
+["chapter","Capítulo 7",7,null,"Text/007.xhtml"],
+["chapter","Capítulo 8",8,null,"Text/008.xhtml"],
+["chapter","Capítulo 9",9,null,"Text/009.xhtml"],
+["chapter","Capítulo 10",10,null,"Text/010.xhtml"],
+["chapter","Capítulo 11",11,null,"Text/011.xhtml"],
+["chapter","Capítulo 12",12,null,"Text/012.xhtml"],
+["chapter","Capítulo 13",13,null,"Text/013.xhtml"],
+["chapter","Capítulo 14",14,null,"Text/014.xhtml"],
+["chapter","Capítulo 15",15,null,"Text/015.xhtml"],
+["chapter","Capítulo 16",16,null,"Text/016.xhtml"],
+["chapter","Capítulo 17",17,null,"Text/017.xhtml"],
+["chapter","Capítulo 18",18,null,"Text/018.xhtml"],
+["chapter","Capítulo 19",19,null,"Text/019.xhtml"],
+["chapter","Capítulo 20",20,null,"Text/020.xhtml"],
+["afterword","Nota final",null,null,"Text/nta.xhtml"]
+] as const;
+export const edgedancerSections = [] as const;

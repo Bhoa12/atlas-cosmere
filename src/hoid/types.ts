@@ -1,4 +1,10 @@
-export type ReadingPosition = { bookId: string; chapter?: number; order: number };
+export type ReadingPosition = {
+  bookId: string;
+  chapter?: number;
+  completed?: boolean;
+  /** Canonical series order when available. Never use array position as canon. */
+  order?: number;
+};
 
 export type HoidAnswerRequest = {
   question: string;
@@ -8,7 +14,7 @@ export type HoidAnswerRequest = {
 export type HoidAnswer = {
   text: string;
   blocked: boolean;
-  reason?: string;
+  reason?: 'reading-position' | 'provider-unavailable' | 'provider-output';
 };
 
 export interface HoidProvider {

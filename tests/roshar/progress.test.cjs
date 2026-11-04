@@ -123,7 +123,7 @@ test('summarizeReadingWork counts only explicit required-unit completion', () =>
   assert.equal(summary.requiredUnits, 2);
   assert.equal(summary.completedRequiredUnits, 1);
   assert.equal(summary.percent, 50);
-  assert.equal(summary.nextUnitId, 'w:2');
+  assert.equal(summary.nextUnitId, 'w:3');
   assert.equal(summary.narrativeComplete, false);
 });
 

@@ -100,3 +100,22 @@ La lectura directa de `CosmereContext.tsx`, `App.tsx`, `CommunityScreen.tsx` e `
 - El catálogo NCX de las siete obras ya está importado y sus 684 destinos relativos resuelven a archivos existentes dentro de los EPUB.
 - R0 no se cierra todavía: falta un barrido automatizado de referencias de código, cerrar la política de compatibilidad del progreso legado y cotejar los rótulos NCX contra los encabezados XHTML.
 - R1 tiene un inventario estructural importado, pero no se considera editorialmente definitivo ni se conecta aún a UI/persistencia.
+
+
+## Inventario de consumidores — barrido dirigido de la rama (2026-11-04)
+
+Se han vuelto a leer directamente en `fix/atlas-core-audit` los principales módulos consumidores y se han buscado referencias a `librosLeidos`, `capituloActualPorLibro`, `totalCapitulos`, `desbloqueoLibroId`, `esContenidoDesbloqueado`, sinopsis, personajes y spoilers. Hallazgos confirmados:
+
+| Archivo | Hallazgo vigente | Riesgo / trabajo pendiente |
+|---|---|---|
+| `App.tsx` | Sigue usando contador +/- y muestra sinopsis y personajes directamente desde `libroModal`. | La ficha puede revelar información de capítulos posteriores; sustituir por navegador de unidades y selectores de afirmaciones. |
+| `src/context/CosmereContext.tsx` | Sigue hidratando y guardando `state-v1`; los métodos antiguos cambian la lectura a nivel de libro/frontera numérica. | Es el punto de integración, pero requiere respaldo, rollback y evitar que los valores demo se conviertan en progreso real. |
+| `src/components/InvestitureWheel.tsx` | Desbloquea flora/fauna y magia con `desbloqueoLibroId` y `esContenidoDesbloqueado`. | No protege revelaciones dentro de una obra. |
+| `src/screens/CommunityScreen.tsx` | Limita publicaciones por capítulo numérico y permite revelar manualmente el texto marcado como spoiler. | No es aislamiento de datos ni puede considerarse el motor de spoilers común. |
+| `src/screens/ToolsScreen.tsx` | Usa `librosLeidos` para el radar de lectura. | Migrar a selectores comunes cuando exista contenido atómico con gates. |
+| `src/screens/ProfileScreen.tsx` | Calcula logros mediante combinaciones de flags de libros. | Migrar criterios a eventos/unidades explícitas; no contar un libro como leído por una frontera de capítulos. |
+| `src/screens/QuizzesScreen.tsx` | Usa rangos y resultados de tests; no aplica aún gates de unidad a cada pregunta. | Cada pregunta requiere fuente y gate antes de publicarse. |
+| `src/screens/HoidScreen.tsx` | Construye el contexto antiespoiler a partir de libros completos y contiene reglas por libro. | La protección no distingue capítulos dentro de una obra; Hoid debe consumir progreso granular y datos filtrados desde backend/selector. |
+| `src/data/cosmereUniverse.ts` | Conserva sinopsis, personajes, flora/fauna y magia con gates por libro; los totales heredados de `dawnshard` y `wat` no coinciden con el NCX aportado. | Mantenerlo como compatibilidad temporal; no tratarlo como enciclopedia progresiva verificada. |
+
+Esta inspección confirma que el progreso granular y el motor de afirmaciones siguen sin conectarse a las pantallas. No se cierra R0: la auditoría es dirigida y documentada, pero falta un barrido automatizado del árbol completo y CI en el SHA más reciente.

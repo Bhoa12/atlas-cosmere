@@ -6,7 +6,8 @@ const {
   setCurrentReadingUnit,
   markReadingUnitCompleted,
   sanitizeReadingProgress,
-  validateReadingProgress
+  validateReadingProgress,
+  isRequiredForNarrativeCompletion
 } = require('../../src/data/roshar/progress.ts');
 
 const unitWorkById = new Map([
@@ -63,4 +64,19 @@ test('validates work ownership and duplicate progress records', () => {
   assert.ok(issues.some(issue => issue.code === 'wrong-work'));
   assert.ok(issues.some(issue => issue.code === 'duplicate-unit'));
   assert.ok(issues.some(issue => issue.code === 'duplicate-work'));
+});
+
+
+test('supplementary matter is trackable but does not block narrative completion', () => {
+  const unit = kind => ({ id: 'unit', workId: 'twok', ordinal: 1, kind, label: kind });
+  for (const kind of ['ars-arcanum', 'afterword', 'acknowledgements', 'appendix']) {
+    assert.equal(isRequiredForNarrativeCompletion(unit(kind)), false, kind);
+  }
+});
+
+test('narrative units and unclassified entries remain required for completion', () => {
+  const unit = kind => ({ id: 'unit', workId: 'twok', ordinal: 1, kind, label: kind });
+  for (const kind of ['prelude', 'prologue', 'chapter', 'interlude', 'epilogue', 'postlude', 'other']) {
+    assert.equal(isRequiredForNarrativeCompletion(unit(kind)), true, kind);
+  }
 });

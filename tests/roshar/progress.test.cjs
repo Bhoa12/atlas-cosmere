@@ -9,7 +9,8 @@ const {
   validateReadingProgress,
   isRequiredForNarrativeCompletion,
   isNarrativeWorkComplete,
-  summarizeReadingWork
+  summarizeReadingWork,
+  getNextRequiredReadingUnitId
 } = require('../../src/data/roshar/progress.ts');
 
 const unitWorkById = new Map([
@@ -124,4 +125,25 @@ test('summarizeReadingWork counts only explicit required-unit completion', () =>
   assert.equal(summary.percent, 50);
   assert.equal(summary.nextUnitId, 'w:2');
   assert.equal(summary.narrativeComplete, false);
+});
+
+
+test('reading guidance skips unread supplementary matter when choosing the next required unit', () => {
+  const units = [
+    { id: 'w:1', workId: 'w', ordinal: 1, kind: 'chapter', label: 'Uno' },
+    { id: 'w:ars', workId: 'w', ordinal: 2, kind: 'ars-arcanum', label: 'Ars' },
+    { id: 'w:2', workId: 'w', ordinal: 3, kind: 'chapter', label: 'Dos' }
+  ];
+  const progress = [{ workId: 'w', completedUnitIds: ['w:1'], updatedAt: 't' }];
+  assert.equal(getNextRequiredReadingUnitId('w', units, progress), 'w:2');
+  assert.equal(summarizeReadingWork('w', units, progress).nextUnitId, 'w:2');
+});
+
+test('reading guidance is undefined after every required unit is complete', () => {
+  const units = [
+    { id: 'w:1', workId: 'w', ordinal: 1, kind: 'chapter', label: 'Uno' },
+    { id: 'w:ars', workId: 'w', ordinal: 2, kind: 'ars-arcanum', label: 'Ars' }
+  ];
+  const progress = [{ workId: 'w', completedUnitIds: ['w:1'], updatedAt: 't' }];
+  assert.equal(getNextRequiredReadingUnitId('w', units, progress), undefined);
 });

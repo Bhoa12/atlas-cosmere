@@ -10,7 +10,7 @@ interface Mensaje {
 }
 
 export const HoidScreen: React.FC = () => {
-  const { librosLeidos } = useCosmere();
+  const { librosLeidos, capituloActualPorLibro } = useCosmere();
   const [cargando, setCargando] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
@@ -32,7 +32,7 @@ export const HoidScreen: React.FC = () => {
     setCargando(true);
 
     const service = new HoidService();
-    const reading = Object.keys(librosLeidos).filter(bookId => librosLeidos[bookId]).map((bookId, index) => ({ bookId, order: index }));
+    const reading = Object.keys(capituloActualPorLibro).map(bookId => ({\n      bookId,\n      chapter: capituloActualPorLibro[bookId],\n      completed: !!librosLeidos[bookId],\n    }));
     const result = await service.answer({ question: textoUsuario, reading });
     setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: result.texto }]);
     setCargando(false);

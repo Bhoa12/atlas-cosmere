@@ -17,7 +17,8 @@ test('reports duplicate IDs, unknown works, invalid ordinals and chapter numbers
     ['twok'],
     [
       unit('same-id', 0, { chapterNumber: 0 }),
-      unit('same-id', 0, { chapterNumber: 0, workId: 'unknown' })
+      unit('different-id', 0, { chapterNumber: 0 }),
+      unit('unknown-work', 2, { workId: 'unknown' })
     ]
   );
   const codes = issues.map(issue => issue.code);

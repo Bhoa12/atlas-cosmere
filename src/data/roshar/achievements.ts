@@ -1,4 +1,4 @@
-import { RosharReadingAchievement } from '../../gamification';
+import { RosharReadingAchievement } from '../gamification';
 import { ReadingProgress, ReadingUnit } from './model';
 import { getCompletedReadingUnitCount, isNarrativeWorkComplete } from './progress';
 

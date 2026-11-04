@@ -177,8 +177,27 @@ export function validateReadingUnits(
   const seenOrdinals = new Set<string>();
   const knownSectionIds = new Set(sections.map(section => section.id));
   const knownEditionVariants = new Map(editionVariants.map(variant => [variant.id, variant]));
+  const seenSectionIds = new Set<string>();
+  const seenSectionOrdinals = new Set<string>();
 
   for (const section of sections) {
+    if (seenSectionIds.has(section.id)) {
+      issues.push({
+        code: 'duplicate-id',
+        itemId: section.id,
+        message: `Reading section ID is duplicated: ${section.id}`
+      });
+    }
+    seenSectionIds.add(section.id);
+    const sectionOrdinalKey = `${section.workId}:${section.kind}:${section.ordinal}`;
+    if (seenSectionOrdinals.has(sectionOrdinalKey)) {
+      issues.push({
+        code: 'duplicate-ordinal',
+        itemId: section.id,
+        message: `Work ${section.workId} has duplicate ${section.kind} section ordinal ${section.ordinal}`
+      });
+    }
+    seenSectionOrdinals.add(sectionOrdinalKey);
     if (!knownWorks.has(section.workId) || !Number.isInteger(section.ordinal) || section.ordinal < 1) {
       issues.push({
         code: 'invalid-section',
@@ -192,6 +211,15 @@ export function validateReadingUnits(
         itemId: section.id,
         message: `Section ${section.id} references an unknown parent section`
       });
+    } else if (section.parentSectionId) {
+      const parent = sections.find(candidate => candidate.id === section.parentSectionId);
+      if (!parent || parent.workId !== section.workId) {
+        issues.push({
+          code: 'invalid-section',
+          itemId: section.id,
+          message: `Section ${section.id} has a parent from another work`
+        });
+      }
     }
   }
 

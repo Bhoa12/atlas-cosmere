@@ -2,6 +2,7 @@ require('./register-typescript.cjs');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const selectors = require('../../src/data/roshar/encyclopedia/selectors.ts');
+const { validateEncyclopediaContent } = selectors;
 
 test('projection omits entities without visible claims', () => {
   const entities = [

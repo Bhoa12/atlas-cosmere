@@ -89,6 +89,7 @@ export function validateRosharReadingCatalog(): string[] {
   const knownEditions = new Map(ROSHAR_EDITION_VARIANTS.map(edition => [edition.id, edition]));
   const seenUnitIds = new Set<string>();
   const seenSectionIds = new Set<string>();
+  const seenLocatorsByEdition = new Set<string>();
 
   for (const section of ROSHAR_READING_SECTIONS) {
     if (!knownWorks.has(section.workId)) issues.push(`Unknown work in section ${section.id}`);
@@ -103,9 +104,23 @@ export function validateRosharReadingCatalog(): string[] {
     if (!unit.source || !unit.source.locator) issues.push(`Missing NCX locator for ${unit.id}`);
     const edition = unit.source && knownEditions.get(unit.source.editionVariantId);
     if (!edition || edition.workId !== unit.workId) issues.push(`Wrong edition variant for ${unit.id}`);
-    if (unit.sectionId && !seenSectionIds.has(unit.sectionId) &&
-        !ROSHAR_READING_SECTIONS.some(section => section.id === unit.sectionId)) {
-      issues.push(`Unknown section ${unit.sectionId} for ${unit.id}`);
+    if (unit.sectionId) {
+      const section = ROSHAR_READING_SECTIONS.find(candidate => candidate.id === unit.sectionId);
+      if (!section) {
+        issues.push(`Unknown section ${unit.sectionId} for ${unit.id}`);
+      } else if (section.workId !== unit.workId) {
+        issues.push(`Cross-work section ${unit.sectionId} for ${unit.id}`);
+      }
+    }
+    if (unit.source?.locator) {
+      if (unit.source.locator.trim() !== unit.source.locator) {
+        issues.push(`Unnormalized NCX locator for ${unit.id}`);
+      }
+      const locatorKey = `${unit.source.editionVariantId}::${unit.source.locator}`;
+      if (seenLocatorsByEdition.has(locatorKey)) {
+        issues.push(`Duplicate NCX locator ${unit.source.locator} in ${unit.source.editionVariantId}`);
+      }
+      seenLocatorsByEdition.add(locatorKey);
     }
   }
 

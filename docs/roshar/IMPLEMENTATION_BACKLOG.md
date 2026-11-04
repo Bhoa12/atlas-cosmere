@@ -514,3 +514,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Revisar el catálogo de recompensas visuales y eliminar textos globales que puedan filtrar spoilers.
 
 **Resultado:** la evaluación de logros ya puede integrarse con persistencia sin perder recompensas legítimas durante relecturas o correcciones de progreso.
+
+
+### Iteración 21 — almacenamiento versionado de logros (2026-11-04)
+
+- [x] Añadido adaptador de persistencia específico para el estado de logros de Roshar, separado del progreso de lectura.
+- [x] La clave está versionada y no consume ni sobrescribe claves de progreso existentes.
+- [x] Lecturas corruptas, versiones incompatibles y almacenamiento no disponible devuelven un estado seguro y un diagnóstico explícito.
+- [x] Las escrituras saneadas no mutan el estado en memoria del llamador cuando fallan.
+- [x] Añadidas pruebas de round-trip, JSON corrupto, versión incompatible y fallos del almacenamiento.
+- [ ] Conectar el adaptador a la capa de estado de la aplicación y definir una migración explícita para cualquier estado legado de logros.
+- [ ] Ejecutar CI completo sobre el commit final de la iteración y corregir cualquier regresión.
+
+**Resultado:** progreso de lectura y recompensas ya disponen de fronteras de persistencia independientes y versionadas; la integración con el estado de React sigue siendo el siguiente paso para evitar cambios de UI sin una migración controlada.

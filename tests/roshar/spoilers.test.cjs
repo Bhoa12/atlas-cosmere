@@ -114,3 +114,10 @@ test('malformed persisted progress fails closed instead of throwing or unlocking
   ];
   assert.deepEqual(selectVisibleClaims(claims, malformed, unitWorkById), []);
 });
+
+
+test('search fails closed for malformed claim text', () => {
+  const claims = [{ id: 'bad', entityId: 'x', text: null, editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, 'anything'), []);
+});

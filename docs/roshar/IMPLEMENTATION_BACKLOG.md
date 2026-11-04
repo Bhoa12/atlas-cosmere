@@ -365,3 +365,15 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Ejecutar CI completo sobre el commit resultante.
 
 **Resultado:** existe una regla técnica explícita y testeable. No cambia aún la UI ni la persistencia; el progreso v1 continúa intacto.
+
+
+### Iteración 12 — proyecciones seguras de enciclopedia y búsqueda (2026-11-04)
+
+- [x] Añadido `selectVisibleClaimsForEntity`: solo devuelve afirmaciones publicadas, con fuente y gate satisfecho para la entidad solicitada.
+- [x] Añadido `selectVisibleClaimsForSearch`: filtra primero por progreso y estado editorial, y solo después busca en el texto visible.
+- [x] Añadidas pruebas que verifican que una afirmación bloqueada no aparece en la ficha parcial ni produce resultados de búsqueda.
+- [x] Documentada la restricción de que nombres/alias de entidad no deben indexarse sin su propio gate editorial.
+- [ ] Conectar estas proyecciones a las pantallas, mapas, relaciones y autocompletado cuando existan datos atómicos revisados; no se deben indexar los datos legacy directamente.
+- [ ] Ejecutar CI completo sobre el SHA final.
+
+**Resultado:** las proyecciones puras para claims por entidad y búsqueda están disponibles y probadas por contrato; todavía no hay contenido de enciclopedia publicado ni consumidores UI conectados.

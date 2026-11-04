@@ -20,3 +20,15 @@ Los gates actuales son una base técnica, no un índice canónico completo. La s
 ## Contrato de integración
 
 Los proveedores futuros implementarán `HoidProvider`. La aplicación no debe depender de SDKs concretos ni exponer secretos de servidor en el cliente.
+
+## Catálogo de continuidad
+
+La base incluye ahora el contrato `src/data/hoidContinuityCatalog.ts` para registrar entidades sin copiar texto de las obras. Cada entrada define:
+
+- identificador y alias;
+- tipo de continuidad;
+- primera posición segura por `bookId` y capítulo.
+
+Las funciones del catálogo permiten comprobar si una entrada está desbloqueada y detectar coincidencias todavía bloqueadas. La comparación exige coincidencia del libro correcto: haber avanzado mucho en otra obra no desbloquea contenido futuro de un libro distinto.
+
+El catálogo empieza deliberadamente vacío de afirmaciones editoriales. Debe poblarse a partir de fuentes verificadas y revisión humana, y las respuestas de proveedores externos siguen pasando por la guardia final.

@@ -54,6 +54,8 @@ export interface RosharReadingAchievement {
   requiresNarrativeCompletion?: boolean;
   title: string;
   description: string;
+  hiddenUntilUnlocked?: boolean;
+  spoilerGate?: { allOf: { workId: string; readingUnitId: string }[]; anyOf?: { workId: string; readingUnitId: string }[] };
   reward: { type: 'nickname' | 'profile-frame' | 'profile-background'; id: string; label: string };
 }
 
@@ -68,6 +70,15 @@ export const ROSHAR_READING_ACHIEVEMENTS: RosharReadingAchievement[] = [
     title: 'Primer paso en Roshar',
     description: 'Completa tu primera unidad de lectura de Roshar.',
     reward: { type: 'nickname', id: 'roshar-explorer', label: 'Explorador de Roshar' }
+  },
+  {
+    id: 'roshar-later-milestone',
+    requiredCompletedUnits: 10,
+    title: 'Secreto de Roshar',
+    description: 'Has alcanzado un hito que no debe adelantarse al lector.',
+    hiddenUntilUnlocked: true,
+    spoilerGate: { allOf: [{ workId: 'twok', readingUnitId: 'twok:chapter:010' }] },
+    reward: { type: 'nickname', id: 'roshar-milestone', label: 'Viajero de Roshar' }
   },
   {
     id: 'twok-narrative-complete',

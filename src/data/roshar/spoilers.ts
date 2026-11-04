@@ -150,5 +150,5 @@ export function selectVisibleClaimsForSearch(
   const normalizedQuery = query.trim().toLocaleLowerCase();
   if (!normalizedQuery) return [];
   return selectVisibleClaims(claims, progress, unitWorkById)
-    .filter(claim => claim.text.toLocaleLowerCase().includes(normalizedQuery));
+    .filter(claim => typeof claim.text === 'string' && claim.text.toLocaleLowerCase().includes(normalizedQuery));
 }

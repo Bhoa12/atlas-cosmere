@@ -467,3 +467,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Recuperar el texto fuente para iniciar el primer lote editorial real de afirmaciones verificadas.
 
 **Resultado:** la capa de dominio ya puede mostrar una posición de lectura honesta incluso cuando el usuario lee de forma no lineal, sin conceder progreso ni desbloqueos por inferencia.
+
+
+### Iteración 20 — evaluación determinista de logros de lectura (2026-11-04)
+
+- [x] Añadido un evaluador puro de logros de lectura basado exclusivamente en unidades completadas explícitamente.
+- [x] La finalización narrativa respeta la política editorial: el material suplementario no bloquea un logro de historia completada.
+- [x] La proyección de recompensas deduplica IDs y es idempotente; reevaluar el progreso no puede crear recompensas duplicadas.
+- [x] Añadidas pruebas para progreso con huecos, finalización narrativa y deduplicación.
+- [ ] Separar el estado persistente de logros desbloqueados del catálogo global de definiciones.
+- [ ] Añadir spoiler gates a logros ocultos antes de exponer títulos o descripciones que puedan revelar contenido.
+- [ ] Integrar la proyección con el contexto/UI y la persistencia versionada.
+
+**Resultado:** Roshar ya dispone de una base reproducible para calcular logros de lectura sin confiar en contadores heredados ni conceder recompensas por repetición.

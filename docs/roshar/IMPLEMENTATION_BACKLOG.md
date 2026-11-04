@@ -542,3 +542,16 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Confirmar CI completo sobre el SHA final de esta iteración.
 
 **Resultado:** la persistencia de recompensas ya está conectada al flujo real de la aplicación sin migrar ni reinterpretar el estado legado. La siguiente capa debe ser de UI y pruebas de integración, no una nueva lógica de desbloqueo.
+
+
+### Iteración 23 — pantalla segura de logros de Roshar (2026-11-04)
+
+- [x] Añadida una pantalla React específica para presentar los logros de lectura de Roshar.
+- [x] La pantalla consume exclusivamente la proyección filtrada por spoiler gates del contexto; no accede a definiciones globales de logros.
+- [x] Los logros ocultos conservan título y descripción anonimizados en la UI.
+- [x] Las recompensas solo aparecen cuando el logro ya está desbloqueado.
+- [x] Integrada la pantalla en la navegación principal de Atlas.
+- [ ] Añadir pruebas de integración de hidratación y presentación con AsyncStorage simulado.
+- [ ] Confirmar CI completo sobre el SHA final y corregir cualquier regresión.
+
+**Resultado:** los logros de Roshar ya disponen de una superficie visible en la aplicación sin abrir una nueva vía de filtración de spoilers.

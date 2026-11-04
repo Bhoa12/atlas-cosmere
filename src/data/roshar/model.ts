@@ -6,12 +6,46 @@
  */
 
 export type ReadingUnitKind =
+  | 'prelude'
   | 'prologue'
   | 'chapter'
   | 'interlude'
   | 'epilogue'
+  | 'postlude'
+  | 'ars-arcanum'
+  | 'afterword'
+  | 'acknowledgements'
   | 'appendix'
   | 'other';
+
+export type ReadingSectionKind = 'part' | 'day' | 'interludes-block';
+
+export interface ReadingSection {
+  /** Stable semantic ID; section containers are not progress units. */
+  id: string;
+  workId: string;
+  kind: ReadingSectionKind;
+  label: string;
+  ordinal: number;
+  parentSectionId?: string;
+}
+
+export interface ReadingUnitSource {
+  editionVariantId: string;
+  /** Exact href/path from the source edition's navigation document. */
+  locator: string;
+}
+
+export interface ReadingEditionVariant {
+  id: string;
+  workId: string;
+  format: 'epub';
+  provenance: 'user-supplied-file';
+  sourceFile: string;
+  navigationDocument: 'NCX';
+  /** No ISBN is implied for these digital files. */
+  isbn: null;
+}
 
 export type EncyclopediaEntityType =
   | 'character'
@@ -52,8 +86,10 @@ export interface ReadingUnit {
   kind: ReadingUnitKind;
   label: string;
   chapterNumber?: number;
+  /** Structural container such as a part/day; never counts as completed. */
+  sectionId?: string;
   /** Edition-specific structure must never be silently merged. */
-  editionVariant?: string;
+  source?: ReadingUnitSource;
 }
 
 export interface ReadingRequirement {
@@ -118,6 +154,8 @@ export interface CatalogValidationIssue {
     | 'invalid-ordinal'
     | 'duplicate-ordinal'
     | 'invalid-chapter-number'
+    | 'invalid-section'
+    | 'invalid-source'
     | 'invalid-spoiler-gate';
   message: string;
   itemId: string;
@@ -129,12 +167,33 @@ export interface CatalogValidationIssue {
  */
 export function validateReadingUnits(
   workIds: string[],
-  units: ReadingUnit[]
+  units: ReadingUnit[],
+  sections: ReadingSection[] = [],
+  editionVariants: ReadingEditionVariant[] = []
 ): CatalogValidationIssue[] {
   const issues: CatalogValidationIssue[] = [];
   const knownWorks = new Set(workIds);
   const seenIds = new Set<string>();
   const seenOrdinals = new Set<string>();
+  const knownSectionIds = new Set(sections.map(section => section.id));
+  const knownEditionVariants = new Map(editionVariants.map(variant => [variant.id, variant]));
+
+  for (const section of sections) {
+    if (!knownWorks.has(section.workId) || !Number.isInteger(section.ordinal) || section.ordinal < 1) {
+      issues.push({
+        code: 'invalid-section',
+        itemId: section.id,
+        message: `Section ${section.id} has an unknown work or invalid ordinal`
+      });
+    }
+    if (section.parentSectionId && !knownSectionIds.has(section.parentSectionId)) {
+      issues.push({
+        code: 'invalid-section',
+        itemId: section.id,
+        message: `Section ${section.id} references an unknown parent section`
+      });
+    }
+  }
 
   for (const unit of units) {
     if (seenIds.has(unit.id)) {
@@ -171,6 +230,25 @@ export function validateReadingUnits(
       });
     }
     seenOrdinals.add(ordinalKey);
+
+    if (unit.sectionId && !knownSectionIds.has(unit.sectionId)) {
+      issues.push({
+        code: 'invalid-section',
+        itemId: unit.id,
+        message: `Reading unit ${unit.id} references an unknown section`
+      });
+    }
+
+    if (unit.source) {
+      const edition = knownEditionVariants.get(unit.source.editionVariantId);
+      if (!edition || edition.workId !== unit.workId || !unit.source.locator) {
+        issues.push({
+          code: 'invalid-source',
+          itemId: unit.id,
+          message: `Reading unit ${unit.id} has an invalid edition-specific source locator`
+        });
+      }
+    }
 
     if (
       unit.kind === 'chapter' &&

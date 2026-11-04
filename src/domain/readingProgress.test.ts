@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getProgressFraction, isUnitCompleted, ReadingUnit } from './readingProgress';
+import { getCompletedCount, getProgressFraction, isUnitCompleted, ReadingUnit } from './readingProgress';
 import { evaluateSpoilerAccess } from './spoilerAccess';
 
 const units: ReadingUnit[] = [
@@ -12,8 +12,17 @@ describe('reading progress domain', () => {
     expect(getProgressFraction(units, { workId: 'work-a', completedUnitIds: ['unit-1', 'unknown'] })).toBe(0.5);
   });
 
+  it('deduplicates repeated completed identifiers', () => {
+    expect(getProgressFraction(units, { workId: 'work-a', completedUnitIds: ['unit-1', 'unit-1'] })).toBe(0.5);
+  });
+
   it('handles empty unit collections safely', () => {
     expect(getProgressFraction([], { workId: 'work-a', completedUnitIds: ['unit-1'] })).toBe(0);
+  });
+
+  it('handles missing progress safely', () => {
+    expect(getProgressFraction(units, undefined)).toBe(0);
+    expect(getCompletedCount(undefined)).toBe(0);
   });
 
   it('checks explicit unit completion', () => {
@@ -30,6 +39,10 @@ describe('spoiler access', () => {
         'work-b': { workId: 'work-b', completedUnitIds: [] },
       },
     )).toBe('blocked');
+  });
+
+  it('blocks requirements when no progress exists for the required work', () => {
+    expect(evaluateSpoilerAccess([{ workId: 'work-a', completedUnitId: 'unit-1' }], {})).toBe('blocked');
   });
 
   it('does not infer requirements from absent metadata', () => {

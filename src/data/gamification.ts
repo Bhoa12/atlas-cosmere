@@ -46,3 +46,35 @@ export const LOGROS_DISPONIBLES: Logro[] = [
   { id: '15', titulo: 'Ley y Plomo', descripcion: 'Completar toda la Era 2 de Scadrial', recompensaApodo: 'Justiciero de los Áridos', saga: 'Nacidos de la Bruma' },
   { id: '16', titulo: 'Sombra Inmortal', descripcion: 'Superar todos los tests de nivel avanzado', recompensaApodo: 'Sombra de Carbón', saga: 'Gamificación' }
 ];
+
+export interface RosharReadingAchievement {
+  id: string;
+  workId?: string;
+  requiredCompletedUnits?: number;
+  requiresNarrativeCompletion?: boolean;
+  title: string;
+  description: string;
+  reward: { type: 'nickname' | 'profile-frame' | 'profile-background'; id: string; label: string };
+}
+
+/**
+ * Reading achievements are deterministic projections of explicit granular progress.
+ * They never infer completion from legacy chapter counters or book toggles.
+ */
+export const ROSHAR_READING_ACHIEVEMENTS: RosharReadingAchievement[] = [
+  {
+    id: 'roshar-first-steps',
+    requiredCompletedUnits: 1,
+    title: 'Primer paso en Roshar',
+    description: 'Completa tu primera unidad de lectura de Roshar.',
+    reward: { type: 'nickname', id: 'roshar-explorer', label: 'Explorador de Roshar' }
+  },
+  {
+    id: 'twok-narrative-complete',
+    workId: 'twok',
+    requiresNarrativeCompletion: true,
+    title: 'Camino recorrido',
+    description: 'Completa la historia narrativa de El Camino de los Reyes.',
+    reward: { type: 'profile-frame', id: 'bridge-four', label: 'Marco Puente Cuatro' }
+  }
+];

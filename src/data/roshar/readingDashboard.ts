@@ -1,5 +1,5 @@
 import { ReadingProgress, ReadingUnit } from './model';
-import { isRequiredForNarrativeCompletion, summarizeReadingWork } from './progress';
+import { getUnambiguousReadingProgress, isRequiredForNarrativeCompletion, summarizeReadingWork } from './progress';
 
 export interface RosharReadingStreak {
   completedConsecutiveUnits: number;
@@ -20,12 +20,13 @@ export function summarizeNarrativeReadingStreak(
   const required = units
     .filter(unit => unit.workId === workId && isRequiredForNarrativeCompletion(unit))
     .sort((a, b) => a.ordinal - b.ordinal);
-  const completed = new Set(progress.find(item => item.workId === workId)?.completedUnitIds ?? []);
+  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  const completed = new Set(workProgress?.completedUnitIds ?? []);
   const firstGap = required.find(unit => !completed.has(unit.id));
   const completedConsecutiveUnits = firstGap
     ? required.findIndex(unit => unit.id === firstGap.id)
     : required.length;
-  const currentUnitId = progress.find(item => item.workId === workId)?.currentUnitId;
+  const currentUnitId = workProgress?.currentUnitId;
   return {
     completedConsecutiveUnits,
     ...(firstGap ? { firstGapUnitId: firstGap.id } : {}),

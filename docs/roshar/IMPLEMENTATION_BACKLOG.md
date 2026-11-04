@@ -613,3 +613,14 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Empezar el primer lote editorial real únicamente con pasajes accesibles y revisados, sin derivar hechos de la tabla de contenidos.
 
 **Resultado:** los tres invariantes de procedencia añadidos en la Iteración 27 quedan ahora cubiertos por pruebas directas. La validación puede ejercitar catálogos sintéticos sin mutar el dataset real, reduciendo el riesgo de que futuros cambios vuelvan a aceptar errores de mezcla de obras o de localizadores.
+
+
+### Iteración 29 — orientación de lectura coherente con la finalización narrativa (2026-11-04)
+
+- [x] Añadido un selector explícito para obtener la siguiente unidad narrativa pendiente en orden de catálogo.
+- [x] Alineado el campo `nextUnitId` del resumen de seguimiento con la misma política usada para calcular la finalización narrativa.
+- [x] El material suplementario sigue siendo registrable, pero ya no desvía la recomendación de “siguiente paso” cuando queda una unidad narrativa pendiente.
+- [x] Añadidas regresiones para comprobar que la orientación salta suplementos no requeridos y queda vacía cuando todas las unidades narrativas están completadas.
+- [ ] Confirmar CI completo sobre el SHA final de esta iteración.
+
+**Resultado:** el seguimiento granular deja de mezclar dos semánticas distintas: una obra puede conservar suplementos sin leer y, aun así, mostrar correctamente que no queda ninguna unidad narrativa requerida.

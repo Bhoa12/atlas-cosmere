@@ -25,3 +25,18 @@ test('validation reports unknown references', () => {
   );
   assert.ok(issues.length >= 3);
 });
+
+
+test('published claims require review and exact novel source locator', () => {
+  const issues = validateEncyclopediaContent(
+    [{ id: 'e', planetId: 'roshar', type: 'concept', canonicalName: 'E', aliases: [] }],
+    [{
+      id: 'c', entityId: 'e', sectionKey: 'summary', text: 'Reviewed text',
+      claimType: 'fact', editorialStatus: 'published', confidence: 'confirmed',
+      sourceRefs: ['s'], spoilerGate: { allOf: [{ workId: 'twok', readingUnitId: 'twok:chapter:001' }] }
+    }],
+    [{ id: 's', sourceType: 'novel', workId: 'twok' }]
+  );
+  assert.ok(issues.some(issue => issue.includes('has not been reviewed')));
+  assert.ok(issues.some(issue => issue.includes('exact source locator')));
+});

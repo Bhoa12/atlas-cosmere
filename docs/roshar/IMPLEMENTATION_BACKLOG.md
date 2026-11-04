@@ -480,3 +480,13 @@ La primera ejecución de `npm test` detectó correctamente un fixture defectuoso
 - [ ] Integrar la proyección con el contexto/UI y la persistencia versionada.
 
 **Resultado:** Roshar ya dispone de una base reproducible para calcular logros de lectura sin confiar en contadores heredados ni conceder recompensas por repetición.
+
+
+### Iteración 20 — reparación de CI y verificación de contratos (2026-11-04)
+
+- [x] Revisado el fallo de CI del commit de logros: los 48 contratos de Roshar pasaban, pero TypeScript fallaba por una ruta de importación incorrecta.
+- [x] Corregida la importación de gamificación en la capa de logros de Roshar.
+- [x] Conservado el cálculo de logros basado exclusivamente en progreso granular explícito.
+- [ ] Confirmar la ejecución completa de CI sobre el commit de corrección.
+
+**Resultado:** el fallo detectado era de compilación, no de comportamiento del dominio; la siguiente ejecución valida el arreglo sobre la rama de trabajo.

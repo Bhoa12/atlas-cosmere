@@ -1,0 +1,3 @@
+import { ReadingProgress } from './progress'; import { WorkId } from './catalog';
+export interface SpoilerBoundary { workId: WorkId; requiredCompletedUnitOrder: number; }
+export function isVisible(boundaries: SpoilerBoundary[], progress: Map<WorkId, ReadingProgress>): boolean { return boundaries.every(boundary=>{ const reader=progress.get(boundary.workId); return !!reader && reader.completedUnitOrder>=boundary.requiredCompletedUnitOrder; }); }

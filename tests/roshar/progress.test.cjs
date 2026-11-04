@@ -8,7 +8,8 @@ const {
   sanitizeReadingProgress,
   validateReadingProgress,
   isRequiredForNarrativeCompletion,
-  isNarrativeWorkComplete
+  isNarrativeWorkComplete,
+  summarizeReadingWork
 } = require('../../src/data/roshar/progress.ts');
 
 const unitWorkById = new Map([
@@ -114,7 +115,7 @@ test('summarizeReadingWork counts only explicit required-unit completion', () =>
     { id: 'w:2', workId: 'w', ordinal: 2, kind: 'ars-arcanum', label: 'Ars' },
     { id: 'w:3', workId: 'w', ordinal: 3, kind: 'chapter', label: 'Dos', chapterNumber: 2 }
   ];
-  const summary = progress.summarizeReadingWork('w', units, [{
+  const summary = summarizeReadingWork('w', units, [{
     workId: 'w', completedUnitIds: ['w:1'], updatedAt: 't'
   }]);
   assert.equal(summary.completedUnits, 1);

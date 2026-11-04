@@ -10,7 +10,7 @@ export const RosharAchievementsScreen: React.FC = () => {
     <Text style={styles.kicker}>ROSHAR · PROGRESO PERSONAL</Text>
     <Text style={styles.title}>Logros de lectura</Text>
     <Text style={styles.summary}>{unlockedCount}/{rosharAchievements.length} logros desbloqueados · {rewardCount} recompensas obtenidas</Text>
-    {rosharAchievements.map(item => <View key={item.id} style={[styles.card, item.unlocked && styles.cardUnlocked, item.hidden && styles.cardHidden]} accessibilityRole="summary" accessibilityLabel={item.hidden ? 'Logro oculto' : item.title}>
+    {rosharAchievements.map(item => <View key={item.id} style={[styles.card, item.unlocked && styles.cardUnlocked, item.hidden && styles.cardHidden]} accessibilityLabel={item.hidden ? 'Logro oculto' : item.title}>
       <Text style={styles.status}>{item.unlocked ? '✓ DESBLOQUEADO' : item.hidden ? '◌ OCULTO' : '○ PENDIENTE'}</Text>
       <Text style={styles.cardTitle}>{item.title}</Text><Text style={styles.description}>{item.description}</Text>
       {item.reward && <View style={styles.reward}><Text style={styles.rewardLabel}>RECOMPENSA</Text><Text style={styles.rewardText}>{item.reward.id}</Text></View>}

@@ -91,6 +91,8 @@ export function selectVisibleClaims(
 
   return claims.filter(claim =>
     !!claim &&
+    typeof claim.id === 'string' &&
+    typeof claim.entityId === 'string' &&
     claim.editorialStatus === 'published' &&
     Array.isArray(claim.sourceRefs) &&
     claim.sourceRefs.length > 0 &&
@@ -109,7 +111,9 @@ export function isEntityFullyRevealed(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): boolean {
+  if (typeof entityId !== 'string' || !entityId) return false;
   const entityClaims = claims.filter(claim =>
+    !!claim && typeof claim.entityId === 'string' &&
     claim.entityId === entityId && claim.editorialStatus === 'published'
   );
   if (entityClaims.length === 0) return false;
@@ -131,7 +135,7 @@ export function selectVisibleClaimsForEntity(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
-  if (!entityId) return [];
+  if (typeof entityId !== 'string' || !entityId) return [];
   return selectVisibleClaims(claims, progress, unitWorkById)
     .filter(claim => claim.entityId === entityId);
 }

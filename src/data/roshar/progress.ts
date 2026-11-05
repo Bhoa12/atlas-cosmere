@@ -78,10 +78,10 @@ export function sanitizeReadingProgress(
     if (typeof item.workId !== 'string' || !knownWorks.has(item.workId)) continue;
     const completedUnitIds = Array.isArray(item.completedUnitIds)
       ? Array.from(new Set(item.completedUnitIds.filter((id): id is string =>
-          typeof id === 'string' && unitWorkById.get(id) === item.workId
+          typeof id === 'string' && id.trim().length > 0 && unitWorkById.get(id) === item.workId
         )))
       : [];
-    const currentUnitId = typeof item.currentUnitId === 'string' &&
+    const currentUnitId = typeof item.currentUnitId === 'string' && item.currentUnitId.trim().length > 0 &&
       unitWorkById.get(item.currentUnitId) === item.workId
       ? item.currentUnitId
       : undefined;

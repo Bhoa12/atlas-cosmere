@@ -41,3 +41,15 @@ test('an unknown current unit cannot be treated as a completed narrative positio
   assert.equal(streak.firstGapUnitId, 'w:1');
   assert.equal(streak.completedConsecutiveUnits, 1);
 });
+
+test('duplicate progress records fail closed across dashboard summaries', () => {
+  const progress = [
+    { workId: 'w', completedUnitIds: ['w:p', 'w:1', 'w:2'], updatedAt: 't1' },
+    { workId: 'w', completedUnitIds: ['w:p'], updatedAt: 't2' }
+  ];
+  const dashboard = buildRosharReadingDashboard('w', units, progress);
+  assert.equal(dashboard.percent, 0);
+  assert.equal(dashboard.narrativeComplete, false);
+  assert.equal(dashboard.nextNarrativeUnitId, 'w:p');
+  assert.equal(dashboard.completedConsecutiveUnits, 0);
+});

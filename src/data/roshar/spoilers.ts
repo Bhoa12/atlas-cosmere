@@ -88,10 +88,19 @@ export function selectVisibleClaims(
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
   const completedUnitIds = completedUnitsFromUnambiguousProgress(progress);
+  // Duplicate claim IDs are ambiguous persistence state. Do not expose either
+  // record: identity collisions must never let one claim satisfy another view.
+  const idCounts = new Map<string, number>();
+  for (const claim of claims) {
+    if (claim && typeof claim.id === 'string') {
+      idCounts.set(claim.id, (idCounts.get(claim.id) ?? 0) + 1);
+    }
+  }
 
   return claims.filter(claim =>
     !!claim &&
     typeof claim.id === 'string' &&
+    idCounts.get(claim.id) === 1 &&
     typeof claim.entityId === 'string' &&
     claim.editorialStatus === 'published' &&
     Array.isArray(claim.sourceRefs) &&

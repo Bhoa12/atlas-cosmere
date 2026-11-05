@@ -55,6 +55,10 @@ export class HoidPipeline {
 
     const context = retrieveAuthorized(knowledge, request.reading, request.question);
 
+    // A contextual provider must receive the same request semantics as a plain
+    // provider, but only after the catalog and reading-position boundaries have
+    // reduced the knowledge set to authorized entries.
+
     try {
       const provider = this.provider as Partial<ContextualHoidProvider>;
       const text = typeof provider.answerWithContext === "function"

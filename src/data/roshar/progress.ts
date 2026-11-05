@@ -155,9 +155,8 @@ export function isNarrativeWorkComplete(
     unit.workId === workId && isRequiredForNarrativeCompletion(unit)
   );
   if (requiredUnits.length === 0) return false;
-  const completedUnitIds = new Set(
-    progress.find(item => item.workId === workId)?.completedUnitIds ?? []
-  );
+  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  const completedUnitIds = new Set(workProgress?.completedUnitIds ?? []);
   return requiredUnits.every(unit => completedUnitIds.has(unit.id));
 }
 
@@ -182,9 +181,8 @@ export function getNextRequiredReadingUnitId(
   units: readonly ReadingUnit[],
   progress: readonly ReadingProgress[]
 ): string | undefined {
-  const completed = new Set(
-    progress.find(item => item.workId === workId)?.completedUnitIds ?? []
-  );
+  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  const completed = new Set(workProgress?.completedUnitIds ?? []);
   return units
     .filter(unit => unit.workId === workId && isRequiredForNarrativeCompletion(unit))
     .sort((a, b) => a.ordinal - b.ordinal)
@@ -214,9 +212,8 @@ export function summarizeReadingWork(
   const workUnits = units
     .filter(unit => unit.workId === workId)
     .sort((a, b) => a.ordinal - b.ordinal);
-  const completed = new Set(
-    progress.find(item => item.workId === workId)?.completedUnitIds ?? []
-  );
+  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  const completed = new Set(workProgress?.completedUnitIds ?? []);
   const required = workUnits.filter(isRequiredForNarrativeCompletion);
   const completedRequired = required.filter(unit => completed.has(unit.id)).length;
   return {

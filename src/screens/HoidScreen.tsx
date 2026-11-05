@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { HoidService } from '../hoid/HoidService';
+import { toHoidReadingPositions } from '../hoid/progressAdapter';
 
 interface Mensaje {
   id: string;
@@ -32,9 +33,12 @@ export const HoidScreen: React.FC = () => {
     setCargando(true);
 
     const service = new HoidService();
-    const reading = Object.keys(capituloActualPorLibro).map(bookId => ({\n      bookId,\n      chapter: capituloActualPorLibro[bookId],\n      completed: !!librosLeidos[bookId],\n    }));
+    const reading = toHoidReadingPositions({
+      chaptersByBook: capituloActualPorLibro,
+      completedByBook: librosLeidos,
+    });
     const result = await service.answer({ question: textoUsuario, reading });
-    setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: result.texto }]);
+    setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: result.text }]);
     setCargando(false);
   };
 

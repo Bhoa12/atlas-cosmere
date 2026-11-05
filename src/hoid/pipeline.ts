@@ -3,6 +3,7 @@ import { HoidKnowledgeCatalog, HoidKnowledgeEntry } from "./catalog";
 import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
 import { guardQuestion, redactProviderAnswer } from "./spoilerGuard";
+import { validProviderText } from "./providerOutput";
 
 /**
  * Optional provider capability. Providers that understand authorized context can
@@ -64,13 +65,21 @@ export class HoidPipeline {
       const text = typeof provider.answerWithContext === "function"
         ? await provider.answerWithContext(request, context)
         : await this.provider.answer(request);
-      const providerAnswer = redactProviderAnswer(text, request);
+      const safeText = validProviderText(text);
+      if (safeText === null) {
+        return {
+          blocked: false,
+          reason: "provider-unavailable",
+          text: "La fuente de conocimiento devolvió una respuesta inválida. Hoid no inventará una respuesta.",
+        };
+      }
+      const providerAnswer = redactProviderAnswer(safeText, request);
       if (providerAnswer.blocked) return providerAnswer;
 
       // Do not trust a provider merely because the input context was safe.
       // A provider can introduce a locked catalog alias on its own, so the
       // generated output crosses the same catalog authorization boundary.
-      const leaked = catalog.lockedMatches(text, request.reading);
+      const leaked = catalog.lockedMatches(safeText, request.reading);
       if (leaked.length > 0) {
         return {
           blocked: true,

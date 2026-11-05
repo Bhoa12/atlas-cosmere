@@ -10,7 +10,8 @@ const {
   isRequiredForNarrativeCompletion,
   isNarrativeWorkComplete,
   summarizeReadingWork,
-  getNextRequiredReadingUnitId
+  getNextRequiredReadingUnitId,
+  getCompletedReadingUnitCount
 } = require('../../src/data/roshar/progress.ts');
 
 const unitWorkById = new Map([
@@ -99,7 +100,6 @@ test('narrative completion requires every narrative unit but ignores supplementa
 
 
 test('completed unit count uses explicit granular progress only', () => {
-  const { getCompletedReadingUnitCount } = require('../../src/data/roshar/progress.ts');
   const progress = [
     { workId: 'twok', completedUnitIds: ['twok:chapter:001', 'twok:chapter:002'], updatedAt: 't0' },
     { workId: 'wor', completedUnitIds: ['wor:chapter:001'], updatedAt: 't0' }
@@ -146,4 +146,16 @@ test('reading guidance is undefined after every required unit is complete', () =
   ];
   const progress = [{ workId: 'w', completedUnitIds: ['w:1'], updatedAt: 't' }];
   assert.equal(getNextRequiredReadingUnitId('w', units, progress), undefined);
+});
+
+
+test('aggregate completed count ignores every ambiguous duplicate work', () => {
+  const progress = [
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001', 'twok:chapter:002'], updatedAt: 't0' },
+    { workId: 'twok', completedUnitIds: ['twok:chapter:003'], updatedAt: 't1' },
+    { workId: 'wor', completedUnitIds: ['wor:chapter:001'], updatedAt: 't0' }
+  ];
+  assert.equal(getCompletedReadingUnitCount(progress), 1);
+  assert.equal(getCompletedReadingUnitCount(progress, 'twok'), 0);
+  assert.equal(getCompletedReadingUnitCount(progress, 'wor'), 1);
 });

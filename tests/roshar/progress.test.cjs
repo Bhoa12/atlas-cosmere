@@ -159,3 +159,19 @@ test('aggregate completed count ignores every ambiguous duplicate work', () => {
   assert.equal(getCompletedReadingUnitCount(progress, 'twok'), 0);
   assert.equal(getCompletedReadingUnitCount(progress, 'wor'), 1);
 });
+
+
+test('mutating ambiguous duplicate progress is fail-closed and does not collapse records', () => {
+  const ambiguous = [
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001'], updatedAt: 't0' },
+    { workId: 'twok', completedUnitIds: ['twok:chapter:002'], updatedAt: 't1' }
+  ];
+  assert.equal(setCurrentReadingUnit(ambiguous, 'twok', 'twok:chapter:003', unitWorkById, 't2'), ambiguous);
+  assert.equal(markReadingUnitCompleted(ambiguous, 'twok', 'twok:chapter:003', unitWorkById, 't2'), ambiguous);
+});
+
+test('mutation rejects blank work and reading-unit identifiers', () => {
+  const initial = createEmptyReadingProgress(['twok'], 't0');
+  assert.equal(setCurrentReadingUnit(initial, ' ', 'twok:chapter:001', unitWorkById, 't1'), initial);
+  assert.equal(markReadingUnitCompleted(initial, 'twok', ' ', unitWorkById, 't1'), initial);
+});

@@ -4,6 +4,7 @@ import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
 import { guardQuestion, redactProviderAnswer } from "./spoilerGuard";
 import { validProviderText } from "./providerOutput";
+import { authorizeReading, catalogBookIds } from "./authorizationBoundary";
 
 /**
  * Optional provider capability. Providers that understand authorized context can
@@ -37,7 +38,9 @@ export class HoidPipeline {
 
     const knowledge = validatedKnowledge(this.knowledge);
     const catalog = new HoidKnowledgeCatalog(knowledge);
-    const locked = catalog.lockedMatches(request.question, request.reading);
+    const reading = authorizeReading(request.reading, catalogBookIds(knowledge));
+    const authorizedRequest = { ...request, reading };
+    const locked = catalog.lockedMatches(request.question, reading);
     if (locked.length > 0) {
       return {
         blocked: true,
@@ -54,7 +57,7 @@ export class HoidPipeline {
       };
     }
 
-    const context = retrieveAuthorized(knowledge, request.reading, request.question);
+    const context = retrieveAuthorized(knowledge, reading, request.question);
 
     // A contextual provider must receive the same request semantics as a plain
     // provider, but only after the catalog and reading-position boundaries have
@@ -63,8 +66,8 @@ export class HoidPipeline {
     try {
       const provider = this.provider as Partial<ContextualHoidProvider>;
       const text = typeof provider.answerWithContext === "function"
-        ? await provider.answerWithContext(request, context)
-        : await this.provider.answer(request);
+        ? await provider.answerWithContext(authorizedRequest, context)
+        : await this.provider.answer(authorizedRequest);
       const safeText = validProviderText(text);
       if (safeText === null) {
         return {
@@ -73,13 +76,13 @@ export class HoidPipeline {
           text: "La fuente de conocimiento devolvió una respuesta inválida. Hoid no inventará una respuesta.",
         };
       }
-      const providerAnswer = redactProviderAnswer(safeText, request);
+      const providerAnswer = redactProviderAnswer(safeText, authorizedRequest);
       if (providerAnswer.blocked) return providerAnswer;
 
       // Do not trust a provider merely because the input context was safe.
       // A provider can introduce a locked catalog alias on its own, so the
       // generated output crosses the same catalog authorization boundary.
-      const leaked = catalog.lockedMatches(safeText, request.reading);
+      const leaked = catalog.lockedMatches(safeText, reading);
       if (leaked.length > 0) {
         return {
           blocked: true,

@@ -11,6 +11,15 @@ export type HoidKnowledgeEntry = {
 };
 
 /**
+ * Normalize catalog matching text independently of locale so that the spoiler
+ * boundary does not depend on the device language. Diacritics are removed
+ * because providers may omit or alter them (for example, Spanish accents).
+ */
+function normalizeForCatalogMatch(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/**
  * Catalog metadata is intentionally separate from generated answers and source
  * text. Entries must only be added after editorial verification.
  */
@@ -18,9 +27,12 @@ export class HoidKnowledgeCatalog {
   constructor(private readonly entries: HoidKnowledgeEntry[] = []) {}
 
   findMatches(text: string): HoidKnowledgeEntry[] {
-    const normalized = text.toLocaleLowerCase();
+    const normalized = normalizeForCatalogMatch(text);
     return this.entries.filter(entry =>
-      entry.aliases.some(alias => normalized.includes(alias.toLocaleLowerCase()))
+      entry.aliases.some(alias => {
+        const normalizedAlias = normalizeForCatalogMatch(alias).trim();
+        return normalizedAlias.length > 0 && normalized.includes(normalizedAlias);
+      })
     );
   }
 

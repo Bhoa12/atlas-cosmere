@@ -167,7 +167,13 @@ export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[
     const item = getUnambiguousReadingProgress(progress, workId);
     return item ? item.completedUnitIds.length : 0;
   }
-  return progress.reduce((total, entry) => total + entry.completedUnitIds.length, 0);
+  const countsByWork = new Map<string, number>();
+  for (const entry of progress) {
+    countsByWork.set(entry.workId, (countsByWork.get(entry.workId) ?? 0) + 1);
+  }
+  return progress
+    .filter(entry => countsByWork.get(entry.workId) === 1)
+    .reduce((total, entry) => total + entry.completedUnitIds.length, 0);
 }
 
 

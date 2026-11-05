@@ -109,6 +109,7 @@ export function selectVisibleClaims(
     claim.editorialStatus === 'published' &&
     Array.isArray(claim.sourceRefs) &&
     claim.sourceRefs.length > 0 &&
+    claim.sourceRefs.every(sourceRef => typeof sourceRef === 'string' && sourceRef.trim().length > 0) &&
     isSpoilerGateSatisfied(claim.spoilerGate, completedUnitIds, unitWorkById)
   );
 }

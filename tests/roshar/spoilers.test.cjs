@@ -172,3 +172,16 @@ test('claims with malformed source references fail closed', () => {
   const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
   assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById).map(item => item.id), ['valid']);
 });
+
+
+test('blank reading unit identifiers fail closed and cannot satisfy gates', () => {
+  const completed = new Set(['   ', 'twok:prologue']);
+  assert.equal(isSpoilerGateSatisfied({ allOf: [req('twok', '   ')] }, completed, unitWorkById), false);
+  assert.equal(isSpoilerGateSatisfied({ allOf: [req('   ', 'twok:prologue')] }, completed, unitWorkById), false);
+});
+
+test('blank persisted unit IDs do not create completion state', () => {
+  const claims = [{ id: 'guarded', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
+  const progress = [{ workId: 'twok', completedUnitIds: ['   ', ''], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById), []);
+});

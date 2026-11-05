@@ -164,7 +164,7 @@ export function isNarrativeWorkComplete(
 /** Returns an explicit count of completed units; no legacy counters are used. */
 export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[], workId?: string): number {
   if (workId) {
-    const item = progress.find(entry => entry.workId === workId);
+    const item = getUnambiguousReadingProgress(progress, workId);
     return item ? item.completedUnitIds.length : 0;
   }
   return progress.reduce((total, entry) => total + entry.completedUnitIds.length, 0);

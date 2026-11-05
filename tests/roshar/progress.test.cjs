@@ -202,3 +202,15 @@ test('sanitization fails closed when persisted progress contains duplicate work 
   ], ['twok'], unitWorkById, 't0');
   assert.deepEqual(cleaned, createEmptyReadingProgress(['twok'], 't0'));
 });
+
+
+test('validation flags blank unit identifiers even if a malformed catalog map contains them', () => {
+  const issues = validateReadingProgress([{
+    workId: 'twok',
+    completedUnitIds: [' '],
+    currentUnitId: ' ',
+    updatedAt: 't0'
+  }], ['twok'], unitWorkById);
+  assert.ok(issues.some(issue => issue.code === 'invalid-unit-id'));
+  assert.ok(issues.some(issue => issue.code === 'invalid-current-unit'));
+});

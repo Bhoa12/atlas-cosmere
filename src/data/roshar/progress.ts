@@ -71,11 +71,17 @@ export function sanitizeReadingProgress(
   if (!Array.isArray(value)) return empty;
   const knownWorks = new Set(workIds);
   const byWork = new Map<string, ReadingProgress>();
+  const ambiguousWorks = new Set<string>();
 
   for (const candidate of value) {
     if (!candidate || typeof candidate !== 'object') continue;
     const item = candidate as Partial<ReadingProgress>;
     if (typeof item.workId !== 'string' || !knownWorks.has(item.workId)) continue;
+    if (byWork.has(item.workId) || ambiguousWorks.has(item.workId)) {
+      byWork.delete(item.workId);
+      ambiguousWorks.add(item.workId);
+      continue;
+    }
     const completedUnitIds = Array.isArray(item.completedUnitIds)
       ? Array.from(new Set(item.completedUnitIds.filter((id): id is string =>
           typeof id === 'string' && id.trim().length > 0 && unitWorkById.get(id) === item.workId
@@ -93,7 +99,7 @@ export function sanitizeReadingProgress(
     });
   }
 
-  return empty.map(item => byWork.get(item.workId) ?? item);
+  return empty.map(item => ambiguousWorks.has(item.workId) ? item : (byWork.get(item.workId) ?? item));
 }
 
 /** Checks the explicit completion/current-unit contract without repairing data. */

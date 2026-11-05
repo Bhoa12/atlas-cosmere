@@ -1,6 +1,19 @@
 import { ReadingProgress, ReadingUnit } from './model';
 
-/**\n * Returns the only progress record for a work. Duplicate records are treated as\n * ambiguous and therefore yield no usable progress, preventing stale or malformed\n * persistence from granting spoiler access or completion.\n */\nexport function getUnambiguousReadingProgress(\n  progress: readonly ReadingProgress[],\n  workId: string\n): ReadingProgress | undefined {\n  const matches = progress.filter(item => item.workId === workId);\n  return matches.length === 1 ? matches[0] : undefined;\n}\n\nexport interface ReadingProgressIssue {
+/**
+ * Returns the only progress record for a work. Duplicate records are treated as
+ * ambiguous and therefore yield no usable progress, preventing stale or malformed
+ * persistence from granting spoiler access or completion.
+ */
+export function getUnambiguousReadingProgress(
+  progress: readonly ReadingProgress[],
+  workId: string
+): ReadingProgress | undefined {
+  const matches = progress.filter(item => item.workId === workId);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+export interface ReadingProgressIssue {
   code: 'unknown-work' | 'duplicate-work' | 'unknown-unit' | 'wrong-work' | 'duplicate-unit' | 'invalid-current-unit';
   workId: string;
   readingUnitId?: string;
@@ -152,7 +165,6 @@ export function isRequiredForNarrativeCompletion(unit: ReadingUnit): boolean {
   );
 }
 
-
 /**
  * Determines narrative completion from the catalog and explicit completed IDs.
  * Supplementary units are excluded by policy; an empty/unknown work never
@@ -173,7 +185,6 @@ export function isNarrativeWorkComplete(
   return requiredUnits.every(unit => completedUnitIds.has(unit.id));
 }
 
-
 /** Returns an explicit count of completed units; no legacy counters are used. */
 export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[], workId?: string): number {
   if (workId) {
@@ -188,7 +199,6 @@ export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[
     .filter(entry => countsByWork.get(entry.workId) === 1)
     .reduce((total, entry) => total + entry.completedUnitIds.length, 0);
 }
-
 
 /**
  * Returns the first unread narrative unit in catalog order.
@@ -207,7 +217,6 @@ export function getNextRequiredReadingUnitId(
     .sort((a, b) => a.ordinal - b.ordinal)
     .find(unit => !completed.has(unit.id))?.id;
 }
-
 
 export interface ReadingWorkSummary {
   totalUnits: number;

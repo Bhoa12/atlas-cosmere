@@ -60,4 +60,36 @@ describe("validateExpansionIntegrity", () => {
     });
     expect(issues.some((issue) => issue.layer === "catalog")).toBe(true);
   });
+  it("includes optional spoiler-gate catalog diagnostics", () => {
+    const issues = validateExpansionIntegrity({
+      worlds: [{
+        id: "world",
+        name: "World",
+        works: [{
+          id: "work",
+          worldId: "world",
+          title: "Work",
+          sequence: 1,
+          format: "novel",
+          units: [{ id: "u1", workId: "work", order: 1, kind: "chapter", label: "1" }],
+        }],
+      }],
+      progress: [],
+      gates: [{
+        id: "gate",
+        requirements: [{ workId: "work", requiredPosition: 2 }],
+      }],
+    });
+
+    expect(issues).toContainEqual({
+      layer: "spoiler_gate_catalog",
+      issue: {
+        code: "undeclared_position",
+        gateId: "gate",
+        workId: "work",
+        requiredPosition: 2,
+      },
+    });
+  });
+
 });

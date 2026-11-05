@@ -140,3 +140,14 @@ test('malformed claims fail closed across entity projections', () => {
   assert.equal(isEntityFullyRevealed([null, valid], 'x', progress, unitWorkById), true);
   assert.equal(isEntityFullyRevealed([null], 'x', progress, unitWorkById), false);
 });
+
+
+test('duplicate claim IDs fail closed and cannot satisfy another entity claim', () => {
+  const claims = [
+    { id: 'collision', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } },
+    { id: 'collision', entityId: 'y', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:chapter:001')] } }
+  ];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById), []);
+  assert.equal(isEntityFullyRevealed(claims, 'x', progress, unitWorkById), false);
+});

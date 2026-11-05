@@ -27,6 +27,11 @@ test('creates empty progress without inferring any completed units', () => {
   assert.deepEqual(progress.map(item => item.completedUnitIds), [[], []]);
 });
 
+test('empty progress normalizes duplicate and blank work identities', () => {
+  const progress = createEmptyReadingProgress(['twok', 'twok', ' ', 'wor', ''], 't0');
+  assert.deepEqual(progress.map(item => item.workId), ['twok', 'wor']);
+});
+
 test('setting the current unit does not complete it or preceding units', () => {
   const initial = createEmptyReadingProgress(['twok'], 't0');
   const next = setCurrentReadingUnit(initial, 'twok', 'twok:chapter:003', unitWorkById, 't1');

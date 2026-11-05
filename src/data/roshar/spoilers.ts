@@ -25,12 +25,11 @@ function completedUnitsFromUnambiguousProgress(
     if (!item || typeof item.workId !== 'string' || !Array.isArray(item.completedUnitIds)) continue;
     if (counts.get(item.workId) !== 1) continue;
     for (const unitId of item.completedUnitIds) {
-      if (typeof unitId === 'string') completed.add(unitId);
+      if (typeof unitId === 'string' && unitId.trim().length > 0) completed.add(unitId);
     }
   }
   return completed;
 }
-
 
 /**
  * Evaluates one reading requirement against explicitly completed units.
@@ -41,7 +40,13 @@ function requirementSatisfied(
   completedUnitIds: ReadonlySet<string>,
   unitWorkById: ReadonlyMap<string, string>
 ): boolean {
-  if (!requirement || !requirement.workId || !requirement.readingUnitId) return false;
+  if (
+    !requirement ||
+    typeof requirement.workId !== 'string' ||
+    requirement.workId.trim().length === 0 ||
+    typeof requirement.readingUnitId !== 'string' ||
+    requirement.readingUnitId.trim().length === 0
+  ) return false;
   return (
     unitWorkById.get(requirement.readingUnitId) === requirement.workId &&
     completedUnitIds.has(requirement.readingUnitId)
@@ -62,10 +67,14 @@ export function isSpoilerGateSatisfied(
 ): boolean {
   if (!gate || !Array.isArray(gate.allOf)) return false;
   if (gate.anyOf !== undefined && !Array.isArray(gate.anyOf)) return false;
-  // A requirement list containing malformed entries must never be partially
-  // ignored: one invalid requirement makes the whole gate unsafe to reveal.
-  if (gate.allOf.some(requirement => !requirement || typeof requirement.workId !== 'string' || typeof requirement.readingUnitId !== 'string')) return false;
-  if (Array.isArray(gate.anyOf) && gate.anyOf.some(requirement => !requirement || typeof requirement.workId !== 'string' || typeof requirement.readingUnitId !== 'string')) return false;
+  const validRequirement = (requirement: ReadingRequirement | null | undefined): boolean =>
+    !!requirement &&
+    typeof requirement.workId === 'string' &&
+    requirement.workId.trim().length > 0 &&
+    typeof requirement.readingUnitId === 'string' &&
+    requirement.readingUnitId.trim().length > 0;
+  if (gate.allOf.some(requirement => !validRequirement(requirement))) return false;
+  if (Array.isArray(gate.anyOf) && gate.anyOf.some(requirement => !validRequirement(requirement))) return false;
   if (gate.allOf.length === 0 && (!gate.anyOf || gate.anyOf.length === 0)) return false;
 
   const allRequirementsMet = gate.allOf.every(requirement =>
@@ -92,11 +101,9 @@ export function selectVisibleClaims(
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
   const completedUnitIds = completedUnitsFromUnambiguousProgress(progress);
-  // Duplicate claim IDs are ambiguous persistence state. Do not expose either
-  // record: identity collisions must never let one claim satisfy another view.
   const idCounts = new Map<string, number>();
   for (const claim of claims) {
-    if (claim && typeof claim.id === 'string') {
+    if (claim && typeof claim.id === 'string' && claim.id.trim().length > 0) {
       idCounts.set(claim.id, (idCounts.get(claim.id) ?? 0) + 1);
     }
   }
@@ -104,8 +111,10 @@ export function selectVisibleClaims(
   return claims.filter(claim =>
     !!claim &&
     typeof claim.id === 'string' &&
+    claim.id.trim().length > 0 &&
     idCounts.get(claim.id) === 1 &&
     typeof claim.entityId === 'string' &&
+    claim.entityId.trim().length > 0 &&
     claim.editorialStatus === 'published' &&
     Array.isArray(claim.sourceRefs) &&
     claim.sourceRefs.length > 0 &&
@@ -125,7 +134,7 @@ export function isEntityFullyRevealed(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): boolean {
-  if (typeof entityId !== 'string' || !entityId) return false;
+  if (typeof entityId !== 'string' || entityId.trim().length === 0) return false;
   const entityClaims = claims.filter(claim =>
     !!claim && typeof claim.entityId === 'string' &&
     claim.entityId === entityId && claim.editorialStatus === 'published'
@@ -138,7 +147,6 @@ export function isEntityFullyRevealed(
   return entityClaims.every(claim => visibleIds.has(claim.id));
 }
 
-
 /**
  * Returns only visible claims belonging to one entity. Callers receive no
  * placeholder for an entity that has no currently visible claims.
@@ -149,7 +157,7 @@ export function selectVisibleClaimsForEntity(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
-  if (typeof entityId !== 'string' || !entityId) return [];
+  if (typeof entityId !== 'string' || entityId.trim().length === 0) return [];
   return selectVisibleClaims(claims, progress, unitWorkById)
     .filter(claim => claim.entityId === entityId);
 }

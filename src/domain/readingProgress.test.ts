@@ -12,6 +12,11 @@ describe('reading progress domain', () => {
     expect(getProgressFraction(units, { workId: 'work-a', completedUnitIds: ['unit-1', 'unknown'] })).toBe(0.5);
   });
 
+  it('does not apply progress from one work to units of another', () => {
+    const mixed: ReadingUnit[] = [...units, { id: 'unit-x', workId: 'work-b', position: 1 }];
+    expect(getProgressFraction(mixed, { workId: 'work-a', completedUnitIds: ['unit-1', 'unit-x'] })).toBe(0.5);
+  });
+
   it('deduplicates repeated completed identifiers', () => {
     expect(getProgressFraction(units, { workId: 'work-a', completedUnitIds: ['unit-1', 'unit-1'] })).toBe(0.5);
   });

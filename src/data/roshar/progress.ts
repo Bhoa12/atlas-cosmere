@@ -8,7 +8,10 @@ import { ReadingProgress, ReadingUnit } from './model';
 
 /** Creates empty granular progress. Legacy chapter counters are intentionally not accepted here. */
 export function createEmptyReadingProgress(workIds: readonly string[], updatedAt: string): ReadingProgress[] {
-  return workIds.map(workId => ({
+  const uniqueWorkIds = Array.from(new Set(
+    workIds.filter(workId => typeof workId === 'string' && workId.trim().length > 0)
+  ));
+  return uniqueWorkIds.map(workId => ({
     workId,
     completedUnitIds: [],
     updatedAt

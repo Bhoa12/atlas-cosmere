@@ -21,10 +21,12 @@ export function getProgressFraction(
   units: readonly ReadingUnit[],
   progress: ReadingProgress | undefined,
 ): number {
-  if (units.length === 0) return 0;
-  const valid = new Set(units.map((unit) => unit.id));
-  const completed = new Set((progress?.completedUnitIds ?? []).filter((id) => valid.has(id)));
-  return completed.size / units.length;
+  if (units.length === 0 || !progress) return 0;
+  const valid = new Set(
+    units.filter((unit) => unit.workId === progress.workId).map((unit) => unit.id),
+  );
+  const completed = new Set(progress.completedUnitIds.filter((id) => valid.has(id)));
+  return completed.size / valid.size || 0;
 }
 
 export function isUnitCompleted(

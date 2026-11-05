@@ -5,7 +5,7 @@ import { HoidKnowledgeEntry } from "./catalog";
  * reach retrieval or a provider because it cannot be safely unlocked.
  */
 export function isValidKnowledgeEntry(entry: HoidKnowledgeEntry): boolean {
-  const unlock = entry.unlock;
+  const unlock = entry.firstSafeAppearance;
   return Boolean(
     entry.id?.trim() &&
     unlock?.bookId?.trim() &&

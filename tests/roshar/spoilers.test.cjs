@@ -121,3 +121,11 @@ test('search fails closed for malformed claim text', () => {
   const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, 'anything'), []);
 });
+
+
+test('search fails closed for malformed queries', () => {
+  const claims = [{ id: 'visible', entityId: 'x', text: 'safe text', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, null), []);
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, { trim() {} }), []);
+});

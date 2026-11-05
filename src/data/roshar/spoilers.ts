@@ -62,6 +62,10 @@ export function isSpoilerGateSatisfied(
 ): boolean {
   if (!gate || !Array.isArray(gate.allOf)) return false;
   if (gate.anyOf !== undefined && !Array.isArray(gate.anyOf)) return false;
+  // A requirement list containing malformed entries must never be partially
+  // ignored: one invalid requirement makes the whole gate unsafe to reveal.
+  if (gate.allOf.some(requirement => !requirement || typeof requirement.workId !== 'string' || typeof requirement.readingUnitId !== 'string')) return false;
+  if (Array.isArray(gate.anyOf) && gate.anyOf.some(requirement => !requirement || typeof requirement.workId !== 'string' || typeof requirement.readingUnitId !== 'string')) return false;
   if (gate.allOf.length === 0 && (!gate.anyOf || gate.anyOf.length === 0)) return false;
 
   const allRequirementsMet = gate.allOf.every(requirement =>

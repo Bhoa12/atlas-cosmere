@@ -14,24 +14,29 @@ export interface ReadingProgress {
 }
 
 export function getCompletedCount(progress: ReadingProgress | undefined): number {
-  return progress?.completedUnitIds.length ?? 0;
+  return progress ? new Set(progress.completedUnitIds).size : 0;
 }
 
 export function getProgressFraction(
   units: readonly ReadingUnit[],
   progress: ReadingProgress | undefined,
 ): number {
-  if (units.length === 0 || !progress) return 0;
+  if (!progress) return 0;
   const valid = new Set(
     units.filter((unit) => unit.workId === progress.workId).map((unit) => unit.id),
   );
+  if (valid.size === 0) return 0;
   const completed = new Set(progress.completedUnitIds.filter((id) => valid.has(id)));
-  return completed.size / valid.size || 0;
+  return completed.size / valid.size;
 }
 
+/**
+ * Checks completion only when the unit belongs to the same work as the progress.
+ * This prevents a globally repeated identifier from unlocking unrelated content.
+ */
 export function isUnitCompleted(
   progress: ReadingProgress | undefined,
-  unitId: string,
+  unit: Pick<ReadingUnit, 'id' | 'workId'>,
 ): boolean {
-  return progress?.completedUnitIds.includes(unitId) ?? false;
+  return progress?.workId === unit.workId && progress.completedUnitIds.includes(unit.id);
 }

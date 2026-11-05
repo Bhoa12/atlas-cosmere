@@ -160,3 +160,15 @@ test('malformed spoiler requirements fail closed instead of partially unlocking 
   const malformedAnyOf = { allOf: [req('twok', 'twok:prologue')], anyOf: [null, req('twok', 'twok:chapter:001')] };
   assert.equal(isSpoilerGateSatisfied(malformedAnyOf, new Set(['twok:prologue', 'twok:chapter:001']), unitWorkById), false);
 });
+
+
+test('claims with malformed source references fail closed', () => {
+  const gate = { allOf: [req('twok', 'twok:prologue')] };
+  const claims = [
+    { id: 'empty', entityId: 'x', editorialStatus: 'published', sourceRefs: [''], spoilerGate: gate },
+    { id: 'nonstring', entityId: 'x', editorialStatus: 'published', sourceRefs: [42], spoilerGate: gate },
+    { id: 'valid', entityId: 'x', editorialStatus: 'published', sourceRefs: ['catalog:twok:prologue'], spoilerGate: gate }
+  ];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById).map(item => item.id), ['valid']);
+});

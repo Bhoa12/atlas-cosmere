@@ -25,4 +25,22 @@ describe("HoidPipeline", () => {
     expect(result.reason).toBe("provider-unavailable");
     expect(result.text).toContain("no enviará");
   });
+
+  it("blocks provider output that introduces a catalog alias the reader has not unlocked", async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => "La identidad de NOMBRE_BLOQUEADO importa") };
+    const knowledge = [{
+      id: "locked-entry",
+      aliases: ["NOMBRE_BLOQUEADO"],
+      kind: "concept" as const,
+      firstSafeAppearance: { bookId: "book-locked", chapter: 3 },
+    }];
+
+    const result = await new HoidPipeline(provider, knowledge).answer({
+      question: "Pregunta segura",
+      reading: [{ bookId: "book-locked", chapter: 2 }],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("provider-output");
+  });
 });

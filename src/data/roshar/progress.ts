@@ -14,7 +14,7 @@ export function getUnambiguousReadingProgress(
 }
 
 export interface ReadingProgressIssue {
-  code: 'unknown-work' | 'duplicate-work' | 'unknown-unit' | 'wrong-work' | 'duplicate-unit' | 'invalid-current-unit';
+  code: 'unknown-work' | 'duplicate-work' | 'unknown-unit' | 'wrong-work' | 'duplicate-unit' | 'invalid-unit-id' | 'invalid-current-unit';
   workId: string;
   readingUnitId?: string;
 }
@@ -137,12 +137,16 @@ export function validateReadingProgress(
     seenWorks.add(item.workId);
     const seenUnits = new Set<string>();
     for (const id of item.completedUnitIds) {
+      if (typeof id !== 'string' || id.trim().length === 0) {
+        issues.push({ code: 'invalid-unit-id', workId: item.workId, readingUnitId: id });
+        continue;
+      }
       if (seenUnits.has(id)) issues.push({ code: 'duplicate-unit', workId: item.workId, readingUnitId: id });
       seenUnits.add(id);
       if (!unitWorkById.has(id)) issues.push({ code: 'unknown-unit', workId: item.workId, readingUnitId: id });
       else if (unitWorkById.get(id) !== item.workId) issues.push({ code: 'wrong-work', workId: item.workId, readingUnitId: id });
     }
-    if (item.currentUnitId && unitWorkById.get(item.currentUnitId) !== item.workId) {
+    if (item.currentUnitId && (item.currentUnitId.trim().length === 0 || unitWorkById.get(item.currentUnitId) !== item.workId)) {
       issues.push({ code: 'invalid-current-unit', workId: item.workId, readingUnitId: item.currentUnitId });
     }
   }

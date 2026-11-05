@@ -147,6 +147,7 @@ export function selectVisibleClaimsForSearch(
   unitWorkById: ReadonlyMap<string, string>,
   query: string
 ): EncyclopediaClaim[] {
+  if (typeof query !== 'string') return [];
   const normalizedQuery = query.trim().toLocaleLowerCase();
   if (!normalizedQuery) return [];
   return selectVisibleClaims(claims, progress, unitWorkById)

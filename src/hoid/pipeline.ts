@@ -64,7 +64,21 @@ export class HoidPipeline {
       const text = typeof provider.answerWithContext === "function"
         ? await provider.answerWithContext(request, context)
         : await this.provider.answer(request);
-      return redactProviderAnswer(text, request);
+      const providerAnswer = redactProviderAnswer(text, request);
+      if (providerAnswer.blocked) return providerAnswer;
+
+      // Do not trust a provider merely because the input context was safe.
+      // A provider can introduce a locked catalog alias on its own, so the
+      // generated output crosses the same catalog authorization boundary.
+      const leaked = catalog.lockedMatches(text, request.reading);
+      if (leaked.length > 0) {
+        return {
+          blocked: true,
+          reason: "provider-output",
+          text: "He empezado a revelar información que todavía no has desbloqueado. Mejor dejemos ese misterio sellado por ahora.",
+        };
+      }
+      return providerAnswer;
     } catch {
       return {
         blocked: false,

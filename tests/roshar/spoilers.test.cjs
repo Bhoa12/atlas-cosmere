@@ -151,3 +151,12 @@ test('duplicate claim IDs fail closed and cannot satisfy another entity claim', 
   assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById), []);
   assert.equal(isEntityFullyRevealed(claims, 'x', progress, unitWorkById), false);
 });
+
+
+test('malformed spoiler requirements fail closed instead of partially unlocking a gate', () => {
+  const gate = { allOf: [req('twok', 'twok:prologue'), null] };
+  const completed = new Set(['twok:prologue']);
+  assert.equal(isSpoilerGateSatisfied(gate, completed, unitWorkById), false);
+  const malformedAnyOf = { allOf: [req('twok', 'twok:prologue')], anyOf: [null, req('twok', 'twok:chapter:001')] };
+  assert.equal(isSpoilerGateSatisfied(malformedAnyOf, new Set(['twok:prologue', 'twok:chapter:001']), unitWorkById), false);
+});

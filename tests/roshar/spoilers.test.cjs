@@ -129,3 +129,14 @@ test('search fails closed for malformed queries', () => {
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, null), []);
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, { trim() {} }), []);
 });
+
+
+test('malformed claims fail closed across entity projections', () => {
+  const valid = { id: 'visible', entityId: 'x', text: 'safe', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } };
+  const malformed = [null, { id: 7, entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }, valid];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaims(malformed, progress, unitWorkById).map(item => item.id), ['visible']);
+  assert.deepEqual(selectVisibleClaimsForEntity(malformed, 'x', progress, unitWorkById).map(item => item.id), ['visible']);
+  assert.equal(isEntityFullyRevealed([null, valid], 'x', progress, unitWorkById), true);
+  assert.equal(isEntityFullyRevealed([null], 'x', progress, unitWorkById), false);
+});

@@ -15,6 +15,7 @@ const {
 } = require('../../src/data/roshar/progress.ts');
 
 const unitWorkById = new Map([
+  [' ', 'twok'],
   ['twok:chapter:001', 'twok'],
   ['twok:chapter:002', 'twok'],
   ['twok:chapter:003', 'twok'],
@@ -174,4 +175,16 @@ test('mutation rejects blank work and reading-unit identifiers', () => {
   const initial = createEmptyReadingProgress(['twok'], 't0');
   assert.equal(setCurrentReadingUnit(initial, ' ', 'twok:chapter:001', unitWorkById, 't1'), initial);
   assert.equal(markReadingUnitCompleted(initial, 'twok', ' ', unitWorkById, 't1'), initial);
+});
+
+
+test('sanitization rejects blank persisted unit identifiers even if a malformed catalog map contains them', () => {
+  const cleaned = sanitizeReadingProgress([{
+    workId: 'twok',
+    completedUnitIds: [' ', 'twok:chapter:001'],
+    currentUnitId: ' ',
+    updatedAt: 't1'
+  }], ['twok'], unitWorkById, 't0');
+  assert.deepEqual(cleaned[0].completedUnitIds, ['twok:chapter:001']);
+  assert.equal(cleaned[0].currentUnitId, undefined);
 });

@@ -26,8 +26,10 @@ export function setCurrentReadingUnit(
   unitWorkById: ReadonlyMap<string, string>,
   updatedAt: string
 ): ReadingProgress[] {
+  if (typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
   if (unitWorkById.get(readingUnitId) !== workId) return progress;
-  const current = progress.find(item => item.workId === workId);
+  const current = getUnambiguousReadingProgress(progress, workId);
+  if (progress.filter(item => item.workId === workId).length > 1) return progress;
   const next: ReadingProgress = current
     ? { ...current, currentUnitId: readingUnitId, updatedAt }
     : { workId, completedUnitIds: [], currentUnitId: readingUnitId, updatedAt };
@@ -44,8 +46,10 @@ export function markReadingUnitCompleted(
   unitWorkById: ReadonlyMap<string, string>,
   updatedAt: string
 ): ReadingProgress[] {
+  if (typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
   if (unitWorkById.get(readingUnitId) !== workId) return progress;
-  const current = progress.find(item => item.workId === workId);
+  const current = getUnambiguousReadingProgress(progress, workId);
+  if (progress.filter(item => item.workId === workId).length > 1) return progress;
   const completedUnitIds = Array.from(new Set([...(current?.completedUnitIds ?? []), readingUnitId]));
   const next: ReadingProgress = {
     workId,

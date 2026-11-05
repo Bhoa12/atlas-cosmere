@@ -1,6 +1,7 @@
 import { HoidAnswer, HoidAnswerRequest, HoidProvider } from "./types";
 import { HoidKnowledgeCatalog, HoidKnowledgeEntry } from "./catalog";
 import { retrieveAuthorized } from "./retrieval";
+import { validatedKnowledge } from "./catalogValidation";
 import { guardQuestion, redactProviderAnswer } from "./spoilerGuard";
 
 /**
@@ -33,7 +34,8 @@ export class HoidPipeline {
     const blocked = guardQuestion(request);
     if (blocked) return blocked;
 
-    const catalog = new HoidKnowledgeCatalog(this.knowledge);
+    const knowledge = validatedKnowledge(this.knowledge);
+    const catalog = new HoidKnowledgeCatalog(knowledge);
     const locked = catalog.lockedMatches(request.question, request.reading);
     if (locked.length > 0) {
       return {
@@ -51,7 +53,7 @@ export class HoidPipeline {
       };
     }
 
-    const context = retrieveAuthorized(this.knowledge, request.reading, request.question);
+    const context = retrieveAuthorized(knowledge, request.reading, request.question);
 
     try {
       const provider = this.provider as Partial<ContextualHoidProvider>;

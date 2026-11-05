@@ -5,6 +5,7 @@ import { validatedKnowledge } from "./catalogValidation";
 import { guardQuestion, redactProviderAnswer } from "./spoilerGuard";
 import { validProviderText } from "./providerOutput";
 import { authorizeReading, catalogBookIds } from "./authorizationBoundary";
+import { boundAuthorizedContext } from "./contextBudget";
 
 /**
  * Optional provider capability. Providers that understand authorized context can
@@ -57,7 +58,7 @@ export class HoidPipeline {
       };
     }
 
-    const context = retrieveAuthorized(knowledge, reading, request.question);
+    const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, request.question));
 
     // A contextual provider must receive the same request semantics as a plain
     // provider, but only after the catalog and reading-position boundaries have

@@ -188,3 +188,12 @@ test('sanitization rejects blank persisted unit identifiers even if a malformed 
   assert.deepEqual(cleaned[0].completedUnitIds, ['twok:chapter:001']);
   assert.equal(cleaned[0].currentUnitId, undefined);
 });
+
+
+test('sanitization fails closed when persisted progress contains duplicate work records', () => {
+  const cleaned = sanitizeReadingProgress([
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001'], updatedAt: 't1' },
+    { workId: 'twok', completedUnitIds: ['twok:chapter:002'], updatedAt: 't2' }
+  ], ['twok'], unitWorkById, 't0');
+  assert.deepEqual(cleaned, createEmptyReadingProgress(['twok'], 't0'));
+});

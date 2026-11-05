@@ -4,16 +4,15 @@ import { ReadingPosition } from "./types";
 /**
  * Spoiler-safe reading recommendations.
  *
- * This module deliberately recommends only from metadata supplied to Atlas.
- * It does not infer plot order, canon dependencies, or chapter counts from
- * unavailable source text. A caller may provide curated recommendations later;
- * until then Hoid can safely identify unread works without claiming a reading
- * order.
+ * Recommendations are metadata-only: this module does not infer plot order,
+ * canon dependencies, chapter counts, or facts from unavailable source text.
  */
+export type HoidRecommendationReason = "unread-source";
+
 export type HoidRecommendation = {
   sourceId: string;
   title: string;
-  reason: "unread-source";
+  reason: HoidRecommendationReason;
 };
 
 function hasStarted(sourceId: string, reading: ReadingPosition[]): boolean {
@@ -23,15 +22,25 @@ function hasStarted(sourceId: string, reading: ReadingPosition[]): boolean {
   );
 }
 
+function knownReading(reading: ReadingPosition[]): ReadingPosition[] {
+  return reading.filter(position =>
+    HOID_SOURCE_BIBLIOGRAPHY.some(source => source.id === position.bookId),
+  );
+}
+
 export function recommendUnstartedSources(
   reading: ReadingPosition[],
   limit = 3,
 ): HoidRecommendation[] {
-  const safeLimit = Math.max(0, Math.floor(limit));
+  const safeLimit = Number.isFinite(limit)
+    ? Math.max(0, Math.floor(limit))
+    : 0;
   if (safeLimit === 0) return [];
 
+  const verifiedReading = knownReading(reading);
+
   return HOID_SOURCE_BIBLIOGRAPHY
-    .filter(source => !hasStarted(source.id, reading))
+    .filter(source => !hasStarted(source.id, verifiedReading))
     .slice(0, safeLimit)
     .map(source => ({
       sourceId: source.id,

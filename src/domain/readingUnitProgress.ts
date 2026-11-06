@@ -22,6 +22,7 @@ export function hasConsistentReadingUnitProgress(
 
   for (const unit of input.units) {
     if (
+      typeof unit.id !== "string" ||
       !unit.id.trim() ||
       !Number.isSafeInteger(unit.order) ||
       unit.order <= 0 ||
@@ -36,7 +37,7 @@ export function hasConsistentReadingUnitProgress(
 
   const completed = new Set(input.completedUnitIds);
   if (completed.size !== input.completedUnitIds.length) return false;
-  if ([...completed].some((id) => !seenIds.has(id))) return false;
+  if ([...completed].some((id) => typeof id !== "string" || !id.trim() || !seenIds.has(id))) return false;
 
   const ordered = [...input.units].sort((a, b) => a.order - b.order);
   return ordered.every(

@@ -69,3 +69,20 @@ Por ello, cada frontera debe aplicar estas reglas:
 - **Degradación:** ante errores, datos incompletos o desacuerdo entre capas, Hoid reduce información en vez de ampliar el acceso.
 
 Estas reglas también permiten sustituir o añadir proveedores sin cambiar la política de spoilers: el contrato del proveedor es una dependencia externa, mientras que la autorización y el filtrado pertenecen al núcleo.
+
+
+## Contexto y respuestas adaptadas
+
+La adaptación al lector debe producirse sin convertir el historial de lectura en una vía para ampliar conocimiento. El progreso normalizado es la única representación que usan recuperación y proveedores contextuales.
+
+Las explicaciones deben distinguir entre información respaldada por el contexto autorizado y recomendaciones generales basadas en metadatos. Si Hoid no dispone de evidencia suficiente para responder con seguridad, debe reconocer el límite en lugar de completar huecos con hechos inventados.
+
+El límite de contexto se aplica después de la autorización. Reducir el contexto nunca debe cambiar una entrada bloqueada en una autorizada.
+
+### Invariantes para cambios futuros
+
+- validar datos externos en tiempo de ejecución, aunque TypeScript declare un contrato;
+- normalizar una vez las entradas de confianza y reutilizar la representación canónica;
+- comprobar la salida del proveedor, incluso cuando su entrada haya sido segura;
+- mantener pruebas separadas para autorización, recuperación, proveedores y filtros;
+- documentar cualquier nueva capacidad de recuperación antes de conectarla a una fuente privada.

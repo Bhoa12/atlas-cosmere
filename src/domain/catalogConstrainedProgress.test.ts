@@ -27,4 +27,15 @@ describe("constrainProgressToCatalog", () => {
       { workId: "work-a", completedPositions: [9] },
     ])).toEqual([]);
   });
+
+  it("fails closed when a work id is ambiguous across catalog entries", () => {
+    const ambiguous: WorldCatalogEntry[] = [
+      { id: "scadrial", name: "Scadrial", works: [{ id: "shared", title: "A", sequence: 1, units: [{ id: "a1", order: 1 }] }] },
+      { id: "sel", name: "Sel", works: [{ id: "shared", title: "B", sequence: 1, units: [{ id: "b2", order: 2 }] }] },
+    ];
+
+    expect(constrainProgressToCatalog(ambiguous, [
+      { workId: "shared", completedPositions: [1, 2] },
+    ])).toEqual([]);
+  });
 });

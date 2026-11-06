@@ -1,19 +1,28 @@
-import type { WorldProgressCoverage } from "./worldProgressCoverage";
+export type WorldProgressStatus = "blocked" | "not-started" | "in-progress" | "complete";
 
-export type WorldProgressStatus =
-  | "blocked"
-  | "not-started"
-  | "in-progress"
-  | "complete";
+export interface WorldProgressStatusInput {
+  declaredPositions: number;
+  completedPositions: number;
+  next: unknown;
+  ambiguousWorkIds: readonly string[];
+}
 
 /**
- * Produces a UI-safe status without inventing progress for ambiguous or
- * structurally empty worlds. Ambiguous catalog coordinates always win.
+ * Converts structural progress coverage into a UI-safe status.
+ *
+ * Malformed counts fail closed instead of allowing a world to appear complete.
  */
 export function resolveWorldProgressStatus(
-  coverage: WorldProgressCoverage,
+  coverage: WorldProgressStatusInput,
 ): WorldProgressStatus {
-  if (coverage.ambiguousWorkIds.length > 0 || coverage.declaredPositions === 0) {
+  const countsValid =
+    Number.isSafeInteger(coverage.declaredPositions) &&
+    Number.isSafeInteger(coverage.completedPositions) &&
+    coverage.declaredPositions > 0 &&
+    coverage.completedPositions >= 0 &&
+    coverage.completedPositions <= coverage.declaredPositions;
+
+  if (!countsValid || coverage.ambiguousWorkIds.length > 0) {
     return "blocked";
   }
 
@@ -21,7 +30,7 @@ export function resolveWorldProgressStatus(
     return "not-started";
   }
 
-  if (coverage.completedPositions >= coverage.declaredPositions && coverage.next === null) {
+  if (coverage.completedPositions === coverage.declaredPositions && coverage.next === null) {
     return "complete";
   }
 

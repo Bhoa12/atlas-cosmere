@@ -1,6 +1,6 @@
 import { RosharReadingAchievement } from '../gamification';
 import { ReadingProgress, ReadingUnit } from './model';
-import { isNarrativeWorkComplete, getCompletedReadingUnitCount, getUnambiguousReadingProgress } from './progress';
+import { isNarrativeWorkComplete, getUnambiguousReadingProgress } from './progress';
 import { isSpoilerGateSatisfied } from './spoilers';
 import { ROSHAR_READING_UNIT_WORK_BY_ID } from './catalog/readingUnits';
 
@@ -23,7 +23,18 @@ export function evaluateRosharReadingAchievements(
   units: readonly ReadingUnit[],
   progress: readonly ReadingProgress[]
 ): RosharAchievementProjection[] {
-  const totalCompleted = getCompletedReadingUnitCount(progress);
+  // Count only catalog units that belong to an unambiguous progress record.
+  // Raw persistence may contain unknown or cross-work IDs; those must not grant achievements.
+  const unitWorkById = new Map(units.map(unit => [unit.id, unit.workId]));
+  const workCounts = new Map<string, number>();
+  for (const item of progress) {
+    workCounts.set(item.workId, (workCounts.get(item.workId) ?? 0) + 1);
+  }
+  const totalCompleted = progress
+    .filter(item => workCounts.get(item.workId) === 1)
+    .reduce((total, item) => total + new Set(
+      item.completedUnitIds.filter(id => unitWorkById.get(id) === item.workId)
+    ).size, 0);
   return achievements.map(achievement => {
     const countSatisfied = achievement.requiredCompletedUnits === undefined ||
       totalCompleted >= achievement.requiredCompletedUnits;

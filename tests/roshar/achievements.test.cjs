@@ -55,3 +55,25 @@ test('persisted achievement grants remain visible after a later progress correct
   assert.equal(visible[0].title, 'Granted once');
   assert.equal(visible[0].reward.id, 'badge-1');
 });
+
+
+test('ambiguous duplicate progress cannot reveal spoiler-gated achievement metadata', () => {
+  const achievement = {
+    id: 'gated',
+    requiredCompletedUnits: 99,
+    title: 'Spoiler title',
+    description: 'Spoiler description',
+    spoilerGate: { requiredUnitIds: ['twok:chapter:001'] },
+    reward: { type: 'badge', id: 'badge-gated', label: 'Gated' }
+  };
+  const projections = evaluateRosharReadingAchievements([achievement], units, [
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001'], updatedAt: 't0' },
+    { workId: 'twok', completedUnitIds: [], updatedAt: 't1' }
+  ]);
+  const visible = selectVisibleRosharAchievements(projections, [
+    { workId: 'twok', completedUnitIds: ['twok:chapter:001'], updatedAt: 't0' },
+    { workId: 'twok', completedUnitIds: [], updatedAt: 't1' }
+  ]);
+  assert.equal(visible[0].hidden, true);
+  assert.equal(visible[0].title, '???');
+});

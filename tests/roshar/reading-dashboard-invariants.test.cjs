@@ -42,6 +42,19 @@ test('an unknown current unit cannot be treated as a completed narrative positio
   assert.equal(streak.completedConsecutiveUnits, 1);
 });
 
+test('an unknown unit listed as both current and completed cannot be treated as a completed narrative position', () => {
+  const progress = [{
+    workId: 'w',
+    completedUnitIds: ['w:p', 'w:unknown'],
+    currentUnitId: 'w:unknown',
+    updatedAt: 't'
+  }];
+  const streak = summarizeNarrativeReadingStreak('w', units, progress);
+  assert.equal(streak.currentUnitIsCompleted, false);
+  assert.equal(streak.firstGapUnitId, 'w:1');
+  assert.equal(streak.completedConsecutiveUnits, 1);
+});
+
 test('duplicate progress records fail closed across dashboard summaries', () => {
   const progress = [
     { workId: 'w', completedUnitIds: ['w:p', 'w:1', 'w:2'], updatedAt: 't1' },

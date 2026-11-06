@@ -10,13 +10,20 @@ export type HoidKnowledgeEntry = {
   summary?: string;
 };
 
-/**
- * Normalize catalog matching text independently of locale so that the spoiler
- * boundary does not depend on the device language. Diacritics are removed
- * because providers may omit or alter them (for example, Spanish accents).
- */
 function normalizeForCatalogMatch(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function containsCatalogAlias(text: string, alias: string): boolean {
+  const escaped = escapeRegex(alias);
+  // Require a Unicode letter/number boundary around aliases. This prevents a
+  // short catalog alias from matching inside an unrelated word while still
+  // allowing names and multi-word aliases next to punctuation.
+  return new RegExp('(^|[^\\p{L}\\p{N}])' + escaped + '($|[^\\p{L}\\p{N}])', 'u').test(text);
 }
 
 /**
@@ -31,7 +38,7 @@ export class HoidKnowledgeCatalog {
     return this.entries.filter(entry =>
       entry.aliases.some(alias => {
         const normalizedAlias = normalizeForCatalogMatch(alias).trim();
-        return normalizedAlias.length > 0 && normalized.includes(normalizedAlias);
+        return normalizedAlias.length > 0 && containsCatalogAlias(normalized, normalizedAlias);
       })
     );
   }

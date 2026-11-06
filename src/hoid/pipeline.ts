@@ -1,4 +1,4 @@
-import { HoidAnswer, HoidAnswerRequest, HoidProvider } from "./types";
+import { HoidAnswer, HoidAnswerRequest, HoidProvider, ReadingPosition } from "./types";
 import { HoidKnowledgeCatalog, HoidKnowledgeEntry } from "./catalog";
 import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
@@ -60,6 +60,16 @@ export class HoidPipeline {
 
     const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, request.question));
 
+    // The provider receives its own immutable snapshot. Output guards keep using
+    // the canonical reading state, so a provider cannot mutate its request and
+    // widen the authorization boundary before its response is checked.
+    const providerRequest: HoidAnswerRequest = {
+      ...authorizedRequest,
+      reading: Object.freeze(
+        authorizedRequest.reading.map(position => Object.freeze({ ...position })),
+      ) as unknown as ReadingPosition[],
+    };
+
     // A contextual provider must receive the same request semantics as a plain
     // provider, but only after the catalog and reading-position boundaries have
     // reduced the knowledge set to authorized entries.
@@ -67,8 +77,8 @@ export class HoidPipeline {
     try {
       const provider = this.provider as Partial<ContextualHoidProvider>;
       const text = typeof provider.answerWithContext === "function"
-        ? await provider.answerWithContext(authorizedRequest, context)
-        : await this.provider.answer(authorizedRequest);
+        ? await provider.answerWithContext(providerRequest, context)
+        : await this.provider.answer(providerRequest);
       const safeText = validProviderText(text);
       if (safeText === null) {
         return {

@@ -1,6 +1,6 @@
 import { RosharReadingAchievement } from '../gamification';
 import { ReadingProgress, ReadingUnit } from './model';
-import { isNarrativeWorkComplete, getCompletedReadingUnitCount } from './progress';
+import { isNarrativeWorkComplete, getCompletedReadingUnitCount, getUnambiguousReadingProgress } from './progress';
 import { isSpoilerGateSatisfied } from './spoilers';
 import { ROSHAR_READING_UNIT_WORK_BY_ID } from './catalog/readingUnits';
 
@@ -44,8 +44,16 @@ export function selectVisibleRosharAchievements(
   progress: readonly ReadingProgress[],
   persistentlyUnlockedAchievementIds: readonly string[] = []
 ): RosharAchievementPresentation[] {
+  // Ambiguous duplicate work records are fail-closed throughout progress.
+  // Do not let conflicting persistence unlock spoiler-gated achievement metadata.
+  const workCounts = new Map<string, number>();
+  for (const item of progress) {
+    workCounts.set(item.workId, (workCounts.get(item.workId) ?? 0) + 1);
+  }
   const completedUnitIds = new Set(
-    progress.flatMap(item => item.completedUnitIds)
+    progress
+      .filter(item => workCounts.get(item.workId) === 1 && getUnambiguousReadingProgress(progress, item.workId))
+      .flatMap(item => item.completedUnitIds)
   );
 
   const persistentIds = new Set(persistentlyUnlockedAchievementIds);

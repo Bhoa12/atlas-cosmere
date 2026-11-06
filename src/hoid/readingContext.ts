@@ -43,5 +43,5 @@ export function buildReadingContext(
     });
   }
 
-  return [...byBook.values()];
+  // Return an immutable snapshot so downstream adapters cannot mutate the\n  // canonicalized reading state after authorization decisions are made.\n  return Object.freeze(\n    [...byBook.values()].map(item => Object.freeze({ ...item })),\n  );
 }

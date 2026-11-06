@@ -214,3 +214,14 @@ test('validation flags blank unit identifiers even if a malformed catalog map co
   assert.ok(issues.some(issue => issue.code === 'invalid-unit-id'));
   assert.ok(issues.some(issue => issue.code === 'invalid-current-unit'));
 });
+
+
+test('completed unit counts do not inflate from duplicate IDs in malformed raw progress', () => {
+  const progress = [{
+    workId: 'twok',
+    completedUnitIds: ['twok:chapter:001', 'twok:chapter:001', 'twok:chapter:002'],
+    updatedAt: 't0'
+  }];
+  assert.equal(getCompletedReadingUnitCount(progress), 2);
+  assert.equal(getCompletedReadingUnitCount(progress, 'twok'), 2);
+});

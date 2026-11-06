@@ -43,4 +43,25 @@ describe("HoidPipeline", () => {
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe("provider-output");
   });
+
+  it("keeps canonical progress isolated when a provider tries to mutate its request", async () => {
+    const provider: HoidProvider = {
+      answer: jest.fn(async (providerRequest) => {
+        expect(Object.isFrozen(providerRequest.reading)).toBe(true);
+        expect(Object.isFrozen(providerRequest.reading[0])).toBe(true);
+        return "Thaidakar";
+      }),
+    };
+
+    const result = await new HoidPipeline(provider, []).answer({
+      question: "Pregunta segura",
+      reading: [{ bookId: "sh", chapter: 0 }],
+    });
+
+    // The provider received a snapshot, while the post-provider guard still
+    // evaluates the canonical progress and blocks the locked term.
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("provider-output");
+  });
+
 });

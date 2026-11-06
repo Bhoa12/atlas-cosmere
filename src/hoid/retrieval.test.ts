@@ -1,16 +1,50 @@
 import { retrieveAuthorized } from "./retrieval";
-import { KnowledgeItem } from "./types";
+import { HoidKnowledgeEntry } from "./catalog";
+import { ReadingPosition } from "./types";
 
-const item: KnowledgeItem = { id: "x", sourceId: "elantris", unlockChapter: 3, summary: "Resumen original", tags: ["tema"] };
+function assert(condition: unknown, message: string): void {
+  if (!condition) throw new Error(message);
+}
 
-describe("retrieveAuthorized", () => {
-  it("does not unlock another book's knowledge", () => {
-    expect(retrieveAuthorized([item], [{ sourceId: "warbreaker", chapter: 99 }], "tema")).toEqual([]);
-  });
-  it("blocks future chapters", () => {
-    expect(retrieveAuthorized([item], [{ sourceId: "elantris", chapter: 2 }], "tema")).toEqual([]);
-  });
-  it("allows the exact unlock chapter", () => {
-    expect(retrieveAuthorized([item], [{ sourceId: "elantris", chapter: 3 }], "tema")).toEqual([item]);
-  });
-});
+const items: HoidKnowledgeEntry[] = [
+  {
+    id: "elantris-safe",
+    aliases: ["Elantris", "ciudad"],
+    kind: "place",
+    firstSafeAppearance: { bookId: "elantris", chapter: 3 },
+    summary: "Resumen original de prueba.",
+  },
+  {
+    id: "other-book",
+    aliases: ["otro"],
+    kind: "concept",
+    firstSafeAppearance: { bookId: "warbreaker", chapter: 1 },
+    summary: "Resumen original de prueba.",
+  },
+];
+
+export function runRetrievalChecks(): void {
+  const early: ReadingPosition[] = [{ bookId: "elantris", chapter: 2 }];
+  assert(
+    retrieveAuthorized(items, early, "Elantris").length === 0,
+    "future chapters must not be retrieved",
+  );
+
+  const exact: ReadingPosition[] = [{ bookId: "elantris", chapter: 3 }];
+  const result = retrieveAuthorized(items, exact, "¿Qué es Elantris?");
+  assert(
+    result.length === 1 && result[0].id === "elantris-safe",
+    "the exact unlock chapter must retrieve matching authorized knowledge",
+  );
+
+  const completed: ReadingPosition[] = [{ bookId: "elantris", completed: true }];
+  assert(
+    retrieveAuthorized(items, completed, "ciudad").length === 1,
+    "completed books must authorize matching knowledge",
+  );
+
+  assert(
+    retrieveAuthorized(items, exact, "otro").length === 0,
+    "progress in one book must never unlock another book",
+  );
+}

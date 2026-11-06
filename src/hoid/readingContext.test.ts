@@ -20,3 +20,14 @@ describe("buildReadingContext", () => {
     ]);
   });
 });
+
+
+describe("reading context immutability", () => {
+  it("returns immutable snapshots so callers cannot alter canonical state", () => {
+    const context = buildReadingContext([
+      { bookId: "mistborn-final-empire", chapter: 4 },
+    ]);
+    expect(Object.isFrozen(context)).toBe(true);
+    expect(Object.isFrozen(context[0])).toBe(true);
+  });
+});

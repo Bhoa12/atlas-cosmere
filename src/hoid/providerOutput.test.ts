@@ -10,4 +10,8 @@ describe("validProviderText", () => {
   it("preserves readable text while removing transport control characters", () => {
     expect(validProviderText("  Hola\u0000 mundo  ")).toBe("Hola mundo");
   });
+
+  it("preserves Unicode wording for the spoiler guard instead of ASCII-normalizing it", () => {
+    expect(validProviderText("  ¿Qué pasó en Roshar?  ")).toBe("¿Qué pasó en Roshar?");
+  });
 });

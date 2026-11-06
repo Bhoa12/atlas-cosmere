@@ -30,7 +30,11 @@ export function summarizeNarrativeReadingStreak(
   return {
     completedConsecutiveUnits,
     ...(firstGap ? { firstGapUnitId: firstGap.id } : {}),
-    currentUnitIsCompleted: Boolean(currentUnitId && completed.has(currentUnitId))
+    currentUnitIsCompleted: Boolean(
+      currentUnitId &&
+      completed.has(currentUnitId) &&
+      required.some(unit => unit.id === currentUnitId)
+    )
   };
 }
 

@@ -27,7 +27,7 @@ function isKnownBook(bookId: string): boolean {
  */
 export function buildReadingContext(
   reading: ReadingPosition[],
-): HoidReadingContextItem[] {
+): readonly Readonly<HoidReadingContextItem>[] {
   const byBook = new Map<string, HoidReadingContextItem>();
 
   for (const position of reading) {

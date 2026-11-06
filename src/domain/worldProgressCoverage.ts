@@ -50,17 +50,28 @@ export function summarizeWorldProgress(
       .map((work) => byWork.get(work.id))
       .filter((coverage): coverage is WorkProgressCoverage => coverage !== undefined);
 
-    const candidates = coverages
-      .filter((coverage) => coverage.nextPosition !== null)
-      .map((coverage) => ({ workId: coverage.workId, position: coverage.nextPosition! }));
+    const candidates = world.works
+      .map((work) => ({
+        work,
+        coverage: byWork.get(work.id),
+      }))
+      .filter((item) => item.coverage?.nextPosition !== null && item.coverage !== undefined)
+      .map((item) => ({
+        workId: item.work.id,
+        sequence: item.work.sequence,
+        position: item.coverage!.nextPosition!,
+      }));
 
     return {
       worldId: world.id,
       declaredPositions: coverages.reduce((total, item) => total + item.declaredPositions, 0),
       completedPositions: coverages.reduce((total, item) => total + item.completedPositions, 0),
-      next: candidates.sort((a, b) =>
-        a.position - b.position || a.workId.localeCompare(b.workId),
-      )[0] ?? null,
+      next: (() => {
+        const candidate = candidates.sort((a, b) =>
+          a.sequence - b.sequence || a.position - b.position || a.workId.localeCompare(b.workId),
+        )[0];
+        return candidate ? { workId: candidate.workId, position: candidate.position } : null;
+      })(),
       ambiguousWorkIds,
     };
   });

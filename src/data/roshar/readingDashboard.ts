@@ -33,7 +33,7 @@ export function summarizeNarrativeReadingStreak(
     currentUnitIsCompleted: Boolean(
       currentUnitId &&
       completed.has(currentUnitId) &&
-      required.some(unit => unit.id === currentUnitId)
+      units.some(unit => unit.workId === workId && unit.id === currentUnitId)
     )
   };
 }

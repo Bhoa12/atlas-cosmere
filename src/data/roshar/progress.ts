@@ -193,7 +193,7 @@ export function isNarrativeWorkComplete(
 export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[], workId?: string): number {
   if (workId) {
     const item = getUnambiguousReadingProgress(progress, workId);
-    return item ? item.completedUnitIds.length : 0;
+    return item ? new Set(item.completedUnitIds).size : 0;
   }
   const countsByWork = new Map<string, number>();
   for (const entry of progress) {

@@ -77,3 +77,25 @@ test('ambiguous duplicate progress cannot reveal spoiler-gated achievement metad
   assert.equal(visible[0].hidden, true);
   assert.equal(visible[0].title, '???');
 });
+
+
+test('malformed or cross-work unit IDs cannot inflate count-based achievements', () => {
+  const achievement = { id: 'two', requiredCompletedUnits: 2, title: 'Two', description: '', reward: { type: 'badge', id: 'r', label: 'R' } };
+  const progress = [{
+    workId: 'w',
+    completedUnitIds: ['w:1', 'w:1', 'missing', 'other:1'],
+    updatedAt: 't'
+  }];
+  const result = evaluateRosharReadingAchievements([achievement], units, progress);
+  assert.equal(result[0].unlocked, false);
+});
+
+test('ambiguous duplicate work records cannot contribute to count-based achievements', () => {
+  const achievement = { id: 'one', requiredCompletedUnits: 1, title: 'One', description: '', reward: { type: 'badge', id: 'r', label: 'R' } };
+  const progress = [
+    { workId: 'w', completedUnitIds: ['w:1'], updatedAt: 't0' },
+    { workId: 'w', completedUnitIds: ['w:p'], updatedAt: 't1' }
+  ];
+  const result = evaluateRosharReadingAchievements([achievement], units, progress);
+  assert.equal(result[0].unlocked, false);
+});

@@ -46,7 +46,7 @@ export function sanitizeRosharAchievementState(
   if (!value || typeof value !== 'object') return createEmptyRosharAchievementState(updatedAt);
   const candidate = value as Partial<RosharAchievementState>;
   const strings = (items: unknown): string[] => Array.isArray(items)
-    ? Array.from(new Set(items.filter((item): item is string => typeof item === 'string' && item.length > 0)))
+    ? Array.from(new Set(items.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)))
     : [];
 
   return {

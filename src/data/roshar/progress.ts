@@ -201,7 +201,7 @@ export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[
   }
   return progress
     .filter(entry => countsByWork.get(entry.workId) === 1)
-    .reduce((total, entry) => total + entry.completedUnitIds.length, 0);
+    .reduce((total, entry) => total + new Set(entry.completedUnitIds).size, 0);
 }
 
 /**

@@ -22,6 +22,17 @@ describe("hasConsistentReadingUnitProgress", () => {
     expect(hasConsistentReadingUnitProgress({ units, completedUnitIds: ["unit-1", "unit-1"] })).toBe(false);
   });
 
+  it("fails closed for malformed unit or completion identifiers", () => {
+    expect(hasConsistentReadingUnitProgress({
+      units: [{ id: null as unknown as string, order: 1 }],
+      completedUnitIds: [],
+    })).toBe(false);
+    expect(hasConsistentReadingUnitProgress({
+      units: [{ id: "unit-1", order: 1 }],
+      completedUnitIds: [null as unknown as string],
+    })).toBe(false);
+  });
+
   it("fails closed for ambiguous unit structure", () => {
     expect(hasConsistentReadingUnitProgress({
       units: [{ id: "unit-1", order: 1 }, { id: "unit-1", order: 2 }],

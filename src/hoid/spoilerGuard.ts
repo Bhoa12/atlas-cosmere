@@ -1,3 +1,5 @@
+import { isKnownHoidSource } from './bibliography';
+import { buildReadingContext } from './readingContext';
 import { HoidAnswer, HoidAnswerRequest, ReadingPosition } from './types';
 
 export type SpoilerRule = {
@@ -9,6 +11,9 @@ export type SpoilerRule = {
 /**
  * Rules are deliberately explicit. A term is not considered unlocked merely
  * because a different book was marked read.
+ *
+ * Rule positions are catalog identifiers. An invalid or stale identifier is
+ * treated as locked rather than allowing a malformed rule to fail open.
  */
 const rules: SpoilerRule[] = [
   {
@@ -19,9 +24,18 @@ const rules: SpoilerRule[] = [
 ];
 
 function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum']): boolean {
-  const position = reading.find(item => item.bookId === minimum.bookId);
+  // A rule that does not point at the verified source catalog must never grant
+  // access. This keeps stale policy data from silently disabling spoiler safety.
+  if (!isKnownHoidSource(minimum.bookId)) return false;
+
+  // Reuse the canonical progress boundary instead of interpreting raw input
+  // independently. Duplicate entries, invalid chapters and unknown works are
+  // therefore handled identically by authorization and spoiler filtering.
+  const position = buildReadingContext(reading)
+    .find(item => item.bookId === minimum.bookId);
+
   if (!position) return false;
-  return position.completed === true || (position.chapter !== undefined && position.chapter >= minimum.chapter);
+  return position.completed || position.chapter >= minimum.chapter;
 }
 
 function matchedLockedRule(text: string, reading: ReadingPosition[]): SpoilerRule | undefined {

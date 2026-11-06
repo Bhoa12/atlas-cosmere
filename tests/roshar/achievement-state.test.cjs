@@ -41,3 +41,13 @@ test('achievement state sanitizer rejects malformed persisted values', () => {
     { unlockedAchievementIds: ['a'], unlockedRewardIds: ['r'], updatedAt: 'fallback' }
   );
 });
+
+
+test('achievement state sanitizer rejects blank-only identifiers', () => {
+  const sanitized = sanitizeRosharAchievementState({
+    unlockedAchievementIds: ['valid-achievement', ' ', '', 'valid-achievement'],
+    unlockedRewardIds: ['valid-reward', '\t', '', 'valid-reward']
+  }, 'now');
+  assert.deepEqual(sanitized.unlockedAchievementIds, ['valid-achievement']);
+  assert.deepEqual(sanitized.unlockedRewardIds, ['valid-reward']);
+});

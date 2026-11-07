@@ -29,4 +29,17 @@ describe("spoiler guard catalog boundary", () => {
       reading: [{ bookId: "tfe", chapter: 999, completed: true }],
     }).blocked).toBe(true);
   });
+
+  it("blocks locked terms split by combining Unicode marks", () => {
+    const hidden = "Thai\u0301dakar";
+    expect(guardQuestion({
+      question: hidden,
+      reading: [{ bookId: "tfe", chapter: 999, completed: true }],
+    })?.blocked).toBe(true);
+
+    expect(redactProviderAnswer(hidden, {
+      question: "Resume mi lectura",
+      reading: [{ bookId: "tfe", chapter: 999, completed: true }],
+    }).blocked).toBe(true);
+  });
 });

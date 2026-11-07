@@ -299,7 +299,8 @@ export function validateReadingUnits(
 
     if (unit.source) {
       const edition = knownEditionVariants.get(unit.source.editionVariantId);
-      if (!edition || edition.workId !== unit.workId || !edition.contentRoot || !unit.source.locator) {
+      const unsafeLocator = !unit.source.locator || unit.source.locator.startsWith('/') || unit.source.locator.split('/').includes('..');
+      if (!edition || edition.workId !== unit.workId || !edition.contentRoot || unsafeLocator) {
         issues.push({
           code: 'invalid-source',
           itemId: unit.id,

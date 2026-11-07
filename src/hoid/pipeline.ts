@@ -37,7 +37,7 @@ export class HoidPipeline {
     }
 
     const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, request.question));
-    const providerRequest: HoidAnswerRequest = {
+    // Context is untrusted once it crosses the provider boundary. Give the provider\n    // a detached metadata snapshot so provider-side mutation cannot alter the\n    // catalog or future authorization decisions.\n    const providerContext = context.map(entry => ({\n      ...entry,\n      aliases: [...entry.aliases],\n      firstSafeAppearance: { ...entry.firstSafeAppearance },\n    }));\n    const providerRequest: HoidAnswerRequest = {
       ...authorizedRequest,
       reading: Object.freeze(authorizedRequest.reading.map(position => Object.freeze({ ...position }))) as unknown as ReadingPosition[],
     };
@@ -45,7 +45,7 @@ export class HoidPipeline {
     try {
       const provider = this.provider as Partial<ContextualHoidProvider>;
       const operation = typeof provider.answerWithContext === "function"
-        ? provider.answerWithContext(providerRequest, context)
+        ? provider.answerWithContext(providerRequest, providerContext)
         : this.provider.answer(providerRequest);
       const text = await answerWithinTimeout(operation, this.providerTimeoutMs);
       if (text === null) {

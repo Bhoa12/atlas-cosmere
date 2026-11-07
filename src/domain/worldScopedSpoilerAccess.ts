@@ -23,10 +23,12 @@ export type WorldScopedSpoilerAccess =
 export function resolveWorldScopedSpoilerAccess(
   input: WorldScopedSpoilerAccessInput,
 ): WorldScopedSpoilerAccess {
+  const normalizedWorldId = input.worldId.trim();
+  const normalizedContentWorldId = input.contentWorldId.trim();
   const validWorldIds =
-    input.worldId.trim().length > 0 &&
-    input.contentWorldId.trim().length > 0 &&
-    input.worldId === input.contentWorldId;
+    normalizedWorldId.length > 0 &&
+    normalizedContentWorldId.length > 0 &&
+    normalizedWorldId === normalizedContentWorldId;
   const validPosition =
     Number.isInteger(input.requiredPosition) && input.requiredPosition > 0;
   const validFrontier =
@@ -45,7 +47,10 @@ export function resolveWorldScopedSpoilerAccess(
     (input.frontierStatus === "blocked" && input.safeCompletedPositions === 0) ||
     (input.frontierStatus === "not-started" &&
       input.safeCompletedPositions === 0) ||
-    input.frontierStatus === "in-progress" ||
+    (input.frontierStatus === "in-progress" &&
+      input.safeCompletedPositions > 0 &&
+      (!hasDeclaredPositions ||
+        input.safeCompletedPositions < input.declaredPositions!)) ||
     (input.frontierStatus === "complete" &&
       hasDeclaredPositions &&
       input.safeCompletedPositions === input.declaredPositions);

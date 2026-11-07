@@ -12,6 +12,28 @@ export interface ContextualHoidProvider extends HoidProvider {
   answerWithContext(request: HoidAnswerRequest, context: HoidKnowledgeEntry[]): Promise<string>;
 }
 
+function providerSnapshots(
+  request: HoidAnswerRequest,
+  context: HoidKnowledgeEntry[],
+): { request: HoidAnswerRequest; context: HoidKnowledgeEntry[] } {
+  const reading = request.reading.map(position => Object.freeze({ ...position }));
+  const providerRequest = Object.freeze({
+    ...request,
+    reading: Object.freeze(reading),
+  }) as unknown as HoidAnswerRequest;
+
+  const providerContext = context.map(entry => Object.freeze({
+    ...entry,
+    aliases: Object.freeze([...entry.aliases]),
+    firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
+  })) as unknown as HoidKnowledgeEntry[];
+
+  return {
+    request: providerRequest,
+    context: Object.freeze(providerContext) as unknown as HoidKnowledgeEntry[],
+  };
+}
+
 export class HoidPipeline {
   constructor(
     private readonly provider: HoidProvider | null | undefined,
@@ -37,16 +59,16 @@ export class HoidPipeline {
     }
 
     const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, request.question));
-    // Context is untrusted once it crosses the provider boundary. Give the provider\n    // a detached metadata snapshot so provider-side mutation cannot alter the\n    // catalog or future authorization decisions.\n    const providerContext = context.map(entry => ({\n      ...entry,\n      aliases: [...entry.aliases],\n      firstSafeAppearance: { ...entry.firstSafeAppearance },\n    }));\n    const providerRequest: HoidAnswerRequest = {
-      ...authorizedRequest,
-      reading: Object.freeze(authorizedRequest.reading.map(position => Object.freeze({ ...position }))) as unknown as ReadingPosition[],
-    };
+    // Everything crossing into a provider is a detached, immutable metadata
+    // snapshot. Provider-side mutation must never affect authorization state or
+    // another request that happens to share the same catalog.
+    const snapshot = providerSnapshots(authorizedRequest, context);
 
     try {
       const provider = this.provider as Partial<ContextualHoidProvider>;
       const operation = typeof provider.answerWithContext === "function"
-        ? provider.answerWithContext(providerRequest, providerContext)
-        : this.provider.answer(providerRequest);
+        ? provider.answerWithContext(snapshot.request, snapshot.context)
+        : this.provider.answer(snapshot.request);
       const text = await answerWithinTimeout(operation, this.providerTimeoutMs);
       if (text === null) {
         return { blocked: false, reason: "provider-unavailable", text: "La fuente de conocimiento no está disponible a tiempo. Hoid no inventará una respuesta." };

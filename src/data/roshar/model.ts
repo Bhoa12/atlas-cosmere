@@ -261,12 +261,21 @@ export function validateReadingUnits(
     }
     seenOrdinals.add(ordinalKey);
 
-    if (unit.sectionId && !knownSectionIds.has(unit.sectionId)) {
-      issues.push({
-        code: 'invalid-section',
-        itemId: unit.id,
-        message: `Reading unit ${unit.id} references an unknown section`
-      });
+    if (unit.sectionId) {
+      const section = sections.find(candidate => candidate.id === unit.sectionId);
+      if (!section) {
+        issues.push({
+          code: 'invalid-section',
+          itemId: unit.id,
+          message: `Reading unit ${unit.id} references an unknown section`
+        });
+      } else if (section.workId !== unit.workId) {
+        issues.push({
+          code: 'invalid-section',
+          itemId: unit.id,
+          message: `Reading unit ${unit.id} references a section from another work`
+        });
+      }
     }
 
     if (unit.source) {

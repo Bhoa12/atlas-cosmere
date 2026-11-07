@@ -60,4 +60,5 @@ describe("resolveWorldScopedSpoilerAccess", () => {
       requiredPosition: 4,
     })).toEqual({ status: "blocked", canReveal: false });
   });
-});
+
+  it("rejects inconsistent in-progress frontiers", () => {\n    expect(resolveWorldScopedSpoilerAccess({\n      ...base,\n      frontierStatus: "in-progress",\n      safeCompletedPositions: 0,\n    })).toEqual({ status: "blocked", canReveal: false });\n    expect(resolveWorldScopedSpoilerAccess({\n      ...base,\n      frontierStatus: "in-progress",\n      safeCompletedPositions: 3,\n    })).toEqual({ status: "blocked", canReveal: false });\n  });\n});\n

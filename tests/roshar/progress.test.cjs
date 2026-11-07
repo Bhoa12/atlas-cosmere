@@ -216,6 +216,18 @@ test('validation flags blank unit identifiers even if a malformed catalog map co
 });
 
 
+test('validation fails closed for non-string current-unit values from malformed persisted data', () => {
+  const malformed = [{
+    workId: 'twok',
+    completedUnitIds: ['twok:chapter:001'],
+    currentUnitId: 42,
+    updatedAt: 't0'
+  }];
+  assert.doesNotThrow(() => validateReadingProgress(malformed, ['twok'], unitWorkById));
+  const issues = validateReadingProgress(malformed, ['twok'], unitWorkById);
+  assert.ok(issues.some(issue => issue.code === 'invalid-current-unit'));
+});
+
 test('completed unit counts do not inflate from duplicate IDs in malformed raw progress', () => {
   const progress = [{
     workId: 'twok',

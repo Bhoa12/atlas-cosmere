@@ -23,6 +23,17 @@ const rules: SpoilerRule[] = [
   }
 ];
 
+/**
+ * Normalize text at the deterministic spoiler boundary. Providers can insert
+ * Unicode format characters such as zero-width spaces between letters; those
+ * characters are invisible to readers but must not let a locked term bypass
+ * the safety rules. NFKC also makes compatibility variants comparable without
+ * changing the text returned to the UI.
+ */
+function normalizeForSpoilerMatch(text: string): string {
+  return text.normalize('NFKC').replace(/\p{Cf}/gu, '').toLocaleLowerCase();
+}
+
 function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum']): boolean {
   // A rule that does not point at the verified source catalog must never grant
   // access. This keeps stale policy data from silently disabling spoiler safety.
@@ -39,8 +50,11 @@ function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum'])
 }
 
 function matchedLockedRule(text: string, reading: ReadingPosition[]): SpoilerRule | undefined {
-  const normalized = text.toLocaleLowerCase();
-  return rules.find(rule => rule.terms.some(term => normalized.includes(term.toLocaleLowerCase())) && !hasReached(reading, rule.minimum));
+  const normalized = normalizeForSpoilerMatch(text);
+  return rules.find(rule =>
+    rule.terms.some(term => normalized.includes(normalizeForSpoilerMatch(term)))
+    && !hasReached(reading, rule.minimum),
+  );
 }
 
 export function guardQuestion(request: HoidAnswerRequest): HoidAnswer | null {

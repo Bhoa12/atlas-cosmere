@@ -25,7 +25,9 @@ export function selectVisibleEncyclopediaEntities(
   claims: readonly EncyclopediaClaim[],
   progress: readonly ReadingProgress[]
 ): EncyclopediaEntityProjection[] {
+  if (!Array.isArray(entities) || !Array.isArray(claims) || !Array.isArray(progress)) return [];
   return entities.reduce<EncyclopediaEntityProjection[]>((result, entity) => {
+    if (!entity || typeof entity.id !== 'string' || entity.id.trim().length === 0) return result;
     const visible = selectVisibleClaimsForEntity(
       [...claims],
       entity.id,
@@ -49,6 +51,7 @@ export function selectVisibleEncyclopediaClaims(
   claims: readonly EncyclopediaClaim[],
   progress: readonly ReadingProgress[]
 ): EncyclopediaClaim[] {
+  if (!Array.isArray(claims) || !Array.isArray(progress)) return [];
   return selectVisibleClaims([...claims], [...progress], ROSHAR_READING_UNIT_WORK_BY_ID);
 }
 

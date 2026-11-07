@@ -43,4 +43,24 @@ describe('HoidService catalog authorization boundary', () => {
     expect(result.blocked).toBe(false);
     expect(provider.answer).toHaveBeenCalledTimes(1);
   });
+  it('blocks provider output that introduces a locked catalog entity', async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => 'Una Entidad bloqueada aparece aquí.') };
+    const catalog = new HoidKnowledgeCatalog([
+      {
+        id: 'verified-locked-output',
+        aliases: ['Entidad bloqueada'],
+        kind: 'concept',
+        firstSafeAppearance: { bookId: 'mistborn-final-empire', chapter: 5 },
+      },
+    ]);
+
+    const result = await new HoidService(provider, undefined, catalog).answer({
+      question: 'Dame una explicación general sin nombres.',
+      reading: [{ bookId: 'mistborn-final-empire', chapter: 4 }],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('provider-output');
+  });
+
 });

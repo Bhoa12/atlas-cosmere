@@ -63,4 +63,32 @@ describe('HoidService catalog authorization boundary', () => {
     expect(result.reason).toBe('provider-output');
   });
 
+  it('keeps provider output authorization bound to progress at request entry', async () => {
+    let release!: () => void;
+    const provider: HoidProvider = {
+      answer: jest.fn(() => new Promise<string>(resolve => {
+        release = () => resolve('Una Entidad bloqueada aparece aquí.');
+      })),
+    };
+    const catalog = new HoidKnowledgeCatalog([
+      {
+        id: 'snapshot-locked-output',
+        aliases: ['Entidad bloqueada'],
+        kind: 'concept',
+        firstSafeAppearance: { bookId: 'mistborn-final-empire', chapter: 5 },
+      },
+    ]);
+    const reading = [{ bookId: 'mistborn-final-empire', chapter: 4 }];
+    const pending = new HoidService(provider, undefined, catalog).answer({
+      question: 'Dame una explicación general sin nombres.',
+      reading,
+    });
+    await Promise.resolve();
+    reading[0].chapter = 5;
+    release();
+    const result = await pending;
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('provider-output');
+  });
 });

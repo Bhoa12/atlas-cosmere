@@ -104,7 +104,6 @@ test('duplicate progress records fail closed and cannot combine into spoiler acc
   assert.deepEqual(selectVisibleClaims(claims, unambiguous, unitWorkById).map(item => item.id), ['guarded']);
 });
 
-
 test('malformed persisted progress fails closed instead of throwing or unlocking content', () => {
   const claims = [{ id: 'guarded', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
   const malformed = [
@@ -115,13 +114,11 @@ test('malformed persisted progress fails closed instead of throwing or unlocking
   assert.deepEqual(selectVisibleClaims(claims, malformed, unitWorkById), []);
 });
 
-
 test('search fails closed for malformed claim text', () => {
   const claims = [{ id: 'bad', entityId: 'x', text: null, editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
   const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, 'anything'), []);
 });
-
 
 test('search fails closed for malformed queries', () => {
   const claims = [{ id: 'visible', entityId: 'x', text: 'safe text', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
@@ -129,7 +126,6 @@ test('search fails closed for malformed queries', () => {
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, null), []);
   assert.deepEqual(selectVisibleClaimsForSearch(claims, progress, unitWorkById, { trim() {} }), []);
 });
-
 
 test('malformed claims fail closed across entity projections', () => {
   const valid = { id: 'visible', entityId: 'x', text: 'safe', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } };
@@ -141,7 +137,6 @@ test('malformed claims fail closed across entity projections', () => {
   assert.equal(isEntityFullyRevealed([null], 'x', progress, unitWorkById), false);
 });
 
-
 test('duplicate claim IDs fail closed and cannot satisfy another entity claim', () => {
   const claims = [
     { id: 'collision', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } },
@@ -152,7 +147,6 @@ test('duplicate claim IDs fail closed and cannot satisfy another entity claim', 
   assert.equal(isEntityFullyRevealed(claims, 'x', progress, unitWorkById), false);
 });
 
-
 test('malformed spoiler requirements fail closed instead of partially unlocking a gate', () => {
   const gate = { allOf: [req('twok', 'twok:prologue'), null] };
   const completed = new Set(['twok:prologue']);
@@ -160,7 +154,6 @@ test('malformed spoiler requirements fail closed instead of partially unlocking 
   const malformedAnyOf = { allOf: [req('twok', 'twok:prologue')], anyOf: [null, req('twok', 'twok:chapter:001')] };
   assert.equal(isSpoilerGateSatisfied(malformedAnyOf, new Set(['twok:prologue', 'twok:chapter:001']), unitWorkById), false);
 });
-
 
 test('claims with malformed source references fail closed', () => {
   const gate = { allOf: [req('twok', 'twok:prologue')] };
@@ -173,7 +166,6 @@ test('claims with malformed source references fail closed', () => {
   assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById).map(item => item.id), ['valid']);
 });
 
-
 test('blank reading unit identifiers fail closed and cannot satisfy gates', () => {
   const completed = new Set(['   ', 'twok:prologue']);
   assert.equal(isSpoilerGateSatisfied({ allOf: [req('twok', '   ')] }, completed, unitWorkById), false);
@@ -184,4 +176,14 @@ test('blank persisted unit IDs do not create completion state', () => {
   const claims = [{ id: 'guarded', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
   const progress = [{ workId: 'twok', completedUnitIds: ['   ', ''], updatedAt: 't0' }];
   assert.deepEqual(selectVisibleClaims(claims, progress, unitWorkById), []);
+});
+
+test('malformed claim collections and progress collections fail closed without throwing', () => {
+  const claims = [{ id: 'visible', entityId: 'x', text: 'safe', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }];
+  assert.deepEqual(selectVisibleClaims(null, progress, unitWorkById), []);
+  assert.deepEqual(selectVisibleClaims(claims, null, unitWorkById), []);
+  assert.deepEqual(selectVisibleClaimsForEntity({}, 'x', progress, unitWorkById), []);
+  assert.deepEqual(selectVisibleClaimsForSearch(claims, {}, unitWorkById, 'safe'), []);
+  assert.equal(isEntityFullyRevealed({}, 'x', progress, unitWorkById), false);
 });

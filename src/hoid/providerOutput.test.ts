@@ -10,6 +10,10 @@ describe("validProviderText", () => {
     expect(validProviderText("   ")).toBeNull();
   });
 
+  it("rejects output that becomes empty after transport controls are removed", () => {
+    expect(validProviderText("\u0000\u0001\u001F")).toBeNull();
+  });
+
   it("preserves readable text while removing transport control characters", () => {
     expect(validProviderText("  Hola\u0000 mundo  ")).toBe("Hola mundo");
   });

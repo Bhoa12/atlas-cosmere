@@ -15,12 +15,16 @@ export async function answerWithinTimeout<T>(
 ): Promise<T | null> {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return null;
 
+  // Round up so every positive finite timeout gets a real deadline instead of
+  // silently becoming a zero-millisecond race.
+  const effectiveTimeoutMs = Math.ceil(timeoutMs);
+
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       operation,
       new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), Math.floor(timeoutMs));
+        timer = setTimeout(() => resolve(null), effectiveTimeoutMs);
         const nodeTimer = timer as ReturnType<typeof setTimeout> & { unref?: () => void };
         nodeTimer.unref?.();
       }),

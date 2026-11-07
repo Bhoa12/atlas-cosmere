@@ -1,0 +1,46 @@
+import { HoidService } from './HoidService';
+import { HoidKnowledgeCatalog } from './catalog';
+import { HoidProvider } from './types';
+
+describe('HoidService catalog authorization boundary', () => {
+  it('does not send a question about a locked catalog entry to a provider', async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => 'No debería llamarse') };
+    const catalog = new HoidKnowledgeCatalog([
+      {
+        id: 'verified-locked-entity',
+        aliases: ['Entidad bloqueada'],
+        kind: 'concept',
+        firstSafeAppearance: { bookId: 'mistborn-final-empire', chapter: 5 },
+      },
+    ]);
+
+    const result = await new HoidService(provider, undefined, catalog).answer({
+      question: '¿Qué es la Entidad bloqueada?',
+      reading: [{ bookId: 'mistborn-final-empire', chapter: 4 }],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('reading-position');
+    expect(provider.answer).not.toHaveBeenCalled();
+  });
+
+  it('allows an unlocked catalog entry through the provider boundary', async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => 'Respuesta segura') };
+    const catalog = new HoidKnowledgeCatalog([
+      {
+        id: 'verified-entry',
+        aliases: ['Entidad segura'],
+        kind: 'concept',
+        firstSafeAppearance: { bookId: 'mistborn-final-empire', chapter: 5 },
+      },
+    ]);
+
+    const result = await new HoidService(provider, undefined, catalog).answer({
+      question: 'Háblame de la Entidad segura',
+      reading: [{ bookId: 'mistborn-final-empire', chapter: 5 }],
+    });
+
+    expect(result.blocked).toBe(false);
+    expect(provider.answer).toHaveBeenCalledTimes(1);
+  });
+});

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { canRevealWorkScopedEvidenceContent } from "./workScopedEvidenceSpoilerGate";
 
 describe("canRevealWorkScopedEvidenceContent", () => {
-  const sources = [{ sourceId: "cosmere", availability: "declared" as const }];
+  const sources = [{ sourceId: "cosmere", title: "Declared source", availability: "declared" as const }];
   const evidence = [{
     evidenceId: "summary-1",
     sourceId: "cosmere",

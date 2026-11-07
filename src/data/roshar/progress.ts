@@ -146,8 +146,16 @@ export function validateReadingProgress(
       if (!unitWorkById.has(id)) issues.push({ code: 'unknown-unit', workId: item.workId, readingUnitId: id });
       else if (unitWorkById.get(id) !== item.workId) issues.push({ code: 'wrong-work', workId: item.workId, readingUnitId: id });
     }
-    if (item.currentUnitId && (item.currentUnitId.trim().length === 0 || unitWorkById.get(item.currentUnitId) !== item.workId)) {
-      issues.push({ code: 'invalid-current-unit', workId: item.workId, readingUnitId: item.currentUnitId });
+    if (item.currentUnitId !== undefined && (
+      typeof item.currentUnitId !== 'string' ||
+      item.currentUnitId.trim().length === 0 ||
+      unitWorkById.get(item.currentUnitId) !== item.workId
+    )) {
+      issues.push({
+        code: 'invalid-current-unit',
+        workId: item.workId,
+        ...(typeof item.currentUnitId === 'string' ? { readingUnitId: item.currentUnitId } : {})
+      });
     }
   }
   return issues;

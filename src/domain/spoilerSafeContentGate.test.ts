@@ -3,7 +3,7 @@ import { canRevealSpoilerSafeContent } from "./spoilerSafeContentGate";
 import { privateCosmereSourceCatalog } from "./privateCosmereSourceCatalog";
 
 const progress = {
-  units: [{ id: "u1" }, { id: "u2" }],
+  units: [{ id: "u1", order: 1 }, { id: "u2", order: 2 }],
   completedUnitIds: ["u1"],
 };
 

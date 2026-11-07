@@ -299,7 +299,14 @@ export function validateReadingUnits(
 
     if (unit.source) {
       const edition = knownEditionVariants.get(unit.source.editionVariantId);
-      const unsafeLocator = !unit.source.locator || unit.source.locator.startsWith('/') || unit.source.locator.split('/').includes('..');
+      const locatorSegments = unit.source.locator.split('/');
+      const unsafeLocator =
+        !unit.source.locator ||
+        unit.source.locator.trim() !== unit.source.locator ||
+        unit.source.locator.startsWith('/') ||
+        unit.source.locator.includes('\\\\') ||
+        locatorSegments.includes('..') ||
+        locatorSegments.some(segment => segment.toLowerCase() === '%2e%2e');
       if (!edition || edition.workId !== unit.workId || !edition.contentRoot || unsafeLocator) {
         issues.push({
           code: 'invalid-source',

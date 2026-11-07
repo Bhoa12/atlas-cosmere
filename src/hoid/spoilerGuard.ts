@@ -27,11 +27,11 @@ const rules: SpoilerRule[] = [
  * Normalize text at the deterministic spoiler boundary. Providers can insert
  * Unicode format characters such as zero-width spaces between letters; those
  * characters are invisible to readers but must not let a locked term bypass
- * the safety rules. NFKC also makes compatibility variants comparable without
- * changing the text returned to the UI.
+ * the safety rules. NFKD also separates combining marks so invisible diacritics cannot split a
+ * locked term. Neither transformation changes the text returned to the UI.
  */
 function normalizeForSpoilerMatch(text: string): string {
-  return text.normalize('NFKC').replace(/\p{Cf}/gu, '').toLocaleLowerCase();
+  return text.normalize('NFKD').replace(/[\p{Cf}\p{Mn}]/gu, '').toLowerCase();
 }
 
 function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum']): boolean {

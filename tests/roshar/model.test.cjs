@@ -110,3 +110,14 @@ test('rejects a reading unit assigned to a section from another work', () => {
   );
   assert.ok(issues.some(issue => issue.code === 'invalid-section' && issue.itemId === 'twok:chapter:001'));
 });
+
+
+test('rejects cyclic reading-section parent hierarchies', () => {
+  const sections = [
+    { id: 'twok:part:1', workId: 'twok', kind: 'part', label: 'Uno', ordinal: 1, parentSectionId: 'twok:part:2' },
+    { id: 'twok:part:2', workId: 'twok', kind: 'part', label: 'Dos', ordinal: 2, parentSectionId: 'twok:part:1' }
+  ];
+  const issues = validateReadingUnits(['twok'], [], sections);
+  assert.ok(issues.some(issue => issue.code === 'invalid-section' && issue.itemId === 'twok:part:1'));
+  assert.ok(issues.some(issue => issue.code === 'invalid-section' && issue.itemId === 'twok:part:2'));
+});

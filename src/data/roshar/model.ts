@@ -182,6 +182,19 @@ export function validateReadingUnits(
   const seenSectionIds = new Set<string>();
   const seenSectionOrdinals = new Set<string>();
 
+  const sectionById = new Map(sections.map(section => [section.id, section]));
+
+  const hasParentCycle = (section: ReadingSection): boolean => {
+    const visited = new Set<string>();
+    let current: ReadingSection | undefined = section;
+    while (current?.parentSectionId) {
+      if (visited.has(current.id)) return true;
+      visited.add(current.id);
+      current = sectionById.get(current.parentSectionId);
+    }
+    return false;
+  };
+
   for (const section of sections) {
     if (seenSectionIds.has(section.id)) {
       issues.push({
@@ -214,12 +227,18 @@ export function validateReadingUnits(
         message: `Section ${section.id} references an unknown parent section`
       });
     } else if (section.parentSectionId) {
-      const parent = sections.find(candidate => candidate.id === section.parentSectionId);
+      const parent = sectionById.get(section.parentSectionId);
       if (!parent || parent.workId !== section.workId) {
         issues.push({
           code: 'invalid-section',
           itemId: section.id,
           message: `Section ${section.id} has a parent from another work`
+        });
+      } else if (hasParentCycle(section)) {
+        issues.push({
+          code: 'invalid-section',
+          itemId: section.id,
+          message: `Section ${section.id} is part of a cyclic section hierarchy`
         });
       }
     }

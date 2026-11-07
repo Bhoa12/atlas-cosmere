@@ -337,7 +337,9 @@ export function validateSpoilerGate(
   gate: SpoilerGate,
   knownUnitIds: Set<string>
 ): CatalogValidationIssue[] {
-  const requirements = [...(gate?.allOf ?? []), ...(gate?.anyOf ?? [])];
+  const allOf = Array.isArray(gate?.allOf) ? gate.allOf : [];
+  const anyOf = Array.isArray(gate?.anyOf) ? gate.anyOf : [];
+  const requirements = [...allOf, ...anyOf];
   if (requirements.length === 0) {
     return [{
       code: 'invalid-spoiler-gate',
@@ -347,7 +349,14 @@ export function validateSpoilerGate(
   }
 
   return requirements
-    .filter(requirement => !knownUnitIds.has(requirement.readingUnitId))
+    .filter(
+      (requirement): requirement is ReadingRequirement =>
+        !!requirement &&
+        typeof requirement === 'object' &&
+        typeof requirement.workId === 'string' &&
+        typeof requirement.readingUnitId === 'string' &&
+        knownUnitIds.has(requirement.readingUnitId) === false
+    )
     .map(requirement => ({
       code: 'invalid-spoiler-gate' as const,
       itemId: requirement.readingUnitId,

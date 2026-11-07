@@ -9,6 +9,7 @@ describe("canRevealWorkScopedEvidenceContent", () => {
     kind: "summary" as const,
     summaryId: "original-summary-1",
   }];
+  const bindings = [{ sourceId: "cosmere", workId: "mistborn-era-1" }];
   const base = {
     sourceId: "cosmere",
     evidenceId: "summary-1",
@@ -22,7 +23,7 @@ describe("canRevealWorkScopedEvidenceContent", () => {
   };
 
   it("requires both registered summary evidence and matching work scope", () => {
-    expect(canRevealWorkScopedEvidenceContent(base, sources, evidence)).toBe(true);
+    expect(canRevealWorkScopedEvidenceContent(base, sources, evidence, bindings)).toBe(true);
   });
 
   it("fails closed for a different work even with valid evidence", () => {
@@ -39,7 +40,7 @@ describe("canRevealWorkScopedEvidenceContent", () => {
     }, sources, evidence)).toBe(false);
   });
 
-  it("fails closed for future positions", () => {
+  it("fails closed when evidence source is not explicitly bound to the work", () => {\n    expect(canRevealWorkScopedEvidenceContent(base, sources, evidence, [\n      { sourceId: "cosmere", workId: "another-work" },\n    ])).toBe(false);\n  });\n\n  it("fails closed for future positions", () => {
     expect(canRevealWorkScopedEvidenceContent({
       ...base,
       requiredPosition: 3,

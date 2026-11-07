@@ -4,6 +4,7 @@ export type WorldScopedSpoilerAccessInput = {
   requiredPosition: number;
   frontierStatus: "blocked" | "not-started" | "in-progress" | "complete";
   safeCompletedPositions: number;
+  declaredPositions?: number;
 };
 
 export type WorldScopedSpoilerAccess =
@@ -16,8 +17,8 @@ export type WorldScopedSpoilerAccess =
  * position. The contract deliberately uses stable identifiers and positions
  * only: it does not carry titles, passages, summaries or editorial facts.
  *
- * The gate is fail-closed. A blocked frontier, an invalid position, or a
- * content/world mismatch can never grant access.
+ * The gate is fail-closed. Status/position inconsistencies, an invalid
+ * position, or a content/world mismatch can never grant access.
  */
 export function resolveWorldScopedSpoilerAccess(
   input: WorldScopedSpoilerAccessInput,
@@ -32,11 +33,37 @@ export function resolveWorldScopedSpoilerAccess(
     Number.isInteger(input.safeCompletedPositions) &&
     input.safeCompletedPositions >= 0;
 
-  if (!validWorldIds || !validPosition || !validFrontier)
+  const hasDeclaredPositions = input.declaredPositions !== undefined;
+  const validDeclaredPositions =
+    !hasDeclaredPositions ||
+    (Number.isInteger(input.declaredPositions) &&
+      input.declaredPositions! > 0 &&
+      input.safeCompletedPositions <= input.declaredPositions! &&
+      input.requiredPosition <= input.declaredPositions!);
+
+  const consistentStatus =
+    (input.frontierStatus === "blocked" && input.safeCompletedPositions === 0) ||
+    (input.frontierStatus === "not-started" &&
+      input.safeCompletedPositions === 0) ||
+    input.frontierStatus === "in-progress" ||
+    (input.frontierStatus === "complete" &&
+      hasDeclaredPositions &&
+      input.safeCompletedPositions === input.declaredPositions);
+
+  if (
+    !validWorldIds ||
+    !validPosition ||
+    !validFrontier ||
+    !validDeclaredPositions ||
+    !consistentStatus
+  )
     return { status: "blocked", canReveal: false };
 
-  if (input.frontierStatus === "blocked")
-    return { status: "blocked", canReveal: false };
+  if (
+    input.frontierStatus === "blocked" ||
+    input.frontierStatus === "not-started"
+  )
+    return { status: "locked", canReveal: false };
 
   if (input.requiredPosition > input.safeCompletedPositions)
     return { status: "locked", canReveal: false };

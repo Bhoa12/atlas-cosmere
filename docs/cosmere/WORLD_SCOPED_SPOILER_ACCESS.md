@@ -11,6 +11,7 @@ Access is blocked or locked when:
 - the requested position is invalid;
 - declared bounds contradict the frontier or request;
 - a `blocked` frontier carries completed positions;
+- an `in-progress` frontier has no completed positions or already reaches the declared end;
 - a `complete` frontier is not explicitly bounded and equal to its declared
   length.
 

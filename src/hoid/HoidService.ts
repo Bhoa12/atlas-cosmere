@@ -1,3 +1,4 @@
+import { validProviderText } from './providerOutput';
 import { guardQuestion, redactProviderAnswer } from './spoilerGuard';
 import { HoidAnswer, HoidAnswerRequest, HoidProvider } from './types';
 
@@ -17,7 +18,19 @@ export class HoidService {
     }
 
     try {
-      const answer = await this.provider.answer(request);
+      // Treat provider output as untrusted runtime data even though the
+      // TypeScript contract says it is a string.
+      const rawAnswer: unknown = await this.provider.answer(request);
+      const answer = validProviderText(rawAnswer);
+
+      if (answer === null) {
+        return {
+          blocked: true,
+          reason: 'provider-output',
+          text: 'La respuesta recibida no puede validarse de forma segura. No mostraré contenido incompleto o inesperado.'
+        };
+      }
+
       return redactProviderAnswer(answer, request);
     } catch {
       return {

@@ -133,3 +133,17 @@ test('rejects unsafe edition source locators that escape the edition root', () =
   })], [], editions);
   assert.ok(issues.some(issue => issue.code === 'invalid-source' && issue.itemId === 'twok:chapter:001'));
 });
+
+
+test('rejects ambiguous or encoded traversal edition source locators', () => {
+  const editions = [{
+    id: 'twok-user-epub', workId: 'twok', format: 'epub', provenance: 'user-supplied-file',
+    sourceFile: 'user.epub', navigationDocument: 'NCX', contentRoot: 'OEBPS', isbn: null
+  }];
+  for (const locator of [' Text/1.xhtml', 'Text\\\\1.xhtml', '%2e%2e/outside.xhtml']) {
+    const issues = validateReadingUnits(['twok'], [unit('twok:chapter:001', 1, {
+      source: { editionVariantId: 'twok-user-epub', locator }
+    })], [], editions);
+    assert.ok(issues.some(issue => issue.code === 'invalid-source' && issue.itemId === 'twok:chapter:001'));
+  }
+});

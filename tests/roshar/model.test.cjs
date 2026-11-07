@@ -121,3 +121,15 @@ test('rejects cyclic reading-section parent hierarchies', () => {
   assert.ok(issues.some(issue => issue.code === 'invalid-section' && issue.itemId === 'twok:part:1'));
   assert.ok(issues.some(issue => issue.code === 'invalid-section' && issue.itemId === 'twok:part:2'));
 });
+
+
+test('rejects unsafe edition source locators that escape the edition root', () => {
+  const editions = [{
+    id: 'twok-user-epub', workId: 'twok', format: 'epub', provenance: 'user-supplied-file',
+    sourceFile: 'user.epub', navigationDocument: 'NCX', contentRoot: 'OEBPS', isbn: null
+  }];
+  const issues = validateReadingUnits(['twok'], [unit('twok:chapter:001', 1, {
+    source: { editionVariantId: 'twok-user-epub', locator: '../outside.xhtml' }
+  })], [], editions);
+  assert.ok(issues.some(issue => issue.code === 'invalid-source' && issue.itemId === 'twok:chapter:001'));
+});

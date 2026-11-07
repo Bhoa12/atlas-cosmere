@@ -94,12 +94,15 @@ export function isSpoilerGateSatisfied(
 /**
  * Only published claims with a satisfied gate are returned to callers.
  * Draft/reviewed claims are intentionally excluded from public selectors.
+ * A malformed claim collection is treated as empty to preserve fail-closed
+ * anti-spoiler behavior for persisted or imported runtime data.
  */
 export function selectVisibleClaims(
   claims: EncyclopediaClaim[],
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
+  if (!Array.isArray(claims) || !Array.isArray(progress)) return [];
   const completedUnitIds = completedUnitsFromUnambiguousProgress(progress);
   const idCounts = new Map<string, number>();
   for (const claim of claims) {
@@ -134,6 +137,7 @@ export function isEntityFullyRevealed(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): boolean {
+  if (!Array.isArray(claims) || !Array.isArray(progress)) return false;
   if (typeof entityId !== 'string' || entityId.trim().length === 0) return false;
   const entityClaims = claims.filter(claim =>
     !!claim && typeof claim.entityId === 'string' &&
@@ -157,6 +161,7 @@ export function selectVisibleClaimsForEntity(
   progress: ReadingProgress[],
   unitWorkById: ReadonlyMap<string, string>
 ): EncyclopediaClaim[] {
+  if (!Array.isArray(claims) || !Array.isArray(progress)) return [];
   if (typeof entityId !== 'string' || entityId.trim().length === 0) return [];
   return selectVisibleClaims(claims, progress, unitWorkById)
     .filter(claim => claim.entityId === entityId);
@@ -173,6 +178,7 @@ export function selectVisibleClaimsForSearch(
   unitWorkById: ReadonlyMap<string, string>,
   query: string
 ): EncyclopediaClaim[] {
+  if (!Array.isArray(claims) || !Array.isArray(progress)) return [];
   if (typeof query !== 'string') return [];
   const normalizedQuery = query.trim().toLocaleLowerCase();
   if (!normalizedQuery) return [];

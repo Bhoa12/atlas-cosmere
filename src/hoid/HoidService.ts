@@ -1,4 +1,5 @@
 import { validProviderText } from './providerOutput';
+import { snapshotProviderRequest } from './providerRequestSnapshot';
 import { answerWithinTimeout } from './providerTimeout';
 import { guardQuestion, redactProviderAnswer } from './spoilerGuard';
 import { HoidAnswer, HoidAnswerRequest, HoidProvider } from './types';
@@ -29,12 +30,12 @@ export class HoidService {
     }
 
     try {
-      // Treat provider output as untrusted runtime data even though the
-      // TypeScript contract says it is a string. The timeout is part of the
-      // provider boundary so a slow integration cannot keep the reader request
-      // alive indefinitely.
+      // Cross the provider boundary with a detached immutable snapshot. A
+      // provider may continue running after a timeout, so it must never retain
+      // references to mutable reader progress owned by the application.
+      const providerRequest = snapshotProviderRequest(request);
       const rawAnswer: unknown = await answerWithinTimeout(
-        this.provider.answer(request),
+        this.provider.answer(providerRequest),
         this.providerTimeoutMs,
       );
 

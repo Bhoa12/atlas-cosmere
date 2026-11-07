@@ -1,4 +1,6 @@
 import { validProviderText } from './providerOutput';
+import { HoidKnowledgeCatalog } from './catalog';
+import { authorizeHoidContext } from './contextPolicy';
 import { snapshotProviderRequest } from './providerRequestSnapshot';
 import { answerWithinTimeout } from './providerTimeout';
 import { guardQuestion, redactProviderAnswer } from './spoilerGuard';
@@ -15,11 +17,28 @@ export class HoidService {
   constructor(
     private readonly provider?: HoidProvider,
     private readonly providerTimeoutMs = DEFAULT_PROVIDER_TIMEOUT_MS,
+    private readonly catalog?: HoidKnowledgeCatalog,
   ) {}
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
     const blocked = guardQuestion(request);
     if (blocked) return blocked;
+
+    // Catalog authorization is a second, broader trust boundary. The explicit
+    // spoiler guard protects known high-risk terms; the catalog prevents any
+    // editorially verified locked entity from reaching an external provider.
+    // Missing catalog metadata never invents a block, preserving backwards
+    // compatibility while deployments that configure the catalog fail closed.
+    if (this.catalog) {
+      const contextDecision = authorizeHoidContext(request, this.catalog);
+      if (!contextDecision.allowed) {
+        return {
+          blocked: true,
+          reason: 'reading-position',
+          text: 'Esa pregunta podría revelar información que todavía no has alcanzado. Cuando avances en la lectura, Hoid podrá explicarla con seguridad.'
+        };
+      }
+    }
 
     if (!this.provider) {
       return {

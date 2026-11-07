@@ -161,3 +161,11 @@ test('rejects malformed non-string edition source locators without throwing', ()
   const issues = validateReadingUnits(['twok'], [malformed], [], editions);
   assert.ok(issues.some(issue => issue.code === 'invalid-source' && issue.itemId === 'twok:chapter:001'));
 });
+
+
+test('rejects malformed spoiler gate arrays without throwing', () => {
+  const malformed = { allOf: 'twok:chapter:001', anyOf: { readingUnitId: 'twok:chapter:001' } };
+  assert.doesNotThrow(() => validateSpoilerGate(malformed, new Set(['twok:chapter:001'])));
+  const issues = validateSpoilerGate(malformed, new Set(['twok:chapter:001']));
+  assert.ok(issues.some(issue => issue.code === 'invalid-spoiler-gate'));
+});

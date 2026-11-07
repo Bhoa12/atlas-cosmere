@@ -1,6 +1,7 @@
 import { BibliographicSourceEntry } from "./privateCosmereSourceCatalog";
 import { NarrativeEvidenceRecord, hasRegisteredSummaryEvidence } from "./narrativeEvidenceRegistry";
 import { canRevealWorkScopedPosition } from "./workScopedSpoilerAccess";
+import { SourceWorkBinding, isSourceBoundToWork } from "./sourceWorkBinding";
 
 export interface WorkScopedEvidenceSpoilerInput {
   sourceId: string;
@@ -23,6 +24,7 @@ export function canRevealWorkScopedEvidenceContent(
   input: WorkScopedEvidenceSpoilerInput,
   sources: readonly BibliographicSourceEntry[],
   evidence: readonly NarrativeEvidenceRecord[],
+  bindings: readonly SourceWorkBinding[],
 ): boolean {
   if (
     typeof input.sourceId !== "string" ||
@@ -35,6 +37,10 @@ export function canRevealWorkScopedEvidenceContent(
   if (!source || source.availability !== "declared") return false;
 
   if (!hasRegisteredSummaryEvidence(input.evidenceId, input.sourceId, evidence)) {
+    return false;
+  }
+
+  if (!isSourceBoundToWork(input.sourceId, input.contentWorkId, bindings)) {
     return false;
   }
 

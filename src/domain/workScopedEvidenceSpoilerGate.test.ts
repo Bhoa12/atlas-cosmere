@@ -22,7 +22,7 @@ describe("canRevealWorkScopedEvidenceContent", () => {
     declaredPositions: 3,
   };
 
-  it("requires both registered summary evidence and matching work scope", () => {
+  it("requires registered evidence, matching scope and explicit source provenance", () => {
     expect(canRevealWorkScopedEvidenceContent(base, sources, evidence, bindings)).toBe(true);
   });
 
@@ -30,20 +30,26 @@ describe("canRevealWorkScopedEvidenceContent", () => {
     expect(canRevealWorkScopedEvidenceContent({
       ...base,
       contentWorkId: "another-work",
-    }, sources, evidence)).toBe(false);
+    }, sources, evidence, bindings)).toBe(false);
   });
 
   it("fails closed for missing summary evidence", () => {
     expect(canRevealWorkScopedEvidenceContent({
       ...base,
       evidenceId: "missing",
-    }, sources, evidence)).toBe(false);
+    }, sources, evidence, bindings)).toBe(false);
   });
 
-  it("fails closed when evidence source is not explicitly bound to the work", () => {\n    expect(canRevealWorkScopedEvidenceContent(base, sources, evidence, [\n      { sourceId: "cosmere", workId: "another-work" },\n    ])).toBe(false);\n  });\n\n  it("fails closed for future positions", () => {
+  it("fails closed when evidence source is not explicitly bound to the work", () => {
+    expect(canRevealWorkScopedEvidenceContent(base, sources, evidence, [
+      { sourceId: "cosmere", workId: "another-work" },
+    ])).toBe(false);
+  });
+
+  it("fails closed for future positions", () => {
     expect(canRevealWorkScopedEvidenceContent({
       ...base,
       requiredPosition: 3,
-    }, sources, evidence)).toBe(false);
+    }, sources, evidence, bindings)).toBe(false);
   });
 });

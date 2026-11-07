@@ -31,6 +31,27 @@ No se debe copiar ni subir texto íntegro protegido. Los resúmenes usados por H
 
 Ante progreso ambiguo, catálogo inconsistente, recuperación no autorizada, salida malformada, timeout o detección de posible spoiler, Hoid debe rechazar o degradar la respuesta en lugar de completar información con una suposición.
 
+## Respuestas adaptadas al progreso
+
+La respuesta debe distinguir entre tres situaciones:
+
+- **Explicación autorizada:** puede responder con el contexto desbloqueado por el lector.
+- **Información todavía bloqueada:** debe negarse de forma breve y ofrecer una explicación alternativa basada únicamente en conocimiento ya desbloqueado.
+- **Contexto insuficiente o no verificable:** debe reconocer la limitación en vez de completar huecos con hechos supuestos.
+
+Las recomendaciones siguen exactamente la misma política de autorización. Una recomendación no puede insinuar que existe una revelación, personaje, acontecimiento o giro posterior si ese conocimiento no está desbloqueado.
+
+## Política de procedencia
+
+Cada resumen o entrada de conocimiento incorporada al catálogo debe poder asociarse a:
+
+- una obra y, cuando corresponda, un capítulo o punto de lectura;
+- el nivel de desbloqueo necesario para usarla;
+- una indicación de que es un resumen o metadato original, no texto copiado de una fuente protegida;
+- una fuente accesible o una limitación explícita cuando la verificación no sea posible.
+
+La ausencia de acceso a un pasaje nunca se compensa con una invención. El catálogo debe preferir omitir una entrada antes que afirmar un hecho narrativo no respaldado.
+
 ## Pruebas mínimas
 
 Las pruebas deben cubrir:
@@ -41,7 +62,8 @@ Las pruebas deben cubrir:
 - proveedores lentos, fallidos o con salida malformada;
 - ofuscación Unicode en términos bloqueados;
 - aislamiento entre solicitudes;
-- ausencia de dependencias directas del dominio hacia SDK concretos.
+- ausencia de dependencias directas del dominio hacia SDK concretos;
+- respuestas y recomendaciones que degraden de forma segura cuando el contexto no esté verificado.
 
 ## Recomendaciones
 

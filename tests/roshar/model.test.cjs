@@ -147,3 +147,17 @@ test('rejects ambiguous or encoded traversal edition source locators', () => {
     assert.ok(issues.some(issue => issue.code === 'invalid-source' && issue.itemId === 'twok:chapter:001'));
   }
 });
+
+
+test('rejects malformed non-string edition source locators without throwing', () => {
+  const editions = [{
+    id: 'twok-user-epub', workId: 'twok', format: 'epub', provenance: 'user-supplied-file',
+    sourceFile: 'user.epub', navigationDocument: 'NCX', contentRoot: 'OEBPS', isbn: null
+  }];
+  const malformed = unit('twok:chapter:001', 1, {
+    source: { editionVariantId: 'twok-user-epub', locator: 42 }
+  });
+  assert.doesNotThrow(() => validateReadingUnits(['twok'], [malformed], [], editions));
+  const issues = validateReadingUnits(['twok'], [malformed], [], editions);
+  assert.ok(issues.some(issue => issue.code === 'invalid-source' && issue.itemId === 'twok:chapter:001'));
+});

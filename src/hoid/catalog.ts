@@ -10,8 +10,16 @@ export type HoidKnowledgeEntry = {
   summary?: string;
 };
 
+/**
+ * Match catalog aliases against a canonical representation. Format characters
+ * (for example zero-width spaces) and combining marks must not let a locked
+ * entity bypass the deterministic spoiler boundary.
+ */
 function normalizeForCatalogMatch(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return value
+    .normalize('NFKD')
+    .replace(/[\p{Cf}\p{Mn}]/gu, '')
+    .toLowerCase();
 }
 
 function escapeRegex(value: string): string {

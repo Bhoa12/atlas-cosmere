@@ -93,3 +93,20 @@ test('rejects unknown section and mismatched edition source', () => {
   assert.ok(issues.some(issue => issue.code === 'invalid-section'));
   assert.ok(issues.some(issue => issue.code === 'invalid-source'));
 });
+
+
+test('rejects a reading unit assigned to a section from another work', () => {
+  const sections = [{
+    id: 'wor:part:1',
+    workId: 'wor',
+    kind: 'part',
+    label: 'Parte uno',
+    ordinal: 1
+  }];
+  const issues = validateReadingUnits(
+    ['twok', 'wor'],
+    [unit('twok:chapter:001', 1, { sectionId: 'wor:part:1' })],
+    sections
+  );
+  assert.ok(issues.some(issue => issue.code === 'invalid-section' && issue.itemId === 'twok:chapter:001'));
+});

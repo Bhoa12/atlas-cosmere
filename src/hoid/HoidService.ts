@@ -81,7 +81,18 @@ export class HoidService {
         };
       }
 
-      // The catalog is also enforced on provider output. A provider can mention\n      // a locked entity even when the reader did not ask about it, so output\n      // must never bypass the same book/chapter authorization boundary.\n      if (this.catalog && this.catalog.lockedMatches(answer, authorizedRequest.reading).length > 0) {\n        return {\n          blocked: true,\n          reason: 'provider-output',\n          text: 'La respuesta podría revelar información que todavía no has alcanzado. Prefiero mantener ese misterio sellado hasta que avances en la lectura.'\n        };\n      }\n\n      return redactProviderAnswer(answer, authorizedRequest);
+      // The catalog is also enforced on provider output. A provider can mention
+      // a locked entity even when the reader did not ask about it, so output
+      // must never bypass the same book/chapter authorization boundary.
+      if (this.catalog && this.catalog.lockedMatches(answer, authorizedRequest.reading).length > 0) {
+        return {
+          blocked: true,
+          reason: 'provider-output',
+          text: 'La respuesta podría revelar información que todavía no has alcanzado. Prefiero mantener ese misterio sellado hasta que avances en la lectura.'
+        };
+      }
+
+      return redactProviderAnswer(answer, authorizedRequest);
     } catch {
       return {
         blocked: false,

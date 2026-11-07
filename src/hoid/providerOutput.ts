@@ -15,10 +15,16 @@ export function validProviderText(
   if (typeof value !== "string") return null;
   if (!Number.isFinite(maxLength) || maxLength <= 0) return null;
 
-  const text = value.trim();
+  // Remove only transport-level control characters before deciding whether the
+  // response is usable. A provider must not be able to turn an otherwise empty
+  // answer into an accepted value by sending only invisible control bytes.
+  const text = value
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    .trim();
+
   if (!text || text.length > Math.floor(maxLength)) return null;
 
-  // Remove only transport-level control characters. Content is otherwise left
-  // untouched so later spoiler guards inspect the provider's actual wording.
-  return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  // Content is otherwise left untouched so later spoiler guards inspect the
+  // provider's actual wording.
+  return text;
 }

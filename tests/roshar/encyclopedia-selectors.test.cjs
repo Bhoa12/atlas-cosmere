@@ -41,3 +41,13 @@ test('published claims require review and exact novel source locator', () => {
   assert.ok(issues.some(issue => issue.includes('has not been reviewed')));
   assert.ok(issues.some(issue => issue.includes('exact source locator')));
 });
+
+
+test('public encyclopedia selectors fail closed for malformed collections and entities', () => {
+  const entity = { id: 'e1', planetId: 'roshar', type: 'concept', canonicalName: 'Visible', aliases: [] };
+  const claim = { id: 'c1', entityId: 'e1', text: 'Safe', editorialStatus: 'published', sourceRefs: ['s1'], spoilerGate: { allOf: [{ workId: 'twok', readingUnitId: 'twok:chapter:001' }] } };
+  const progress = [{ workId: 'twok', completedUnitIds: ['twok:chapter:001'], updatedAt: 't0' }];
+  assert.deepEqual(selectors.selectVisibleEncyclopediaEntities(null, [claim], progress), []);
+  assert.deepEqual(selectors.selectVisibleEncyclopediaEntities([null, { id: 42 }, entity], [claim], progress).map(item => item.entity.id), ['e1']);
+  assert.deepEqual(selectors.selectVisibleEncyclopediaClaims([claim], null), []);
+});

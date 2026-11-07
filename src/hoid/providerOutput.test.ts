@@ -1,4 +1,7 @@
-import { validProviderText } from "./providerOutput";
+import {
+  DEFAULT_MAX_PROVIDER_TEXT_LENGTH,
+  validProviderText,
+} from "./providerOutput";
 
 describe("validProviderText", () => {
   it("rejects malformed or empty provider output", () => {
@@ -13,5 +16,15 @@ describe("validProviderText", () => {
 
   it("preserves Unicode wording for the spoiler guard instead of ASCII-normalizing it", () => {
     expect(validProviderText("  ¿Qué pasó en Roshar?  ")).toBe("¿Qué pasó en Roshar?");
+  });
+
+  it("fails closed on oversized provider output before expensive spoiler checks", () => {
+    const oversized = "x".repeat(DEFAULT_MAX_PROVIDER_TEXT_LENGTH + 1);
+    expect(validProviderText(oversized)).toBeNull();
+  });
+
+  it("rejects invalid size limits conservatively", () => {
+    expect(validProviderText("respuesta", 0)).toBeNull();
+    expect(validProviderText("respuesta", Infinity)).toBeNull();
   });
 });

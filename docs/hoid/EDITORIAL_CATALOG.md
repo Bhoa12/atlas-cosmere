@@ -51,4 +51,5 @@ Las pruebas del catálogo deben cubrir:
 - obras distintas con el mismo número de capítulo;
 - entradas sin procedencia verificable;
 - alias y variantes Unicode;
-- mutación del progreso original después de crear la instantánea autorizada.
+- mutación del progreso original después de crear la instantánea autorizada;
+- posiciones duplicadas o desordenadas para una misma obra: la autorización debe usar el contexto canónico, nunca el primer elemento recibido.

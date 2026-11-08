@@ -58,5 +58,14 @@ export function resolveSourceBindingCoverage(
   };
 }
 
+/** Returns true only when every catalog source has an explicit binding. */
+export function hasCompleteSourceBindingCoverage(
+  catalog: readonly SourceCatalogEntry[],
+  bindings: readonly SourceWorkBinding[],
+): boolean {
+  const coverage = resolveSourceBindingCoverage(catalog, bindings);
+  return coverage.status === "valid" && coverage.uncoveredSourceIds.length === 0;
+}
+
 /** Backwards-compatible name for callers using the original audit terminology. */
 export const auditSourceBindingCoverage = resolveSourceBindingCoverage;

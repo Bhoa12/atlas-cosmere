@@ -14,8 +14,18 @@ export function snapshotProviderRequest(request: HoidAnswerRequest): HoidAnswerR
   const reading = buildReadingContext(request.reading)
     .map((position) => Object.freeze({ ...position }));
 
+  const knowledgeContext = request.knowledgeContext
+    ? request.knowledgeContext.map((fact) => Object.freeze({
+        id: fact.id,
+        kind: fact.kind,
+        source: Object.freeze({ ...fact.source }),
+        summary: fact.summary,
+      }))
+    : undefined;
+
   return Object.freeze({
     question: request.question,
     reading: Object.freeze(reading),
+    ...(knowledgeContext ? { knowledgeContext: Object.freeze(knowledgeContext) } : {}),
   });
 }

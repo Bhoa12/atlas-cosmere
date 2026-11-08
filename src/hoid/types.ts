@@ -6,9 +6,22 @@ export type ReadingPosition = {
   order?: number;
 };
 
+export type HoidKnowledgeContextFact = {
+  id: string;
+  kind: 'character' | 'place' | 'event' | 'concept' | 'magic' | 'organization' | 'object';
+  source: { bookId: string; chapter: number };
+  /** Original editorial summary, never source text. */
+  summary: string;
+};
+
 export type HoidAnswerRequest = {
   question: string;
   reading: ReadingPosition[];
+  /**
+   * Optional provider-facing knowledge that has already passed editorial,
+   * provenance and reading-position authorization.
+   */
+  knowledgeContext?: readonly HoidKnowledgeContextFact[];
 };
 
 export type HoidAnswer = {

@@ -21,7 +21,7 @@ La entrada debe tratarse como una instantánea. El adaptador no puede asumir que
 La salida del proveedor es no confiable. Antes de mostrarse debe:
 
 1. cumplir el contrato de respuesta esperado;
-2. superar la validación runtime;
+2. superar la validación runtime y la normalización canónica de controles invisibles y Unicode antes de cualquier análisis de spoilers;
 3. pasar el filtro anti-spoilers;
 4. respetar el catálogo y los límites de obra y capítulo;
 5. degradarse o rechazarse ante cualquier ambigüedad.

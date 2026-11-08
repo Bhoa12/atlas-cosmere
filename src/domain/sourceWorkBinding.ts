@@ -5,15 +5,15 @@ export interface SourceWorkBinding {
 
 /**
  * Validates a deliberately editorial-neutral mapping between a declared source
- * and the work identifier used by the reading model. It stores no title text,
- * world assignment or narrative facts.
+ * and the work identifier used by the reading model. A source can authorize
+ * only one work in this registry, while several independently cataloged sources
+ * may explicitly support the same work.
  */
 export function validateSourceWorkBindings(
   bindings: readonly SourceWorkBinding[],
 ): string[] {
   const errors: string[] = [];
   const sourceIds = new Set<string>();
-  const workIds = new Set<string>();
 
   for (const binding of bindings) {
     const sourceId = typeof binding.sourceId === "string" ? binding.sourceId.trim() : "";
@@ -24,11 +24,7 @@ export function validateSourceWorkBindings(
     if (sourceId && sourceIds.has(sourceId)) {
       errors.push("Binding source ids must be unique");
     }
-    if (workId && workIds.has(workId)) {
-      errors.push("Binding work ids must be unique");
-    }
     if (sourceId) sourceIds.add(sourceId);
-    if (workId) workIds.add(workId);
   }
 
   return errors;

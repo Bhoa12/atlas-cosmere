@@ -10,7 +10,7 @@ import { HoidAnswerRequest } from './types';
  * Providers must never observe mutable application state because they can run
  * after a timeout and their asynchronous work is outside Atlas control.
  */
-export function snapshotProviderRequest(request: HoidAnswerRequest): HoidAnswerRequest {
+export type ProviderSnapshotOptions = {\n  /**\n   * Only enable this for context constructed internally after editorial and\n   * provenance checks. Caller-supplied knowledge is never trusted by default.\n   */\n  includeAuthorizedKnowledgeContext?: boolean;\n};\n\nexport function snapshotProviderRequest(\n  request: HoidAnswerRequest,\n  options: ProviderSnapshotOptions = {},\n): HoidAnswerRequest {
   const reading = buildReadingContext(request.reading)
     .map((position) => Object.freeze({ ...position }));
 

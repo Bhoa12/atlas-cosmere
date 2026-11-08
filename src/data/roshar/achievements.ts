@@ -39,7 +39,20 @@ export function evaluateRosharReadingAchievements(
     .reduce((total, item) => total + new Set(
       item.completedUnitIds.filter(id => unitWorkById.get(id) === item.workId)
     ).size, 0);
-  return safeAchievements.filter((achievement): achievement is RosharReadingAchievement => Boolean(achievement && typeof achievement === 'object' && typeof achievement.id === 'string' && achievement.id.trim().length > 0)).map(achievement => {
+  return safeAchievements.filter((achievement): achievement is RosharReadingAchievement => Boolean(
+    achievement &&
+    typeof achievement === 'object' &&
+    typeof achievement.id === 'string' &&
+    achievement.id.trim().length > 0 &&
+    (achievement.requiredCompletedUnits === undefined ||
+      (typeof achievement.requiredCompletedUnits === 'number' &&
+        Number.isSafeInteger(achievement.requiredCompletedUnits) &&
+        achievement.requiredCompletedUnits >= 0)) &&
+    (achievement.requiresNarrativeCompletion === undefined ||
+      typeof achievement.requiresNarrativeCompletion === 'boolean') &&
+    (achievement.workId === undefined ||
+      (typeof achievement.workId === 'string' && achievement.workId.trim().length > 0))
+  )).map(achievement => {
     const countSatisfied = achievement.requiredCompletedUnits === undefined ||
       totalCompleted >= achievement.requiredCompletedUnits;
     const completionSatisfied = !achievement.requiresNarrativeCompletion ||

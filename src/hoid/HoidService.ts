@@ -1,4 +1,5 @@
 import { validProviderText } from './providerOutput';
+import { validHoidQuestion } from './requestValidation';
 import { HoidKnowledgeCatalog } from './catalog';
 import { authorizeHoidContext } from './contextPolicy';
 import { buildAuthorizedKnowledgeContext } from './authorizedKnowledgeContext';
@@ -22,13 +23,25 @@ export class HoidService {
   ) {}
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
-    const blocked = guardQuestion(request);
+    const question = validHoidQuestion(request.question);
+    if (question === null) {
+      return {
+        blocked: true,
+        reason: 'provider-output',
+        text: 'La pregunta no puede procesarse de forma segura. Prueba a escribir una pregunta concreta y más breve.'
+      };
+    }
+
+    // Normalize the question once at the input boundary so every later stage
+    // evaluates the same detached request rather than raw UI text.
+    const normalizedRequest: HoidAnswerRequest = { ...request, question };
+    const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
 
     // Freeze the reader state once at service entry. Every authorization step
     // in this request must evaluate the same progress snapshot; mutable UI
     // state must not change what an in-flight provider response is allowed to reveal.
-    const progressSnapshot = snapshotProviderRequest(request);
+    const progressSnapshot = snapshotProviderRequest(normalizedRequest);
 
     // Catalog authorization is a second, broader trust boundary. The explicit
     // spoiler guard protects known high-risk terms; the catalog prevents any

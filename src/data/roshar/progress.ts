@@ -43,14 +43,16 @@ export function setCurrentReadingUnit(
   unitWorkById: ReadonlyMap<string, string>,
   updatedAt: string
 ): ReadingProgress[] {
-  if (typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
+  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
   if (unitWorkById.get(readingUnitId) !== workId) return progress;
-  const current = getUnambiguousReadingProgress(progress, workId);
-  if (progress.filter(item => item.workId === workId).length > 1) return progress;
+  const safeProgress = progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds)));
+  if (safeProgress.length !== progress.length) return progress;
+  const current = getUnambiguousReadingProgress(safeProgress, workId);
+  if (safeProgress.filter(item => item.workId === workId).length > 1) return progress;
   const next: ReadingProgress = current
     ? { ...current, currentUnitId: readingUnitId, updatedAt }
     : { workId, completedUnitIds: [], currentUnitId: readingUnitId, updatedAt };
-  return [...progress.filter(item => item.workId !== workId), next];
+  return [...safeProgress.filter(item => item.workId !== workId), next];
 }
 
 /**
@@ -63,10 +65,12 @@ export function markReadingUnitCompleted(
   unitWorkById: ReadonlyMap<string, string>,
   updatedAt: string
 ): ReadingProgress[] {
-  if (typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
+  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
   if (unitWorkById.get(readingUnitId) !== workId) return progress;
-  const current = getUnambiguousReadingProgress(progress, workId);
-  if (progress.filter(item => item.workId === workId).length > 1) return progress;
+  const safeProgress = progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds)));
+  if (safeProgress.length !== progress.length) return progress;
+  const current = getUnambiguousReadingProgress(safeProgress, workId);
+  if (safeProgress.filter(item => item.workId === workId).length > 1) return progress;
   const completedUnitIds = Array.from(new Set([...(current?.completedUnitIds ?? []), readingUnitId]));
   const next: ReadingProgress = {
     workId,

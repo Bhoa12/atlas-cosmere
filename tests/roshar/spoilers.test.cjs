@@ -187,3 +187,12 @@ test('malformed claim collections and progress collections fail closed without t
   assert.deepEqual(selectVisibleClaimsForSearch(claims, {}, unitWorkById, 'safe'), []);
   assert.equal(isEntityFullyRevealed({}, 'x', progress, unitWorkById), false);
 });
+
+
+test('spoiler gates fail closed for malformed runtime completion sets and unit indexes', () => {
+  const gate = { allOf: [req('twok', 'twok:prologue')] };
+  assert.doesNotThrow(() => isSpoilerGateSatisfied(gate, null, unitWorkById));
+  assert.doesNotThrow(() => isSpoilerGateSatisfied(gate, new Set(['twok:prologue']), null));
+  assert.equal(isSpoilerGateSatisfied(gate, null, unitWorkById), false);
+  assert.equal(isSpoilerGateSatisfied(gate, new Set(['twok:prologue']), null), false);
+});

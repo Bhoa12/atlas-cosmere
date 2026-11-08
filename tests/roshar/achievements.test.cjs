@@ -107,7 +107,8 @@ test('achievement selectors fail closed for malformed runtime collections', () =
   assert.deepEqual(selectUnlockedRosharRewardIds([
     null,
     { unlocked: true, achievement: { reward: { id: ' valid ' } } },
-    { unlocked: true, achievement: { reward: { id: ' ' } } }
+    { unlocked: true, achievement: { id: 'valid', title: 'Valid', description: '', reward: { id: ' valid ' } } },
+    { unlocked: true, achievement: { id: 'blank-reward', title: 'Blank', description: '', reward: { id: ' ' } } }
   ]), ['valid']);
 });
 
@@ -140,4 +141,15 @@ test('malformed achievement requirements cannot unlock rewards', () => {
   ], units, []);
   assert.deepEqual(result.map(item => item.achievement.id), ['valid-zero']);
   assert.equal(result[0].unlocked, true);
+});
+
+
+test('reward selector requires a strictly unlocked, valid achievement projection', () => {
+  const reward = { id: 'safe', type: 'badge', label: 'Safe' };
+  const rewards = selectUnlockedRosharRewardIds([
+    { unlocked: 'yes', achievement: { id: 'truthy', title: 'Leak', description: '', reward } },
+    { unlocked: true, achievement: { id: ' ', title: 'Leak', description: '', reward } },
+    { unlocked: true, achievement: { id: 'safe-achievement', title: 'Safe', description: '', reward } }
+  ]);
+  assert.deepEqual(rewards, ['safe']);
 });

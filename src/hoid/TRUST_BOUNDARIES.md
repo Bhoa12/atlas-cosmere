@@ -23,6 +23,7 @@ Hoid debe fallar de forma conservadora: ningún dato no confiable puede aumentar
 5. Los snapshots enviados al proveedor no reutilizan objetos mutables de la petición.
 6. La salida externa se considera no confiable hasta superar las comprobaciones de seguridad.
 7. La ausencia de contexto verificado nunca autoriza a inventar hechos.
+8. El conocimiento narrativo aportado por el llamador, aunque tenga una estructura válida, nunca cruza la frontera del proveedor.
 
 ## Bibliografía
 

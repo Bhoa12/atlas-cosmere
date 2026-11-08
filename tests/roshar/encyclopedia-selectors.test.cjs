@@ -51,3 +51,10 @@ test('public encyclopedia selectors fail closed for malformed collections and en
   assert.deepEqual(selectors.selectVisibleEncyclopediaEntities([null, { id: 42 }, entity], [claim], progress).map(item => item.entity.id), ['e1']);
   assert.deepEqual(selectors.selectVisibleEncyclopediaClaims([claim], null), []);
 });
+
+
+test('encyclopedia validation reports malformed collections and claims without throwing', () => {
+  assert.deepEqual(validateEncyclopediaContent(null, [], []), ['Encyclopedia content contains malformed collections']);
+  const issues = validateEncyclopediaContent([], [null, { id: 'bad', entityId: 'e', sourceRefs: [], spoilerGate: { allOf: [] } }], []);
+  assert.ok(issues.some(issue => issue.includes('malformed claim')));
+});

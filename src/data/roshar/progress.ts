@@ -9,7 +9,8 @@ export function getUnambiguousReadingProgress(
   progress: readonly ReadingProgress[],
   workId: string
 ): ReadingProgress | undefined {
-  const matches = progress.filter(item => item.workId === workId);
+  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0) return undefined;
+  const matches = progress.filter(item => Boolean(item && typeof item === 'object') && item.workId === workId);
   return matches.length === 1 ? matches[0] : undefined;
 }
 
@@ -187,27 +188,28 @@ export function isNarrativeWorkComplete(
   units: readonly ReadingUnit[],
   progress: readonly ReadingProgress[]
 ): boolean {
-  if (!workId) return false;
-  const requiredUnits = units.filter(unit =>
-    unit.workId === workId && isRequiredForNarrativeCompletion(unit)
-  );
+  if (typeof workId !== 'string' || workId.trim().length === 0 || !Array.isArray(units) || !Array.isArray(progress)) return false;
+  const requiredUnits = units.filter((unit): unit is ReadingUnit => Boolean(unit && typeof unit === 'object' && typeof unit.id === 'string' && typeof unit.workId === 'string') && unit.workId === workId && isRequiredForNarrativeCompletion(unit));
   if (requiredUnits.length === 0) return false;
-  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  const safeProgress = progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds)));
+  const workProgress = getUnambiguousReadingProgress(safeProgress, workId);
   const completedUnitIds = new Set(workProgress?.completedUnitIds ?? []);
   return requiredUnits.every(unit => completedUnitIds.has(unit.id));
 }
 
 /** Returns an explicit count of completed units; no legacy counters are used. */
 export function getCompletedReadingUnitCount(progress: readonly ReadingProgress[], workId?: string): number {
-  if (workId) {
+  if (!Array.isArray(progress)) return 0;
+  if (typeof workId === 'string' && workId.trim().length > 0) {
     const item = getUnambiguousReadingProgress(progress, workId);
     return item ? new Set(item.completedUnitIds).size : 0;
   }
+  const safeProgress = progress.filter((entry): entry is ReadingProgress => Boolean(entry && typeof entry === 'object' && typeof entry.workId === 'string' && Array.isArray(entry.completedUnitIds)));
   const countsByWork = new Map<string, number>();
-  for (const entry of progress) {
+  for (const entry of safeProgress) {
     countsByWork.set(entry.workId, (countsByWork.get(entry.workId) ?? 0) + 1);
   }
-  return progress
+  return safeProgress
     .filter(entry => countsByWork.get(entry.workId) === 1)
     .reduce((total, entry) => total + new Set(entry.completedUnitIds).size, 0);
 }
@@ -222,10 +224,12 @@ export function getNextRequiredReadingUnitId(
   units: readonly ReadingUnit[],
   progress: readonly ReadingProgress[]
 ): string | undefined {
-  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  if (typeof workId !== 'string' || workId.trim().length === 0 || !Array.isArray(units) || !Array.isArray(progress)) return undefined;
+  const safeProgress = progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds)));
+  const workProgress = getUnambiguousReadingProgress(safeProgress, workId);
   const completed = new Set(workProgress?.completedUnitIds ?? []);
   return units
-    .filter(unit => unit.workId === workId && isRequiredForNarrativeCompletion(unit))
+    .filter((unit): unit is ReadingUnit => Boolean(unit && typeof unit === 'object' && typeof unit.id === 'string' && typeof unit.workId === 'string') && unit.workId === workId && isRequiredForNarrativeCompletion(unit))
     .sort((a, b) => a.ordinal - b.ordinal)
     .find(unit => !completed.has(unit.id))?.id;
 }
@@ -249,10 +253,13 @@ export function summarizeReadingWork(
   units: readonly ReadingUnit[],
   progress: readonly ReadingProgress[]
 ): ReadingWorkSummary {
-  const workUnits = units
+  const safeUnits = Array.isArray(units) ? units.filter((unit): unit is ReadingUnit => Boolean(unit && typeof unit === 'object' && typeof unit.id === 'string' && typeof unit.workId === 'string')) : [];
+  const safeProgress = Array.isArray(progress) ? progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds))) : [];
+  if (typeof workId !== 'string' || workId.trim().length === 0) return { totalUnits: 0, completedUnits: 0, requiredUnits: 0, completedRequiredUnits: 0, percent: 0, narrativeComplete: false };
+  const workUnits = safeUnits
     .filter(unit => unit.workId === workId)
     .sort((a, b) => a.ordinal - b.ordinal);
-  const workProgress = getUnambiguousReadingProgress(progress, workId);
+  const workProgress = getUnambiguousReadingProgress(safeProgress, workId);
   const completed = new Set(workProgress?.completedUnitIds ?? []);
   const required = workUnits.filter(isRequiredForNarrativeCompletion);
   const completedRequired = required.filter(unit => completed.has(unit.id)).length;
@@ -263,6 +270,6 @@ export function summarizeReadingWork(
     completedRequiredUnits: completedRequired,
     percent: required.length === 0 ? 0 : Math.round((completedRequired / required.length) * 100),
     narrativeComplete: required.length > 0 && completedRequired === required.length,
-    nextUnitId: getNextRequiredReadingUnitId(workId, workUnits, progress)
+    nextUnitId: getNextRequiredReadingUnitId(workId, workUnits, safeProgress)
   };
 }

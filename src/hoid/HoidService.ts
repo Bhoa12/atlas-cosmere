@@ -63,7 +63,7 @@ export class HoidService {
         ...(this.catalog
           ? { knowledgeContext: buildAuthorizedKnowledgeContext(this.catalog, progressSnapshot.reading) }
           : {}),
-      });
+      }, { includeAuthorizedKnowledgeContext: true });
       const rawAnswer: unknown = await answerWithinTimeout(
         this.provider.answer(providerRequest),
         this.providerTimeoutMs,

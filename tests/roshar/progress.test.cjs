@@ -237,3 +237,15 @@ test('completed unit counts do not inflate from duplicate IDs in malformed raw p
   assert.equal(getCompletedReadingUnitCount(progress), 2);
   assert.equal(getCompletedReadingUnitCount(progress, 'twok'), 2);
 });
+
+
+test('progress selectors fail closed for malformed runtime collections', () => {
+  const units = [{ id: 'w:1', workId: 'w', ordinal: 1, kind: 'chapter', label: 'Uno' }];
+  assert.doesNotThrow(() => isNarrativeWorkComplete('w', null, null));
+  assert.equal(isNarrativeWorkComplete('w', null, null), false);
+  assert.equal(getCompletedReadingUnitCount(null), 0);
+  assert.equal(getNextRequiredReadingUnitId('w', null, null), undefined);
+  const summary = summarizeReadingWork('w', null, null);
+  assert.deepEqual(summary, { totalUnits: 0, completedUnits: 0, requiredUnits: 0, completedRequiredUnits: 0, percent: 0, narrativeComplete: false });
+  assert.equal(isNarrativeWorkComplete('w', units, [{ workId: 'w', completedUnitIds: null }]), false);
+});

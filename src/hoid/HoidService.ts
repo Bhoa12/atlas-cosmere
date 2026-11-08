@@ -7,6 +7,7 @@ import { snapshotProviderRequest } from './providerRequestSnapshot';
 import { answerWithinTimeout } from './providerTimeout';
 import { guardQuestion, redactProviderAnswer } from './spoilerGuard';
 import { HoidAnswer, HoidAnswerRequest, HoidProvider } from './types';
+import { validReadingPositions } from './readingValidation';
 
 /**
  * Conservative default for a remote provider call. Integrations may override it
@@ -23,18 +24,31 @@ export class HoidService {
   ) {}
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
-    const question = validHoidQuestion(request.question);
-    if (question === null) {
+    // TypeScript types do not exist at runtime. This legacy service remains a
+    // public integration boundary, so malformed objects must fail closed before
+    // any property access or spoiler processing.
+    if (request === null || typeof request !== 'object' || Array.isArray(request)) {
       return {
         blocked: true,
         reason: 'input-invalid',
-        text: 'La pregunta no puede procesarse de forma segura. Prueba a escribir una pregunta concreta y más breve.'
+        text: 'La solicitud contiene datos de entrada no válidos. Hoid no los interpretará ni los enviará a ninguna fuente externa.'
       };
     }
 
-    // Normalize the question once at the input boundary so every later stage
-    // evaluates the same detached request rather than raw UI text.
-    const normalizedRequest: HoidAnswerRequest = { ...request, question };
+    const question = validHoidQuestion(request.question);
+    const reading = validReadingPositions(request.reading);
+    if (question === null || reading === null) {
+      return {
+        blocked: true,
+        reason: 'input-invalid',
+        text: 'La pregunta o el progreso de lectura no pueden procesarse de forma segura. Hoid no enviará datos ambiguos a ninguna fuente externa.'
+      };
+    }
+
+    // Normalize the request once at the input boundary so every later stage
+    // evaluates the same canonical question and reading snapshot rather than
+    // raw UI data.
+    const normalizedRequest: HoidAnswerRequest = { ...request, question, reading };
     const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
 

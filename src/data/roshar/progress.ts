@@ -10,7 +10,12 @@ export function getUnambiguousReadingProgress(
   workId: string
 ): ReadingProgress | undefined {
   if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0) return undefined;
-  const matches = progress.filter(item => Boolean(item && typeof item === 'object') && item.workId === workId);
+  const matches = progress.filter((item): item is ReadingProgress => Boolean(
+    item &&
+    typeof item === 'object' &&
+    item.workId === workId &&
+    Array.isArray(item.completedUnitIds)
+  ));
   return matches.length === 1 ? matches[0] : undefined;
 }
 

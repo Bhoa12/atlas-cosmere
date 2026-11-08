@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { validReadingPositions } from "./readingValidation";
 import { ReadingPosition } from "./types";
 
 /**
@@ -47,4 +48,21 @@ export function recommendUnstartedSources(
       title: source.title,
       reason: "unread-source" as const,
     }));
+}
+
+/**
+ * Runtime-safe recommendation boundary.
+ *
+ * UI integrations can pass untrusted persisted state here. Invalid or
+ * ambiguous progress fails closed: recommendations are not derived from a
+ * reading state that could have been manipulated to suppress sources.
+ */
+export function recommendUnstartedSourcesFromUnknown(
+  reading: unknown,
+  limit = 3,
+): HoidRecommendation[] {
+  const canonicalReading = validReadingPositions(reading);
+  if (canonicalReading === null) return [];
+
+  return recommendUnstartedSources(canonicalReading, limit);
 }

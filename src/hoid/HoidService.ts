@@ -27,7 +27,7 @@ export class HoidService {
     if (question === null) {
       return {
         blocked: true,
-        reason: 'provider-output',
+        reason: 'input-invalid',
         text: 'La pregunta no puede procesarse de forma segura. Prueba a escribir una pregunta concreta y más breve.'
       };
     }

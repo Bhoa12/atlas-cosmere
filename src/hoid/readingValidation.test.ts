@@ -21,4 +21,18 @@ describe("validReadingPositions", () => {
       { bookId: "roshar", completed: true },
     ])).toEqual([{ bookId: "roshar", completed: true }]);
   });
+
+  it("fails closed when two valid positions target the same book", () => {
+    expect(validReadingPositions([
+      { bookId: "mistborn", chapter: 2 },
+      { bookId: "mistborn", chapter: 8 },
+    ])).toBeNull();
+  });
+
+  it("does not merge completion with another position for the same book", () => {
+    expect(validReadingPositions([
+      { bookId: "roshar", chapter: 10 },
+      { bookId: "roshar", completed: true },
+    ])).toBeNull();
+  });
 });

@@ -3,12 +3,17 @@ import { ReadingPosition } from './types';
 
 export type HoidKnowledgeKind = 'character' | 'place' | 'event' | 'concept' | 'magic' | 'organization' | 'object';
 
+export type HoidKnowledgeProvenance = 'verified' | 'limited' | 'unavailable';
+
 export type HoidKnowledgeEntry = {
   id: string;
   aliases: string[];
   kind: HoidKnowledgeKind;
   firstSafeAppearance: { bookId: string; chapter: number };
+  /** Original editorial summary; never a source passage. */
   summary?: string;
+  /** Context may only use verified summaries. Missing provenance fails closed. */
+  provenance?: HoidKnowledgeProvenance;
 };
 
 /**
@@ -63,5 +68,20 @@ export class HoidKnowledgeCatalog {
 
   lockedMatches(text: string, reading: ReadingPosition[]): HoidKnowledgeEntry[] {
     return this.findMatches(text).filter(entry => !this.isUnlocked(entry, reading));
+  }
+
+  /**
+   * Provider-facing context is stricter than spoiler matching: an entry must be
+   * unlocked, have an original summary and explicitly verified provenance.
+   * This prevents inaccessible or partially verified source material from being
+   * converted into narrative assertions.
+   */
+  entriesForContext(reading: ReadingPosition[]): HoidKnowledgeEntry[] {
+    return this.entries.filter(entry =>
+      entry.provenance === 'verified'
+      && typeof entry.summary === 'string'
+      && entry.summary.trim().length > 0
+      && this.isUnlocked(entry, reading),
+    );
   }
 }

@@ -16,13 +16,16 @@ function completedUnitsFromUnambiguousProgress(
 ): ReadonlySet<string> {
   const counts = new Map<string, number>();
   for (const item of progress) {
-    if (!item || typeof item.workId !== 'string' || !Array.isArray(item.completedUnitIds)) continue;
+    if (!item || typeof item.workId !== 'string' || item.workId.trim().length === 0) continue;
+    // Count every identifiable record, including malformed ones. Otherwise a
+    // corrupt duplicate could be ignored and leave a valid sibling appearing
+    // unambiguous, which would violate the fail-closed spoiler policy.
     counts.set(item.workId, (counts.get(item.workId) ?? 0) + 1);
   }
 
   const completed = new Set<string>();
   for (const item of progress) {
-    if (!item || typeof item.workId !== 'string' || !Array.isArray(item.completedUnitIds)) continue;
+    if (!item || typeof item.workId !== 'string' || item.workId.trim().length === 0 || !Array.isArray(item.completedUnitIds)) continue;
     if (counts.get(item.workId) !== 1) continue;
     for (const unitId of item.completedUnitIds) {
       if (typeof unitId === 'string' && unitId.trim().length > 0) completed.add(unitId);

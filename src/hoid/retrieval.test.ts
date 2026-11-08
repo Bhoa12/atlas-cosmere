@@ -13,6 +13,22 @@ const items: HoidKnowledgeEntry[] = [
     kind: "place",
     firstSafeAppearance: { bookId: "elantris", chapter: 3 },
     summary: "Resumen original de prueba.",
+    provenance: "verified",
+  },
+  {
+    id: "limited-context",
+    aliases: ["limitado"],
+    kind: "concept",
+    firstSafeAppearance: { bookId: "elantris", chapter: 1 },
+    summary: "Resumen que no debe llegar al proveedor.",
+    provenance: "limited",
+  },
+  {
+    id: "missing-provenance",
+    aliases: ["sinprocedencia"],
+    kind: "concept",
+    firstSafeAppearance: { bookId: "elantris", chapter: 1 },
+    summary: "Resumen sin procedencia explícita.",
   },
   {
     id: "other-book",
@@ -20,6 +36,7 @@ const items: HoidKnowledgeEntry[] = [
     kind: "concept",
     firstSafeAppearance: { bookId: "warbreaker", chapter: 1 },
     summary: "Resumen original de prueba.",
+    provenance: "verified",
   },
 ];
 
@@ -34,13 +51,23 @@ export function runRetrievalChecks(): void {
   const result = retrieveAuthorized(items, exact, "¿Qué es Elantris?");
   assert(
     result.length === 1 && result[0].id === "elantris-safe",
-    "the exact unlock chapter must retrieve matching authorized knowledge",
+    "the exact unlock chapter must retrieve verified matching knowledge",
   );
 
   const completed: ReadingPosition[] = [{ bookId: "elantris", completed: true }];
   assert(
     retrieveAuthorized(items, completed, "ciudad").length === 1,
-    "completed books must authorize matching knowledge",
+    "completed books must authorize verified matching knowledge",
+  );
+
+  assert(
+    retrieveAuthorized(items, completed, "limitado").length === 0,
+    "limited provenance must never cross into provider context",
+  );
+
+  assert(
+    retrieveAuthorized(items, completed, "sinprocedencia").length === 0,
+    "missing provenance must fail closed",
   );
 
   assert(

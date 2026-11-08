@@ -127,3 +127,17 @@ test('invalid achievement identifiers and non-boolean projection state fail clos
   ], [], []);
   assert.deepEqual(visible.map(item => item.id), ['valid']);
 });
+
+
+test('malformed achievement requirements cannot unlock rewards', () => {
+  const result = evaluateRosharReadingAchievements([
+    { id: 'negative', requiredCompletedUnits: -1, title: 'Leak', description: '' },
+    { id: 'fraction', requiredCompletedUnits: 0.5, title: 'Leak', description: '' },
+    { id: 'infinite', requiredCompletedUnits: Infinity, title: 'Leak', description: '' },
+    { id: 'truthy-completion', requiresNarrativeCompletion: 'yes', title: 'Leak', description: '' },
+    { id: 'blank-work', workId: '   ', requiresNarrativeCompletion: true, title: 'Leak', description: '' },
+    { id: 'valid-zero', requiredCompletedUnits: 0, title: 'Valid', description: '' }
+  ], units, []);
+  assert.deepEqual(result.map(item => item.achievement.id), ['valid-zero']);
+  assert.equal(result[0].unlocked, true);
+});

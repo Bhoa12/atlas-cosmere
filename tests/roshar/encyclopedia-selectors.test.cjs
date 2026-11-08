@@ -58,3 +58,22 @@ test('encyclopedia validation reports malformed collections and claims without t
   const issues = validateEncyclopediaContent([], [null, { id: 'bad', entityId: 'e', sourceRefs: [], spoilerGate: { allOf: [] } }], []);
   assert.ok(issues.some(issue => issue.includes('malformed claim')));
 });
+
+
+test('encyclopedia validation fails closed for malformed requirements and ambiguous references', () => {
+  const issues = validateEncyclopediaContent(
+    [
+      { id: 'duplicate', planetId: 'roshar', type: 'concept', canonicalName: 'A', aliases: [] },
+      { id: 'duplicate', planetId: 'roshar', type: 'concept', canonicalName: 'B', aliases: [] }
+    ],
+    [{
+      id: 'c', entityId: 'duplicate', sectionKey: 'summary', text: 'Safe',
+      claimType: 'fact', editorialStatus: 'draft', confidence: 'confirmed',
+      sourceRefs: ['s'], spoilerGate: { allOf: [null] }
+    }],
+    [{ id: 's', sourceType: 'official_reference' }, { id: 's', sourceType: 'official_reference' }]
+  );
+  assert.ok(issues.some(issue => issue.includes('ambiguous entity')));
+  assert.ok(issues.some(issue => issue.includes('ambiguous source')));
+  assert.ok(issues.some(issue => issue.includes('malformed spoiler requirement')));
+});

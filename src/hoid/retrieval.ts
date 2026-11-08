@@ -11,10 +11,11 @@ function questionTerms(question: string): string[] {
 }
 
 /**
- * Returns only knowledge already unlocked by the reader and relevant to the
- * current question. Relevance is deliberately conservative: multi-word
- * aliases may match the normalized question as a phrase, while single-word
- * aliases match normalized question tokens.
+ * Returns only knowledge that has passed every editorial authorization gate:
+ * verified provenance, an original summary and the reader's current position.
+ * Relevance is deliberately conservative: multi-word aliases may match the
+ * normalized question as a phrase, while single-word aliases match normalized
+ * question tokens.
  */
 export function retrieveAuthorized(
   items: HoidKnowledgeEntry[],
@@ -22,7 +23,9 @@ export function retrieveAuthorized(
   question: string,
 ): HoidKnowledgeEntry[] {
   const catalog = new HoidKnowledgeCatalog(items);
-  const authorized = items.filter(item => catalog.isUnlocked(item, progress));
+  // entriesForContext is stricter than simple reading authorization. Never let
+  // unlocked-but-limited or unavailable material cross into provider context.
+  const authorized = catalog.entriesForContext(progress);
   const normalizedQuestion = question
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

@@ -64,4 +64,33 @@ describe("HoidPipeline", () => {
     expect(result.reason).toBe("provider-output");
   });
 
+  it("rejects invalid input before spoiler checks or provider calls", async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => "respuesta") };
+
+    const result = await new HoidPipeline(provider, []).answer({
+      question: "\u200B\u202E",
+      reading: [],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("input-invalid");
+    expect(provider.answer).not.toHaveBeenCalled();
+  });
+
+  it("sends the normalized question to the provider", async () => {
+    const provider: HoidProvider = {
+      answer: jest.fn(async (providerRequest) => {
+        expect(providerRequest.question).toBe("Pregunta");
+        return "Respuesta segura";
+      }),
+    };
+
+    await new HoidPipeline(provider, []).answer({
+      question: "  Pre\u200Bgunta  ",
+      reading: [],
+    });
+
+    expect(provider.answer).toHaveBeenCalled();
+  });
+
 });

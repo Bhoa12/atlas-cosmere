@@ -7,14 +7,18 @@ because their titles look related.
 `SourceWorkBinding` provides an explicit, editorial-neutral mapping:
 
 - every source identifier is unique within a binding registry;
-- every work identifier is unique within a binding registry;
+- several independently cataloged sources may explicitly bind to the same work;
 - empty identifiers invalidate the registry;
 - any malformed registry blocks all authorization checks.
+
+The many-to-one rule supports reusable source catalogs without forcing an
+artificial one-source-per-work model. It does not infer relationships: every
+source-to-work association still has to be registered explicitly.
 
 The binding contains no passages, chapter text, summaries, titles, chronology,
 world assignment or narrative facts. It is provenance metadata only.
 
-The work-scoped evidence gate now requires four independent conditions:
+The work-scoped evidence gate requires independent conditions:
 
 1. a source is declared in the bibliographic catalog;
 2. a registered evidence record is a valid original-summary record for that source;

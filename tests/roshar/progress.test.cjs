@@ -249,3 +249,12 @@ test('progress selectors fail closed for malformed runtime collections', () => {
   assert.deepEqual(summary, { totalUnits: 0, completedUnits: 0, requiredUnits: 0, completedRequiredUnits: 0, percent: 0, narrativeComplete: false });
   assert.equal(isNarrativeWorkComplete('w', units, [{ workId: 'w', completedUnitIds: null }]), false);
 });
+
+
+test('progress mutations fail closed for malformed runtime records without throwing', () => {
+  const malformed = [null, { workId: 'twok', completedUnitIds: null, updatedAt: 't0' }];
+  assert.doesNotThrow(() => setCurrentReadingUnit(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'));
+  assert.doesNotThrow(() => markReadingUnitCompleted(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'));
+  assert.equal(setCurrentReadingUnit(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'), malformed);
+  assert.equal(markReadingUnitCompleted(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'), malformed);
+});

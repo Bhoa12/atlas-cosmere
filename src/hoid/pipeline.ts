@@ -7,6 +7,7 @@ import { validProviderText } from "./providerOutput";
 import { authorizeReading, catalogBookIds } from "./authorizationBoundary";
 import { boundAuthorizedContext } from "./contextBudget";
 import { answerWithinTimeout } from "./providerTimeout";
+import { validHoidQuestion } from "./requestValidation";
 
 export interface ContextualHoidProvider extends HoidProvider {
   answerWithContext(request: HoidAnswerRequest, context: HoidKnowledgeEntry[]): Promise<string>;
@@ -46,14 +47,23 @@ export class HoidPipeline {
   ) {}
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
-    const blocked = guardQuestion(request);
+    const question = validHoidQuestion(request.question);
+    if (question === null) {
+      return { blocked: true, reason: "input-invalid", text: "La pregunta no tiene un formato válido. Hoid prefiere no interpretarla ni enviarla a ninguna fuente externa." };
+    }
+
+    // Every later boundary receives the same canonical question. This prevents
+    // invisible Unicode or transport controls from being interpreted differently
+    // by the spoiler guard and an external provider.
+    const normalizedRequest: HoidAnswerRequest = { ...request, question };
+    const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
 
     const knowledge = validatedKnowledge(this.knowledge);
     const catalog = new HoidKnowledgeCatalog(knowledge);
-    const reading = authorizeReading(request.reading, catalogBookIds(knowledge));
-    const authorizedRequest = { question: request.question, reading };
-    const locked = catalog.lockedMatches(request.question, reading);
+    const reading = authorizeReading(normalizedRequest.reading, catalogBookIds(knowledge));
+    const authorizedRequest = { question, reading };
+    const locked = catalog.lockedMatches(question, reading);
     if (locked.length > 0) {
       return { blocked: true, reason: "reading-position", text: "Esa pregunta incluye información que todavía no has desbloqueado. Hoid prefiere guardar ese misterio hasta que llegues a la parte correspondiente." };
     }
@@ -62,7 +72,7 @@ export class HoidPipeline {
       return { blocked: false, reason: "provider-unavailable", text: "No hay una fuente de IA configurada. Atlas no enviará esta pregunta a ningún servicio externo." };
     }
 
-    const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, request.question));
+    const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, question));
     const snapshot = providerSnapshots(authorizedRequest, context);
 
     try {

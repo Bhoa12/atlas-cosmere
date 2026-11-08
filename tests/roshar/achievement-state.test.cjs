@@ -51,3 +51,18 @@ test('achievement state sanitizer rejects blank-only identifiers', () => {
   assert.deepEqual(sanitized.unlockedAchievementIds, ['valid-achievement']);
   assert.deepEqual(sanitized.unlockedRewardIds, ['valid-reward']);
 });
+
+
+test('achievement state application fails closed for malformed runtime state and projections', () => {
+  const state = applyRosharAchievementProjections({
+    unlockedAchievementIds: null,
+    unlockedRewardIds: [' existing ', 7]
+  }, [
+    null,
+    { unlocked: true, achievement: { id: ' ', reward: { id: 'reward' } } },
+    { unlocked: true, achievement: { id: 'achievement', reward: { id: ' reward ' } } }
+  ], 'safe');
+  assert.deepEqual(state.unlockedAchievementIds, ['achievement']);
+  assert.deepEqual(state.unlockedRewardIds, ['existing', 'reward']);
+  assert.equal(state.updatedAt, 'safe');
+});

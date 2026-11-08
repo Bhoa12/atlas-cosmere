@@ -1,3 +1,4 @@
+import { buildReadingContext } from './readingContext';
 import { ReadingPosition } from './types';
 
 export type HoidKnowledgeKind = 'character' | 'place' | 'event' | 'concept' | 'magic' | 'organization' | 'object';
@@ -52,8 +53,12 @@ export class HoidKnowledgeCatalog {
   }
 
   isUnlocked(entry: HoidKnowledgeEntry, reading: ReadingPosition[]): boolean {
-    const position = reading.find(item => item.bookId === entry.firstSafeAppearance.bookId);
-    return Boolean(position && (position.completed || (position.chapter ?? 0) >= entry.firstSafeAppearance.chapter));
+    // Never interpret raw progress independently. Canonicalization removes
+    // duplicate or malformed positions before this authorization boundary, so
+    // catalog access cannot depend on the incidental order of UI updates.
+    const position = buildReadingContext(reading)
+      .find(item => item.bookId === entry.firstSafeAppearance.bookId);
+    return Boolean(position && (position.completed || position.chapter >= entry.firstSafeAppearance.chapter));
   }
 
   lockedMatches(text: string, reading: ReadingPosition[]): HoidKnowledgeEntry[] {

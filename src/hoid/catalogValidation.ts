@@ -10,7 +10,8 @@ export function isValidKnowledgeEntry(entry: HoidKnowledgeEntry): boolean {
     entry.id?.trim() &&
     unlock?.bookId?.trim() &&
     Number.isFinite(unlock.chapter) &&
-    unlock.chapter >= 0,
+    unlock.chapter >= 0 &&
+    Number.isInteger(unlock.chapter),
   );
 }
 

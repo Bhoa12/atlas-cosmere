@@ -101,5 +101,15 @@ export function selectUnlockedRosharRewardIds(
   projections: readonly RosharAchievementProjection[]
 ): string[] {
   const safeProjections = Array.isArray(projections) ? projections : [];
-  return Array.from(new Set(safeProjections.filter((item): item is RosharAchievementProjection => Boolean(item && typeof item === 'object' && item.unlocked && item.achievement && item.achievement.reward && typeof item.achievement.reward.id === 'string' && item.achievement.reward.id.trim().length > 0)).map(item => item.achievement.reward.id.trim())));
+  return Array.from(new Set(safeProjections
+    .filter((item): item is RosharAchievementProjection => Boolean(
+      item &&
+      typeof item === 'object' &&
+      item.unlocked === true &&
+      isValidAchievement(item.achievement) &&
+      item.achievement.reward &&
+      typeof item.achievement.reward.id === 'string' &&
+      item.achievement.reward.id.trim().length > 0
+    ))
+    .map(item => item.achievement.reward.id.trim())));
 }

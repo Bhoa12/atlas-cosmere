@@ -67,6 +67,8 @@ export function isSpoilerGateSatisfied(
 ): boolean {
   if (!gate || !Array.isArray(gate.allOf)) return false;
   if (gate.anyOf !== undefined && !Array.isArray(gate.anyOf)) return false;
+  if (!completedUnitIds || typeof (completedUnitIds as { has?: unknown }).has !== 'function') return false;
+  if (!unitWorkById || typeof (unitWorkById as { get?: unknown }).get !== 'function') return false;
   const validRequirement = (requirement: ReadingRequirement | null | undefined): boolean =>
     !!requirement &&
     typeof requirement.workId === 'string' &&

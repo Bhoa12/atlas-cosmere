@@ -93,4 +93,16 @@ describe("HoidPipeline", () => {
     expect(provider.answer).toHaveBeenCalled();
   });
 
+  it("fails closed before the provider when reading progress is not an array", async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => "respuesta") };
+    const result = await new HoidPipeline(provider, []).answer({
+      question: "Pregunta segura",
+      reading: null as unknown as [],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("input-invalid");
+    expect(provider.answer).not.toHaveBeenCalled();
+  });
+
 });

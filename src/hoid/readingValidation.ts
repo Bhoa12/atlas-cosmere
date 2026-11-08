@@ -19,7 +19,7 @@ export function validReadingPositions(value: unknown): ReadingPosition[] | null 
     if (!bookId) continue;
 
     const chapter = candidate.chapter;
-    const validChapter = typeof chapter === "number" && Number.isFinite(chapter) && chapter >= 0
+    const validChapter = typeof chapter === "number" && Number.isFinite(chapter) && chapter >= 0 && Number.isInteger(chapter)
       ? chapter
       : undefined;
     const completed = candidate.completed === true;
@@ -28,10 +28,19 @@ export function validReadingPositions(value: unknown): ReadingPosition[] | null 
     // grant authorization. Ignore it instead of coercing it to a chapter.
     if (validChapter === undefined && !completed) continue;
 
+    // Keep the canonical series order when it is a valid non-negative integer.
+    // It is metadata only: authorization still depends on the catalog and never
+    // on the caller array position.
+    const order = candidate.order;
+    const validOrder = typeof order === "number" && Number.isFinite(order) && order >= 0 && Number.isInteger(order)
+      ? order
+      : undefined;
+
     positions.push({
       bookId,
       ...(validChapter === undefined ? {} : { chapter: validChapter }),
       ...(completed ? { completed: true } : {}),
+      ...(validOrder === undefined ? {} : { order: validOrder }),
     });
   }
 

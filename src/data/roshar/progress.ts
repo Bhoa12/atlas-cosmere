@@ -94,7 +94,7 @@ export function sanitizeReadingProgress(
   updatedAt: string
 ): ReadingProgress[] {
   const empty = createEmptyReadingProgress(workIds, updatedAt);
-  if (!Array.isArray(value)) return empty;
+  if (!Array.isArray(value) || !unitWorkById || typeof (unitWorkById as { get?: unknown }).get !== 'function') return empty;
   const knownWorks = new Set(workIds);
   const byWork = new Map<string, ReadingProgress>();
   const ambiguousWorks = new Set<string>();
@@ -135,6 +135,7 @@ export function validateReadingProgress(
   unitWorkById: ReadonlyMap<string, string>
 ): ReadingProgressIssue[] {
   const issues: ReadingProgressIssue[] = [];
+  if (!Array.isArray(progress) || !Array.isArray(workIds) || !unitWorkById || typeof (unitWorkById as { get?: unknown }).get !== 'function' || typeof (unitWorkById as { has?: unknown }).has !== 'function') return issues;
   const knownWorks = new Set(workIds);
   const seenWorks = new Set<string>();
 

@@ -60,15 +60,21 @@ export function validateEncyclopediaContent(
   claims: readonly EncyclopediaClaim[],
   sources: readonly SourceReference[]
 ): string[] {
+  if (!Array.isArray(entities) || !Array.isArray(claims) || !Array.isArray(sources)) return ['Encyclopedia content contains malformed collections'];
   const issues: string[] = [];
-  const entityIds = new Set(entities.map(entity => entity.id));
-  const sourceIds = new Set(sources.map(source => source.id));
-  const sourcesById = new Map(sources.map(source => [source.id, source]));
+  const entityIds = new Set(entities.filter(entity => entity && typeof entity.id === 'string').map(entity => entity.id));
+  const validSources = sources.filter(source => source && typeof source.id === 'string');
+  const sourceIds = new Set(validSources.map(source => source.id));
+  const sourcesById = new Map(validSources.map(source => [source.id, source]));
   const unitIds = new Set(ROSHAR_READING_UNITS.map(unit => unit.id));
 
   for (const claim of claims) {
+    if (!claim || typeof claim.id !== 'string' || typeof claim.entityId !== 'string' || !Array.isArray(claim.sourceRefs) || !claim.spoilerGate || !Array.isArray(claim.spoilerGate.allOf)) {
+      issues.push('Encyclopedia content contains a malformed claim');
+      continue;
+    }
     if (!entityIds.has(claim.entityId)) issues.push('Claim ' + claim.id + ' references an unknown entity');
-    if (claim.editorialStatus === 'published' && !claim.text.trim()) issues.push('Published claim ' + claim.id + ' has no text');
+    if (claim.editorialStatus === 'published' && (typeof claim.text !== 'string' || !claim.text.trim())) issues.push('Published claim ' + claim.id + ' has no text');
     if (claim.editorialStatus === 'published' && claim.sourceRefs.length === 0) issues.push('Published claim ' + claim.id + ' has no source');
     if (claim.editorialStatus === 'published' && !claim.reviewedAt) issues.push('Published claim ' + claim.id + ' has not been reviewed');
     for (const sourceId of claim.sourceRefs) {
@@ -77,6 +83,10 @@ export function validateEncyclopediaContent(
       if (claim.editorialStatus === 'published' && source?.sourceType === 'novel' && (!source.readingUnitId || !source.locator)) {
         issues.push('Published novel claim ' + claim.id + ' requires an exact source locator and reading unit');
       }
+    }
+    if (claim.spoilerGate.anyOf !== undefined && !Array.isArray(claim.spoilerGate.anyOf)) {
+      issues.push('Claim ' + claim.id + ' has a malformed spoiler gate');
+      continue;
     }
     const requirements = [...claim.spoilerGate.allOf, ...(claim.spoilerGate.anyOf ?? [])];
     if (requirements.length === 0) issues.push('Claim ' + claim.id + ' has an empty spoiler gate');

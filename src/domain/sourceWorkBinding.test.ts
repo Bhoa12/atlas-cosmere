@@ -11,11 +11,21 @@ describe("source work bindings", () => {
     expect(isSourceBoundToWork("source-a", "work-a", bindings)).toBe(true);
   });
 
+  it("allows multiple explicit sources for the same work", () => {
+    const multipleSources = [
+      { sourceId: "source-a", workId: "work-a" },
+      { sourceId: "source-b", workId: "work-a" },
+    ];
+    expect(validateSourceWorkBindings(multipleSources)).toHaveLength(0);
+    expect(isSourceBoundToWork("source-a", "work-a", multipleSources)).toBe(true);
+    expect(isSourceBoundToWork("source-b", "work-a", multipleSources)).toBe(true);
+  });
+
   it("does not infer a binding for another work", () => {
     expect(isSourceBoundToWork("source-a", "work-b", bindings)).toBe(false);
   });
 
-  it("fails closed when the registry is malformed", () => {
+  it("fails closed when one source is bound more than once", () => {
     const malformed = [
       { sourceId: "source-a", workId: "work-a" },
       { sourceId: "source-a", workId: "work-b" },

@@ -28,7 +28,7 @@ export interface HoidProvider {
 }
 
 export class SpoilerPolicy {
-  constructor(private readonly progress: HoidProgress) {}
+  private readonly progress: HoidProgress;\n\n  constructor(progress: HoidProgress) {\n    this.progress = canonicalHoidProgress(progress);\n  }
 
   allows(item: KnowledgeItem): boolean {
     return (this.progress[item.unlock.bookId] ?? 0) >= item.unlock.chapter;

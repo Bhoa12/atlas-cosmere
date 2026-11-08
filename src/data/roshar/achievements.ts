@@ -43,7 +43,7 @@ export function evaluateRosharReadingAchievements(
     const countSatisfied = achievement.requiredCompletedUnits === undefined ||
       totalCompleted >= achievement.requiredCompletedUnits;
     const completionSatisfied = !achievement.requiresNarrativeCompletion ||
-      Boolean(achievement.workId && isNarrativeWorkComplete(achievement.workId, units, progress));
+      Boolean(achievement.workId && isNarrativeWorkComplete(achievement.workId, safeUnits, safeProgress));
     return { achievement, unlocked: countSatisfied && completionSatisfied };
   });
 }

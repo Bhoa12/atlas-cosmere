@@ -62,8 +62,15 @@ export function validateEncyclopediaContent(
 ): string[] {
   if (!Array.isArray(entities) || !Array.isArray(claims) || !Array.isArray(sources)) return ['Encyclopedia content contains malformed collections'];
   const issues: string[] = [];
-  const entityIds = new Set(entities.filter(entity => entity && typeof entity.id === 'string').map(entity => entity.id));
-  const validSources = sources.filter(source => source && typeof source.id === 'string');
+  const entityIdCounts = new Map<string, number>();
+  for (const entity of entities) {
+    if (!entity || typeof entity.id !== 'string' || entity.id.trim().length === 0) continue;
+    entityIdCounts.set(entity.id, (entityIdCounts.get(entity.id) ?? 0) + 1);
+  }
+  const entityIds = new Set(entityIdCounts.keys());
+  const validSources = sources.filter(source => source && typeof source.id === 'string' && source.id.trim().length > 0);
+  const sourceIdCounts = new Map<string, number>();
+  for (const source of validSources) sourceIdCounts.set(source.id, (sourceIdCounts.get(source.id) ?? 0) + 1);
   const sourceIds = new Set(validSources.map(source => source.id));
   const sourcesById = new Map(validSources.map(source => [source.id, source]));
   const unitIds = new Set(ROSHAR_READING_UNITS.map(unit => unit.id));
@@ -74,11 +81,13 @@ export function validateEncyclopediaContent(
       continue;
     }
     if (!entityIds.has(claim.entityId)) issues.push('Claim ' + claim.id + ' references an unknown entity');
+    if (entityIdCounts.get(claim.entityId) !== 1) issues.push('Claim ' + claim.id + ' references an ambiguous entity');
     if (claim.editorialStatus === 'published' && (typeof claim.text !== 'string' || !claim.text.trim())) issues.push('Published claim ' + claim.id + ' has no text');
     if (claim.editorialStatus === 'published' && claim.sourceRefs.length === 0) issues.push('Published claim ' + claim.id + ' has no source');
     if (claim.editorialStatus === 'published' && !claim.reviewedAt) issues.push('Published claim ' + claim.id + ' has not been reviewed');
     for (const sourceId of claim.sourceRefs) {
-      if (!sourceIds.has(sourceId)) issues.push('Claim ' + claim.id + ' references an unknown source');
+      if (typeof sourceId !== 'string' || sourceId.trim().length === 0 || !sourceIds.has(sourceId)) issues.push('Claim ' + claim.id + ' references an unknown source');
+      if (sourceIdCounts.get(sourceId) !== 1) issues.push('Claim ' + claim.id + ' references an ambiguous source');
       const source = sourcesById.get(sourceId);
       if (claim.editorialStatus === 'published' && source?.sourceType === 'novel' && (!source.readingUnitId || !source.locator)) {
         issues.push('Published novel claim ' + claim.id + ' requires an exact source locator and reading unit');
@@ -91,6 +100,10 @@ export function validateEncyclopediaContent(
     const requirements = [...claim.spoilerGate.allOf, ...(claim.spoilerGate.anyOf ?? [])];
     if (requirements.length === 0) issues.push('Claim ' + claim.id + ' has an empty spoiler gate');
     for (const requirement of requirements) {
+      if (!requirement || typeof requirement.workId !== 'string' || requirement.workId.trim().length === 0 || typeof requirement.readingUnitId !== 'string' || requirement.readingUnitId.trim().length === 0) {
+        issues.push('Claim ' + claim.id + ' has a malformed spoiler requirement');
+        continue;
+      }
       if (!unitIds.has(requirement.readingUnitId)) issues.push('Claim ' + claim.id + ' references an unknown reading unit');
       if (ROSHAR_READING_UNIT_WORK_BY_ID.get(requirement.readingUnitId) !== requirement.workId) issues.push('Claim ' + claim.id + ' has a work/unit mismatch');
     }

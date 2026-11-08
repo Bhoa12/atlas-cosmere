@@ -39,7 +39,7 @@ export function evaluateRosharReadingAchievements(
     .reduce((total, item) => total + new Set(
       item.completedUnitIds.filter(id => unitWorkById.get(id) === item.workId)
     ).size, 0);
-  return safeAchievements.filter((achievement): achievement is RosharReadingAchievement => Boolean(achievement && typeof achievement === 'object')).map(achievement => {
+  return safeAchievements.filter((achievement): achievement is RosharReadingAchievement => Boolean(achievement && typeof achievement === 'object' && typeof achievement.id === 'string' && achievement.id.trim().length > 0)).map(achievement => {
     const countSatisfied = achievement.requiredCompletedUnits === undefined ||
       totalCompleted >= achievement.requiredCompletedUnits;
     const completionSatisfied = !achievement.requiresNarrativeCompletion ||
@@ -76,7 +76,7 @@ export function selectVisibleRosharAchievements(
 
   const persistentIds = new Set(safePersistentIds);
 
-  return safeProjections.filter((projection): projection is RosharAchievementProjection => Boolean(projection && typeof projection === 'object' && projection.achievement && typeof projection.achievement.id === 'string')).map(({ achievement, unlocked: currentlyUnlocked }) => {
+  return safeProjections.filter((projection): projection is RosharAchievementProjection => Boolean(projection && typeof projection === 'object' && typeof projection.unlocked === 'boolean' && projection.achievement && typeof projection.achievement.id === 'string' && projection.achievement.id.trim().length > 0)).map(({ achievement, unlocked: currentlyUnlocked }) => {
     // Achievement grants are monotonic once persisted. A later correction to
     // reading progress must not make an already granted achievement disappear.
     const unlocked = currentlyUnlocked || persistentIds.has(achievement.id);

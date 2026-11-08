@@ -105,4 +105,35 @@ describe("HoidPipeline", () => {
     expect(provider.answer).not.toHaveBeenCalled();
   });
 
+  it("passes an immutable context snapshot to contextual providers", async () => {
+    const provider = {
+      answer: jest.fn(async () => "Respuesta segura"),
+      answerWithContext: jest.fn(async (_request, context) => {
+        expect(Object.isFrozen(context)).toBe(true);
+        expect(context).toHaveLength(1);
+        expect(Object.isFrozen(context[0])).toBe(true);
+        expect(Object.isFrozen(context[0].aliases)).toBe(true);
+        expect(Object.isFrozen(context[0].firstSafeAppearance)).toBe(true);
+        return "Respuesta segura";
+      }),
+    } as unknown as HoidProvider;
+
+    const knowledge = [{
+      id: "safe-entry",
+      aliases: ["CONCEPTO_SEGURO"],
+      kind: "concept" as const,
+      provenance: "verified" as const,
+      firstSafeAppearance: { bookId: "book-safe", chapter: 1 },
+      summary: "Resumen editorial original y seguro.",
+    }];
+
+    const result = await new HoidPipeline(provider, knowledge).answer({
+      question: "¿Qué es CONCEPTO_SEGURO?",
+      reading: [{ bookId: "book-safe", chapter: 1 }],
+    });
+
+    expect(result.blocked).toBe(false);
+    expect((provider as unknown as { answerWithContext: jest.Mock }).answerWithContext).toHaveBeenCalled();
+  });
+
 });

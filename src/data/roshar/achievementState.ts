@@ -21,14 +21,18 @@ export function applyRosharAchievementProjections(
   projections: readonly RosharAchievementProjection[],
   updatedAt: string
 ): RosharAchievementState {
-  const previous = state ?? createEmptyRosharAchievementState(updatedAt);
+  const previous = sanitizeRosharAchievementState(state, updatedAt);
   const achievementIds = new Set(previous.unlockedAchievementIds);
   const rewardIds = new Set(previous.unlockedRewardIds);
 
-  for (const projection of projections) {
-    if (!projection.unlocked) continue;
-    achievementIds.add(projection.achievement.id);
-    rewardIds.add(projection.achievement.reward.id);
+  for (const projection of Array.isArray(projections) ? projections : []) {
+    if (!projection || typeof projection !== 'object' || !projection.unlocked) continue;
+    const achievement = projection.achievement;
+    if (!achievement || typeof achievement.id !== 'string' || achievement.id.trim().length === 0) continue;
+    const reward = achievement.reward;
+    if (!reward || typeof reward.id !== 'string' || reward.id.trim().length === 0) continue;
+    achievementIds.add(achievement.id.trim());
+    rewardIds.add(reward.id.trim());
   }
 
   return {
@@ -46,7 +50,7 @@ export function sanitizeRosharAchievementState(
   if (!value || typeof value !== 'object') return createEmptyRosharAchievementState(updatedAt);
   const candidate = value as Partial<RosharAchievementState>;
   const strings = (items: unknown): string[] => Array.isArray(items)
-    ? Array.from(new Set(items.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)))
+    ? Array.from(new Set(items.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())))
     : [];
 
   return {

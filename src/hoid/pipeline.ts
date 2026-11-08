@@ -8,6 +8,7 @@ import { authorizeReading, catalogBookIds } from "./authorizationBoundary";
 import { boundAuthorizedContext } from "./contextBudget";
 import { answerWithinTimeout } from "./providerTimeout";
 import { validHoidQuestion } from "./requestValidation";
+import { validReadingPositions } from "./readingValidation";
 
 export interface ContextualHoidProvider extends HoidProvider {
   answerWithContext(request: HoidAnswerRequest, context: HoidKnowledgeEntry[]): Promise<string>;
@@ -48,14 +49,15 @@ export class HoidPipeline {
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
     const question = validHoidQuestion(request.question);
-    if (question === null) {
+    const readingInput = validReadingPositions(request.reading);
+    if (question === null || readingInput === null) {
       return { blocked: true, reason: "input-invalid", text: "La pregunta no tiene un formato válido. Hoid prefiere no interpretarla ni enviarla a ninguna fuente externa." };
     }
 
     // Every later boundary receives the same canonical question. This prevents
     // invisible Unicode or transport controls from being interpreted differently
     // by the spoiler guard and an external provider.
-    const normalizedRequest: HoidAnswerRequest = { ...request, question };
+    const normalizedRequest: HoidAnswerRequest = { ...request, question, reading: readingInput };
     const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
 

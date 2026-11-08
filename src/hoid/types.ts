@@ -18,8 +18,9 @@ export type HoidAnswerRequest = {
   question: string;
   reading: ReadingPosition[];
   /**
-   * Optional provider-facing knowledge that has already passed editorial,
-   * provenance and reading-position authorization.
+   * Deprecated caller-supplied field. Hoid never forwards this value across
+   * the provider boundary; authorized narrative context is built internally
+   * from verified catalog entries and the canonical reading progress.
    */
   knowledgeContext?: readonly HoidKnowledgeContextFact[];
 };

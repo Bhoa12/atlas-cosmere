@@ -25,4 +25,14 @@ describe("catalogValidation", () => {
 
     expect(validatedKnowledge([valid, blankBook, invalidChapter])).toEqual([valid]);
   });
+
+  it("fails closed for fractional chapter metadata", () => {
+    const fractionalChapter = {
+      ...valid,
+      firstSafeAppearance: { bookId: "book-a", chapter: 1.5 },
+    };
+
+    expect(isValidKnowledgeEntry(fractionalChapter)).toBe(false);
+    expect(validatedKnowledge([valid, fractionalChapter])).toEqual([valid]);
+  });
 });

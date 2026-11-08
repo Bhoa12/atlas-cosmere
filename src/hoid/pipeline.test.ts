@@ -64,6 +64,16 @@ describe("HoidPipeline", () => {
     expect(result.reason).toBe("provider-output");
   });
 
+  it("fails closed when the runtime request is not an object", async () => {
+    const provider: HoidProvider = { answer: jest.fn(async () => "respuesta") };
+
+    const result = await new HoidPipeline(provider, []).answer(null as unknown as typeof request);
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("input-invalid");
+    expect(provider.answer).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid input before spoiler checks or provider calls", async () => {
     const provider: HoidProvider = { answer: jest.fn(async () => "respuesta") };
 

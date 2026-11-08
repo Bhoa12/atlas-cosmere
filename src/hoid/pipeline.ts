@@ -1,4 +1,4 @@
-import { HoidAnswer, HoidAnswerRequest, HoidProvider, ReadingPosition } from "./types";
+import { HoidAnswer, HoidAnswerRequest, HoidProvider } from "./types";
 import { HoidKnowledgeCatalog, HoidKnowledgeEntry } from "./catalog";
 import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
@@ -17,8 +17,12 @@ function providerSnapshots(
   context: HoidKnowledgeEntry[],
 ): { request: HoidAnswerRequest; context: HoidKnowledgeEntry[] } {
   const reading = request.reading.map(position => Object.freeze({ ...position }));
+
+  // knowledgeContext is an internal authorization result, not caller-controlled
+  // provider input. Rebuild the request from the minimal public contract so a
+  // caller cannot smuggle arbitrary narrative context across this boundary.
   const providerRequest = Object.freeze({
-    ...request,
+    question: request.question,
     reading: Object.freeze(reading),
   }) as unknown as HoidAnswerRequest;
 
@@ -48,7 +52,7 @@ export class HoidPipeline {
     const knowledge = validatedKnowledge(this.knowledge);
     const catalog = new HoidKnowledgeCatalog(knowledge);
     const reading = authorizeReading(request.reading, catalogBookIds(knowledge));
-    const authorizedRequest = { ...request, reading };
+    const authorizedRequest = { question: request.question, reading };
     const locked = catalog.lockedMatches(request.question, reading);
     if (locked.length > 0) {
       return { blocked: true, reason: "reading-position", text: "Esa pregunta incluye información que todavía no has desbloqueado. Hoid prefiere guardar ese misterio hasta que llegues a la parte correspondiente." };
@@ -59,9 +63,6 @@ export class HoidPipeline {
     }
 
     const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, request.question));
-    // Everything crossing into a provider is a detached, immutable metadata
-    // snapshot. Provider-side mutation must never affect authorization state or
-    // another request that happens to share the same catalog.
     const snapshot = providerSnapshots(authorizedRequest, context);
 
     try {

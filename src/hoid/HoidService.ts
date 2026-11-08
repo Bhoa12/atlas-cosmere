@@ -1,6 +1,7 @@
 import { validProviderText } from './providerOutput';
 import { HoidKnowledgeCatalog } from './catalog';
 import { authorizeHoidContext } from './contextPolicy';
+import { buildAuthorizedKnowledgeContext } from './authorizedKnowledgeContext';
 import { snapshotProviderRequest } from './providerRequestSnapshot';
 import { answerWithinTimeout } from './providerTimeout';
 import { guardQuestion, redactProviderAnswer } from './spoilerGuard';
@@ -27,7 +28,7 @@ export class HoidService {
     // Freeze the reader state once at service entry. Every authorization step
     // in this request must evaluate the same progress snapshot; mutable UI
     // state must not change what an in-flight provider response is allowed to reveal.
-    const authorizedRequest = snapshotProviderRequest(request);
+    const progressSnapshot = snapshotProviderRequest(request);
 
     // Catalog authorization is a second, broader trust boundary. The explicit
     // spoiler guard protects known high-risk terms; the catalog prevents any
@@ -35,7 +36,7 @@ export class HoidService {
     // Missing catalog metadata never invents a block, preserving backwards
     // compatibility while deployments that configure the catalog fail closed.
     if (this.catalog) {
-      const contextDecision = authorizeHoidContext(authorizedRequest, this.catalog);
+      const contextDecision = authorizeHoidContext(progressSnapshot, this.catalog);
       if (!contextDecision.allowed) {
         return {
           blocked: true,
@@ -57,7 +58,12 @@ export class HoidService {
       // Cross the provider boundary with a detached immutable snapshot. A
       // provider may continue running after a timeout, so it must never retain
       // references to mutable reader progress owned by the application.
-      const providerRequest = authorizedRequest;
+      const providerRequest = snapshotProviderRequest({
+        ...progressSnapshot,
+        ...(this.catalog
+          ? { knowledgeContext: buildAuthorizedKnowledgeContext(this.catalog, progressSnapshot.reading) }
+          : {}),
+      });
       const rawAnswer: unknown = await answerWithinTimeout(
         this.provider.answer(providerRequest),
         this.providerTimeoutMs,
@@ -84,7 +90,7 @@ export class HoidService {
       // The catalog is also enforced on provider output. A provider can mention
       // a locked entity even when the reader did not ask about it, so output
       // must never bypass the same book/chapter authorization boundary.
-      if (this.catalog && this.catalog.lockedMatches(answer, authorizedRequest.reading).length > 0) {
+      if (this.catalog && this.catalog.lockedMatches(answer, progressSnapshot.reading).length > 0) {
         return {
           blocked: true,
           reason: 'provider-output',
@@ -92,7 +98,7 @@ export class HoidService {
         };
       }
 
-      return redactProviderAnswer(answer, authorizedRequest);
+      return redactProviderAnswer(answer, progressSnapshot);
     } catch {
       return {
         blocked: false,

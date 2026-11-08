@@ -1,15 +1,18 @@
-# Cobertura de vinculaciones fuente → obra
+# Source binding coverage
 
-`resolveSourceBindingCoverage` audita la cobertura entre un catálogo bibliográfico
-declarado y un registro explícito de vinculaciones fuente → obra.
+`resolveSourceBindingCoverage` audits the relationship between the declared private-source catalog and explicit `sourceId -> workId` bindings.
 
-## Reglas
+## Guarantees
 
-- una fuente solo cuenta como cubierta cuando existe una vinculación explícita;
-- no se infieren relaciones a partir de títulos, orden o colecciones;
-- una vinculación que apunta a una fuente inexistente bloquea el resultado;
-- un catálogo o registro malformado bloquea el resultado;
-- una fuente sin vinculación permanece explícitamente como pendiente.
+- Catalog entries are identified by `id`; bindings refer to those identifiers through `sourceId`.
+- A source without a binding is reported as uncovered rather than being matched by title or collection.
+- A binding to an unknown source blocks the audit.
+- Invalid catalog or provenance registries block the audit.
+- Results are deterministic and sorted.
+- The result contains identifiers only and carries no EPUB text, chapter text, or narrative facts.
 
-La utilidad no lee fuentes privadas ni almacena texto protegido. Su finalidad es
-detectar huecos de procedencia antes de habilitar contenido respaldado por evidencia.
+## Intended use
+
+Coverage is a structural readiness check. It does not prove that a source has been read, that a passage is accessible, or that narrative content is safe to reveal. Those decisions remain behind the separate evidence and reading-progress gates.
+
+This keeps Scadrial, Sel, Nalthis, Taldain, Roshar, and future worlds on the same reusable provenance model without inferring editorial relationships.

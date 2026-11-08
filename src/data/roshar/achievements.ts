@@ -25,17 +25,21 @@ export function evaluateRosharReadingAchievements(
 ): RosharAchievementProjection[] {
   // Count only catalog units that belong to an unambiguous progress record.
   // Raw persistence may contain unknown or cross-work IDs; those must not grant achievements.
-  const unitWorkById = new Map(units.map(unit => [unit.id, unit.workId]));
+  // Runtime persistence/imports can bypass TypeScript, so malformed collections fail closed.
+  const safeAchievements = Array.isArray(achievements) ? achievements : [];
+  const safeUnits = Array.isArray(units) ? units : [];
+  const safeProgress = Array.isArray(progress) ? progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds))) : [];
+  const unitWorkById = new Map(safeUnits.filter((unit): unit is ReadingUnit => Boolean(unit && typeof unit === 'object' && typeof unit.id === 'string' && typeof unit.workId === 'string')).map(unit => [unit.id, unit.workId]));
   const workCounts = new Map<string, number>();
-  for (const item of progress) {
+  for (const item of safeProgress) {
     workCounts.set(item.workId, (workCounts.get(item.workId) ?? 0) + 1);
   }
-  const totalCompleted = progress
+  const totalCompleted = safeProgress
     .filter(item => workCounts.get(item.workId) === 1)
     .reduce((total, item) => total + new Set(
       item.completedUnitIds.filter(id => unitWorkById.get(id) === item.workId)
     ).size, 0);
-  return achievements.map(achievement => {
+  return safeAchievements.filter((achievement): achievement is RosharReadingAchievement => Boolean(achievement && typeof achievement === 'object')).map(achievement => {
     const countSatisfied = achievement.requiredCompletedUnits === undefined ||
       totalCompleted >= achievement.requiredCompletedUnits;
     const completionSatisfied = !achievement.requiresNarrativeCompletion ||
@@ -57,19 +61,22 @@ export function selectVisibleRosharAchievements(
 ): RosharAchievementPresentation[] {
   // Ambiguous duplicate work records are fail-closed throughout progress.
   // Do not let conflicting persistence unlock spoiler-gated achievement metadata.
+  const safeProjections = Array.isArray(projections) ? projections : [];
+  const safeProgress = Array.isArray(progress) ? progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds))) : [];
+  const safePersistentIds = Array.isArray(persistentlyUnlockedAchievementIds) ? persistentlyUnlockedAchievementIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0).map(id => id.trim()) : [];
   const workCounts = new Map<string, number>();
-  for (const item of progress) {
+  for (const item of safeProgress) {
     workCounts.set(item.workId, (workCounts.get(item.workId) ?? 0) + 1);
   }
   const completedUnitIds = new Set(
-    progress
-      .filter(item => workCounts.get(item.workId) === 1 && getUnambiguousReadingProgress(progress, item.workId))
+    safeProgress
+      .filter(item => workCounts.get(item.workId) === 1 && getUnambiguousReadingProgress(safeProgress, item.workId))
       .flatMap(item => item.completedUnitIds)
   );
 
-  const persistentIds = new Set(persistentlyUnlockedAchievementIds);
+  const persistentIds = new Set(safePersistentIds);
 
-  return projections.map(({ achievement, unlocked: currentlyUnlocked }) => {
+  return safeProjections.filter((projection): projection is RosharAchievementProjection => Boolean(projection && typeof projection === 'object' && projection.achievement && typeof projection.achievement.id === 'string')).map(({ achievement, unlocked: currentlyUnlocked }) => {
     // Achievement grants are monotonic once persisted. A later correction to
     // reading progress must not make an already granted achievement disappear.
     const unlocked = currentlyUnlocked || persistentIds.has(achievement.id);
@@ -96,7 +103,10 @@ export function selectVisibleRosharAchievements(
 export function selectUnlockedRosharRewardIds(
   projections: readonly RosharAchievementProjection[]
 ): string[] {
+  const safeProjections = Array.isArray(projections) ? projections : [];
   return Array.from(new Set(
-    projections.filter(item => item.unlocked).map(item => item.achievement.reward.id)
+    safeProjections
+      .filter((item): item is RosharAchievementProjection => Boolean(item && typeof item === 'object' && item.unlocked && item.achievement && item.achievement.reward && typeof item.achievement.reward.id === 'string' && item.achievement.reward.id.trim().length > 0))
+      .map(item => item.achievement.reward.id.trim())
   ));
 }

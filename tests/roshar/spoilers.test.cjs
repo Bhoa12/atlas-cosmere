@@ -196,3 +196,13 @@ test('spoiler gates fail closed for malformed runtime completion sets and unit i
   assert.equal(isSpoilerGateSatisfied(gate, null, unitWorkById), false);
   assert.equal(isSpoilerGateSatisfied(gate, new Set(['twok:prologue']), null), false);
 });
+
+
+test('malformed duplicate progress records keep spoiler access ambiguous', () => {
+  const claims = [{ id: 'guarded', entityId: 'x', editorialStatus: 'published', sourceRefs: ['ref'], spoilerGate: { allOf: [req('twok', 'twok:prologue')] } }];
+  const ambiguous = [
+    { workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' },
+    { workId: 'twok', completedUnitIds: null, updatedAt: 't1' }
+  ];
+  assert.deepEqual(selectVisibleClaims(claims, ambiguous, unitWorkById), []);
+});

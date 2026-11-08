@@ -110,3 +110,20 @@ test('achievement selectors fail closed for malformed runtime collections', () =
     { unlocked: true, achievement: { reward: { id: ' ' } } }
   ]), ['valid']);
 });
+
+
+test('invalid achievement identifiers and non-boolean projection state fail closed', () => {
+  const evaluated = evaluateRosharReadingAchievements([
+    { id: ' ', requiredCompletedUnits: 0, title: 'Leak', description: '' },
+    { id: 'valid', requiredCompletedUnits: 0, title: 'Valid', description: '' }
+  ], units, []);
+  assert.equal(evaluated.length, 1);
+  assert.equal(evaluated[0].achievement.id, 'valid');
+
+  const visible = selectVisibleRosharAchievements([
+    { achievement: { id: ' ', title: 'Leak', description: '' }, unlocked: true },
+    { achievement: { id: 'truthy', title: 'Leak', description: '' }, unlocked: 'yes' },
+    { achievement: { id: 'valid', title: 'Valid', description: '' }, unlocked: false }
+  ], [], []);
+  assert.deepEqual(visible.map(item => item.id), ['valid']);
+});

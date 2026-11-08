@@ -10,22 +10,53 @@ export interface SourceBindingCoverage {
 
 /**
  * Audits explicit source-to-work provenance against a declared catalog.
- * It never creates relationships from titles, collection names or ordering.
+ * Missing bindings remain pending; this function never infers a relationship
+ * from titles, collection names, ordering, or narrative metadata.
  */
-export function auditSourceBindingCoverage(
+export function resolveSourceBindingCoverage(
   catalog: readonly SourceCatalogEntry[],
   bindings: readonly SourceWorkBinding[],
 ): SourceBindingCoverage {
-  if (!hasValidSourceCatalog(catalog) || validateSourceWorkBindings(bindings).length > 0) {
-    return { status: "blocked", coveredSourceIds: [], uncoveredSourceIds: [], unknownBindingSourceIds: [] };
+  const catalogEntries = [...catalog];
+  const bindingEntries = [...bindings];
+
+  if (
+    !hasValidSourceCatalog(catalogEntries) ||
+    validateSourceWorkBindings(bindingEntries).length > 0
+  ) {
+    return {
+      status: "blocked",
+      coveredSourceIds: [],
+      uncoveredSourceIds: [],
+      unknownBindingSourceIds: [],
+    };
   }
-  const catalogIds = new Set(catalog.map((entry) => entry.sourceId));
-  const boundIds = new Set(bindings.map((binding) => binding.sourceId));
-  const unknown = [...boundIds].filter((id) => !catalogIds.has(id)).sort();
-  if (unknown.length > 0) {
-    return { status: "blocked", coveredSourceIds: [], uncoveredSourceIds: [], unknownBindingSourceIds: unknown };
+
+  const catalogIds = new Set(catalogEntries.map((entry) => entry.id));
+  const boundIds = new Set(bindingEntries.map((binding) => binding.sourceId.trim()));
+  const unknownBindingSourceIds = [...boundIds]
+    .filter((id) => !catalogIds.has(id))
+    .sort();
+
+  if (unknownBindingSourceIds.length > 0) {
+    return {
+      status: "blocked",
+      coveredSourceIds: [],
+      uncoveredSourceIds: [],
+      unknownBindingSourceIds,
+    };
   }
+
   const coveredSourceIds = [...catalogIds].filter((id) => boundIds.has(id)).sort();
   const uncoveredSourceIds = [...catalogIds].filter((id) => !boundIds.has(id)).sort();
-  return { status: "valid", coveredSourceIds, uncoveredSourceIds, unknownBindingSourceIds: [] };
+
+  return {
+    status: "valid",
+    coveredSourceIds,
+    uncoveredSourceIds,
+    unknownBindingSourceIds: [],
+  };
 }
+
+/** Backwards-compatible name for callers using the original audit terminology. */
+export const auditSourceBindingCoverage = resolveSourceBindingCoverage;

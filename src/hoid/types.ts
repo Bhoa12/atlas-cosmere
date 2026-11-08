@@ -27,7 +27,7 @@ export type HoidAnswerRequest = {
 export type HoidAnswer = {
   text: string;
   blocked: boolean;
-  reason?: 'reading-position' | 'provider-unavailable' | 'provider-output';
+  reason?: 'reading-position' | 'input-invalid' | 'provider-unavailable' | 'provider-output';
 };
 
 export interface HoidProvider {

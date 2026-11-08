@@ -264,3 +264,12 @@ test('progress mutations fail closed for malformed runtime records without throw
   assert.equal(setCurrentReadingUnit(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'), malformed);
   assert.equal(markReadingUnitCompleted(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'), malformed);
 });
+
+
+test('progress mutations fail closed when the runtime unit index is malformed', () => {
+  const initial = createEmptyReadingProgress(['twok'], 't0');
+  assert.doesNotThrow(() => setCurrentReadingUnit(initial, 'twok', 'twok:chapter:001', null, 't1'));
+  assert.doesNotThrow(() => markReadingUnitCompleted(initial, 'twok', 'twok:chapter:001', null, 't1'));
+  assert.equal(setCurrentReadingUnit(initial, 'twok', 'twok:chapter:001', null, 't1'), initial);
+  assert.equal(markReadingUnitCompleted(initial, 'twok', 'twok:chapter:001', null, 't1'), initial);
+});

@@ -251,6 +251,12 @@ test('progress selectors fail closed for malformed runtime collections', () => {
 });
 
 
+test('work-specific completion counts fail closed for malformed unambiguous records', () => {
+  const malformed = [{ workId: 'twok', completedUnitIds: null, updatedAt: 't0' }];
+  assert.doesNotThrow(() => getCompletedReadingUnitCount(malformed, 'twok'));
+  assert.equal(getCompletedReadingUnitCount(malformed, 'twok'), 0);
+});
+
 test('progress mutations fail closed for malformed runtime records without throwing', () => {
   const malformed = [null, { workId: 'twok', completedUnitIds: null, updatedAt: 't0' }];
   assert.doesNotThrow(() => setCurrentReadingUnit(malformed, 'twok', 'twok:chapter:001', unitWorkById, 't1'));

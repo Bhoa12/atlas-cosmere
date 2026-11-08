@@ -273,3 +273,15 @@ test('progress mutations fail closed when the runtime unit index is malformed', 
   assert.equal(setCurrentReadingUnit(initial, 'twok', 'twok:chapter:001', null, 't1'), initial);
   assert.equal(markReadingUnitCompleted(initial, 'twok', 'twok:chapter:001', null, 't1'), initial);
 });
+
+
+test('sanitization and validation fail closed when the unit index is malformed', () => {
+  const empty = sanitizeReadingProgress(
+    [{ workId: 'twok', completedUnitIds: ['twok:prologue'], updatedAt: 't0' }],
+    ['twok'],
+    null,
+    'fallback'
+  );
+  assert.deepEqual(empty, [{ workId: 'twok', completedUnitIds: [], updatedAt: 'fallback' }]);
+  assert.deepEqual(validateReadingProgress(null, ['twok'], null), []);
+});

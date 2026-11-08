@@ -51,7 +51,7 @@ export class HoidPipeline {
     const question = validHoidQuestion(request.question);
     const readingInput = validReadingPositions(request.reading);
     if (question === null || readingInput === null) {
-      return { blocked: true, reason: "input-invalid", text: "La pregunta no tiene un formato válido. Hoid prefiere no interpretarla ni enviarla a ninguna fuente externa." };
+      return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
     }
 
     // Every later boundary receives the same canonical question. This prevents

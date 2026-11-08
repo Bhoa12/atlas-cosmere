@@ -48,7 +48,7 @@ export function setCurrentReadingUnit(
   unitWorkById: ReadonlyMap<string, string>,
   updatedAt: string
 ): ReadingProgress[] {
-  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
+  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0 || !unitWorkById || typeof unitWorkById.get !== 'function') return progress;
   if (unitWorkById.get(readingUnitId) !== workId) return progress;
   const safeProgress = progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds)));
   if (safeProgress.length !== progress.length) return progress;
@@ -70,7 +70,7 @@ export function markReadingUnitCompleted(
   unitWorkById: ReadonlyMap<string, string>,
   updatedAt: string
 ): ReadingProgress[] {
-  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0) return progress;
+  if (!Array.isArray(progress) || typeof workId !== 'string' || workId.trim().length === 0 || typeof readingUnitId !== 'string' || readingUnitId.trim().length === 0 || !unitWorkById || typeof unitWorkById.get !== 'function') return progress;
   if (unitWorkById.get(readingUnitId) !== workId) return progress;
   const safeProgress = progress.filter((item): item is ReadingProgress => Boolean(item && typeof item === 'object' && typeof item.workId === 'string' && Array.isArray(item.completedUnitIds)));
   if (safeProgress.length !== progress.length) return progress;

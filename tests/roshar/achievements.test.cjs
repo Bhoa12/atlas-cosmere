@@ -99,3 +99,14 @@ test('ambiguous duplicate work records cannot contribute to count-based achievem
   const result = evaluateRosharReadingAchievements([achievement], units, progress);
   assert.equal(result[0].unlocked, false);
 });
+
+
+test('achievement selectors fail closed for malformed runtime collections', () => {
+  assert.deepEqual(evaluateRosharReadingAchievements(null, null, null), []);
+  assert.deepEqual(selectVisibleRosharAchievements(null, null, null), []);
+  assert.deepEqual(selectUnlockedRosharRewardIds([
+    null,
+    { unlocked: true, achievement: { reward: { id: ' valid ' } } },
+    { unlocked: true, achievement: { reward: { id: ' ' } } }
+  ]), ['valid']);
+});

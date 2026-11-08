@@ -10,15 +10,15 @@ describe("validProviderText", () => {
     expect(validProviderText("   ")).toBeNull();
   });
 
-  it("rejects output that becomes empty after transport controls are removed", () => {
-    expect(validProviderText("\u0000\u0001\u001F")).toBeNull();
+  it("rejects output that becomes empty after invisible controls are removed", () => {
+    expect(validProviderText("\\u0000\\u0001\\u200B\\u202E")).toBeNull();
   });
 
-  it("preserves readable text while removing transport control characters", () => {
-    expect(validProviderText("  Hola\u0000 mundo  ")).toBe("Hola mundo");
+  it("canonicalizes provider text before spoiler checks", () => {
+    expect(validProviderText("  Pre\\u200Bg\\u202Eunta  ")).toBe("Pregunta");
   });
 
-  it("preserves Unicode wording for the spoiler guard instead of ASCII-normalizing it", () => {
+  it("preserves readable Unicode wording for the spoiler guard", () => {
     expect(validProviderText("  ¿Qué pasó en Roshar?  ")).toBe("¿Qué pasó en Roshar?");
   });
 

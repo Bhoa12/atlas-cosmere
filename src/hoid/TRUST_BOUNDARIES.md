@@ -17,7 +17,7 @@ Hoid debe fallar de forma conservadora: ningún dato no confiable puede aumentar
 ## Invariantes
 
 1. El proveedor no decide qué contenido está desbloqueado.
-2. Una posición de lectura inválida o ambigua no puede desbloquear contenido; los capítulos y el orden canónico solo se aceptan como enteros finitos no negativos.
+2. Una posición de lectura inválida o ambigua no puede desbloquear contenido; tanto el progreso del lector como los capítulos de desbloqueo del catálogo solo aceptan enteros finitos no negativos.
 3. Completar una obra no desbloquea automáticamente otra.
 4. Una entrada editorial sin procedencia `verified` no entra en la recuperación.
 5. Los snapshots enviados al proveedor no reutilizan objetos mutables de la petición.

@@ -48,6 +48,13 @@ export class HoidPipeline {
   ) {}
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
+    // TypeScript contracts disappear at runtime. Reject a malformed request
+    // object before reading any property so this public boundary fails closed
+    // instead of throwing or accidentally reaching later trust boundaries.
+    if (request === null || typeof request !== "object" || Array.isArray(request)) {
+      return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
+    }
+
     const question = validHoidQuestion(request.question);
     const readingInput = validReadingPositions(request.reading);
     if (question === null || readingInput === null) {

@@ -69,7 +69,7 @@ Por ello, cada frontera debe aplicar estas reglas:
 - **Entrada:** una petición no amplía por sí misma el conocimiento autorizado; el progreso es la única fuente de desbloqueo.
 - **Recuperación:** cada elemento debe tener obra y posición de desbloqueo verificables; sin ambas, se excluye.
 - **Proveedor:** recibe solo la pregunta y el contexto ya autorizado; nunca debe recibir una biblioteca completa como atajo.
-- **Salida:** las afirmaciones factuales deben estar vinculadas a identificadores de conocimiento ya autorizado. El filtro final elimina las afirmaciones con evidencia desconocida, incompleta o bloqueada; no se intenta completar esos huecos.
+- **Salida:** las afirmaciones factuales deben estar vinculadas a identificadores de conocimiento ya autorizado. El filtro final elimina las afirmaciones con evidencia desconocida, incompleta o bloqueada; tampoco deja pasar prosa libre del proveedor como si fuese conocimiento verificado. Si no existe un vínculo de evidencia por afirmación, se descarta y no se intenta completar ese hueco.
 - **Degradación:** ante errores, datos incompletos o desacuerdo entre capas, Hoid reduce información en vez de ampliar el acceso.
 
 Estas reglas también permiten sustituir o añadir proveedores sin cambiar la política de spoilers: el contrato del proveedor es una dependencia externa, mientras que la autorización y el filtrado pertenecen al núcleo.

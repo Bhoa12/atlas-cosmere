@@ -5,6 +5,8 @@
 
 export type HoidProgress = Record<string, number>;
 
+/**\n * Defensive runtime canonicalization for untrusted reading progress.\n * Invalid positions are discarded rather than coerced upward.\n */\nexport function canonicalHoidProgress(progress: unknown): HoidProgress {\n  if (!progress || typeof progress !== "object" || Array.isArray(progress)) return {};\n  const canonical: HoidProgress = {};\n  for (const [bookId, chapter] of Object.entries(progress as Record<string, unknown>)) {\n    if (typeof bookId !== "string" || bookId.trim().length === 0) continue;\n    if (typeof chapter !== "number" || !Number.isFinite(chapter) || !Number.isInteger(chapter) || chapter < 0) continue;\n    canonical[bookId] = chapter;\n  }\n  return canonical;\n}
+
 export interface KnowledgeItem {
   id: string;
   aliases: string[];

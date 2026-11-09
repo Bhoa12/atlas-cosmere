@@ -14,15 +14,28 @@ export interface ContextualHoidProvider extends HoidProvider {
   answerWithContext(request: HoidAnswerRequest, context: HoidKnowledgeEntry[]): Promise<string>;
 }
 
+/**
+ * Structured providers opt into claim-level evidence. This contract is
+ * intentionally separate from the legacy text provider so a provider cannot
+ * claim evidence support merely by returning a string.
+ */
+export type EvidenceBoundClaim = {
+  text: string;
+  evidenceIds: readonly string[];
+};
+
+export interface EvidenceBoundHoidProvider {
+  answerWithEvidence(
+    request: HoidAnswerRequest,
+    context: HoidKnowledgeEntry[],
+  ): Promise<readonly EvidenceBoundClaim[]>;
+}
+
 function providerSnapshots(
   request: HoidAnswerRequest,
   context: HoidKnowledgeEntry[],
 ): { request: HoidAnswerRequest; context: HoidKnowledgeEntry[] } {
   const reading = request.reading.map(position => Object.freeze({ ...position }));
-
-  // knowledgeContext is an internal authorization result, not caller-controlled
-  // provider input. Rebuild the request from the minimal public contract so a
-  // caller cannot smuggle arbitrary narrative context across this boundary.
   const providerRequest = Object.freeze({
     question: request.question,
     reading: Object.freeze(reading),
@@ -34,23 +47,33 @@ function providerSnapshots(
     firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
   })) as unknown as HoidKnowledgeEntry[];
 
-  return {
-    request: providerRequest,
-    context: Object.freeze(providerContext) as unknown as HoidKnowledgeEntry[],
-  };
+  return { request: providerRequest, context: Object.freeze(providerContext) as unknown as HoidKnowledgeEntry[] };
+}
+
+function evidenceText(
+  claims: readonly EvidenceBoundClaim[],
+  context: readonly HoidKnowledgeEntry[],
+): string | null {
+  const allowed = new Set(context.map(item => item.id));
+  const accepted: string[] = [];
+  for (const claim of claims) {
+    if (!claim || typeof claim !== "object" || typeof claim.text !== "string") continue;
+    const text = validProviderText(claim.text);
+    if (text === null || !Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0) continue;
+    if (!claim.evidenceIds.every(id => typeof id === "string" && allowed.has(id))) continue;
+    accepted.push(text);
+  }
+  return accepted.length > 0 ? accepted.join("\n\n") : null;
 }
 
 export class HoidPipeline {
   private readonly knowledge: HoidKnowledgeEntry[];
 
   constructor(
-    private readonly provider: HoidProvider | null | undefined,
+    private readonly provider: HoidProvider | EvidenceBoundHoidProvider | null | undefined,
     knowledge: HoidKnowledgeEntry[],
     private readonly providerTimeoutMs = 15_000,
   ) {
-    // Snapshot and validate editorial metadata once at the application boundary.
-    // A later mutation by a UI/import layer must not silently change the catalog
-    // consulted by an already-running Hoid service.
     this.knowledge = validatedKnowledge(knowledge).map(entry => Object.freeze({
       ...entry,
       aliases: Object.freeze([...entry.aliases]),
@@ -59,9 +82,6 @@ export class HoidPipeline {
   }
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
-    // TypeScript contracts disappear at runtime. Reject a malformed request
-    // object before reading any property so this public boundary fails closed
-    // instead of throwing or accidentally reaching later trust boundaries.
     if (request === null || typeof request !== "object" || Array.isArray(request)) {
       return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
     }
@@ -72,9 +92,6 @@ export class HoidPipeline {
       return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
     }
 
-    // Every later boundary receives the same canonical question. This prevents
-    // invisible Unicode or transport controls from being interpreted differently
-    // by the spoiler guard and an external provider.
     const normalizedRequest: HoidAnswerRequest = { ...request, question, reading: readingInput };
     const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
@@ -83,8 +100,7 @@ export class HoidPipeline {
     const catalog = new HoidKnowledgeCatalog(knowledge);
     const reading = authorizeReading(normalizedRequest.reading, catalogBookIds(knowledge));
     const authorizedRequest = { question, reading };
-    const locked = catalog.lockedMatches(question, reading);
-    if (locked.length > 0) {
+    if (catalog.lockedMatches(question, reading).length > 0) {
       return { blocked: true, reason: "reading-position", text: "Esa pregunta incluye información que todavía no has desbloqueado. Hoid prefiere guardar ese misterio hasta que llegues a la parte correspondiente." };
     }
 
@@ -96,10 +112,23 @@ export class HoidPipeline {
     const snapshot = providerSnapshots(authorizedRequest, context);
 
     try {
-      const provider = this.provider as Partial<ContextualHoidProvider>;
+      const provider = this.provider as Partial<EvidenceBoundHoidProvider & ContextualHoidProvider>;
+      if (typeof provider.answerWithEvidence === "function") {
+        const claims = await answerWithinTimeout(provider.answerWithEvidence(snapshot.request, snapshot.context), this.providerTimeoutMs);
+        if (claims === null || !Array.isArray(claims)) {
+          return { blocked: false, reason: "provider-unavailable", text: "La fuente de conocimiento no está disponible a tiempo. Hoid no inventará una respuesta." };
+        }
+        const text = evidenceText(claims, snapshot.context);
+        if (text === null || catalog.lockedMatches(text, reading).length > 0) {
+          return { blocked: true, reason: "provider-output", text: "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado." };
+        }
+        return { blocked: false, text };
+      }
+
+      const legacy = this.provider as HoidProvider;
       const operation = typeof provider.answerWithContext === "function"
         ? provider.answerWithContext(snapshot.request, snapshot.context)
-        : this.provider.answer(snapshot.request);
+        : legacy.answer(snapshot.request);
       const text = await answerWithinTimeout(operation, this.providerTimeoutMs);
       if (text === null) {
         return { blocked: false, reason: "provider-unavailable", text: "La fuente de conocimiento no está disponible a tiempo. Hoid no inventará una respuesta." };
@@ -110,8 +139,7 @@ export class HoidPipeline {
       }
       const providerAnswer = redactProviderAnswer(safeText, authorizedRequest);
       if (providerAnswer.blocked) return providerAnswer;
-      const leaked = catalog.lockedMatches(safeText, reading);
-      if (leaked.length > 0) {
+      if (catalog.lockedMatches(safeText, reading).length > 0) {
         return { blocked: true, reason: "provider-output", text: "He empezado a revelar información que todavía no has desbloqueado. Mejor dejemos ese misterio sellado por ahora." };
       }
       return providerAnswer;

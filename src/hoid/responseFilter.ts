@@ -3,8 +3,8 @@ import type { KnowledgeItem } from "./contracts";
 /**
  * Provider-neutral response shape for answers that make factual claims.
  *
- * The provider may phrase an answer freely, but every factual claim exposed to
- * the reader must point to knowledge that already crossed the spoiler boundary.
+ * Factual output is represented as evidence-bound claims. The free-form
+ * provider answer is deliberately not trusted as narrative evidence.
  */
 export interface HoidClaim {
   text: string;
@@ -20,8 +20,9 @@ export interface HoidProviderResponse {
  * Final response boundary.
  *
  * Claims without valid evidence are removed instead of being guessed or
- * displayed. This gives the UI a conservative representation even when a
- * provider returns extra, unsupported material.
+ * displayed. Free-form provider prose is also discarded at this boundary:
+ * without a claim-level evidence mapping, it cannot be distinguished
+ * mechanically from an unsupported or spoiler-bearing assertion.
  */
 export function filterResponseByAuthorizedKnowledge(
   response: unknown,
@@ -33,7 +34,6 @@ export function filterResponseByAuthorizedKnowledge(
   }
 
   const value = response as Partial<HoidProviderResponse>;
-  const answer = typeof value.answer === "string" ? value.answer.trim() : "";
   const rawClaims = Array.isArray(value.claims) ? value.claims : [];
 
   const claims: HoidClaim[] = [];
@@ -46,8 +46,8 @@ export function filterResponseByAuthorizedKnowledge(
     claims.push({ text: claim.text.trim(), evidenceIds: [...new Set(claim.evidenceIds)] });
   }
 
-  // Free-form prose is not treated as verified narrative output. Consumers can
-  // render it as conversational framing, while factual content comes from the
-  // evidence-bound claims above.
-  return { answer, claims };
+  // Never pass through provider prose as a verified answer. A future renderer
+  // may add locally generated conversational framing, but factual text must
+  // come from the evidence-bound claims returned above.
+  return { answer: "", claims };
 }

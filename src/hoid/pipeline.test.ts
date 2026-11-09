@@ -190,4 +190,29 @@ describe("HoidPipeline", () => {
   });
 
 
+  it("fails closed when individually valid evidence claims exceed the final output budget when combined", async () => {
+    const provider = {
+      answerWithEvidence: jest.fn(async () => [
+        { text: "a".repeat(7_000), evidenceIds: ["safe-entry"] },
+        { text: "b".repeat(7_000), evidenceIds: ["safe-entry"] },
+      ]),
+    };
+    const knowledge = [{
+      id: "safe-entry",
+      aliases: ["CONCEPTO_SEGURO"],
+      kind: "concept" as const,
+      provenance: "verified" as const,
+      firstSafeAppearance: { bookId: "book-safe", chapter: 1 },
+      summary: "Resumen editorial original y seguro.",
+    }];
+
+    const result = await new HoidPipeline(provider, knowledge).answer({
+      question: "¿Qué es CONCEPTO_SEGURO?",
+      reading: [{ bookId: "book-safe", chapter: 1 }],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("provider-output");
+  });
+
 });

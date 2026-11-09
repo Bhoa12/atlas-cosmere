@@ -11,7 +11,9 @@ export type HoidProgress = Record<string, number>;
  */
 export function canonicalHoidProgress(progress: unknown): HoidProgress {
   if (!progress || typeof progress !== "object" || Array.isArray(progress)) return {};
-  // Use a null-prototype dictionary: externally supplied book IDs must not\n  // be able to alter object inheritance through keys such as "__proto__".\n  const canonical: HoidProgress = Object.create(null) as HoidProgress;
+  // Use a null-prototype dictionary: externally supplied book IDs must not
+  // be able to alter object inheritance through keys such as "__proto__".
+  const canonical: HoidProgress = Object.create(null) as HoidProgress;
   for (const [bookId, chapter] of Object.entries(progress as Record<string, unknown>)) {
     if (typeof bookId !== "string" || bookId.trim().length === 0) continue;
     if (typeof chapter !== "number" || !Number.isFinite(chapter) || !Number.isInteger(chapter) || chapter < 0) continue;

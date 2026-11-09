@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findCatalogEntry, hasValidSourceCatalog } from "./sourceCatalog";
+import { findCatalogEntriesBySource, findCatalogEntry, hasValidSourceCatalog } from "./sourceCatalog";
 
 const catalog = [
   { id: "mistborn-final-empire", title: "El Imperio Final", sourceCollectionId: "cosmere.epub", access: "verified-structure" as const },
@@ -20,5 +20,11 @@ describe("source catalog", () => {
     expect(findCatalogEntry(catalog, "elantris")?.title).toBe("Elantris");
     expect(findCatalogEntry(catalog, "")).toBeNull();
     expect(findCatalogEntry([{ ...catalog[0] }, { ...catalog[0] }], "mistborn-final-empire")).toBeNull();
+  });
+
+  it("returns source collections only after validating the full catalog", () => {
+    expect(findCatalogEntriesBySource(catalog, "cosmere.epub")).toHaveLength(2);
+    expect(findCatalogEntriesBySource([...catalog, { ...catalog[0] }], "cosmere.epub")).toEqual([]);
+    expect(findCatalogEntriesBySource(catalog, "")).toEqual([]);
   });
 });

@@ -57,7 +57,13 @@ function evidenceText(
 ): string | null {
   const allowed = new Set(context.map(item => item.id));
   const accepted = filterClaimsByAuthorizedIds(claims, allowed);
-  return accepted.length > 0 ? accepted.map(claim => claim.text).join("\n\n") : null;
+  if (accepted.length === 0) return null;
+
+  // Each individual claim is bounded by validProviderText, but an evidence-aware
+  // provider can still return many individually valid claims. Validate the
+  // composed response as well so this path has the same output-size boundary
+  // as legacy providers and cannot bypass it by fragmentation.
+  return validProviderText(accepted.map(claim => claim.text).join("\n\n"));
 }
 
 export class HoidPipeline {

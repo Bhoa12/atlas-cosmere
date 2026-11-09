@@ -47,3 +47,12 @@ Los EPUB privados no se suben al repositorio. El código puede conservar IDs,
 títulos, estructura de lectura validada y referencias de procedencia, pero no
 texto íntegro protegido. Si una fuente no está accesible durante un ciclo de
 trabajo, su contenido permanece pendiente y no se inventan hechos.
+
+
+## Consulta por colección
+
+La capa de catálogo puede agrupar obras por un identificador de colección declarado,
+por ejemplo una fuente privada concreta. Antes de devolver resultados valida el
+catálogo completo; si detecta metadatos duplicados o malformados devuelve una lista
+vacía. Así una consulta parcial nunca convierte un catálogo inconsistente en una
+señal de disponibilidad editorial.

@@ -45,7 +45,21 @@ function containsCatalogAlias(text: string, alias: string): boolean {
  * text. Entries must only be added after editorial verification.
  */
 export class HoidKnowledgeCatalog {
-  constructor(private readonly entries: HoidKnowledgeEntry[] = []) {}
+  /**
+   * Snapshot caller-owned metadata at construction. Catalog authorization is a
+   * trust boundary, so later mutation of an array or aliases object owned by a
+   * UI/import layer must not silently change what this instance considers
+   * spoiler-safe.
+   */
+  private readonly entries: HoidKnowledgeEntry[];
+
+  constructor(entries: HoidKnowledgeEntry[] = []) {
+    this.entries = entries.map(entry => ({
+      ...entry,
+      aliases: Array.isArray(entry.aliases) ? [...entry.aliases] : [],
+      firstSafeAppearance: { ...entry.firstSafeAppearance },
+    }));
+  }
 
   findMatches(text: string): HoidKnowledgeEntry[] {
     const normalized = normalizeForCatalogMatch(text);

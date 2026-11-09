@@ -65,3 +65,30 @@ export class AuthorizedKnowledgeRetriever {
     return raw.map(canonicalKnowledgeItem).filter((item): item is KnowledgeItem => item !== null).filter((item) => this.policy.allows(item));
   }
 }
+
+
+/**
+ * A reading position is only meaningful when the referenced work is part of
+ * the verified catalog. Unknown works fail closed instead of unlocking data.
+ */
+export interface HoidCatalogEntry {
+  id: string;
+  title: string;
+}
+
+export function canonicalCatalog(entries: readonly HoidCatalogEntry[]): ReadonlySet<string> {
+  const ids = new Set<string>();
+  for (const entry of entries) {
+    if (entry && typeof entry.id === "string" && entry.id.trim().length > 0) ids.add(entry.id.trim());
+  }
+  return ids;
+}
+
+export function catalogBoundProgress(progress: unknown, catalogIds: ReadonlySet<string>): HoidProgress {
+  const canonical = canonicalHoidProgress(progress);
+  const bound: HoidProgress = Object.create(null) as HoidProgress;
+  for (const [bookId, chapter] of Object.entries(canonical)) {
+    if (catalogIds.has(bookId)) bound[bookId] = chapter;
+  }
+  return bound;
+}

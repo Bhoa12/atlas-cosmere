@@ -28,46 +28,38 @@ export interface KnowledgeItem {
   summary?: string;
 }
 
-export interface KnowledgeRepository {
-  search(query: string): Promise<KnowledgeItem[]>;
-}
+export interface KnowledgeRepository { search(query: string): Promise<KnowledgeItem[]>; }
+export interface HoidProviderRequest { question: string; context: KnowledgeItem[]; progress: HoidProgress; }
+export interface HoidProvider { answer(request: HoidProviderRequest): Promise<string>; }
 
-export interface HoidProviderRequest {
-  question: string;
-  context: KnowledgeItem[];
-  progress: HoidProgress;
-}
-
-export interface HoidProvider {
-  answer(request: HoidProviderRequest): Promise<string>;
+export function canonicalKnowledgeItem(item: unknown): KnowledgeItem | null {
+  if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+  const value = item as Partial<KnowledgeItem>;
+  if (typeof value.id !== "string" || value.id.trim().length === 0) return null;
+  if (!Array.isArray(value.aliases) || !value.aliases.every((alias) => typeof alias === "string")) return null;
+  if (!value.unlock || typeof value.unlock.bookId !== "string" || value.unlock.bookId.trim().length === 0) return null;
+  if (typeof value.unlock.chapter !== "number" || !Number.isFinite(value.unlock.chapter) || !Number.isInteger(value.unlock.chapter) || value.unlock.chapter < 0) return null;
+  const kinds = new Set(["character","place","event","concept","magic","organization","object"]);
+  if (typeof value.kind !== "string" || !kinds.has(value.kind)) return null;
+  if (value.summary !== undefined && typeof value.summary !== "string") return null;
+  return { id: value.id.trim(), aliases: [...value.aliases], kind: value.kind as KnowledgeItem["kind"], unlock: { bookId: value.unlock.bookId.trim(), chapter: value.unlock.chapter }, ...(value.summary === undefined ? {} : { summary: value.summary }) };
 }
 
 export class SpoilerPolicy {
   private readonly progress: HoidProgress;
-
-  constructor(progress: HoidProgress) {
-    this.progress = canonicalHoidProgress(progress);
-  }
-
+  constructor(progress: HoidProgress) { this.progress = canonicalHoidProgress(progress); }
   allows(item: KnowledgeItem): boolean {
-    return (this.progress[item.unlock.bookId] ?? 0) >= item.unlock.chapter;
+    const canonical = canonicalKnowledgeItem(item);
+    return canonical !== null && (this.progress[canonical.unlock.bookId] ?? 0) >= canonical.unlock.chapter;
   }
-
-  filter(items: KnowledgeItem[]): KnowledgeItem[] {
-    return items.filter((item) => this.allows(item));
-  }
+  filter(items: KnowledgeItem[]): KnowledgeItem[] { return items.filter((item) => this.allows(item)); }
 }
 
-/**
- * Retrieval boundary: blocked knowledge never crosses this boundary into a provider.
- */
+/** Retrieval boundary: blocked or malformed knowledge never reaches a provider. */
 export class AuthorizedKnowledgeRetriever {
-  constructor(
-    private readonly repository: KnowledgeRepository,
-    private readonly policy: SpoilerPolicy,
-  ) {}
-
+  constructor(private readonly repository: KnowledgeRepository, private readonly policy: SpoilerPolicy) {}
   async retrieve(query: string): Promise<KnowledgeItem[]> {
-    return this.policy.filter(await this.repository.search(query));
+    const raw = await this.repository.search(query);
+    return raw.map(canonicalKnowledgeItem).filter((item): item is KnowledgeItem => item !== null).filter((item) => this.policy.allows(item));
   }
 }

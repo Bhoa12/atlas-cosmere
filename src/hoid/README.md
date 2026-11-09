@@ -18,7 +18,7 @@ El conocimiento se etiqueta con una obra y un capítulo de desbloqueo. La recupe
 
 La integración con Atlas debe pasar por un adaptador de progreso. La interfaz de usuario no forma parte del núcleo de Hoid y los contratos internos no deben depender de React ni de un proveedor de IA concreto.
 
-Las posiciones inválidas, desconocidas o ambiguas se tratan como no autorizadas.
+Las posiciones inválidas, desconocidas o ambiguas se tratan como no autorizadas.\n\nLa representación canónica del progreso usa un diccionario sin prototipo. Los identificadores externos, incluidos nombres especiales de propiedades de JavaScript, nunca deben modificar la herencia del estado de autorización.
 
 ## Proveedores
 

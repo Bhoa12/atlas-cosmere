@@ -145,5 +145,49 @@ describe("HoidPipeline", () => {
     expect(result.blocked).toBe(false);
     expect((provider as unknown as { answerWithContext: jest.Mock }).answerWithContext).toHaveBeenCalled();
   });
+  it("accepts evidence-bound claims only when every evidence id is in the authorized context", async () => {
+    const provider = {
+      answer: jest.fn(async () => "legacy response should not be used"),
+      answerWithEvidence: jest.fn(async () => [
+        { text: "Afirmación respaldada.", evidenceIds: ["safe-entry"] },
+        { text: "Afirmación sin respaldo.", evidenceIds: ["unknown-entry"] },
+        { text: "Afirmación con evidencia mezclada.", evidenceIds: ["safe-entry", "unknown-entry"] },
+      ]),
+    };
+    const knowledge = [{
+      id: "safe-entry",
+      aliases: ["CONCEPTO_SEGURO"],
+      kind: "concept" as const,
+      provenance: "verified" as const,
+      firstSafeAppearance: { bookId: "book-safe", chapter: 1 },
+      summary: "Resumen editorial original y seguro.",
+    }];
+
+    const result = await new HoidPipeline(provider, knowledge).answer({
+      question: "¿Qué es CONCEPTO_SEGURO?",
+      reading: [{ bookId: "book-safe", chapter: 1 }],
+    });
+
+    expect(result.blocked).toBe(false);
+    expect(result.text).toBe("Afirmación respaldada.");
+    expect(provider.answer).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when an evidence-bound provider returns no fully authorized claims", async () => {
+    const provider = {
+      answerWithEvidence: jest.fn(async () => [
+        { text: "Afirmación no autorizada.", evidenceIds: ["unknown-entry"] },
+      ]),
+    };
+
+    const result = await new HoidPipeline(provider, []).answer({
+      question: "Pregunta segura",
+      reading: [],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("provider-output");
+  });
+
 
 });

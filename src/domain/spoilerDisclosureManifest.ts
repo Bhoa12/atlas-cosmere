@@ -29,7 +29,11 @@ export function resolveSpoilerDisclosureManifest(
   const accessById = new Map<string, SpoilerAccessDecision>();
 
   for (const decision of access) {
-    if (!decision.contentId || accessById.has(decision.contentId)) {
+    if (
+      !decision.contentId ||
+      typeof decision.allowed !== "boolean" ||
+      accessById.has(decision.contentId)
+    ) {
       return { status: "blocked", entries: [] };
     }
     accessById.set(decision.contentId, decision);

@@ -38,3 +38,17 @@ export function findCatalogEntry(
   const matches = entries.filter((entry) => entry.id === id);
   return matches.length === 1 ? matches[0] : null;
 }
+
+/**
+ * Returns all entries belonging to one declared source collection. The catalog is
+ * validated first so malformed metadata cannot produce a partial result.
+ */
+export function findCatalogEntriesBySource(
+  entries: SourceCatalogEntry[],
+  sourceCollectionId: string,
+): readonly SourceCatalogEntry[] {
+  if (!hasValidSourceCatalog(entries) || typeof sourceCollectionId !== "string" || !sourceCollectionId.trim()) {
+    return [];
+  }
+  return entries.filter((entry) => entry.sourceCollectionId === sourceCollectionId);
+}

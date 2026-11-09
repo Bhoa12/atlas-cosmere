@@ -50,7 +50,7 @@ function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum'])
 }
 
 function escapeRegexLiteral(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\\\]/g, "\\\\$&");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function containsLockedTerm(text: string, term: string): boolean {

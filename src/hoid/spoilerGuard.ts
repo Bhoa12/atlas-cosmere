@@ -49,10 +49,33 @@ function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum'])
   return position.completed || position.chapter >= minimum.chapter;
 }
 
-function matchedLockedRule(text: string, reading: ReadingPosition[]): SpoilerRule | undefined {
+function escapeRegexLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\function matchedLockedRule(text: string, reading: ReadingPosition[]): SpoilerRule | undefined {
   const normalized = normalizeForSpoilerMatch(text);
   return rules.find(rule =>
     rule.terms.some(term => normalized.includes(normalizeForSpoilerMatch(term)))
+    && !hasReached(reading, rule.minimum),
+  );
+}");
+}
+
+function containsLockedTerm(text: string, term: string): boolean {
+  const normalizedTerm = normalizeForSpoilerMatch(term);
+  if (!normalizedTerm) return false;
+
+  // Unicode-aware lexical boundaries avoid blocking innocent longer words while
+  // still treating punctuation and whitespace as separators.
+  const expression = new RegExp(
+    "(^|[^\\p{L}\\p{N}])" + escapeRegexLiteral(normalizedTerm) + "($|[^\\p{L}\\p{N}])",
+    "u",
+  );
+  return expression.test(text);
+}
+
+function matchedLockedRule(text: string, reading: ReadingPosition[]): SpoilerRule | undefined {
+  const normalized = normalizeForSpoilerMatch(text);
+  return rules.find(rule =>
+    rule.terms.some(term => containsLockedTerm(normalized, term))
     && !hasReached(reading, rule.minimum),
   );
 }

@@ -36,13 +36,18 @@ describe("resolveSpoilerDisclosureManifest", () => {
     )).toEqual({ status: "blocked", entries: [] });
   });
 
-  it("blocks orphan access decisions", () => {
+  it("blocks orphan and malformed access decisions", () => {
     expect(resolveSpoilerDisclosureManifest(
       [{ contentId: "detail", kind: "summary" }],
       [
         { contentId: "detail", allowed: true },
         { contentId: "orphan", allowed: false },
       ],
+    )).toEqual({ status: "blocked", entries: [] });
+
+    expect(resolveSpoilerDisclosureManifest(
+      [{ contentId: "detail", kind: "summary" }],
+      [{ contentId: "detail", allowed: undefined as unknown as boolean }],
     )).toEqual({ status: "blocked", entries: [] });
   });
 });

@@ -1,4 +1,5 @@
 import type { KnowledgeItem } from "./contracts";
+import { validProviderText } from "./providerOutput";
 
 /**
  * Provider-neutral response shape for answers that make factual claims.
@@ -14,6 +15,31 @@ export interface HoidClaim {
 export interface HoidProviderResponse {
   answer: string;
   claims: HoidClaim[];
+}
+
+/**
+ * Fail-closed claim boundary shared by every evidence-aware provider path.
+ * The caller supplies only identifiers already authorized for this request.
+ */
+export function filterClaimsByAuthorizedIds(
+  rawClaims: unknown,
+  authorizedIds: ReadonlySet<string>,
+): HoidClaim[] {
+  if (!Array.isArray(rawClaims)) return [];
+
+  const claims: HoidClaim[] = [];
+  for (const raw of rawClaims) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const claim = raw as Partial<HoidClaim>;
+    const text = validProviderText(claim.text);
+    if (text === null) continue;
+    if (!Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0) continue;
+
+    const evidenceIds = [...new Set(claim.evidenceIds)];
+    if (!evidenceIds.every((id) => typeof id === "string" && authorizedIds.has(id))) continue;
+    claims.push({ text, evidenceIds });
+  }
+  return claims;
 }
 
 /**
@@ -34,20 +60,8 @@ export function filterResponseByAuthorizedKnowledge(
   }
 
   const value = response as Partial<HoidProviderResponse>;
-  const rawClaims = Array.isArray(value.claims) ? value.claims : [];
-
-  const claims: HoidClaim[] = [];
-  for (const raw of rawClaims) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
-    const claim = raw as Partial<HoidClaim>;
-    if (typeof claim.text !== "string" || claim.text.trim().length === 0) continue;
-    if (!Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0) continue;
-    if (!claim.evidenceIds.every((id) => typeof id === "string" && allowedIds.has(id))) continue;
-    claims.push({ text: claim.text.trim(), evidenceIds: [...new Set(claim.evidenceIds)] });
-  }
-
-  // Never pass through provider prose as a verified answer. A future renderer
-  // may add locally generated conversational framing, but factual text must
-  // come from the evidence-bound claims returned above.
-  return { answer: "", claims };
+  return {
+    answer: "",
+    claims: filterClaimsByAuthorizedIds(value.claims, allowedIds),
+  };
 }

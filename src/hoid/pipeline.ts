@@ -4,6 +4,7 @@ import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
 import { guardQuestion, redactProviderAnswer } from "./spoilerGuard";
 import { validProviderText } from "./providerOutput";
+import { filterClaimsByAuthorizedIds } from "./responseFilter";
 import { authorizeReading, catalogBookIds } from "./authorizationBoundary";
 import { boundAuthorizedContext } from "./contextBudget";
 import { answerWithinTimeout } from "./providerTimeout";
@@ -51,19 +52,12 @@ function providerSnapshots(
 }
 
 function evidenceText(
-  claims: readonly EvidenceBoundClaim[],
+  claims: unknown,
   context: readonly HoidKnowledgeEntry[],
 ): string | null {
   const allowed = new Set(context.map(item => item.id));
-  const accepted: string[] = [];
-  for (const claim of claims) {
-    if (!claim || typeof claim !== "object" || typeof claim.text !== "string") continue;
-    const text = validProviderText(claim.text);
-    if (text === null || !Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0) continue;
-    if (!claim.evidenceIds.every(id => typeof id === "string" && allowed.has(id))) continue;
-    accepted.push(text);
-  }
-  return accepted.length > 0 ? accepted.join("\n\n") : null;
+  const accepted = filterClaimsByAuthorizedIds(claims, allowed);
+  return accepted.length > 0 ? accepted.map(claim => claim.text).join("\n\n") : null;
 }
 
 export class HoidPipeline {

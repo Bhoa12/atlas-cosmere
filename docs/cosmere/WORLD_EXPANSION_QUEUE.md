@@ -24,9 +24,13 @@ The entire queue is blocked when:
 
 - a readiness entry has no world identifier;
 - a world appears more than once;
-- a priority is empty, duplicated, negative, or non-integral;
+- a priority is empty, duplicated by world or numeric value, negative, or non-integral;
 - a readiness world is missing from the explicit priority list;
 - a priority references a world without a readiness entry.
+
+Numeric priorities are unique so the queue has a deterministic total order.
+The implementation still does not attach editorial meaning to the numeric
+values beyond caller-supplied ordering.
 
 This makes expansion planning a metadata boundary rather than a source of
 editorial inference. It can therefore prioritize Scadrial, Sel, Nalthis,

@@ -28,6 +28,17 @@ describe("resolveWorldExpansionQueue", () => {
     )).toEqual({ status: "blocked", entries: [] });
 
     expect(resolveWorldExpansionQueue(
+      [
+        { status: "cataloged", worldId: "sel", workCount: 1, verifiedStructure: false },
+        { status: "cataloged", worldId: "nalthis", workCount: 1, verifiedStructure: false },
+      ],
+      [
+        { worldId: "sel", priority: 1 },
+        { worldId: "nalthis", priority: 1 },
+      ],
+    )).toEqual({ status: "blocked", entries: [] });
+
+    expect(resolveWorldExpansionQueue(
       [{ status: "cataloged", worldId: "sel", workCount: 1, verifiedStructure: false }],
       [
         { worldId: "sel", priority: 1 },

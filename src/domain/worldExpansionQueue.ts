@@ -36,17 +36,20 @@ export function resolveWorldExpansionQueue(
   }
 
   const priorityIds = new Set<string>();
+  const priorityValues = new Set<number>();
   const entries: WorldExpansionQueueEntry[] = [];
   for (const priority of priorities) {
     if (
       !priority.worldId ||
       !Number.isInteger(priority.priority) ||
       priority.priority < 0 ||
-      priorityIds.has(priority.worldId)
+      priorityIds.has(priority.worldId) ||
+      priorityValues.has(priority.priority)
     ) {
       return { status: "blocked", entries: [] };
     }
     priorityIds.add(priority.worldId);
+    priorityValues.add(priority.priority);
 
     const item = readinessByWorld.get(priority.worldId);
     if (!item) return { status: "blocked", entries: [] };

@@ -23,7 +23,8 @@ Hoid debe fallar de forma conservadora: ningún dato no confiable puede aumentar
 5. Los snapshots enviados al proveedor no reutilizan objetos mutables de la petición.
 6. La salida externa se considera no confiable hasta superar las comprobaciones de seguridad.
 7. La ausencia de contexto verificado nunca autoriza a inventar hechos.
-8. El conocimiento narrativo aportado por el llamador, aunque tenga una estructura válida, nunca cruza la frontera del proveedor.\n9. Las capas de bajo nivel que reciben progreso directamente vuelven a canonicalizarlo; un valor no entero, negativo o no finito se omite y nunca incrementa una autorización.
+8. El conocimiento narrativo aportado por el llamador, aunque tenga una estructura válida, nunca cruza la frontera del proveedor.
+9. Las capas de bajo nivel que reciben progreso directamente vuelven a canonicalizarlo; un valor no entero, negativo o no finito se omite y nunca incrementa una autorización.
 
 ## Bibliografía
 

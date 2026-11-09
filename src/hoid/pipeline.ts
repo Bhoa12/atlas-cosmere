@@ -41,11 +41,22 @@ function providerSnapshots(
 }
 
 export class HoidPipeline {
+  private readonly knowledge: HoidKnowledgeEntry[];
+
   constructor(
     private readonly provider: HoidProvider | null | undefined,
-    private readonly knowledge: HoidKnowledgeEntry[],
+    knowledge: HoidKnowledgeEntry[],
     private readonly providerTimeoutMs = 15_000,
-  ) {}
+  ) {
+    // Snapshot and validate editorial metadata once at the application boundary.
+    // A later mutation by a UI/import layer must not silently change the catalog
+    // consulted by an already-running Hoid service.
+    this.knowledge = validatedKnowledge(knowledge).map(entry => Object.freeze({
+      ...entry,
+      aliases: Object.freeze([...entry.aliases]),
+      firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
+    })) as unknown as HoidKnowledgeEntry[];
+  }
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
     // TypeScript contracts disappear at runtime. Reject a malformed request
@@ -68,7 +79,7 @@ export class HoidPipeline {
     const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
 
-    const knowledge = validatedKnowledge(this.knowledge);
+    const knowledge = this.knowledge;
     const catalog = new HoidKnowledgeCatalog(knowledge);
     const reading = authorizeReading(normalizedRequest.reading, catalogBookIds(knowledge));
     const authorizedRequest = { question, reading };

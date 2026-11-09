@@ -7,7 +7,13 @@ explicit spoiler access decisions and presentation.
 
 Every declared content item must have exactly one access decision, and every
 access decision must correspond to exactly one declared item. Any duplicate,
-missing, empty, or orphan identifier blocks the entire result.
+missing, empty, orphan, or malformed decision blocks the entire result.
+
+An access decision is structurally valid only when:
+
+- its `contentId` is non-empty;
+- its `allowed` value is explicitly boolean;
+- its identifier appears only once.
 
 The output contains only:
 
@@ -23,6 +29,6 @@ separate presentation layer consumes a valid manifest entry.
 
 The manifest does not establish that a work was read, that a fact was verified,
 or that content is editorially safe. It only preserves an already computed
-authorization decision and fails closed when the identifier graph is incomplete.
-This keeps bibliography, reading progress, checkpoint evaluation, access policy,
-and narrative evidence as separate concerns.
+authorization decision and fails closed when the identifier graph or decision
+shape is incomplete. This keeps bibliography, reading progress, checkpoint
+evaluation, access policy, and narrative evidence as separate concerns.

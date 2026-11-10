@@ -22,6 +22,14 @@ export function resolveCatalogSpoilerAccessPlan(input: CatalogSpoilerAccessPlanI
   const boundary = resolveCatalogReadingBoundary(input.worldId, input.workIds);
   if (!boundary) return { status: "blocked", boundary: null, allowedContentIds: [] };
 
+  // Positions are world-local coordinates supplied by the caller. When this
+  // composition layer is given a catalog boundary, its declared extent must
+  // match that boundary exactly; otherwise a frontier could authorize content
+  // beyond the selected catalog works.
+  if (input.declaredPositions !== boundary.workIds.length) {
+    return { status: "blocked", boundary: null, allowedContentIds: [] };
+  }
+
   const gate = resolveWorldSpoilerBatchGate({
     worldId: boundary.worldId,
     frontierStatus: input.frontierStatus,

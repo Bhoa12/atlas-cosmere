@@ -35,4 +35,15 @@ describe("catalogValidation", () => {
     expect(isValidKnowledgeEntry(fractionalChapter)).toBe(false);
     expect(validatedKnowledge([valid, fractionalChapter])).toEqual([valid]);
   });
+
+  it("fails closed when an entry has no usable catalog alias", () => {
+    const emptyAliases = { ...valid, aliases: [] };
+    const blankAliases = { ...valid, aliases: ["   "] };
+    const malformedAliases = { ...valid, aliases: [123 as unknown as string] };
+
+    expect(isValidKnowledgeEntry(emptyAliases)).toBe(false);
+    expect(isValidKnowledgeEntry(blankAliases)).toBe(false);
+    expect(isValidKnowledgeEntry(malformedAliases)).toBe(false);
+    expect(validatedKnowledge([valid, emptyAliases, blankAliases, malformedAliases])).toEqual([valid]);
+  });
 });

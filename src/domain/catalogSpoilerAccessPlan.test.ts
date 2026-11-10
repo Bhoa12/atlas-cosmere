@@ -68,4 +68,27 @@ describe("resolveCatalogSpoilerAccessPlan", () => {
     expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
   });
 
+  it("fails closed instead of throwing when requests are malformed at runtime", () => {
+    const result = resolveCatalogSpoilerAccessPlan({
+      worldId: "scadrial",
+      workIds: ["el-imperio-final"],
+      frontierStatus: "in-progress",
+      safeCompletedPositions: 1,
+      declaredPositions: 1,
+      requests: null as unknown as [],
+    });
+    expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
+  });
+
+  it("fails closed instead of throwing when the work collection is malformed at runtime", () => {
+    const result = resolveCatalogSpoilerAccessPlan({
+      worldId: "scadrial",
+      workIds: null as unknown as [],
+      frontierStatus: "in-progress",
+      safeCompletedPositions: 1,
+      declaredPositions: 1,
+      requests: [{ contentId: "meta", contentWorldId: "scadrial", requiredPosition: 1 }],
+    });
+    expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
+  });
 });

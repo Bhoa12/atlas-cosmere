@@ -19,7 +19,20 @@ export type CatalogSpoilerAccessPlan =
  * No reading order, narrative facts or protected EPUB text are inferred here.
  */
 export function resolveCatalogSpoilerAccessPlan(input: CatalogSpoilerAccessPlanInput): CatalogSpoilerAccessPlan {
-  // Treat persisted or external input as untrusted at this composition boundary.\n  // The lower-level gate validates request members, but checking the collection\n  // itself here prevents a malformed runtime value from throwing before the\n  // fail-closed path can be returned.\n  if (!input || !Array.isArray(input.workIds) || !Array.isArray(input.requests)) {\n    return { status: "blocked", boundary: null, allowedContentIds: [] };\n  }\n\n  const boundary = resolveCatalogReadingBoundary(input.worldId, input.workIds);
+  // Treat persisted or external input as untrusted at this composition boundary.
+  if (
+    !input ||
+    typeof input.worldId !== "string" ||
+    !Array.isArray(input.workIds) ||
+    !Array.isArray(input.requests) ||
+    !Number.isSafeInteger(input.safeCompletedPositions) ||
+    input.safeCompletedPositions < 0 ||
+    !Number.isSafeInteger(input.declaredPositions) ||
+    input.declaredPositions < 0 ||
+    typeof input.frontierStatus !== "string"
+  ) {
+    return { status: "blocked", boundary: null, allowedContentIds: [] };
+  }\n\n  const boundary = resolveCatalogReadingBoundary(input.worldId, input.workIds);
   if (!boundary) return { status: "blocked", boundary: null, allowedContentIds: [] };
 
   // Positions are world-local coordinates supplied by the caller. When this

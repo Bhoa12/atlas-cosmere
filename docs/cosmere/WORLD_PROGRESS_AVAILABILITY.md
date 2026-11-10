@@ -7,8 +7,14 @@ milestones into a small, deterministic availability model.
 
 - `not-started` maps to `available: false`.
 - `started` and `complete` map to `available: true`.
-- Duplicate, empty, unknown or malformed milestone records block the entire result.
+- World identifiers are canonical metadata: empty or whitespace-padded values
+  are rejected instead of being silently normalized.
+- Duplicate, unknown or malformed milestone records block the entire result.
 - A blocked upstream result remains blocked.
+
+Rejecting padded identifiers prevents two source records that merely look similar
+after normalization from being merged accidentally by downstream progress or
+spoiler layers.
 
 ## Scope
 

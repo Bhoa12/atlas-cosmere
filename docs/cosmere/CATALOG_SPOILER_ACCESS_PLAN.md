@@ -41,3 +41,12 @@ The same composition can be used for Scadrial, Sel, Nalthis, Taldain, Roshar
 and future worlds, provided the catalog contains an explicit world assignment.
 Entries deliberately left without a `worldId` remain unavailable to this
 world-local boundary until a separate reviewable metadata decision exists.
+
+## Scalar metadata validation
+
+The composition boundary also validates scalar progress metadata before any
+lower-level access decision: world identifiers and frontier states must be
+strings, while completed and declared positions must be non-negative safe
+integers. Invalid runtime values return `blocked`; the adapter does not coerce
+or repair them. This is a technical integrity rule only and does not add
+editorial or canon information.

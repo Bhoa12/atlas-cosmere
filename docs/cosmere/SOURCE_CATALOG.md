@@ -48,7 +48,6 @@ títulos, estructura de lectura validada y referencias de procedencia, pero no
 texto íntegro protegido. Si una fuente no está accesible durante un ciclo de
 trabajo, su contenido permanece pendiente y no se inventan hechos.
 
-
 ## Consulta por colección
 
 La capa de catálogo puede agrupar obras por un identificador de colección declarado,
@@ -56,3 +55,14 @@ por ejemplo una fuente privada concreta. Antes de devolver resultados valida el
 catálogo completo; si detecta metadatos duplicados o malformados devuelve una lista
 vacía. Así una consulta parcial nunca convierte un catálogo inconsistente en una
 señal de disponibilidad editorial.
+
+## Metadatos reutilizables
+
+`src/domain/cosmereSourceCatalog.ts` ofrece una representación tipada de la
+bibliografía verificada. Solo contiene IDs, títulos suministrados y asignaciones
+de mundo explícitas. Las entradas que requieren una decisión editorial adicional
+mantienen `worldId: null`; no se rellenan mediante inferencias narrativas.
+
+Las consultas rechazan identificadores vacíos o con espacios añadidos en lugar de
+normalizarlos silenciosamente. El catálogo no implica progreso de lectura ni
+autoriza por sí mismo la visualización de contenido potencialmente sensible.

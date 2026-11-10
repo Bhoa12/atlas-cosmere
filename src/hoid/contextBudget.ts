@@ -16,19 +16,17 @@ import { HoidKnowledgeEntry } from "./catalog";
 export const DEFAULT_MAX_CONTEXT_ENTRIES = 12;
 export const DEFAULT_MAX_CONTEXT_CHARACTERS = 12_000;
 
+/**
+ * Count the fields that can actually cross the provider boundary. Retrieval
+ * aliases are intentionally excluded: they are used to select context locally
+ * and are not part of the provider-facing knowledge snapshot.
+ */
 function contextCharacterCost(entry: HoidKnowledgeEntry): number {
-  const aliases = Array.isArray(entry.aliases)
-    ? entry.aliases.reduce(
-      (total, alias) => total + (typeof alias === "string" ? alias.length : 0),
-      0,
-    )
-    : 0;
-
   return entry.id.length
     + entry.kind.length
     + (typeof entry.summary === "string" ? entry.summary.length : 0)
     + entry.firstSafeAppearance.bookId.length
-    + aliases;
+    + String(entry.firstSafeAppearance.chapter).length;
 }
 
 export function boundAuthorizedContext(

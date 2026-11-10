@@ -34,6 +34,19 @@ describe("HoidPipeline evidence provider boundary", () => {
     expect(provider.answerWithEvidence).toHaveBeenCalledTimes(1);
   });
 
+  it("applies the final spoiler guard to evidence-backed output", async () => {
+    const provider = {
+      answerWithEvidence: vi.fn(async () => [
+        { text: "thaidakar", evidenceIds: ["safe-fact"] },
+      ]),
+    };
+
+    const result = await new HoidPipeline(provider, knowledge).answer(request);
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("provider-output");
+  });
+
   it("fails closed when no evidence-backed claim survives", async () => {
     const provider = {
       answer: vi.fn(async () => "legacy route must not run"),

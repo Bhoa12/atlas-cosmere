@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { validReadingPositions } from "./readingValidation";
 import { ReadingPosition } from "./types";
 
 /**
@@ -7,6 +8,11 @@ import { ReadingPosition } from "./types";
  * This deliberately contains no plot facts. It gives Hoid a canonical summary
  * of what the reader has explicitly reported, so future response adapters do
  * not need to interpret raw progress independently.
+ *
+ * The same validation boundary used by authorization is applied here. Context
+ * must not merge duplicate or malformed positions into greater progress,
+ * because this function is also used by the spoiler guard and provider
+ * snapshots.
  */
 export type HoidReadingContextItem = {
   bookId: string;
@@ -18,34 +24,19 @@ function isKnownBook(bookId: string): boolean {
   return HOID_SOURCE_BIBLIOGRAPHY.some(source => source.id === bookId);
 }
 
-/**
- * Canonicalizes reading state conservatively:
- * - unknown sources are ignored;
- * - non-finite and negative chapters become 0;
- * - duplicate positions collapse to the greatest reported chapter;
- * - completion is monotonic.
- */
 export function buildReadingContext(
   reading: ReadingPosition[],
 ): readonly Readonly<HoidReadingContextItem>[] {
-  const byBook = new Map<string, HoidReadingContextItem>();
+  const validated = validReadingPositions(reading);
+  if (!validated) return Object.freeze([]);
 
-  for (const position of reading) {
-    if (!isKnownBook(position.bookId)) continue;
-    const chapter = Number.isFinite(position.chapter)
-      ? Math.max(0, Math.floor(position.chapter ?? 0))
-      : 0;
-    const previous = byBook.get(position.bookId);
-    byBook.set(position.bookId, {
+  const context = validated
+    .filter(position => isKnownBook(position.bookId))
+    .map(position => Object.freeze({
       bookId: position.bookId,
-      chapter: Math.max(previous?.chapter ?? 0, chapter),
-      completed: Boolean(previous?.completed || position.completed),
-    });
-  }
+      chapter: position.chapter ?? 0,
+      completed: position.completed === true,
+    }));
 
-  // Return an immutable snapshot so downstream adapters cannot mutate the
-  // canonicalized reading state after authorization decisions are made.
-  return Object.freeze(
-    [...byBook.values()].map(item => Object.freeze({ ...item })),
-  );
+  return Object.freeze(context);
 }

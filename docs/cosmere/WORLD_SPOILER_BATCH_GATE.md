@@ -12,3 +12,9 @@
 - During reading, only requests at or behind the validated frontier are returned.
 
 This module carries no passages, chapter text, summaries or canon assertions. A returned identifier is only an access decision; editorial content remains outside this layer.
+
+## Complete-frontier contract
+
+A `complete` frontier is valid only when the batch also declares the total number of positions and the safely completed count matches it exactly. This prevents a caller from labelling an incomplete or unbounded frontier as complete and exposing content beyond the validated reading boundary.
+
+The gate remains metadata-only: authorization of a content identifier never imports, stores, or implies protected EPUB text or additional canon claims.

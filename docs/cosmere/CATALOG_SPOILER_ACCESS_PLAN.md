@@ -13,7 +13,9 @@ combined result is `blocked` and exposes no boundary or content identifiers.
 ## Runtime input boundary
 
 The composition layer treats its top-level work and request collections as
-untrusted runtime input. If either collection is malformed instead of being an
+untrusted runtime input. Individual metadata members and numeric extents are
+also expected to be validated by the lower-level boundaries; malformed values
+must not be normalized into access decisions. If either collection is malformed instead of being an
 array, the plan returns `blocked` rather than throwing or attempting to repair
 the data. This keeps the adapter fail-closed when metadata originates from
 persistence, import pipelines or future application boundaries.

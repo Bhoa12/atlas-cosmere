@@ -11,7 +11,7 @@ export type HoidSourceWork = {
   sourceGroup: "cosmere.epub" | "roshar-epubs";
 };
 
-export const HOID_SOURCE_BIBLIOGRAPHY: readonly HoidSourceWork[] = [
+const RAW_HOID_SOURCE_BIBLIOGRAPHY: readonly HoidSourceWork[] = [
   { id: "tfe", title: "El Imperio Final", sourceGroup: "cosmere.epub" },
   { id: "woa", title: "El Pozo de la Ascensión", sourceGroup: "cosmere.epub" },
   { id: "hoa", title: "El Héroe de las Eras", sourceGroup: "cosmere.epub" },
@@ -38,6 +38,50 @@ export const HOID_SOURCE_BIBLIOGRAPHY: readonly HoidSourceWork[] = [
   { id: "dawnshard", title: "Esquirla del amanecer", sourceGroup: "roshar-epubs" },
 ];
 
+const HOID_SOURCE_GROUPS = new Set<HoidSourceWork["sourceGroup"]>([
+  "cosmere.epub",
+  "roshar-epubs",
+]);
+
+/**
+ * Validate the metadata identity boundary before it is used for reading
+ * progress or provenance. Invalid bibliography metadata must fail closed
+ * instead of silently creating a second identity namespace.
+ */
+export function validateHoidSourceBibliography(
+  entries: readonly HoidSourceWork[],
+): readonly HoidSourceWork[] {
+  const ids = new Set<string>();
+  const validated: HoidSourceWork[] = [];
+
+  for (const entry of entries) {
+    if (!entry || typeof entry.id !== "string" || typeof entry.title !== "string") {
+      throw new Error("Invalid Hoid bibliography entry");
+    }
+
+    const id = entry.id.trim();
+    const title = entry.title.trim();
+    if (id.length === 0 || title.length === 0 || !HOID_SOURCE_GROUPS.has(entry.sourceGroup)) {
+      throw new Error("Incomplete or unknown Hoid bibliography metadata");
+    }
+    if (ids.has(id)) {
+      throw new Error(`Duplicate Hoid bibliography identifier: ${id}`);
+    }
+
+    ids.add(id);
+    validated.push(Object.freeze({ id, title, sourceGroup: entry.sourceGroup }));
+  }
+
+  return Object.freeze(validated);
+}
+
+/** Canonical, validated, metadata-only registry for all supplied sources. */
+export const HOID_SOURCE_BIBLIOGRAPHY = validateHoidSourceBibliography(
+  RAW_HOID_SOURCE_BIBLIOGRAPHY,
+);
+
+const HOID_SOURCE_IDS = new Set(HOID_SOURCE_BIBLIOGRAPHY.map(source => source.id));
+
 export function isKnownHoidSource(sourceId: string): boolean {
-  return HOID_SOURCE_BIBLIOGRAPHY.some(source => source.id === sourceId);
+  return typeof sourceId === "string" && HOID_SOURCE_IDS.has(sourceId.trim());
 }

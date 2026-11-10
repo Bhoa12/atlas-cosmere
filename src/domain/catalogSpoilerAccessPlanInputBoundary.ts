@@ -1,0 +1,1 @@
+// Scalar input validation is implemented directly in catalogSpoilerAccessPlan.ts to keep the composition boundary local.\n

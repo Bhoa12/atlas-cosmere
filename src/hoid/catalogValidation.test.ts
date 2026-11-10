@@ -36,6 +36,18 @@ describe("catalogValidation", () => {
     expect(validatedKnowledge([valid, fractionalChapter])).toEqual([valid]);
   });
 
+  it("fails closed for duplicate knowledge identities", () => {
+    const duplicate = {
+      ...valid,
+      aliases: ["Different alias"],
+      firstSafeAppearance: { bookId: "book-b", chapter: 9 },
+    };
+
+    // Both entries are rejected: keeping either one would make evidence
+    // authorization depend on catalog ordering rather than canonical metadata.
+    expect(validatedKnowledge([valid, duplicate])).toEqual([]);
+  });
+
   it("fails closed when an entry has no usable catalog alias", () => {
     const emptyAliases = { ...valid, aliases: [] };
     const blankAliases = { ...valid, aliases: ["   "] };

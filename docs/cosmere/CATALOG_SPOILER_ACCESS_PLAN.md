@@ -10,6 +10,14 @@ This adapter connects two metadata-only boundaries:
 The adapter is deliberately fail-closed. If either layer rejects the input, the
 combined result is `blocked` and exposes no boundary or content identifiers.
 
+## Boundary extent
+
+When a catalog boundary is selected, `declaredPositions` must match the number
+of selected work identifiers exactly. This prevents a technical spoiler frontier
+from claiming a larger or smaller extent than the catalog boundary it is being
+used to protect. The check validates only metadata cardinality; it does not
+assert editorial order, chapter counts, or narrative structure.
+
 ## Scope
 
 The plan does not establish editorial reading order. Callers supply work

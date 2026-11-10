@@ -1,7 +1,7 @@
 import { ReadingUnit } from './readingProgress';
 
 export interface ReadingUnitValidationIssue {
-  code: 'empty_id' | 'duplicate_id' | 'empty_work_id' | 'invalid_position' | 'duplicate_position';
+  code: 'invalid_unit_shape' | 'empty_id' | 'duplicate_id' | 'empty_work_id' | 'invalid_position' | 'duplicate_position';
   unitId?: string;
   workId?: string;
 }
@@ -19,6 +19,18 @@ export function validateReadingUnits(
   const positionsByWork = new Map<string, Set<number>>();
 
   for (const unit of units) {
+    // Persisted/imported metadata can bypass TypeScript. Validate shape first
+    // so malformed input cannot throw or be normalized into a valid unit.
+    if (
+      !unit ||
+      typeof unit.id !== 'string' ||
+      typeof unit.workId !== 'string' ||
+      typeof unit.position !== 'number'
+    ) {
+      issues.push({ code: 'invalid_unit_shape' });
+      continue;
+    }
+
     if (!unit.id.trim()) {
       issues.push({ code: 'empty_id', unitId: unit.id });
     } else if (ids.has(unit.id)) {

@@ -20,7 +20,14 @@ export function assertHoidSourceCatalog(): void {
     throw new Error("Source catalog and bibliography disagree on source identities");
   }
 
+  if (!Object.isFrozen(HOID_SOURCE_CATALOG)) {
+    throw new Error("Source catalog must be frozen at its shared identity boundary");
+  }
+
   for (const entry of HOID_SOURCE_CATALOG) {
+    if (!Object.isFrozen(entry)) {
+      throw new Error("Source catalog metadata entries must be immutable");
+    }
     if (entry.id.trim().length === 0 || entry.title.trim().length === 0) {
       throw new Error("Source catalog contains an incomplete metadata entry");
     }

@@ -33,6 +33,13 @@ describe("HOID_SOURCE_BIBLIOGRAPHY", () => {
     ])).toThrow(/Incomplete/);
   });
 
+  it("fails closed when user-facing titles become ambiguous after normalization", () => {
+    expect(() => validateHoidSourceBibliography([
+      { id: "book-a", title: "Libro Único", sourceGroup: "cosmere.epub" },
+      { id: "book-b", title: "  libro Único  ", sourceGroup: "roshar-epubs" },
+    ])).toThrow(/Duplicate Hoid bibliography title/);
+  });
+
   it("does not let external mutation change the canonical source registry", () => {
     expect(Object.isFrozen(HOID_SOURCE_BIBLIOGRAPHY)).toBe(true);
     expect(HOID_SOURCE_BIBLIOGRAPHY.every(Object.isFrozen)).toBe(true);

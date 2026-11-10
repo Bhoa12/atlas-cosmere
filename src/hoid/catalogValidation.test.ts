@@ -43,9 +43,18 @@ describe("catalogValidation", () => {
       firstSafeAppearance: { bookId: "book-b", chapter: 9 },
     };
 
-    // Both entries are rejected: keeping either one would make evidence
-    // authorization depend on catalog ordering rather than canonical metadata.
     expect(validatedKnowledge([valid, duplicate])).toEqual([]);
+  });
+
+  it("fails closed for normalized duplicate knowledge identities", () => {
+    const equivalent = {
+      ...valid,
+      id: "  SAFE-ENTRY  ",
+      aliases: ["Different alias"],
+      firstSafeAppearance: { bookId: "book-b", chapter: 9 },
+    };
+
+    expect(validatedKnowledge([valid, equivalent])).toEqual([]);
   });
 
   it("fails closed when an entry has no usable catalog alias", () => {

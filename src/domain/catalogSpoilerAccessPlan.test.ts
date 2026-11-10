@@ -44,4 +44,28 @@ describe("resolveCatalogSpoilerAccessPlan", () => {
     });
     expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
   });
+  it("fails closed when the declared frontier extent exceeds the catalog boundary", () => {
+    const result = resolveCatalogSpoilerAccessPlan({
+      worldId: "scadrial",
+      workIds: ["el-imperio-final"],
+      frontierStatus: "in-progress",
+      safeCompletedPositions: 1,
+      declaredPositions: 2,
+      requests: [{ contentId: "meta", contentWorldId: "scadrial", requiredPosition: 1 }],
+    });
+    expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
+  });
+
+  it("fails closed when the declared frontier extent is shorter than the catalog boundary", () => {
+    const result = resolveCatalogSpoilerAccessPlan({
+      worldId: "taldain",
+      workIds: ["arena-blanca-vol-1", "arena-blanca-vol-2", "arena-blanca-vol-3"],
+      frontierStatus: "in-progress",
+      safeCompletedPositions: 1,
+      declaredPositions: 2,
+      requests: [{ contentId: "meta", contentWorldId: "taldain", requiredPosition: 1 }],
+    });
+    expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
+  });
+
 });

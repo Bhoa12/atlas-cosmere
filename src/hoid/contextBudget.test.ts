@@ -33,6 +33,20 @@ describe("boundAuthorizedContext", () => {
     expect(context.map(entry => entry.id)).toEqual(["safe"]);
   });
 
+  it("budgets the actual provider payload rather than local retrieval aliases", () => {
+    const entries = [{
+      id: "safe",
+      aliases: ["x".repeat(10_000)],
+      kind: "concept",
+      firstSafeAppearance: { bookId: "book", chapter: 1 },
+      summary: "short",
+    }] as any;
+
+    // Aliases never cross the provider snapshot, so they must not consume its
+    // metadata budget. The chapter position does cross and is counted.
+    expect(boundAuthorizedContext(entries, 1, 25)).toHaveLength(1);
+  });
+
   it("fails closed for invalid character limits", () => {
     expect(boundAuthorizedContext([{ id: "safe" }] as any, 1, 0)).toEqual([]);
     expect(boundAuthorizedContext([{ id: "safe" }] as any, 1, Number.NaN)).toEqual([]);

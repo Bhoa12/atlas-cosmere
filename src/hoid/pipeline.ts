@@ -122,7 +122,13 @@ export class HoidPipeline {
         if (text === null || catalog.lockedMatches(text, reading).length > 0) {
           return { blocked: true, reason: "provider-output", text: "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado." };
         }
-        return { blocked: false, text };
+        // Evidence authorization and catalog matching are not substitutes for the
+        // explicit spoiler policy. Apply the same final guard used by legacy
+        // providers so an evidence-backed claim cannot bypass a policy term
+        // that is absent from the current retrieval catalog.
+        const providerAnswer = redactProviderAnswer(text, authorizedRequest);
+        if (providerAnswer.blocked) return providerAnswer;
+        return providerAnswer;
       }
 
       const legacy = this.provider as HoidProvider;

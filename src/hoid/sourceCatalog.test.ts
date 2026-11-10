@@ -1,3 +1,4 @@
+import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { HOID_SOURCE_CATALOG, HOID_SOURCE_CATALOG_IDS } from "./sourceCatalog";
 
 /**
@@ -10,9 +11,21 @@ export function assertHoidSourceCatalog(): void {
     throw new Error("Source catalog contains duplicate identifiers");
   }
 
+  const bibliographyIds = new Set(HOID_SOURCE_BIBLIOGRAPHY.map((entry) => entry.id));
+  if (bibliographyIds.size !== HOID_SOURCE_BIBLIOGRAPHY.length) {
+    throw new Error("Bibliography contains duplicate identifiers");
+  }
+
+  if (bibliographyIds.size !== HOID_SOURCE_CATALOG_IDS.size) {
+    throw new Error("Source catalog and bibliography disagree on source identities");
+  }
+
   for (const entry of HOID_SOURCE_CATALOG) {
     if (entry.id.trim().length === 0 || entry.title.trim().length === 0) {
       throw new Error("Source catalog contains an incomplete metadata entry");
+    }
+    if (!bibliographyIds.has(entry.id)) {
+      throw new Error("Source catalog contains an identity outside the bibliography");
     }
   }
 }

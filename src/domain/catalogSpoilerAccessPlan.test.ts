@@ -115,4 +115,27 @@ describe("resolveCatalogSpoilerAccessPlan", () => {
     });
     expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
   });
+  it("fails closed when scalar progress metadata is malformed at runtime", () => {
+    const result = resolveCatalogSpoilerAccessPlan({
+      worldId: "scadrial",
+      workIds: ["el-imperio-final"],
+      frontierStatus: "in-progress",
+      safeCompletedPositions: -1,
+      declaredPositions: 1,
+      requests: [{ contentId: "meta", contentWorldId: "scadrial", requiredPosition: 1 }],
+    });
+    expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
+  });
+
+  it("fails closed when the frontier status is not a runtime string", () => {
+    const result = resolveCatalogSpoilerAccessPlan({
+      worldId: "scadrial",
+      workIds: ["el-imperio-final"],
+      frontierStatus: 7 as unknown as "in-progress",
+      safeCompletedPositions: 1,
+      declaredPositions: 1,
+      requests: [{ contentId: "meta", contentWorldId: "scadrial", requiredPosition: 1 }],
+    });
+    expect(result).toEqual({ status: "blocked", boundary: null, allowedContentIds: [] });
+  });
 });

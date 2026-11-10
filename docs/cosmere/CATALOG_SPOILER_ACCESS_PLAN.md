@@ -10,6 +10,14 @@ This adapter connects two metadata-only boundaries:
 The adapter is deliberately fail-closed. If either layer rejects the input, the
 combined result is `blocked` and exposes no boundary or content identifiers.
 
+## Runtime input boundary
+
+The composition layer treats its top-level work and request collections as
+untrusted runtime input. If either collection is malformed instead of being an
+array, the plan returns `blocked` rather than throwing or attempting to repair
+the data. This keeps the adapter fail-closed when metadata originates from
+persistence, import pipelines or future application boundaries.
+
 ## Boundary extent
 
 When a catalog boundary is selected, `declaredPositions` must match the number

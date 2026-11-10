@@ -1,10 +1,11 @@
+import { describe, expect, it, vi } from "vitest";
 import { HoidPipeline } from "./pipeline";
 import { HoidProvider } from "./types";
 
 describe("HoidPipeline provider timeout", () => {
   it("fails closed when the provider does not answer before the configured deadline", async () => {
     const provider: HoidProvider = {
-      answer: jest.fn(() => new Promise<string>(() => undefined)),
+      answer: vi.fn(() => new Promise<string>(() => undefined)),
     };
 
     const result = await new HoidPipeline(provider, [], 5).answer({
@@ -18,7 +19,7 @@ describe("HoidPipeline provider timeout", () => {
   });
 
   it("still accepts a provider response that arrives before the deadline", async () => {
-    const provider: HoidProvider = { answer: jest.fn(async () => "Respuesta segura") };
+    const provider: HoidProvider = { answer: vi.fn(async () => "Respuesta segura") };
 
     const result = await new HoidPipeline(provider, [], 100).answer({
       question: "Pregunta segura",
@@ -32,7 +33,7 @@ describe("HoidPipeline provider timeout", () => {
   it("does not let a timed-out provider mutate the request snapshot used by Hoid", async () => {
     let capturedRequest: any;
     const provider: HoidProvider = {
-      answer: jest.fn((request) => {
+      answer: vi.fn((request) => {
         capturedRequest = request;
         return new Promise<string>(() => undefined);
       }),

@@ -43,15 +43,24 @@ const HOID_SOURCE_GROUPS = new Set<HoidSourceWork["sourceGroup"]>([
   "roshar-epubs",
 ]);
 
+function normalizeTitleIdentity(title: string): string {
+  return title.trim().normalize("NFC").toLocaleLowerCase("es");
+}
+
 /**
  * Validate the metadata identity boundary before it is used for reading
  * progress or provenance. Invalid bibliography metadata must fail closed
  * instead of silently creating a second identity namespace.
+ *
+ * Titles are also required to be unique under the same normalization used by
+ * catalog-facing lookups. This prevents two works from becoming ambiguous in
+ * user-facing progress selection even when their internal IDs differ.
  */
 export function validateHoidSourceBibliography(
   entries: readonly HoidSourceWork[],
 ): readonly HoidSourceWork[] {
   const ids = new Set<string>();
+  const titles = new Set<string>();
   const validated: HoidSourceWork[] = [];
 
   for (const entry of entries) {
@@ -68,7 +77,13 @@ export function validateHoidSourceBibliography(
       throw new Error(`Duplicate Hoid bibliography identifier: ${id}`);
     }
 
+    const titleIdentity = normalizeTitleIdentity(title);
+    if (titles.has(titleIdentity)) {
+      throw new Error(`Duplicate Hoid bibliography title: ${title}`);
+    }
+
     ids.add(id);
+    titles.add(titleIdentity);
     validated.push(Object.freeze({ id, title, sourceGroup: entry.sourceGroup }));
   }
 

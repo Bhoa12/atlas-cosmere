@@ -74,4 +74,24 @@ export function runRetrievalChecks(): void {
     retrieveAuthorized(items, exact, "otro").length === 0,
     "progress in one book must never unlock another book",
   );
+
+  const phraseItems: HoidKnowledgeEntry[] = [
+    {
+      id: "phrase-safe",
+      aliases: ["mar esmeralda"],
+      kind: "concept",
+      firstSafeAppearance: { bookId: "elantris", chapter: 1 },
+      summary: "Resumen original de prueba.",
+      provenance: "verified",
+    },
+  ];
+
+  assert(
+    retrieveAuthorized(phraseItems, completed, "¿Qué sabes del mar esmeralda?").length === 1,
+    "multi-word aliases must still match as complete phrases",
+  );
+  assert(
+    retrieveAuthorized(phraseItems, completed, "mar esmeraldaverde").length === 0,
+    "multi-word aliases must not match inside longer unrelated words",
+  );
 }

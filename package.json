@@ -5,7 +5,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "test:hoid": "vitest run src/hoid --passWithNoTests",
+    "test:hoid:watch": "vitest src/hoid"
   },
   "dependencies": {
     "expo": "~51.0.0",
@@ -17,7 +19,8 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~18.2.45",
-    "typescript": "~5.3.3"
+    "typescript": "~5.3.3",
+    "vitest": "^2.1.9"
   },
   "private": true
 }

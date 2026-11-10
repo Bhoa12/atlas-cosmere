@@ -36,4 +36,10 @@ describe('reading unit validation', () => {
     expect(issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'duplicate_position', workId: 'work-a' })]));
     expect(issues.filter((issue) => issue.code === 'duplicate_position')).toHaveLength(1);
   });
+  it('fails closed for malformed runtime metadata instead of throwing', () => {
+    const malformed = [null, { id: 7, workId: 'work-a', position: 1 }] as unknown as ReadingUnit[];
+    expect(validateReadingUnits(malformed).map((issue) => issue.code))
+      .toEqual(['invalid_unit_shape', 'invalid_unit_shape']);
+    expect(hasValidReadingUnits(malformed)).toBe(false);
+  });
 });

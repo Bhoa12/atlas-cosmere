@@ -27,10 +27,14 @@ export function runReadingAuthorizationChecks(): void {
     "negative chapters must not unlock knowledge",
   );
   assert(
-    isKnowledgeUnlocked(entry, [
+    !isKnowledgeUnlocked(entry, [
       { bookId: "book-a", chapter: 1 },
       { bookId: "book-a", chapter: 3 },
     ]),
-    "the greatest valid position should be used",
+    "ambiguous duplicate positions must unlock nothing",
+  );
+  assert(
+    !isKnowledgeUnlocked(entry, [{ bookId: "book-a", chapter: 3.5 }]),
+    "fractional chapters must not unlock knowledge",
   );
 }

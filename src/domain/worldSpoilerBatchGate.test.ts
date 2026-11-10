@@ -39,3 +39,27 @@ describe("resolveWorldSpoilerBatchGate", () => {
     })).toEqual({ status: "resolved", allowedContentIds: [] });
   });
 });
+
+
+  it("reveals every valid request when a declared world is complete", () => {
+    expect(resolveWorldSpoilerBatchGate({
+      worldId: "taldain",
+      frontierStatus: "complete",
+      safeCompletedPositions: 3,
+      declaredPositions: 3,
+      requests: [
+        { contentId: "one", contentWorldId: "taldain", requiredPosition: 1 },
+        { contentId: "three", contentWorldId: "taldain", requiredPosition: 3 },
+      ],
+    })).toEqual({ status: "resolved", allowedContentIds: ["one", "three"] });
+  });
+
+  it("blocks inconsistent complete frontiers", () => {
+    expect(resolveWorldSpoilerBatchGate({
+      worldId: "sel",
+      frontierStatus: "complete",
+      safeCompletedPositions: 1,
+      declaredPositions: 2,
+      requests: [{ contentId: "x", contentWorldId: "sel", requiredPosition: 1 }],
+    })).toEqual({ status: "blocked", allowedContentIds: [] });
+  });

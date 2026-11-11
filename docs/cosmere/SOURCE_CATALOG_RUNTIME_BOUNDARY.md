@@ -29,3 +29,16 @@ must be introduced through separately verified metadata.
 The module contains no book text, passages, chapter transcription, or plot
 summary. It is safe to use with the project's private EPUB inventory because it
 operates only on catalog metadata.
+
+
+## Catalog resolver boundary
+
+The catalog also exposes fail-closed lookup helpers for consumers that need to
+connect reading, progress, or anti-spoiler layers to a source work. A lookup
+requires an exact canonical technical ID, and source filtering accepts only the
+explicitly supported inventories. Invalid input returns no work or an empty
+collection.
+
+These helpers expose existing metadata only. They do not derive world
+membership, chronology, chapter structure, plot information, or any other
+editorial fact from a title or identifier.

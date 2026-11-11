@@ -38,7 +38,13 @@ export function recommendUnstartedSources(
     : 0;
   if (safeLimit === 0) return [];
 
-  const verifiedReading = knownReading(reading);
+  // This exported helper is also a public boundary. Validate even when the
+  // static type claims the state is already canonical: persisted or JavaScript
+  // callers can still provide duplicates or malformed positions.
+  const canonicalReading = validReadingPositions(reading);
+  if (canonicalReading === null) return [];
+
+  const verifiedReading = knownReading(canonicalReading);
 
   return HOID_SOURCE_BIBLIOGRAPHY
     .filter(source => !hasStarted(source.id, verifiedReading))

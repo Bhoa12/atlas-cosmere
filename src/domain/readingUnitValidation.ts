@@ -1,7 +1,14 @@
 import { ReadingUnit } from './readingProgress';
 
 export interface ReadingUnitValidationIssue {
-  code: 'invalid_unit_shape' | 'empty_id' | 'duplicate_id' | 'empty_work_id' | 'invalid_position' | 'duplicate_position';
+  code:
+    | 'invalid_collection_shape'
+    | 'invalid_unit_shape'
+    | 'empty_id'
+    | 'duplicate_id'
+    | 'empty_work_id'
+    | 'invalid_position'
+    | 'duplicate_position';
   unitId?: string;
   workId?: string;
 }
@@ -9,18 +16,20 @@ export interface ReadingUnitValidationIssue {
 /**
  * Validates structural reading-unit metadata without inspecting editorial content.
  * Ordering is checked independently per work so the same position can exist in
- * different works.
+ * different works. Persisted/imported collections are treated as untrusted.
  */
 export function validateReadingUnits(
   units: readonly ReadingUnit[],
 ): ReadingUnitValidationIssue[] {
+  if (!Array.isArray(units)) {
+    return [{ code: 'invalid_collection_shape' }];
+  }
+
   const issues: ReadingUnitValidationIssue[] = [];
   const ids = new Set<string>();
   const positionsByWork = new Map<string, Set<number>>();
 
   for (const unit of units) {
-    // Persisted/imported metadata can bypass TypeScript. Validate shape first
-    // so malformed input cannot throw or be normalized into a valid unit.
     if (
       !unit ||
       typeof unit.id !== 'string' ||

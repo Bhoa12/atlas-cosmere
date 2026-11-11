@@ -45,4 +45,14 @@ describe("resolveWorldReadingProgressSummary", () => {
       status: "valid", completedUnitIds: ["s-1"], pendingUnitIds: [],
     }).status).toBe("blocked");
   });
+
+  it("fails closed on malformed progress collections or non-canonical ids at runtime", () => {
+    expect(resolveWorldReadingProgressSummary(manifest, true, {
+      status: "valid", completedUnitIds: { bad: true }, pendingUnitIds: [],
+    } as any).status).toBe("blocked");
+
+    expect(resolveWorldReadingProgressSummary(manifest, true, {
+      status: "valid", completedUnitIds: [" s-1"], pendingUnitIds: ["s-2", "e-1"],
+    } as any).status).toBe("blocked");
+  });
 });

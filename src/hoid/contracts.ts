@@ -66,7 +66,6 @@ export class AuthorizedKnowledgeRetriever {
   }
 }
 
-
 /**
  * A reading position is only meaningful when the referenced work is part of
  * the verified catalog. Unknown works fail closed instead of unlocking data.
@@ -91,4 +90,39 @@ export function catalogBoundProgress(progress: unknown, catalogIds: ReadonlySet<
     if (catalogIds.has(bookId)) bound[bookId] = chapter;
   }
   return bound;
+}
+
+/**
+ * Minimal, non-narrative recommendation contract.
+ *
+ * A recommendation is intentionally restricted to catalog metadata. Callers
+ * may add editorial preferences in a separate layer, but this boundary never
+ * manufactures a plot-based reason from an unavailable passage.
+ */
+export interface SafeRecommendation {
+  bookId: string;
+  title: string;
+  reason: "catalog-availability" | "recorded-reading-continuity";
+}
+
+export function safeCatalogRecommendation(
+  candidate: unknown,
+  catalog: readonly HoidCatalogEntry[],
+  progress: unknown,
+): SafeRecommendation | null {
+  if (typeof candidate !== "string" || candidate.trim().length === 0) return null;
+  const id = candidate.trim();
+  const entry = catalog.find((value) => value && typeof value.id === "string" && value.id.trim() === id
+    && typeof value.title === "string" && value.title.trim().length > 0);
+  if (!entry) return null;
+
+  const catalogIds = canonicalCatalog(catalog);
+  const knownProgress = catalogBoundProgress(progress, catalogIds);
+  return {
+    bookId: id,
+    title: entry.title.trim(),
+    reason: Object.prototype.hasOwnProperty.call(knownProgress, id)
+      ? "recorded-reading-continuity"
+      : "catalog-availability",
+  };
 }

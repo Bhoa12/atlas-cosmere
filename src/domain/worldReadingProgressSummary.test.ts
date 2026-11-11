@@ -33,4 +33,16 @@ describe("resolveWorldReadingProgressSummary", () => {
       status: "blocked", completedUnitIds: [], pendingUnitIds: [],
     }).status).toBe("blocked");
   });
+
+  it("fails closed on malformed manifest collections or entries at runtime", () => {
+    expect(resolveWorldReadingProgressSummary({ bad: true } as any, true, {
+      status: "valid", completedUnitIds: [], pendingUnitIds: [],
+    }).status).toBe("blocked");
+
+    expect(resolveWorldReadingProgressSummary([
+      { worldId: "scadrial", unitId: " s-1", sourceCatalogEntryId: "work-a", order: 1 },
+    ] as any, true, {
+      status: "valid", completedUnitIds: ["s-1"], pendingUnitIds: [],
+    }).status).toBe("blocked");
+  });
 });

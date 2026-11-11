@@ -42,4 +42,12 @@ describe('reading unit validation', () => {
       .toEqual(['invalid_unit_shape', 'invalid_unit_shape']);
     expect(hasValidReadingUnits(malformed)).toBe(false);
   });
+  it('rejects positions outside JavaScript safe-integer range', () => {
+    const unsafe = [{ id: 'unsafe', workId: 'work-a', position: Number.MAX_SAFE_INTEGER + 1 }];
+    expect(validateReadingUnits(unsafe)).toEqual([
+      expect.objectContaining({ code: 'invalid_position', unitId: 'unsafe', workId: 'work-a' }),
+    ]);
+    expect(hasValidReadingUnits(unsafe)).toBe(false);
+  });
+
 });

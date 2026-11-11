@@ -19,3 +19,11 @@ Las recomendaciones deben derivarse del progreso validado y no revelar obras, ca
 ## Incertidumbre
 
 Cuando la estructura de lectura o un pasaje no esté disponible, Hoid IA debe reconocer el límite y evitar inventar hechos, capítulos o continuidad.
+
+## Catálogo y fuentes
+
+La bibliografía privada es un catálogo de procedencia, no una fuente para reproducir texto. Cada entrada de conocimiento debe conservar, cuando esté disponible, su obra y posición de lectura. Los resúmenes deben ser originales y respaldados por metadatos o estructura accesible; la ausencia de acceso a un pasaje se representa como incertidumbre, nunca como un hecho inventado.
+
+## Regla de salida
+
+Una respuesta no debe elevar el progreso efectivo del lector. Si una explicación, recomendación o respuesta del proveedor depende de información posterior a la posición validada, debe bloquearse o reformularse de forma que permanezca dentro del conocimiento autorizado.

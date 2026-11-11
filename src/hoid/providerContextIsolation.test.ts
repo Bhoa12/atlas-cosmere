@@ -1,21 +1,20 @@
 import { HoidPipeline, ContextualHoidProvider } from "./pipeline";
 
 describe("HoidPipeline provider context isolation", () => {
-  it("gives contextual providers a detached copy of authorized metadata", async () => {
+  it("does not expose retrieval aliases across the provider boundary", async () => {
     const knowledge = [{
       id: "safe-entry",
-      aliases: ["SAFE_ALIAS"],
+      aliases: ["INTERNAL_ALIAS_ONLY"],
       kind: "concept" as const,
       firstSafeAppearance: { bookId: "book-safe", chapter: 1 },
       summary: "Metadata-only summary",
     }];
 
+    let contextKeys: string[] = [];
     const provider: ContextualHoidProvider = {
       answer: async () => "respuesta segura",
       answerWithContext: async (_request, context) => {
-        context[0].aliases[0] = "MUTATED";
-        context[0].firstSafeAppearance.chapter = 999;
-        context[0].summary = "changed";
+        contextKeys = Object.keys(context[0]).sort();
         return "respuesta segura";
       },
     };
@@ -26,9 +25,8 @@ describe("HoidPipeline provider context isolation", () => {
     });
 
     expect(result.blocked).toBe(false);
-    expect(knowledge[0].aliases).toEqual(["SAFE_ALIAS"]);
-    expect(knowledge[0].firstSafeAppearance.chapter).toBe(1);
-    expect(knowledge[0].summary).toBe("Metadata-only summary");
+    expect(contextKeys).toEqual(["firstSafeAppearance", "id", "kind", "summary"]);
+    expect(contextKeys).not.toContain("aliases");
   });
 
   it("makes the provider boundary immutable as well as detached", async () => {
@@ -50,7 +48,6 @@ describe("HoidPipeline provider context isolation", () => {
           && Object.isFrozen(request.reading[0]);
         sawFrozenContext = Object.isFrozen(context)
           && Object.isFrozen(context[0])
-          && Object.isFrozen(context[0].aliases)
           && Object.isFrozen(context[0].firstSafeAppearance);
         return "respuesta segura";
       },

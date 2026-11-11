@@ -11,8 +11,15 @@ import { answerWithinTimeout } from "./providerTimeout";
 import { validHoidQuestion } from "./requestValidation";
 import { validReadingPositions } from "./readingValidation";
 
+export type ProviderKnowledgeContextEntry = Readonly<{
+  id: string;
+  kind: HoidKnowledgeEntry["kind"];
+  firstSafeAppearance: Readonly<{ bookId: string; chapter: number }>;
+  summary: string;
+}>;
+
 export interface ContextualHoidProvider extends HoidProvider {
-  answerWithContext(request: HoidAnswerRequest, context: HoidKnowledgeEntry[]): Promise<string>;
+  answerWithContext(request: HoidAnswerRequest, context: readonly ProviderKnowledgeContextEntry[]): Promise<string>;
 }
 
 /**
@@ -28,41 +35,40 @@ export type EvidenceBoundClaim = {
 export interface EvidenceBoundHoidProvider {
   answerWithEvidence(
     request: HoidAnswerRequest,
-    context: HoidKnowledgeEntry[],
+    context: readonly ProviderKnowledgeContextEntry[],
   ): Promise<readonly EvidenceBoundClaim[]>;
 }
 
 function providerSnapshots(
   request: HoidAnswerRequest,
   context: HoidKnowledgeEntry[],
-): { request: HoidAnswerRequest; context: HoidKnowledgeEntry[] } {
+): { request: HoidAnswerRequest; context: readonly ProviderKnowledgeContextEntry[] } {
   const reading = request.reading.map(position => Object.freeze({ ...position }));
   const providerRequest = Object.freeze({
     question: request.question,
     reading: Object.freeze(reading),
   }) as unknown as HoidAnswerRequest;
 
+  // Retrieval aliases are an internal matching aid. They are not narrative
+  // context and must not cross the provider trust boundary.
   const providerContext = context.map(entry => Object.freeze({
-    ...entry,
-    aliases: Object.freeze([...entry.aliases]),
+    id: entry.id,
+    kind: entry.kind,
+    summary: entry.summary,
     firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
-  })) as unknown as HoidKnowledgeEntry[];
+  })) as readonly ProviderKnowledgeContextEntry[];
 
-  return { request: providerRequest, context: Object.freeze(providerContext) as unknown as HoidKnowledgeEntry[] };
+  return { request: providerRequest, context: Object.freeze(providerContext) };
 }
 
 function evidenceText(
   claims: unknown,
-  context: readonly HoidKnowledgeEntry[],
+  context: readonly ProviderKnowledgeContextEntry[],
 ): string | null {
   const allowed = new Set(context.map(item => item.id));
   const accepted = filterClaimsByAuthorizedIds(claims, allowed);
   if (accepted.length === 0) return null;
 
-  // Each individual claim is bounded by validProviderText, but an evidence-aware
-  // provider can still return many individually valid claims. Validate the
-  // composed response as well so this path has the same output-size boundary
-  // as legacy providers and cannot bypass it by fragmentation.
   return validProviderText(accepted.map(claim => claim.text).join("\n\n"));
 }
 
@@ -122,10 +128,6 @@ export class HoidPipeline {
         if (text === null || catalog.lockedMatches(text, reading).length > 0) {
           return { blocked: true, reason: "provider-output", text: "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado." };
         }
-        // Evidence authorization and catalog matching are not substitutes for the
-        // explicit spoiler policy. Apply the same final guard used by legacy
-        // providers so an evidence-backed claim cannot bypass a policy term
-        // that is absent from the current retrieval catalog.
         const providerAnswer = redactProviderAnswer(text, authorizedRequest);
         if (providerAnswer.blocked) return providerAnswer;
         return providerAnswer;

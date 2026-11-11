@@ -47,6 +47,22 @@ describe("HoidPipeline evidence provider boundary", () => {
     expect(result.reason).toBe("provider-output");
   });
 
+  it("fails closed when evidence claims exceed the aggregate output budget", async () => {
+    const oversizedClaim = "x".repeat(6_000);
+    const provider = {
+      answerWithEvidence: vi.fn(async () => [
+        { text: oversizedClaim, evidenceIds: ["safe-fact"] },
+        { text: oversizedClaim, evidenceIds: ["safe-fact"] },
+        { text: oversizedClaim, evidenceIds: ["safe-fact"] },
+      ]),
+    };
+
+    const result = await new HoidPipeline(provider, knowledge).answer(request);
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("provider-output");
+  });
+
   it("fails closed when no evidence-backed claim survives", async () => {
     const provider = {
       answer: vi.fn(async () => "legacy route must not run"),

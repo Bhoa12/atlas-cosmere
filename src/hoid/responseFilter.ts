@@ -14,6 +14,8 @@ export interface HoidClaim {
 
 /** Maximum number of raw claims accepted from an untrusted provider payload. */
 export const DEFAULT_MAX_PROVIDER_CLAIMS = 128;
+/** Maximum evidence identifiers accepted for one untrusted claim. */
+export const DEFAULT_MAX_PROVIDER_EVIDENCE_IDS = 32;
 
 export interface HoidProviderResponse {
   answer: string;
@@ -42,7 +44,7 @@ export function filterClaimsByAuthorizedIds(
     const claim = raw as Partial<HoidClaim>;
     const text = validProviderText(claim.text);
     if (text === null) continue;
-    if (!Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0) continue;
+    if (!Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0 || claim.evidenceIds.length > DEFAULT_MAX_PROVIDER_EVIDENCE_IDS) continue;
 
     if (!claim.evidenceIds.every((id) => typeof id === "string" && authorizedIds.has(id))) continue;
 

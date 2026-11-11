@@ -1,4 +1,5 @@
 import { validateSourceCatalog } from './sourceCatalogValidation';
+import { listCatalogWorksBySource, resolveCatalogWork } from './cosmereExpansionCatalog';
 
 const validEntry = {
   id: 'sample-work',
@@ -42,5 +43,21 @@ describe('validateSourceCatalog', () => {
       reason: 'invalid_source_collection',
       index: 0,
     });
+  });
+});
+
+
+describe('source catalog resolvers', () => {
+  it('resolves only exact canonical work identifiers', () => {
+    expect(resolveCatalogWork('elantris')?.title).toBe('Elantris');
+    expect(resolveCatalogWork(' elantris')).toBeUndefined();
+    expect(resolveCatalogWork('elantris ')).toBeUndefined();
+    expect(resolveCatalogWork(null)).toBeUndefined();
+  });
+
+  it('filters by explicitly supported source collections without inference', () => {
+    expect(listCatalogWorksBySource('cosmere.epub').length).toBeGreaterThan(0);
+    expect(listCatalogWorksBySource('unknown.epub')).toEqual([]);
+    expect(listCatalogWorksBySource({ sourceCollection: 'cosmere.epub' })).toEqual([]);
   });
 });

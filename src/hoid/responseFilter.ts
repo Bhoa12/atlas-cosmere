@@ -20,6 +20,11 @@ export interface HoidProviderResponse {
 /**
  * Fail-closed claim boundary shared by every evidence-aware provider path.
  * The caller supplies only identifiers already authorized for this request.
+ *
+ * Exact duplicate claims are collapsed after validation. A provider therefore
+ * cannot consume the aggregate output budget or amplify a statement merely by
+ * repeating the same text with the same authorized evidence in a different
+ * order.
  */
 export function filterClaimsByAuthorizedIds(
   rawClaims: unknown,
@@ -28,6 +33,7 @@ export function filterClaimsByAuthorizedIds(
   if (!Array.isArray(rawClaims)) return [];
 
   const claims: HoidClaim[] = [];
+  const seenClaims = new Set<string>();
   for (const raw of rawClaims) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const claim = raw as Partial<HoidClaim>;
@@ -37,6 +43,12 @@ export function filterClaimsByAuthorizedIds(
 
     const evidenceIds = [...new Set(claim.evidenceIds)];
     if (!evidenceIds.every((id) => typeof id === "string" && authorizedIds.has(id))) continue;
+
+    // Evidence order is not semantically meaningful for authorization. Use a
+    // canonical key so reordered duplicate claims cannot evade deduplication.
+    const key = JSON.stringify([text, [...evidenceIds].sort()]);
+    if (seenClaims.has(key)) continue;
+    seenClaims.add(key);
     claims.push({ text, evidenceIds });
   }
   return claims;

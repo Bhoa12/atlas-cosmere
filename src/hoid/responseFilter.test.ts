@@ -1,5 +1,8 @@
 import type { KnowledgeItem } from "./contracts";
-import { filterResponseByAuthorizedKnowledge } from "./responseFilter";
+import {
+  DEFAULT_MAX_TOTAL_PROVIDER_CLAIM_TEXT_LENGTH,
+  filterResponseByAuthorizedKnowledge,
+} from "./responseFilter";
 
 /**
  * Framework-neutral invariant checks for the final response boundary.
@@ -28,12 +31,19 @@ export function responseFilterInvariants(): void {
     throw new Error("Oversized provider claim payloads must fail closed.");
   }
 
-
   const oversizedEvidence = Array.from({ length: 33 }, () => "known");
   if (filterResponseByAuthorizedKnowledge({
     claims: [{ text: "Evidence-heavy synthetic claim.", evidenceIds: oversizedEvidence }],
   }, authorized).claims.length !== 0) {
     throw new Error("Oversized evidence lists must fail closed.");
+  }
+
+  const aggregateOverflow = [
+    { text: "a".repeat(DEFAULT_MAX_TOTAL_PROVIDER_CLAIM_TEXT_LENGTH), evidenceIds: ["known"] },
+    { text: "b", evidenceIds: ["known"] },
+  ];
+  if (filterResponseByAuthorizedKnowledge({ claims: aggregateOverflow }, authorized).claims.length !== 0) {
+    throw new Error("Aggregate provider claim text limits must fail closed.");
   }
 
   const repeatedEvidence = ["also-known", "known", "known"];

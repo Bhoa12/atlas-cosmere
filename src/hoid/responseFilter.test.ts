@@ -28,6 +28,14 @@ export function responseFilterInvariants(): void {
     throw new Error("Oversized provider claim payloads must fail closed.");
   }
 
+
+  const oversizedEvidence = Array.from({ length: 33 }, () => "known");
+  if (filterResponseByAuthorizedKnowledge({
+    claims: [{ text: "Evidence-heavy synthetic claim.", evidenceIds: oversizedEvidence }],
+  }, authorized).claims.length !== 0) {
+    throw new Error("Oversized evidence lists must fail closed.");
+  }
+
   const repeatedEvidence = ["also-known", "known", "known"];
   const filtered = filterResponseByAuthorizedKnowledge({
     answer: "Conversational framing.",

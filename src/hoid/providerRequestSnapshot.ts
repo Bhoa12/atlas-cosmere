@@ -5,7 +5,7 @@ import { HoidAnswerRequest } from './types';
  * Creates an immutable, detached request at the provider trust boundary.
  *
  * The provider receives canonical metadata rather than raw UI progress:
- * duplicate updates are collapsed, malformed chapters cannot inflate access,
+ * ambiguous or malformed progress fails closed, so it cannot inflate access,
  * and unknown works are removed before any external integration sees them.
  * Providers must never observe mutable application state because they can run
  * after a timeout and their asynchronous work is outside Atlas control.

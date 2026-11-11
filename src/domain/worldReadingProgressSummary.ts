@@ -28,12 +28,33 @@ export function resolveWorldReadingProgressSummary(
   manifestValid: boolean,
   progress: ValidatedReadingProgressSnapshot,
 ): WorldReadingProgressSummaryResult {
-  if (\n    !manifestValid ||\n    !progress ||\n    typeof progress !== "object" ||\n    progress.status !== "valid" ||\n    !Array.isArray(manifest) ||\n    !Array.isArray((progress as ValidatedReadingProgressSnapshot).completedUnitIds) ||\n    !Array.isArray((progress as ValidatedReadingProgressSnapshot).pendingUnitIds) ||\n    !(progress as ValidatedReadingProgressSnapshot).completedUnitIds.every(isCanonicalId) ||\n    !(progress as ValidatedReadingProgressSnapshot).pendingUnitIds.every(isCanonicalId)\n  ) {
+  if (
+    !manifestValid ||
+    !progress ||
+    typeof progress !== "object" ||
+    progress.status !== "valid" ||
+    !Array.isArray(manifest) ||
+    !Array.isArray((progress as ValidatedReadingProgressSnapshot).completedUnitIds) ||
+    !Array.isArray((progress as ValidatedReadingProgressSnapshot).pendingUnitIds) ||
+    !(progress as ValidatedReadingProgressSnapshot).completedUnitIds.every(isCanonicalId) ||
+    !(progress as ValidatedReadingProgressSnapshot).pendingUnitIds.every(isCanonicalId)
+  ) {
     return { status: "blocked", worlds: [] };
   }
 
   const completed = new Set(progress.completedUnitIds);
   const pending = new Set(progress.pendingUnitIds);
+
+  // Arrays are part of the persisted boundary: duplicates are malformed input,
+  // even when Set-based aggregation would otherwise hide them.
+  if (
+    completed.size !== progress.completedUnitIds.length ||
+    pending.size !== progress.pendingUnitIds.length ||
+    [...completed].some((id) => pending.has(id))
+  ) {
+    return { status: "blocked", worlds: [] };
+  }
+
   const known = new Set<string>();
   const counts = new Map<string, { total: number; completed: number; pending: number }>();
 
@@ -58,8 +79,7 @@ export function resolveWorldReadingProgressSummary(
 
   if (
     completed.size + pending.size !== known.size ||
-    [...completed, ...pending].some((id) => !known.has(id)) ||
-    [...completed].some((id) => pending.has(id))
+    [...completed, ...pending].some((id) => !known.has(id))
   ) return { status: "blocked", worlds: [] };
 
   return {

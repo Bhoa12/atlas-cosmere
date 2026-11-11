@@ -14,7 +14,7 @@ Los identificadores deben ser únicos y las posiciones no pueden duplicarse dent
 
 ## Entradas externas
 
-Aunque TypeScript describa una colección como `ReadingUnit[]`, los datos procedentes de persistencia, importaciones o integraciones pueden incumplir ese tipo en tiempo de ejecución. Las unidades con forma inválida se registran como `invalid_unit_shape` y el conjunto deja de considerarse válido.
+Aunque TypeScript describa una colección como `ReadingUnit[]`, los datos procedentes de persistencia, importaciones o integraciones pueden incumplir ese tipo en tiempo de ejecución. Las colecciones que no sean arrays se registran como `invalid_collection_shape`. Las unidades internas con forma inválida se registran como `invalid_unit_shape`. En ambos casos, el conjunto deja de considerarse válido.
 
 La capa no normaliza valores, no inventa posiciones y no intenta reconstruir unidades.
 

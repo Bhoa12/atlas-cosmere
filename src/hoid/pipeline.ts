@@ -3,7 +3,7 @@ import { HoidKnowledgeCatalog, HoidKnowledgeEntry } from "./catalog";
 import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
 import { guardQuestion, redactProviderAnswer } from "./spoilerGuard";
-import { validProviderText } from "./providerOutput";
+import { DEFAULT_MAX_PROVIDER_TEXT_LENGTH, validProviderText } from "./providerOutput";
 import { filterClaimsByAuthorizedIds } from "./responseFilter";
 import { authorizeReading, catalogBookIds } from "./authorizationBoundary";
 import { boundAuthorizedContext } from "./contextBudget";
@@ -69,7 +69,21 @@ function evidenceText(
   const accepted = filterClaimsByAuthorizedIds(claims, allowed);
   if (accepted.length === 0) return null;
 
-  return validProviderText(accepted.map(claim => claim.text).join("\n\n"));
+  // Every individual claim is bounded, but an evidence provider can return
+  // arbitrarily many individually valid claims. Enforce the legacy route's
+  // aggregate output limit before concatenating them.
+  let totalLength = 0;
+  const parts: string[] = [];
+  for (const claim of accepted) {
+    const separatorLength = parts.length === 0 ? 0 : 2;
+    if (totalLength + separatorLength + claim.text.length > DEFAULT_MAX_PROVIDER_TEXT_LENGTH) {
+      return null;
+    }
+    parts.push(claim.text);
+    totalLength += separatorLength + claim.text.length;
+  }
+
+  return validProviderText(parts.join("\n\n"), DEFAULT_MAX_PROVIDER_TEXT_LENGTH);
 }
 
 export class HoidPipeline {

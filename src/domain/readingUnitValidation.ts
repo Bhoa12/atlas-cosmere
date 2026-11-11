@@ -5,8 +5,10 @@ export interface ReadingUnitValidationIssue {
     | 'invalid_collection_shape'
     | 'invalid_unit_shape'
     | 'empty_id'
+    | 'non_canonical_id'
     | 'duplicate_id'
     | 'empty_work_id'
+    | 'non_canonical_work_id'
     | 'invalid_position'
     | 'duplicate_position';
   unitId?: string;
@@ -42,6 +44,8 @@ export function validateReadingUnits(
 
     if (!unit.id.trim()) {
       issues.push({ code: 'empty_id', unitId: unit.id });
+    } else if (unit.id !== unit.id.trim()) {
+      issues.push({ code: 'non_canonical_id', unitId: unit.id });
     } else if (ids.has(unit.id)) {
       issues.push({ code: 'duplicate_id', unitId: unit.id });
     } else {
@@ -50,6 +54,11 @@ export function validateReadingUnits(
 
     if (!unit.workId.trim()) {
       issues.push({ code: 'empty_work_id', unitId: unit.id });
+      continue;
+    }
+
+    if (unit.workId !== unit.workId.trim()) {
+      issues.push({ code: 'non_canonical_work_id', unitId: unit.id, workId: unit.workId });
       continue;
     }
 

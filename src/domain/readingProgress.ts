@@ -18,12 +18,30 @@ function isCanonicalId(value: unknown): value is string {
 }
 
 function hasValidProgressShape(progress: unknown): progress is ReadingProgress {
+  if (
+    !progress ||
+    typeof progress !== 'object' ||
+    !isCanonicalId((progress as ReadingProgress).workId) ||
+    !Array.isArray((progress as ReadingProgress).completedUnitIds) ||
+    !(progress as ReadingProgress).completedUnitIds.every(isCanonicalId)
+  ) {
+    return false;
+  }
+
+  // Persisted progress is an ordered collection at the runtime boundary.
+  // Reject duplicates instead of silently hiding malformed data with a Set.
+  return new Set((progress as ReadingProgress).completedUnitIds).size ===
+    (progress as ReadingProgress).completedUnitIds.length;
+}
+
+function hasValidUnitShape(unit: unknown): unit is ReadingUnit {
   return Boolean(
-    progress &&
-    typeof progress === 'object' &&
-    isCanonicalId((progress as ReadingProgress).workId) &&
-    Array.isArray((progress as ReadingProgress).completedUnitIds) &&
-    (progress as ReadingProgress).completedUnitIds.every(isCanonicalId),
+    unit &&
+    typeof unit === 'object' &&
+    isCanonicalId((unit as ReadingUnit).id) &&
+    isCanonicalId((unit as ReadingUnit).workId) &&
+    Number.isSafeInteger((unit as ReadingUnit).position) &&
+    (unit as ReadingUnit).position >= 1,
   );
 }
 
@@ -36,6 +54,7 @@ export function getProgressFraction(
   progress: ReadingProgress | undefined,
 ): number {
   if (!hasValidProgressShape(progress) || !Array.isArray(units)) return 0;
+  if (!units.every(hasValidUnitShape)) return 0;
   const valid = new Set(
     units.filter((unit) => unit.workId === progress.workId).map((unit) => unit.id),
   );

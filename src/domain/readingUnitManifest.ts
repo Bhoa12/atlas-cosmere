@@ -13,24 +13,36 @@ export interface ReadingUnitManifestResult {
   invalidWorldIds: readonly string[];
 }
 
+function isCanonicalId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim();
+}
+
 /**
  * Validates metadata-only reading-unit manifests. Units are allowed only for
- * worlds whose activation has been independently validated. This layer does
- * not inspect source text, infer chapters, or attach editorial summaries.
+ * worlds whose activation has been independently validated. Persisted or
+ * imported values are treated as untrusted and malformed runtime data blocks
+ * the whole manifest. This layer does not inspect source text, infer chapters,
+ * or attach editorial summaries.
  */
 export function resolveReadingUnitManifest(
   activation: readonly WorldReadingActivation[],
   activationValid: boolean,
   entries: readonly ReadingUnitManifestEntry[],
 ): ReadingUnitManifestResult {
-  if (!activationValid) {
+  if (!activationValid || !Array.isArray(activation) || !Array.isArray(entries)) {
     return { status: "blocked", entries: [], invalidWorldIds: [] };
   }
 
   const activeWorlds = new Set<string>();
   const seenWorlds = new Set<string>();
   for (const item of activation) {
-    if (!item || !item.worldId.trim() || seenWorlds.has(item.worldId)) {
+    if (
+      !item ||
+      !isCanonicalId(item.worldId) ||
+      typeof item.reason !== "string" ||
+      typeof item.readingReady !== "boolean" ||
+      seenWorlds.has(item.worldId)
+    ) {
       return { status: "blocked", entries: [], invalidWorldIds: [] };
     }
     seenWorlds.add(item.worldId);
@@ -46,10 +58,10 @@ export function resolveReadingUnitManifest(
   for (const entry of entries) {
     if (
       !entry ||
-      !entry.worldId.trim() ||
-      !entry.unitId.trim() ||
-      !entry.sourceCatalogEntryId.trim() ||
-      !Number.isInteger(entry.order) ||
+      !isCanonicalId(entry.worldId) ||
+      !isCanonicalId(entry.unitId) ||
+      !isCanonicalId(entry.sourceCatalogEntryId) ||
+      !Number.isSafeInteger(entry.order) ||
       entry.order < 0 ||
       seenUnitIds.has(entry.unitId)
     ) {

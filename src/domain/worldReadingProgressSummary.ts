@@ -14,6 +14,10 @@ export interface WorldReadingProgressSummaryResult {
   worlds: readonly WorldReadingProgressSummary[];
 }
 
+function isCanonicalId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim();
+}
+
 /**
  * Summarizes explicit, already-validated reading progress by world.
  * This layer derives metrics only from manifest metadata and validated unit ids;
@@ -24,7 +28,9 @@ export function resolveWorldReadingProgressSummary(
   manifestValid: boolean,
   progress: ValidatedReadingProgressSnapshot,
 ): WorldReadingProgressSummaryResult {
-  if (!manifestValid || progress.status !== "valid") return { status: "blocked", worlds: [] };
+  if (!manifestValid || progress.status !== "valid" || !Array.isArray(manifest)) {
+    return { status: "blocked", worlds: [] };
+  }
 
   const completed = new Set(progress.completedUnitIds);
   const pending = new Set(progress.pendingUnitIds);
@@ -32,7 +38,13 @@ export function resolveWorldReadingProgressSummary(
   const counts = new Map<string, { total: number; completed: number; pending: number }>();
 
   for (const unit of manifest) {
-    if (!unit || !unit.worldId.trim() || !unit.unitId.trim() || known.has(unit.unitId)) {
+    if (
+      !unit ||
+      typeof unit !== "object" ||
+      !isCanonicalId((unit as ReadingUnitManifestEntry).worldId) ||
+      !isCanonicalId((unit as ReadingUnitManifestEntry).unitId) ||
+      known.has((unit as ReadingUnitManifestEntry).unitId)
+    ) {
       return { status: "blocked", worlds: [] };
     }
     known.add(unit.unitId);

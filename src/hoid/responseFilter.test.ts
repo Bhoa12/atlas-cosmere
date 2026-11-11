@@ -20,6 +20,7 @@ export function responseFilterInvariants(): void {
     summary: "Additional synthetic test metadata.",
   }];
 
+  const repeatedEvidence = ["also-known", "known", "known"];
   const filtered = filterResponseByAuthorizedKnowledge({
     answer: "Conversational framing.",
     claims: [
@@ -27,10 +28,13 @@ export function responseFilterInvariants(): void {
       { text: "Unsupported claim.", evidenceIds: ["unknown"] },
       { text: "Mixed evidence.", evidenceIds: ["known", "unknown"] },
       { text: "Repeated synthetic claim.", evidenceIds: ["known", "also-known"] },
-      { text: "Repeated synthetic claim.", evidenceIds: ["also-known", "known", "known"] },
+      { text: "Repeated synthetic claim.", evidenceIds: repeatedEvidence },
     ],
   }, authorized);
 
+  if (filtered.answer !== "") {
+    throw new Error("Free-form provider prose must not bypass evidence validation.");
+  }
   if (filtered.claims.length !== 2) {
     throw new Error("Only distinct claims fully supported by authorized knowledge may pass.");
   }
@@ -39,4 +43,11 @@ export function responseFilterInvariants(): void {
   }
   if (filtered.claims[1].text !== "Repeated synthetic claim.") {
     throw new Error("A repeated claim must retain one canonical occurrence.");
-  }\n  if (filtered.claims[1].evidenceIds.join(",") !== "also-known,known") {\n    throw new Error("Equivalent evidence must leave the boundary in canonical order.");\n  }\n}
+  }
+  if (filtered.claims[1].evidenceIds.join(",") !== "also-known,known") {
+    throw new Error("Equivalent evidence must leave the boundary in canonical order.");
+  }
+  if (repeatedEvidence.join(",") !== "also-known,known,known") {
+    throw new Error("Filtering provider output must not mutate the provider-owned evidence array.");
+  }
+}

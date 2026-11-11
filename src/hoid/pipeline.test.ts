@@ -122,7 +122,7 @@ describe("HoidPipeline", () => {
         expect(Object.isFrozen(context)).toBe(true);
         expect(context).toHaveLength(1);
         expect(Object.isFrozen(context[0])).toBe(true);
-        expect(Object.isFrozen(context[0].aliases)).toBe(true);
+        expect(Object.prototype.hasOwnProperty.call(context[0], "aliases")).toBe(false);
         expect(Object.isFrozen(context[0].firstSafeAppearance)).toBe(true);
         return "Respuesta segura";
       }),

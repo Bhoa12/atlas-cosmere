@@ -20,7 +20,7 @@ export function responseFilterInvariants(): void {
     summary: "Additional synthetic test metadata.",
   }];
 
-  const repeatedEvidence = ["also-known", "known", "known"];
+  const oversizedClaims = Array.from({ length: 129 }, () => ({\n    text: "Oversized synthetic claim.",\n    evidenceIds: ["known"],\n  }));\n  if (filterResponseByAuthorizedKnowledge({ claims: oversizedClaims }, authorized).claims.length !== 0) {\n    throw new Error("Oversized provider claim payloads must fail closed.");\n  }\n\n  const repeatedEvidence = ["also-known", "known", "known"];
   const filtered = filterResponseByAuthorizedKnowledge({
     answer: "Conversational framing.",
     claims: [

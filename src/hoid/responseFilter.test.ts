@@ -39,5 +39,4 @@ export function responseFilterInvariants(): void {
   }
   if (filtered.claims[1].text !== "Repeated synthetic claim.") {
     throw new Error("A repeated claim must retain one canonical occurrence.");
-  }
-}
+  }\n  if (filtered.claims[1].evidenceIds.join(",") !== "also-known,known") {\n    throw new Error("Equivalent evidence must leave the boundary in canonical order.");\n  }\n}

@@ -33,7 +33,7 @@ describe("boundAuthorizedContext", () => {
     expect(context.map(entry => entry.id)).toEqual(["safe"]);
   });
 
-  it("counts aliases that cross the contextual provider boundary", () => {
+  it("does not budget aliases that stay outside the provider snapshot", () => {
     const entries = [{
       id: "safe",
       aliases: ["x".repeat(10_000)],
@@ -42,9 +42,9 @@ describe("boundAuthorizedContext", () => {
       summary: "short",
     }] as any;
 
-    // Contextual providers receive HoidKnowledgeEntry aliases, so an oversized
-    // alias must not bypass the character budget.
-    expect(boundAuthorizedContext(entries, 1, 25)).toEqual([]);
+    // Provider snapshots deliberately omit aliases, so local retrieval metadata
+    // must not consume the external payload budget.
+    expect(boundAuthorizedContext(entries, 1, 25)).toHaveLength(1);
   });
 
   it("fails closed for invalid character limits", () => {

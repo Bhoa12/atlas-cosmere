@@ -8,7 +8,7 @@ Cada unidad debe proporcionar:
 
 - un identificador de unidad no vacío;
 - un identificador de obra no vacío;
-- una posición entera positiva.
+- una posición entera positiva dentro del rango de enteros seguros de JavaScript.
 
 Los identificadores deben ser únicos y las posiciones no pueden duplicarse dentro de la misma obra.
 

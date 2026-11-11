@@ -41,8 +41,12 @@ export function filterClaimsByAuthorizedIds(
     if (text === null) continue;
     if (!Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0) continue;
 
-    const evidenceIds = [...new Set(claim.evidenceIds)];
-    if (!evidenceIds.every((id) => typeof id === "string" && authorizedIds.has(id))) continue;
+    if (!claim.evidenceIds.every((id) => typeof id === "string" && authorizedIds.has(id))) continue;
+
+    // Canonicalize evidence before returning it. This makes equivalent provider
+    // payloads deterministic and keeps downstream consumers from depending on
+    // provider-specific ordering or repeated identifiers.
+    const evidenceIds = [...new Set(claim.evidenceIds)].sort();
 
     // Evidence order is not semantically meaningful for authorization. Use a
     // canonical key so reordered duplicate claims cannot evade deduplication.

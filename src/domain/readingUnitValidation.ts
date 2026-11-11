@@ -44,7 +44,7 @@ export function validateReadingUnits(
       continue;
     }
 
-    if (!Number.isInteger(unit.position) || unit.position < 1) {
+    if (!Number.isSafeInteger(unit.position) || unit.position < 1) {
       issues.push({ code: 'invalid_position', unitId: unit.id, workId: unit.workId });
       continue;
     }

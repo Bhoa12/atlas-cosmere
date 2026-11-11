@@ -12,6 +12,12 @@ export function responseFilterInvariants(): void {
     kind: "concept",
     unlock: { bookId: "book", chapter: 1 },
     summary: "Synthetic test metadata.",
+  }, {
+    id: "also-known",
+    aliases: ["Also known"],
+    kind: "concept",
+    unlock: { bookId: "book", chapter: 1 },
+    summary: "Additional synthetic test metadata.",
   }];
 
   const filtered = filterResponseByAuthorizedKnowledge({
@@ -20,13 +26,18 @@ export function responseFilterInvariants(): void {
       { text: "Supported synthetic claim.", evidenceIds: ["known"] },
       { text: "Unsupported claim.", evidenceIds: ["unknown"] },
       { text: "Mixed evidence.", evidenceIds: ["known", "unknown"] },
+      { text: "Repeated synthetic claim.", evidenceIds: ["known", "also-known"] },
+      { text: "Repeated synthetic claim.", evidenceIds: ["also-known", "known", "known"] },
     ],
   }, authorized);
 
-  if (filtered.claims.length !== 1) {
-    throw new Error("Only claims fully supported by authorized knowledge may pass.");
+  if (filtered.claims.length !== 2) {
+    throw new Error("Only distinct claims fully supported by authorized knowledge may pass.");
   }
   if (filtered.claims[0].evidenceIds[0] !== "known") {
     throw new Error("Authorized evidence identifiers must be preserved.");
+  }
+  if (filtered.claims[1].text !== "Repeated synthetic claim.") {
+    throw new Error("A repeated claim must retain one canonical occurrence.");
   }
 }

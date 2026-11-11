@@ -27,4 +27,15 @@ describe("recommendUnstartedSources", () => {
     expect(recommendUnstartedSources([], -1)).toEqual([]);
     expect(recommendUnstartedSourcesFromUnknown({ bookId: "tfe" })).toEqual([]);
   });
+
+  it("fails closed for ambiguous or malformed direct progress", () => {
+    expect(recommendUnstartedSources([
+      { bookId: "tfe", chapter: 1 },
+      { bookId: "tfe", chapter: 99 },
+    ], 1)).toEqual([]);
+
+    expect(recommendUnstartedSources([
+      { bookId: "tfe", chapter: Number.POSITIVE_INFINITY },
+    ] as any, 1)).toEqual([]);
+  });
 });

@@ -15,6 +15,8 @@ The resolver fails closed when:
 - an entry is missing or not an object;
 - a world or unit identifier is empty or contains leading/trailing whitespace;
 - a unit identifier is duplicated;
+- validated progress is missing, not an object, or has non-array completion collections;
+- a completion collection contains an empty or non-canonical identifier;
 - validated progress does not partition exactly the known unit identifiers.
 
 A blocked result exposes no world summaries. The layer never trims identifiers,

@@ -16,6 +16,14 @@ export interface HoidClaim {
 export const DEFAULT_MAX_PROVIDER_CLAIMS = 128;
 /** Maximum evidence identifiers accepted for one untrusted claim. */
 export const DEFAULT_MAX_PROVIDER_EVIDENCE_IDS = 32;
+/**
+ * Maximum aggregate text accepted across all claims in one provider response.
+ *
+ * This bounds the memory and presentation work caused by individually valid
+ * claims and prevents a provider from bypassing per-claim text limits by
+ * spreading a very large response across many claims.
+ */
+export const DEFAULT_MAX_TOTAL_PROVIDER_CLAIM_TEXT_LENGTH = 48_000;
 
 export interface HoidProviderResponse {
   answer: string;
@@ -39,6 +47,7 @@ export function filterClaimsByAuthorizedIds(
 
   const claims: HoidClaim[] = [];
   const seenClaims = new Set<string>();
+  let totalTextLength = 0;
   for (const raw of rawClaims) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const claim = raw as Partial<HoidClaim>;
@@ -55,8 +64,14 @@ export function filterClaimsByAuthorizedIds(
 
     // Evidence order is not semantically meaningful for authorization. Use a
     // canonical key so reordered duplicate claims cannot evade deduplication.
-    const key = JSON.stringify([text, [...evidenceIds].sort()]);
+    const key = JSON.stringify([text, evidenceIds]);
     if (seenClaims.has(key)) continue;
+
+    totalTextLength += text.length;
+    // Aggregate limits fail closed instead of returning a provider-order-
+    // dependent prefix of otherwise valid claims.
+    if (totalTextLength > DEFAULT_MAX_TOTAL_PROVIDER_CLAIM_TEXT_LENGTH) return [];
+
     seenClaims.add(key);
     claims.push({ text, evidenceIds });
   }

@@ -46,6 +46,12 @@ describe("resolveWorldReadingProgressSummary", () => {
     }).status).toBe("blocked");
   });
 
+  it("fails closed on duplicate progress ids that Set aggregation would otherwise hide", () => {
+    expect(resolveWorldReadingProgressSummary(manifest, true, {
+      status: "valid", completedUnitIds: ["s-1", "s-1", "e-1"], pendingUnitIds: ["s-2"],
+    } as any).status).toBe("blocked");
+  });
+
   it("fails closed on malformed progress collections or non-canonical ids at runtime", () => {
     expect(resolveWorldReadingProgressSummary(manifest, true, {
       status: "valid", completedUnitIds: { bad: true }, pendingUnitIds: [],

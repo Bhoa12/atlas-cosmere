@@ -39,3 +39,38 @@ export const COSMERE_SOURCE_CATALOG: readonly SourceCatalogEntry[] = [
 export function findSourceCatalogEntry(id: string): SourceCatalogEntry | undefined {
   return COSMERE_SOURCE_CATALOG.find((entry) => entry.id === id);
 }
+
+
+/**
+ * Resolves a catalog work by a canonical technical identifier.
+ *
+ * This lookup deliberately returns only catalog metadata. It does not infer a
+ * world assignment or editorial structure from a title or identifier.
+ */
+export function resolveCatalogWork(id: unknown): SourceCatalogEntry | undefined {
+  if (typeof id !== 'string' || id.length === 0 || id.trim() !== id) {
+    return undefined;
+  }
+
+  return COSMERE_SOURCE_CATALOG.find((entry) => entry.id === id);
+}
+
+/**
+ * Returns source works declared for a known technical collection.
+ *
+ * Unknown or malformed collection identifiers fail closed with an empty list.
+ */
+export function listCatalogWorksBySource(
+  sourceCollection: unknown,
+): readonly SourceCatalogEntry[] {
+  if (
+    sourceCollection !== 'cosmere.epub' &&
+    sourceCollection !== 'roshar-private-epubs'
+  ) {
+    return [];
+  }
+
+  return COSMERE_SOURCE_CATALOG.filter(
+    (entry) => entry.sourceCollection === sourceCollection,
+  );
+}

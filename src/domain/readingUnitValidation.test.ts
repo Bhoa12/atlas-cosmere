@@ -50,4 +50,12 @@ describe('reading unit validation', () => {
     expect(hasValidReadingUnits(unsafe)).toBe(false);
   });
 
+  it('fails closed when the runtime collection itself is malformed', () => {
+    const malformedCollection = { units: valid } as unknown as ReadingUnit[];
+    expect(validateReadingUnits(malformedCollection)).toEqual([
+      { code: 'invalid_collection_shape' },
+    ]);
+    expect(hasValidReadingUnits(malformedCollection)).toBe(false);
+  });
+
 });

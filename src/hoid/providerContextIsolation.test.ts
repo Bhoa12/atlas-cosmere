@@ -6,6 +6,7 @@ describe("HoidPipeline provider context isolation", () => {
       id: "safe-entry",
       aliases: ["INTERNAL_ALIAS_ONLY"],
       kind: "concept" as const,
+      provenance: "verified" as const,
       firstSafeAppearance: { bookId: "book-safe", chapter: 1 },
       summary: "Metadata-only summary",
     }];
@@ -34,6 +35,7 @@ describe("HoidPipeline provider context isolation", () => {
       id: "safe-entry",
       aliases: ["SAFE_ALIAS"],
       kind: "concept" as const,
+      provenance: "verified" as const,
       firstSafeAppearance: { bookId: "book-safe", chapter: 1 },
       summary: "Metadata-only summary",
     }];

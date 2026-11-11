@@ -12,6 +12,9 @@ export interface HoidClaim {
   evidenceIds: string[];
 }
 
+/** Maximum number of raw claims accepted from an untrusted provider payload. */
+export const DEFAULT_MAX_PROVIDER_CLAIMS = 128;
+
 export interface HoidProviderResponse {
   answer: string;
   claims: HoidClaim[];
@@ -30,7 +33,7 @@ export function filterClaimsByAuthorizedIds(
   rawClaims: unknown,
   authorizedIds: ReadonlySet<string>,
 ): HoidClaim[] {
-  if (!Array.isArray(rawClaims)) return [];
+  if (!Array.isArray(rawClaims) || rawClaims.length > DEFAULT_MAX_PROVIDER_CLAIMS) return [];
 
   const claims: HoidClaim[] = [];
   const seenClaims = new Set<string>();

@@ -28,7 +28,7 @@ export function resolveWorldReadingProgressSummary(
   manifestValid: boolean,
   progress: ValidatedReadingProgressSnapshot,
 ): WorldReadingProgressSummaryResult {
-  if (!manifestValid || progress.status !== "valid" || !Array.isArray(manifest)) {
+  if (\n    !manifestValid ||\n    !progress ||\n    typeof progress !== "object" ||\n    progress.status !== "valid" ||\n    !Array.isArray(manifest) ||\n    !Array.isArray((progress as ValidatedReadingProgressSnapshot).completedUnitIds) ||\n    !Array.isArray((progress as ValidatedReadingProgressSnapshot).pendingUnitIds) ||\n    !(progress as ValidatedReadingProgressSnapshot).completedUnitIds.every(isCanonicalId) ||\n    !(progress as ValidatedReadingProgressSnapshot).pendingUnitIds.every(isCanonicalId)\n  ) {
     return { status: "blocked", worlds: [] };
   }
 

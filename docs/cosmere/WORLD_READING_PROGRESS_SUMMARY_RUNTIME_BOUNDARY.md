@@ -17,6 +17,7 @@ The resolver fails closed when:
 - a unit identifier is duplicated;
 - validated progress is missing, not an object, or has non-array completion collections;
 - a completion collection contains an empty or non-canonical identifier;
+- either completion collection contains a duplicate identifier;
 - validated progress does not partition exactly the known unit identifiers.
 
 A blocked result exposes no world summaries. The layer never trims identifiers,

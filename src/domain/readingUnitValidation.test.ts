@@ -58,4 +58,18 @@ describe('reading unit validation', () => {
     expect(hasValidReadingUnits(malformedCollection)).toBe(false);
   });
 
+  it('rejects identifiers with surrounding whitespace instead of silently normalizing them', () => {
+    const issues = validateReadingUnits([
+      { id: ' unit-1 ', workId: 'work-a', position: 1 },
+      { id: 'unit-2', workId: ' work-a ', position: 2 },
+    ]);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'non_canonical_id', unitId: ' unit-1 ' }),
+      expect.objectContaining({ code: 'non_canonical_work_id', unitId: 'unit-2', workId: ' work-a ' }),
+    ]));
+    expect(hasValidReadingUnits([
+      { id: ' unit-1 ', workId: 'work-a', position: 1 },
+    ])).toBe(false);
+  });
+
 });

@@ -28,3 +28,12 @@ Esta validación no lee EPUBs ni contiene texto protegido. Tampoco determina cap
 Las mismas garantías de frontera se aplican al progreso reutilizable: antes de usarlo para contar unidades, calcular una fracción o confirmar una unidad completada, la capa comprueba que la obra y todos los identificadores completados sean cadenas canónicas y que la colección tenga forma de array. Los valores malformados devuelven un resultado neutral y bloqueado —cero progreso o una comprobación negativa— en lugar de lanzar una excepción o normalizar datos externos.
 
 Estas comprobaciones siguen siendo puramente técnicas. No convierten posiciones en capítulos, no infieren contenido faltante y no establecen requisitos narrativos.
+
+
+## Reading progress runtime boundary
+
+Reading progress is also treated as untrusted at runtime. A progress record is accepted only when its work identifier and every completed unit identifier are canonical, and the completion collection contains no duplicate identifiers. Duplicate values are rejected rather than silently collapsed.
+
+Progress fractions additionally validate every supplied reading unit before accessing its fields. Each unit must have canonical identifiers plus a positive safe-integer position. A malformed collection or unit produces a zero progress fraction; the layer does not repair, trim, infer, or normalize external data.
+
+These checks remain technical metadata validation. They do not determine chapters, editorial order, narrative events, or any canon fact.

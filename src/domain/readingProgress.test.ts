@@ -31,7 +31,19 @@ describe('reading progress domain', () => {
   });
 
   it('checks explicit unit completion', () => {
-    expect(isUnitCompleted({ workId: 'work-a', completedUnitIds: ['unit-2'] }, 'unit-2')).toBe(true);
+    expect(isUnitCompleted({ workId: 'work-a', completedUnitIds: ['unit-2'] }, { id: 'unit-2', workId: 'work-a' })).toBe(true);
+  });
+
+  it('fails closed for malformed runtime progress metadata', () => {
+    const malformed = { workId: ' work-a ', completedUnitIds: ['unit-1', 7] } as unknown as { workId: string; completedUnitIds: string[] };
+    expect(getCompletedCount(malformed)).toBe(0);
+    expect(getProgressFraction(units, malformed)).toBe(0);
+    expect(isUnitCompleted(malformed, { id: 'unit-1', workId: 'work-a' })).toBe(false);
+  });
+
+  it('fails closed for malformed runtime unit metadata', () => {
+    const malformedUnit = { id: ' unit-1 ', workId: 'work-a' } as unknown as { id: string; workId: string };
+    expect(isUnitCompleted({ workId: 'work-a', completedUnitIds: ['unit-1'] }, malformedUnit)).toBe(false);
   });
 });
 

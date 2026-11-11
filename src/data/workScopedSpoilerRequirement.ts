@@ -1,9 +1,6 @@
 import { resolveCatalogWork } from './cosmereExpansionCatalog';
 import { validateReadingUnitCatalogReferences } from './readingUnitCatalogReferenceValidation';
-import {
-  validateWorkProgressConsistency,
-  type WorkProgressConsistencyResult,
-} from './workProgressConsistency';
+import { validateWorkProgressConsistency } from './workProgressConsistency';
 
 export type WorkScopedSpoilerRequirement = {
   workId: string;
@@ -85,7 +82,11 @@ export type WorkScopedSpoilerUnlockResult =
   | {
       status: 'blocked';
       reason:
-        | WorkProgressConsistencyResult extends { status: 'blocked'; reason: infer R } ? R : never
+        | 'invalid_progress'
+        | 'unknown_work'
+        | 'invalid_registry'
+        | 'unknown_completed_unit'
+        | 'cross_work_completed_unit'
         | 'invalid_requirement'
         | 'unknown_required_unit'
         | 'cross_work_required_unit'

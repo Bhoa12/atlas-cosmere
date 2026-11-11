@@ -70,3 +70,16 @@ No debe insinuar spoilers mediante pistas, nombres de acontecimientos posteriore
 ## Consistencia entre rutas de salida
 
 Toda ruta pública que produzca una respuesta —texto libre, afirmaciones con evidencia, explicación o recomendación— debe aplicar la misma política de alcance narrativo antes de devolver contenido al lector. El formato de salida no puede ampliar permisos.
+
+## Recomendaciones seguras y reversibles
+
+Una recomendación debe tratarse como una decisión de navegación, no como una excusa para resumir contenido futuro. Antes de recomendar una obra o una siguiente lectura, Hoid IA debe comprobar de forma independiente:
+
+1. que la obra exista en el catálogo de fuentes;
+2. que el motivo de la recomendación pueda expresarse con metadatos o conocimiento ya autorizado;
+3. que no se revele una consecuencia, giro, identidad o relación narrativa posterior;
+4. que la recomendación no presuponga progreso en una obra distinta.
+
+Cuando no pueda justificar una recomendación sin depender de conocimiento narrativo bloqueado, debe ofrecer una alternativa neutral o declarar que no dispone de base verificable suficiente. Debe preferir razones reversibles y de bajo spoiler, como continuidad de lectura registrada, pertenencia a una serie o disponibilidad en el catálogo, frente a afirmaciones sobre acontecimientos futuros.
+
+La presentación local debe conservar, cuando sea posible, la distinción entre **motivo verificable**, **preferencia editorial** e **incertidumbre**. Ninguna de estas categorías puede rellenarse con detalles inventados.

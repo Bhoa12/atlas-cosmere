@@ -6,27 +6,24 @@ const registry = [
 ];
 
 describe('resolveRegistrySpoilerGate', () => {
-  it('blocks content that references an unknown technical unit', () => {
-    expect(resolveRegistrySpoilerGate(
-      { id: 'content-a', requiredUnitIds: ['unit-missing'], payload: 'x' },
-      ['unit-missing'],
-      registry,
-    )).toEqual({ status: 'blocked', reason: 'unknown_required_unit' });
+  it('blocks an unknown required unit', () => {
+    expect(resolveRegistrySpoilerGate({ id: 'content-a', requiredUnitIds: ['unit-missing'], payload: 'x' }, [], registry))
+      .toEqual({ status: 'blocked', reason: 'unknown_required_unit' });
   });
-
   it('delegates visibility only after registry references are valid', () => {
-    expect(resolveRegistrySpoilerGate(
-      { id: 'content-a', requiredUnitIds: ['unit-a'], payload: 'x' },
-      ['unit-a'],
-      registry,
-    )).toEqual({ status: 'visible', content: 'x' });
+    expect(resolveRegistrySpoilerGate({ id: 'content-a', requiredUnitIds: ['unit-a'], payload: 'x' }, ['unit-a'], registry))
+      .toEqual({ status: 'visible', content: 'x' });
   });
-
   it('fails closed when the registry is malformed', () => {
-    expect(resolveRegistrySpoilerGate(
-      { id: 'content-a', requiredUnitIds: ['unit-a'], payload: 'x' },
-      ['unit-a'],
-      [{ id: 'unit-a' }],
-    )).toEqual({ status: 'blocked', reason: 'invalid_registry' });
+    expect(resolveRegistrySpoilerGate({ id: 'content-a', requiredUnitIds: ['unit-a'], payload: 'x' }, ['unit-a'], [{ id: 'unit-a' }]))
+      .toEqual({ status: 'blocked', reason: 'invalid_registry' });
+  });
+  it('blocks unknown completed units', () => {
+    expect(resolveRegistrySpoilerGate({ id: 'content-a', requiredUnitIds: ['unit-a'], payload: 'x' }, ['unit-a', 'unit-missing'], registry))
+      .toEqual({ status: 'blocked', reason: 'unknown_completed_unit' });
+  });
+  it('blocks duplicate completed units instead of silently deduplicating them', () => {
+    expect(resolveRegistrySpoilerGate({ id: 'content-a', requiredUnitIds: ['unit-a'], payload: 'x' }, ['unit-a', 'unit-a'], registry))
+      .toEqual({ status: 'blocked', reason: 'invalid_completed_units' });
   });
 });

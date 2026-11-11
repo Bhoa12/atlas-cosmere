@@ -17,8 +17,19 @@ describe('reading progress domain', () => {
     expect(getProgressFraction(mixed, { workId: 'work-a', completedUnitIds: ['unit-1', 'unit-x'] })).toBe(0.5);
   });
 
-  it('deduplicates repeated completed identifiers', () => {
-    expect(getProgressFraction(units, { workId: 'work-a', completedUnitIds: ['unit-1', 'unit-1'] })).toBe(0.5);
+  it('fails closed for duplicate completed identifiers', () => {
+    const duplicated = { workId: 'work-a', completedUnitIds: ['unit-1', 'unit-1'] };
+    expect(getCompletedCount(duplicated)).toBe(0);
+    expect(getProgressFraction(units, duplicated)).toBe(0);
+    expect(isUnitCompleted(duplicated, { id: 'unit-1', workId: 'work-a' })).toBe(false);
+  });
+
+  it('fails closed for malformed runtime unit collections', () => {
+    const malformedUnits = [
+      { id: 'unit-1', workId: 'work-a', position: 1 },
+      null,
+    ] as unknown as ReadingUnit[];
+    expect(getProgressFraction(malformedUnits, { workId: 'work-a', completedUnitIds: ['unit-1'] })).toBe(0);
   });
 
   it('handles empty unit collections safely', () => {

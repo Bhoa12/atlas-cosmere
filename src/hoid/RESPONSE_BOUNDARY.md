@@ -10,6 +10,8 @@ This contract is provider-neutral. A provider may choose wording, but it cannot 
 
 - The payload must contain an array of claims.
 - At most `DEFAULT_MAX_PROVIDER_CLAIMS` raw claims are accepted; an oversized array fails closed as a whole.
+- Each claim may contain at most `DEFAULT_MAX_PROVIDER_EVIDENCE_IDS` evidence identifiers.
+- Aggregate validated claim text is bounded by `DEFAULT_MAX_TOTAL_PROVIDER_CLAIM_TEXT_LENGTH`; an overflow fails closed as a whole rather than returning a provider-order-dependent prefix.
 - Every accepted claim has valid bounded provider text.
 - Every accepted claim has at least one evidence identifier.
 - Every evidence identifier must be authorized for the current request.
@@ -48,6 +50,8 @@ Any change to this boundary should preserve tests for:
 - mixed authorized and unauthorized evidence;
 - missing or malformed claims;
 - oversized claim arrays;
+- oversized evidence identifier lists;
+- aggregate claim-text overflow;
 - duplicate claims with reordered evidence;
 - repeated evidence identifiers;
 - canonical evidence ordering;

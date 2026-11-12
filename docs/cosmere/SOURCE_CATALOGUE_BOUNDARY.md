@@ -12,4 +12,4 @@ This module records the bibliography supplied to Atlas del Cosmere as metadata o
 
 The catalogue does **not** infer world membership, chronology, reading order, chapter boundaries, characters, events, or summaries. Those relationships must be added through separately verified metadata.
 
-The Roshar package is represented only by the five principal novels named in the supplied bibliography plus *Danzante del Filo* and *Esquirla del amanecer*. No inaccessible passage is treated as having been read.
+The supplied bibliography confirms that five principal Roshar novels exist in private EPUB sources; this run does not assert their individual titles without a verified title index. The explicitly named Roshar works recorded here are *Danzante del Filo* and *Esquirla del amanecer*. No inaccessible passage is treated as having been read.

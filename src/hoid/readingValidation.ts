@@ -2,6 +2,8 @@ import { ReadingPosition } from "./types";
 
 export const DEFAULT_MAX_READING_POSITIONS = 256;
 export const DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH = 256;
+export const DEFAULT_MAX_READING_POSITION_CHAPTER = 100_000_000;
+export const DEFAULT_MAX_READING_POSITION_ORDER = 1_000_000;
 
 /**
  * Runtime trust boundary for reader progress.
@@ -16,9 +18,6 @@ export const DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH = 256;
  */
 export function validReadingPositions(value: unknown): ReadingPosition[] | null {
   if (!Array.isArray(value)) return null;
-
-  // A partial prefix would make authorization depend on caller ordering.
-  // Oversized progress payloads therefore fail closed as a complete state.
   if (value.length > DEFAULT_MAX_READING_POSITIONS) return null;
 
   const positions: ReadingPosition[] = [];
@@ -28,27 +27,24 @@ export function validReadingPositions(value: unknown): ReadingPosition[] | null 
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
     const candidate = item as Record<string, unknown>;
     const rawBookId = typeof candidate.bookId === "string" ? candidate.bookId : "";
-    // Bound untrusted identifiers before trimming or normalization-like work.
-    // An oversized identifier cannot unlock any knowledge.
     if (rawBookId.length > DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH) continue;
     const bookId = rawBookId.trim();
     if (!bookId) continue;
 
     const chapter = candidate.chapter;
-    const validChapter = typeof chapter === "number" && Number.isFinite(chapter) && chapter >= 0 && Number.isInteger(chapter)
-      ? chapter
-      : undefined;
+    const validChapter = typeof chapter === "number" && Number.isFinite(chapter) && chapter >= 0 &&
+      chapter <= DEFAULT_MAX_READING_POSITION_CHAPTER && Number.isInteger(chapter)
+      ? chapter : undefined;
     const completed = candidate.completed === true;
-
     if (validChapter === undefined && !completed) continue;
 
     if (seenBookIds.has(bookId)) return null;
     seenBookIds.add(bookId);
 
     const order = candidate.order;
-    const validOrder = typeof order === "number" && Number.isFinite(order) && order >= 0 && Number.isInteger(order)
-      ? order
-      : undefined;
+    const validOrder = typeof order === "number" && Number.isFinite(order) && order >= 0 &&
+      order <= DEFAULT_MAX_READING_POSITION_ORDER && Number.isInteger(order)
+      ? order : undefined;
 
     positions.push({
       bookId,
@@ -57,6 +53,5 @@ export function validReadingPositions(value: unknown): ReadingPosition[] | null 
       ...(validOrder === undefined ? {} : { order: validOrder }),
     });
   }
-
   return positions;
 }

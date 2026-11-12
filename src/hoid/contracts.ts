@@ -86,6 +86,9 @@ export interface EditorialRecord {
   provenance: "editorial";
 }
 
+/** Bounds untrusted editorial imports without limiting ordinary source metadata. */
+export const DEFAULT_MAX_EDITORIAL_RECORD_TEXT_LENGTH = 12_000;
+
 export function canonicalEditorialRecord(value: unknown, catalogIds: ReadonlySet<string>): EditorialRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Partial<EditorialRecord>;
@@ -94,21 +97,32 @@ export function canonicalEditorialRecord(value: unknown, catalogIds: ReadonlySet
   const numbers = [record.chapterStart, record.chapterEnd, record.spoilerCeiling];
   if (!numbers.every((n) => typeof n === "number" && Number.isInteger(n) && n >= 0)) return null;
   if ((record.chapterStart as number) > (record.chapterEnd as number) || (record.chapterEnd as number) > (record.spoilerCeiling as number)) return null;
-  if (typeof record.text !== "string" || record.text.trim().length === 0) return null;
+  if (typeof record.text !== "string" || record.text.trim().length === 0 || record.text.length > DEFAULT_MAX_EDITORIAL_RECORD_TEXT_LENGTH) return null;
   if (record.provenance !== "editorial") return null;
   return { id: record.id.trim(), bookId: record.bookId.trim(), chapterStart: record.chapterStart as number, chapterEnd: record.chapterEnd as number, spoilerCeiling: record.spoilerCeiling as number, text: record.text.trim(), provenance: "editorial" };
 }
 
-/** Returns only original editorial records fully within the reader's progress. */
+/**
+ * Returns only original editorial records fully within the reader's progress.
+ *
+ * Duplicate identifiers are fail-closed: if two valid records share an id,
+ * neither is returned. This prevents provider ordering from silently choosing
+ * between conflicting editorial content.
+ */
 export function authorizedEditorialRecords(records: readonly unknown[], progress: unknown, catalog: readonly HoidCatalogEntry[]): EditorialRecord[] {
   const ids = canonicalCatalog(catalog);
   const bound = catalogBoundProgress(progress, ids);
-  const result: EditorialRecord[] = [];
+  const canonical = records.map((raw) => canonicalEditorialRecord(raw, ids));
+  const duplicateIds = new Set<string>();
   const seen = new Set<string>();
-  for (const raw of records) {
-    const record = canonicalEditorialRecord(raw, ids);
-    if (!record || (bound[record.bookId] ?? -1) < record.spoilerCeiling || seen.has(record.id)) continue;
-    seen.add(record.id);
+  for (const record of canonical) {
+    if (!record) continue;
+    if (seen.has(record.id)) duplicateIds.add(record.id);
+    else seen.add(record.id);
+  }
+  const result: EditorialRecord[] = [];
+  for (const record of canonical) {
+    if (!record || duplicateIds.has(record.id) || (bound[record.bookId] ?? -1) < record.spoilerCeiling) continue;
     result.push(record);
   }
   return result;

@@ -29,7 +29,7 @@ A reusable summary or explanation must be represented as an original editorial r
 - provenance pointing to accessible supporting source metadata or verified editorial work;
 - a statement of uncertainty when support is incomplete.
 
-Editorial records are treated as untrusted imports at the boundary: oversized records are rejected, and duplicate record identifiers fail closed rather than letting input order choose which text is presented.
+Editorial records are treated as untrusted imports at the boundary: oversized records and oversized batches are rejected, duplicate record identifiers fail closed rather than letting input order choose which text is presented, and accepted records are returned in a canonical structural order.
 
 The spoiler ceiling is an authorization boundary, not a claim that later material was inspected.
 
@@ -59,4 +59,4 @@ Implementations using this contract should test:
 - a record beyond the reader's progress is excluded;
 - unavailable passages are not represented as consulted;
 - presentation preserves spoiler ceilings;
-- provenance metadata alone is never rendered as copied source text.
+- provenance metadata alone is never rendered as copied source text;\n- oversized editorial batches fail closed instead of returning an input-order-dependent prefix;\n- equivalent valid imports produce the same structural ordering.

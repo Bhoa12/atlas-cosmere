@@ -1,6 +1,7 @@
 import { ReadingPosition } from "./types";
 
 export const DEFAULT_MAX_READING_POSITIONS = 256;
+export const DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH = 256;
 
 /**
  * Runtime trust boundary for reader progress.
@@ -26,7 +27,11 @@ export function validReadingPositions(value: unknown): ReadingPosition[] | null 
   for (const item of value) {
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
     const candidate = item as Record<string, unknown>;
-    const bookId = typeof candidate.bookId === "string" ? candidate.bookId.trim() : "";
+    const rawBookId = typeof candidate.bookId === "string" ? candidate.bookId : "";
+    // Bound untrusted identifiers before trimming or normalization-like work.
+    // An oversized identifier cannot unlock any knowledge.
+    if (rawBookId.length > DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH) continue;
+    const bookId = rawBookId.trim();
     if (!bookId) continue;
 
     const chapter = candidate.chapter;

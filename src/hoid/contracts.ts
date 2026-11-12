@@ -143,8 +143,18 @@ export interface SafeRecommendation {
 export function safeCatalogRecommendation(candidate: unknown, catalog: readonly HoidCatalogEntry[], progress: unknown): SafeRecommendation | null {
   if (typeof candidate !== "string" || candidate.trim().length === 0) return null;
   const id = candidate.trim();
-  const entry = catalog.find((value) => value && typeof value.id === "string" && value.id.trim() === id && typeof value.title === "string" && value.title.trim().length > 0);
-  if (!entry) return null;
+  // Catalog input is an authorization boundary. Multiple entries for the same
+  // identifier are ambiguous because they could carry conflicting metadata.
+  // Fail closed instead of letting array order choose the recommendation.
+  const matches = catalog.filter((value) =>
+    value &&
+    typeof value.id === "string" &&
+    value.id.trim() === id &&
+    typeof value.title === "string" &&
+    value.title.trim().length > 0
+  );
+  if (matches.length !== 1) return null;
+  const entry = matches[0];
   const knownProgress = catalogBoundProgress(progress, canonicalCatalog(catalog));
   return { bookId: id, title: entry.title.trim(), reason: Object.prototype.hasOwnProperty.call(knownProgress, id) ? "recorded-reading-continuity" : "catalog-availability" };
 }

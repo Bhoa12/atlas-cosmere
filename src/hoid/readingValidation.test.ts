@@ -1,4 +1,8 @@
-import { DEFAULT_MAX_READING_POSITIONS, validReadingPositions } from "./readingValidation";
+import {
+  DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH,
+  DEFAULT_MAX_READING_POSITIONS,
+  validReadingPositions,
+} from "./readingValidation";
 
 describe("validReadingPositions", () => {
   it("rejects a non-array reading state", () => {
@@ -11,6 +15,14 @@ describe("validReadingPositions", () => {
       {},
       { bookId: "mistborn", chapter: -1 },
       { bookId: "mistborn", chapter: Number.POSITIVE_INFINITY },
+      { bookId: "mistborn", chapter: 4 },
+    ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
+  });
+
+  it("drops oversized book identifiers before they can authorize progress", () => {
+    const oversizedBookId = "x".repeat(DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH + 1);
+    expect(validReadingPositions([
+      { bookId: oversizedBookId, chapter: 999 },
       { bookId: "mistborn", chapter: 4 },
     ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
   });

@@ -1,5 +1,6 @@
 import type { KnowledgeItem } from "./contracts";
 import {
+  DEFAULT_MAX_PROVIDER_EVIDENCE_ID_LENGTH,
   DEFAULT_MAX_TOTAL_PROVIDER_CLAIM_TEXT_LENGTH,
   filterResponseByAuthorizedKnowledge,
 } from "./responseFilter";
@@ -36,6 +37,13 @@ export function responseFilterInvariants(): void {
     claims: [{ text: "Evidence-heavy synthetic claim.", evidenceIds: oversizedEvidence }],
   }, authorized).claims.length !== 0) {
     throw new Error("Oversized evidence lists must fail closed.");
+  }
+
+  const oversizedEvidenceId = "known".padEnd(DEFAULT_MAX_PROVIDER_EVIDENCE_ID_LENGTH + 1, "x");
+  if (filterResponseByAuthorizedKnowledge({
+    claims: [{ text: "Oversized identifier claim.", evidenceIds: [oversizedEvidenceId] }],
+  }, authorized).claims.length !== 0) {
+    throw new Error("Oversized evidence identifiers must not cross the response boundary.");
   }
 
   const aggregateOverflow = [

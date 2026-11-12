@@ -5,14 +5,8 @@
 
 export type HoidProgress = Record<string, number>;
 
-/**
- * Defensive runtime canonicalization for untrusted reading progress.
- * Invalid positions are discarded rather than coerced upward.
- */
 export function canonicalHoidProgress(progress: unknown): HoidProgress {
   if (!progress || typeof progress !== "object" || Array.isArray(progress)) return {};
-  // Use a null-prototype dictionary: externally supplied book IDs must not
-  // be able to alter object inheritance through keys such as "__proto__".
   const canonical: HoidProgress = Object.create(null) as HoidProgress;
   for (const [bookId, chapter] of Object.entries(progress as Record<string, unknown>)) {
     if (typeof bookId !== "string" || bookId.trim().length === 0) continue;
@@ -23,13 +17,10 @@ export function canonicalHoidProgress(progress: unknown): HoidProgress {
 }
 
 export interface KnowledgeItem {
-  id: string;
-  aliases: string[];
+  id: string; aliases: string[];
   kind: "character" | "place" | "event" | "concept" | "magic" | "organization" | "object";
-  unlock: { bookId: string; chapter: number };
-  summary?: string;
+  unlock: { bookId: string; chapter: number }; summary?: string;
 }
-
 export interface KnowledgeRepository { search(query: string): Promise<KnowledgeItem[]>; }
 export interface HoidProviderRequest { question: string; context: KnowledgeItem[]; progress: HoidProgress; }
 export interface HoidProvider { answer(request: HoidProviderRequest): Promise<string>; }
@@ -57,7 +48,6 @@ export class SpoilerPolicy {
   filter(items: KnowledgeItem[]): KnowledgeItem[] { return items.filter((item) => this.allows(item)); }
 }
 
-/** Retrieval boundary: blocked or malformed knowledge never reaches a provider. */
 export class AuthorizedKnowledgeRetriever {
   constructor(private readonly repository: KnowledgeRepository, private readonly policy: SpoilerPolicy) {}
   async retrieve(query: string): Promise<KnowledgeItem[]> {
@@ -66,63 +56,73 @@ export class AuthorizedKnowledgeRetriever {
   }
 }
 
-/**
- * A reading position is only meaningful when the referenced work is part of
- * the verified catalog. Unknown works fail closed instead of unlocking data.
- */
-export interface HoidCatalogEntry {
-  id: string;
-  title: string;
-}
+export interface HoidCatalogEntry { id: string; title: string; }
 
 export function canonicalCatalog(entries: readonly HoidCatalogEntry[]): ReadonlySet<string> {
   const ids = new Set<string>();
-  for (const entry of entries) {
-    if (entry && typeof entry.id === "string" && entry.id.trim().length > 0) ids.add(entry.id.trim());
-  }
+  for (const entry of entries) if (entry && typeof entry.id === "string" && entry.id.trim().length > 0) ids.add(entry.id.trim());
   return ids;
 }
 
 export function catalogBoundProgress(progress: unknown, catalogIds: ReadonlySet<string>): HoidProgress {
   const canonical = canonicalHoidProgress(progress);
   const bound: HoidProgress = Object.create(null) as HoidProgress;
-  for (const [bookId, chapter] of Object.entries(canonical)) {
-    if (catalogIds.has(bookId)) bound[bookId] = chapter;
-  }
+  for (const [bookId, chapter] of Object.entries(canonical)) if (catalogIds.has(bookId)) bound[bookId] = chapter;
   return bound;
 }
 
 /**
- * Minimal, non-narrative recommendation contract.
- *
- * A recommendation is intentionally restricted to catalog metadata. Callers
- * may add editorial preferences in a separate layer, but this boundary never
- * manufactures a plot-based reason from an unavailable passage.
+ * Original editorial knowledge is a separate boundary from raw source access.
+ * The scope is always a single work and the spoiler ceiling is checked against
+ * the reader's validated position before the record can be presented.
  */
-export interface SafeRecommendation {
+export interface EditorialRecord {
+  id: string;
   bookId: string;
-  title: string;
-  reason: "catalog-availability" | "recorded-reading-continuity";
+  chapterStart: number;
+  chapterEnd: number;
+  spoilerCeiling: number;
+  text: string;
+  provenance: "editorial";
 }
 
-export function safeCatalogRecommendation(
-  candidate: unknown,
-  catalog: readonly HoidCatalogEntry[],
-  progress: unknown,
-): SafeRecommendation | null {
+export function canonicalEditorialRecord(value: unknown, catalogIds: ReadonlySet<string>): EditorialRecord | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Partial<EditorialRecord>;
+  if (typeof record.id !== "string" || record.id.trim().length === 0) return null;
+  if (typeof record.bookId !== "string" || !catalogIds.has(record.bookId.trim())) return null;
+  const numbers = [record.chapterStart, record.chapterEnd, record.spoilerCeiling];
+  if (!numbers.every((n) => typeof n === "number" && Number.isInteger(n) && n >= 0)) return null;
+  if ((record.chapterStart as number) > (record.chapterEnd as number) || (record.chapterEnd as number) > (record.spoilerCeiling as number)) return null;
+  if (typeof record.text !== "string" || record.text.trim().length === 0) return null;
+  if (record.provenance !== "editorial") return null;
+  return { id: record.id.trim(), bookId: record.bookId.trim(), chapterStart: record.chapterStart as number, chapterEnd: record.chapterEnd as number, spoilerCeiling: record.spoilerCeiling as number, text: record.text.trim(), provenance: "editorial" };
+}
+
+/** Returns only original editorial records fully within the reader's progress. */
+export function authorizedEditorialRecords(records: readonly unknown[], progress: unknown, catalog: readonly HoidCatalogEntry[]): EditorialRecord[] {
+  const ids = canonicalCatalog(catalog);
+  const bound = catalogBoundProgress(progress, ids);
+  const result: EditorialRecord[] = [];
+  const seen = new Set<string>();
+  for (const raw of records) {
+    const record = canonicalEditorialRecord(raw, ids);
+    if (!record || (bound[record.bookId] ?? -1) < record.spoilerCeiling || seen.has(record.id)) continue;
+    seen.add(record.id);
+    result.push(record);
+  }
+  return result;
+}
+
+export interface SafeRecommendation {
+  bookId: string; title: string;
+  reason: "catalog-availability" | "recorded-reading-continuity";
+}
+export function safeCatalogRecommendation(candidate: unknown, catalog: readonly HoidCatalogEntry[], progress: unknown): SafeRecommendation | null {
   if (typeof candidate !== "string" || candidate.trim().length === 0) return null;
   const id = candidate.trim();
-  const entry = catalog.find((value) => value && typeof value.id === "string" && value.id.trim() === id
-    && typeof value.title === "string" && value.title.trim().length > 0);
+  const entry = catalog.find((value) => value && typeof value.id === "string" && value.id.trim() === id && typeof value.title === "string" && value.title.trim().length > 0);
   if (!entry) return null;
-
-  const catalogIds = canonicalCatalog(catalog);
-  const knownProgress = catalogBoundProgress(progress, catalogIds);
-  return {
-    bookId: id,
-    title: entry.title.trim(),
-    reason: Object.prototype.hasOwnProperty.call(knownProgress, id)
-      ? "recorded-reading-continuity"
-      : "catalog-availability",
-  };
+  const knownProgress = catalogBoundProgress(progress, canonicalCatalog(catalog));
+  return { bookId: id, title: entry.title.trim(), reason: Object.prototype.hasOwnProperty.call(knownProgress, id) ? "recorded-reading-continuity" : "catalog-availability" };
 }

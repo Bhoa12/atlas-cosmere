@@ -16,6 +16,8 @@ export interface HoidClaim {
 export const DEFAULT_MAX_PROVIDER_CLAIMS = 128;
 /** Maximum evidence identifiers accepted for one untrusted claim. */
 export const DEFAULT_MAX_PROVIDER_EVIDENCE_IDS = 32;
+/** Maximum length of one evidence identifier accepted from a provider. */
+export const DEFAULT_MAX_PROVIDER_EVIDENCE_ID_LENGTH = 256;
 /**
  * Maximum aggregate text accepted across all claims in one provider response.
  *
@@ -55,7 +57,14 @@ export function filterClaimsByAuthorizedIds(
     if (text === null) continue;
     if (!Array.isArray(claim.evidenceIds) || claim.evidenceIds.length === 0 || claim.evidenceIds.length > DEFAULT_MAX_PROVIDER_EVIDENCE_IDS) continue;
 
-    if (!claim.evidenceIds.every((id) => typeof id === "string" && authorizedIds.has(id))) continue;
+    // Bound raw identifiers before membership checks so a provider cannot force
+    // repeated lookups over arbitrarily large strings.
+    if (!claim.evidenceIds.every((id) =>
+      typeof id === "string" &&
+      id.length > 0 &&
+      id.length <= DEFAULT_MAX_PROVIDER_EVIDENCE_ID_LENGTH &&
+      authorizedIds.has(id)
+    )) continue;
 
     // Canonicalize evidence before returning it. This makes equivalent provider
     // payloads deterministic and keeps downstream consumers from depending on

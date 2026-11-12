@@ -17,4 +17,20 @@ describe("editorial provenance boundary", () => {
     expect(authorizedEditorialRecords([record], { "mistborn-1": 2 }, catalog)).toEqual([]);
     expect(authorizedEditorialRecords([record, record], { "mistborn-1": 3 }, catalog)).toEqual([]);
   });
+
+  it("rejects malformed import containers without throwing", () => {
+    const valid = { id: "safe-2", bookId: "mistborn-1", chapterStart: 1, chapterEnd: 1, spoilerCeiling: 1, text: "Original editorial summary", provenance: "editorial" };
+    expect(authorizedEditorialRecords(null as unknown as readonly unknown[], { "mistborn-1": 1 }, catalog)).toEqual([]);
+    expect(authorizedEditorialRecords({ 0: valid, length: 1 } as unknown as readonly unknown[], { "mistborn-1": 1 }, catalog)).toEqual([]);
+  });
+
+  it("returns an empty result for non-array catalogs", () => {
+    const record = { id: "safe-3", bookId: "mistborn-1", chapterStart: 1, chapterEnd: 1, spoilerCeiling: 1, text: "Original editorial summary", provenance: "editorial" };
+    expect(authorizedEditorialRecords([record], { "mistborn-1": 1 }, null as unknown as typeof catalog)).toEqual([]);
+  });
+
+  it("still accepts a valid bounded import", () => {
+    const record = { id: "safe-4", bookId: "mistborn-1", chapterStart: 1, chapterEnd: 1, spoilerCeiling: 1, text: "Original editorial summary", provenance: "editorial" };
+    expect(authorizedEditorialRecords([record], { "mistborn-1": 1 }, catalog).map((item) => item.id)).toEqual(["safe-4"]);
+  });
 });

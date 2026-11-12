@@ -83,3 +83,10 @@ Una recomendación debe tratarse como una decisión de navegación, no como una 
 Cuando no pueda justificar una recomendación sin depender de conocimiento narrativo bloqueado, debe ofrecer una alternativa neutral o declarar que no dispone de base verificable suficiente. Debe preferir razones reversibles y de bajo spoiler, como continuidad de lectura registrada, pertenencia a una serie o disponibilidad en el catálogo, frente a afirmaciones sobre acontecimientos futuros.
 
 La presentación local debe conservar, cuando sea posible, la distinción entre **motivo verificable**, **preferencia editorial** e **incertidumbre**. Ninguna de estas categorías puede rellenarse con detalles inventados.
+
+
+## Ambigüedad del catálogo
+
+El catálogo también es una frontera de autorización. Una recomendación estructural solo puede emitirse cuando el identificador candidato corresponde a **una única entrada válida**. Si varias entradas válidas comparten el mismo identificador, Hoid IA no elige según el orden de importación: rechaza la recomendación.
+
+Esto evita que metadatos conflictivos modifiquen de forma silenciosa el título o la justificación mostrada al lector. La deduplicación debe resolverse antes de esta frontera, mediante una fuente de catálogo verificable.

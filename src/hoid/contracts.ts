@@ -88,6 +88,8 @@ export interface EditorialRecord {
 
 /** Bounds untrusted editorial imports without limiting ordinary source metadata. */
 export const DEFAULT_MAX_EDITORIAL_RECORD_TEXT_LENGTH = 12_000;
+/** Maximum number of raw editorial records accepted in one import. */
+export const DEFAULT_MAX_EDITORIAL_RECORDS = 256;
 
 export function canonicalEditorialRecord(value: unknown, catalogIds: ReadonlySet<string>): EditorialRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -110,6 +112,9 @@ export function canonicalEditorialRecord(value: unknown, catalogIds: ReadonlySet
  * between conflicting editorial content.
  */
 export function authorizedEditorialRecords(records: readonly unknown[], progress: unknown, catalog: readonly HoidCatalogEntry[]): EditorialRecord[] {
+  // Imports are an untrusted boundary. Oversized batches fail closed instead of
+  // truncating to an input-order-dependent prefix.
+  if (records.length > DEFAULT_MAX_EDITORIAL_RECORDS) return [];
   const ids = canonicalCatalog(catalog);
   const bound = catalogBoundProgress(progress, ids);
   const canonical = records.map((raw) => canonicalEditorialRecord(raw, ids));
@@ -125,7 +130,8 @@ export function authorizedEditorialRecords(records: readonly unknown[], progress
     if (!record || duplicateIds.has(record.id) || (bound[record.bookId] ?? -1) < record.spoilerCeiling) continue;
     result.push(record);
   }
-  return result;
+  // Canonical order prevents import ordering from changing the context or UI.
+  return result.sort((a, b) => a.bookId.localeCompare(b.bookId) || a.chapterStart - b.chapterStart || a.chapterEnd - b.chapterEnd || a.id.localeCompare(b.id));
 }
 
 export interface SafeRecommendation {

@@ -5,6 +5,22 @@
 
 export type HoidProgress = Record<string, number>;
 
+/** Maximum sizes accepted at provider/repository boundaries. */
+export const DEFAULT_MAX_HOID_RETRIEVAL_RESULTS = 128;
+export const DEFAULT_MAX_HOID_CONTEXT_ITEMS = 64;
+
+function uniqueKnowledgeItems(items: readonly KnowledgeItem[]): KnowledgeItem[] {
+  const seen = new Set<string>();
+  const result: KnowledgeItem[] = [];
+  for (const item of items) {
+    const canonical = canonicalKnowledgeItem(item);
+    if (!canonical || seen.has(canonical.id)) continue;
+    seen.add(canonical.id);
+    result.push(canonical);
+  }
+  return result;
+}
+
 export function canonicalHoidProgress(progress: unknown): HoidProgress {
   if (!progress || typeof progress !== "object" || Array.isArray(progress)) return {};
   const canonical: HoidProgress = Object.create(null) as HoidProgress;
@@ -52,7 +68,11 @@ export class AuthorizedKnowledgeRetriever {
   constructor(private readonly repository: KnowledgeRepository, private readonly policy: SpoilerPolicy) {}
   async retrieve(query: string): Promise<KnowledgeItem[]> {
     const raw = await this.repository.search(query);
-    return raw.map(canonicalKnowledgeItem).filter((item): item is KnowledgeItem => item !== null).filter((item) => this.policy.allows(item));
+    // Repository output is untrusted: reject malformed or oversized containers
+    // instead of truncating an input-order-dependent prefix.
+    if (!Array.isArray(raw) || raw.length > DEFAULT_MAX_HOID_RETRIEVAL_RESULTS) return [];
+    const authorized = raw.map(canonicalKnowledgeItem).filter((item): item is KnowledgeItem => item !== null).filter((item) => this.policy.allows(item));
+    return uniqueKnowledgeItems(authorized).slice(0, DEFAULT_MAX_HOID_CONTEXT_ITEMS);
   }
 }
 

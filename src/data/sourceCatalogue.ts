@@ -22,10 +22,9 @@ const cosmereTitles = [
   "El Hombre Iluminado","Islas de la ascuaoscura","Arcanum ilimitado"
 ] as const;
 
-const rosharTitles = [
-  "El Camino de los Reyes","Palabras Radiantes","Juramentada","El Ritmo de la Guerra",
-  "Viento y Verdad","Danzante del Filo","Esquirla del amanecer"
-] as const;
+// The five principal Roshar EPUBs are known to exist, but their titles are not
+// asserted here because this run has no verified title index for those files.
+const rosharTitles = ["Danzante del Filo", "Esquirla del amanecer"] as const;
 
 function slug(title: string): string {
   return title.normalize("NFD").replace(/[\u0300-\u036f]/g, "")

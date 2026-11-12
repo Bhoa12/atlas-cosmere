@@ -29,6 +29,8 @@ A reusable summary or explanation must be represented as an original editorial r
 - provenance pointing to accessible supporting source metadata or verified editorial work;
 - a statement of uncertainty when support is incomplete.
 
+Editorial records are treated as untrusted imports at the boundary: oversized records are rejected, and duplicate record identifiers fail closed rather than letting input order choose which text is presented.
+
 The spoiler ceiling is an authorization boundary, not a claim that later material was inspected.
 
 ## Access and uncertainty

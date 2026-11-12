@@ -60,6 +60,7 @@ export interface HoidCatalogEntry { id: string; title: string; }
 
 export function canonicalCatalog(entries: readonly HoidCatalogEntry[]): ReadonlySet<string> {
   const ids = new Set<string>();
+  if (!Array.isArray(entries)) return ids;
   for (const entry of entries) if (entry && typeof entry.id === "string" && entry.id.trim().length > 0) ids.add(entry.id.trim());
   return ids;
 }
@@ -112,6 +113,7 @@ export function canonicalEditorialRecord(value: unknown, catalogIds: ReadonlySet
  * between conflicting editorial content.
  */
 export function authorizedEditorialRecords(records: readonly unknown[], progress: unknown, catalog: readonly HoidCatalogEntry[]): EditorialRecord[] {
+  if (!Array.isArray(records)) return [];
   // Imports are an untrusted boundary. Oversized batches fail closed instead of
   // truncating to an input-order-dependent prefix.
   if (records.length > DEFAULT_MAX_EDITORIAL_RECORDS) return [];

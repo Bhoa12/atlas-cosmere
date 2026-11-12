@@ -1,5 +1,7 @@
 import {
   DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH,
+  DEFAULT_MAX_READING_POSITION_CHAPTER,
+  DEFAULT_MAX_READING_POSITION_ORDER,
   DEFAULT_MAX_READING_POSITIONS,
   validReadingPositions,
 } from "./readingValidation";
@@ -24,6 +26,19 @@ describe("validReadingPositions", () => {
     expect(validReadingPositions([
       { bookId: oversizedBookId, chapter: 999 },
       { bookId: "mistborn", chapter: 4 },
+    ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
+  });
+
+  it("drops oversized chapter values instead of turning arbitrary numbers into spoiler authorization", () => {
+    expect(validReadingPositions([
+      { bookId: "mistborn", chapter: DEFAULT_MAX_READING_POSITION_CHAPTER + 1 },
+      { bookId: "roshar", chapter: 4 },
+    ])).toEqual([{ bookId: "roshar", chapter: 4 }]);
+  });
+
+  it("drops oversized ordering metadata", () => {
+    expect(validReadingPositions([
+      { bookId: "mistborn", chapter: 4, order: DEFAULT_MAX_READING_POSITION_ORDER + 1 },
     ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
   });
 

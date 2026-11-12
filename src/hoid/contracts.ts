@@ -9,6 +9,15 @@ export type HoidProgress = Record<string, number>;
 export const DEFAULT_MAX_HOID_RETRIEVAL_RESULTS = 128;
 export const DEFAULT_MAX_HOID_CONTEXT_ITEMS = 64;
 
+/**
+ * Progress is an authorization input. Keep its primitive fields bounded even
+ * when this lower-level contract is used without the UI-facing validator.
+ * These limits are deliberately generous and reject uncertainty rather than
+ * silently turning an extreme value into access to later chapters.
+ */
+export const DEFAULT_MAX_HOID_PROGRESS_BOOK_ID_LENGTH = 256;
+export const DEFAULT_MAX_HOID_PROGRESS_CHAPTER = 100_000_000;
+
 function uniqueKnowledgeItems(items: readonly KnowledgeItem[]): KnowledgeItem[] {
   const seen = new Set<string>();
   const result: KnowledgeItem[] = [];
@@ -25,9 +34,11 @@ export function canonicalHoidProgress(progress: unknown): HoidProgress {
   if (!progress || typeof progress !== "object" || Array.isArray(progress)) return {};
   const canonical: HoidProgress = Object.create(null) as HoidProgress;
   for (const [bookId, chapter] of Object.entries(progress as Record<string, unknown>)) {
-    if (typeof bookId !== "string" || bookId.trim().length === 0) continue;
-    if (typeof chapter !== "number" || !Number.isFinite(chapter) || !Number.isInteger(chapter) || chapter < 0) continue;
-    canonical[bookId] = chapter;
+    if (typeof bookId !== "string") continue;
+    const normalizedBookId = bookId.trim();
+    if (normalizedBookId.length === 0 || normalizedBookId.length > DEFAULT_MAX_HOID_PROGRESS_BOOK_ID_LENGTH) continue;
+    if (typeof chapter !== "number" || !Number.isFinite(chapter) || !Number.isInteger(chapter) || chapter < 0 || chapter > DEFAULT_MAX_HOID_PROGRESS_CHAPTER) continue;
+    canonical[normalizedBookId] = chapter;
   }
   return canonical;
 }

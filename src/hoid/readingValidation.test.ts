@@ -1,4 +1,4 @@
-import { validReadingPositions } from "./readingValidation";
+import { DEFAULT_MAX_READING_POSITIONS, validReadingPositions } from "./readingValidation";
 
 describe("validReadingPositions", () => {
   it("rejects a non-array reading state", () => {
@@ -34,5 +34,13 @@ describe("validReadingPositions", () => {
       { bookId: "roshar", chapter: 10 },
       { bookId: "roshar", completed: true },
     ])).toBeNull();
+  });
+
+  it("fails closed on oversized progress payloads instead of truncating by input order", () => {
+    const payload = Array.from({ length: DEFAULT_MAX_READING_POSITIONS + 1 }, (_, index) => ({
+      bookId: `book-${index}`,
+      chapter: 1,
+    }));
+    expect(validReadingPositions(payload)).toBeNull();
   });
 });

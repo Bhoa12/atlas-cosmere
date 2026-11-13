@@ -90,3 +90,33 @@ export function verifyHoidResponse(
     acceptedEvidenceIds: [...evidence].sort(),
   };
 }
+
+
+/**
+ * Builds the evidence allow-list directly from editorial records using the
+ * same catalog and progress authorization boundary. This avoids a common
+ * integration mistake: treating a repository-wide set of record identifiers
+ * as if all of them were safe for the current reader.
+ */
+export function authorizedEditorialEvidenceIds(
+  records: readonly unknown[],
+  progress: unknown,
+  catalog: readonly import("./contracts").HoidCatalogEntry[]
+): ReadonlySet<string> {
+  const { authorizedEditorialRecords } = require("./contracts") as typeof import("./contracts");
+  return new Set(authorizedEditorialRecords(records, progress, catalog).map((record) => record.id));
+}
+
+/**
+ * Convenience boundary for integrations that hold editorial records rather
+ * than a precomputed evidence set. Authorization is recomputed locally from
+ * the current progress before any provider claim is accepted.
+ */
+export function verifyHoidResponseWithEditorialRecords(
+  proposal: unknown,
+  records: readonly unknown[],
+  progress: unknown,
+  catalog: readonly import("./contracts").HoidCatalogEntry[]
+): SafeResponse {
+  return verifyHoidResponse(proposal, authorizedEditorialEvidenceIds(records, progress, catalog));
+}

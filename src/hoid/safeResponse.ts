@@ -1,3 +1,5 @@
+import { authorizedEditorialRecords, type HoidCatalogEntry } from "./contracts";
+
 /**
  * Provider output is untrusted. This boundary accepts only structured claims
  * that cite already-authorized editorial record identifiers.
@@ -101,9 +103,8 @@ export function verifyHoidResponse(
 export function authorizedEditorialEvidenceIds(
   records: readonly unknown[],
   progress: unknown,
-  catalog: readonly import("./contracts").HoidCatalogEntry[]
+  catalog: readonly HoidCatalogEntry[]
 ): ReadonlySet<string> {
-  const { authorizedEditorialRecords } = require("./contracts") as typeof import("./contracts");
   return new Set(authorizedEditorialRecords(records, progress, catalog).map((record) => record.id));
 }
 
@@ -116,7 +117,7 @@ export function verifyHoidResponseWithEditorialRecords(
   proposal: unknown,
   records: readonly unknown[],
   progress: unknown,
-  catalog: readonly import("./contracts").HoidCatalogEntry[]
+  catalog: readonly HoidCatalogEntry[]
 ): SafeResponse {
   return verifyHoidResponse(proposal, authorizedEditorialEvidenceIds(records, progress, catalog));
 }

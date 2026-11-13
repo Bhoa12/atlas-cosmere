@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MAX_RESPONSE_CLAIMS,
   verifyHoidResponse,
+  verifyHoidResponseWithEditorialRecords,
 } from "./safeResponse";
 
 describe("verifyHoidResponse", () => {
@@ -48,5 +49,27 @@ describe("verifyHoidResponse", () => {
 
     expect(result.status).toBe("abstain");
     expect(result.text).toBe("");
+  });
+});
+
+
+describe("editorial evidence integration", () => {
+  const catalog = [{ id: "book-a", title: "Obra A" }, { id: "book-b", title: "Obra B" }];
+  const records = [
+    { id: "a:1", bookId: "book-a", chapterStart: 1, chapterEnd: 1, spoilerCeiling: 1, text: "Resumen original.", provenance: "editorial" as const },
+    { id: "b:2", bookId: "book-b", chapterStart: 2, chapterEnd: 2, spoilerCeiling: 2, text: "Resumen original.", provenance: "editorial" as const },
+  ];
+
+  it("derives evidence from the reader's current progress instead of trusting a global id set", () => {
+    const result = verifyHoidResponseWithEditorialRecords({
+      claims: [
+        { text: "Dato autorizado.", evidenceIds: ["a:1"] },
+        { text: "Dato futuro.", evidenceIds: ["b:2"] },
+      ],
+    }, records, { "book-a": 1, "book-b": 1 }, catalog);
+
+    expect(result.status).toBe("limited");
+    expect(result.text).toBe("Dato autorizado.");
+    expect(result.acceptedEvidenceIds).toEqual(["a:1"]);
   });
 });

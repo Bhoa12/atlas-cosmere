@@ -1,9 +1,9 @@
 /**
  * Hoid IA: immutable request knowledge boundary.
  *
- * This module contains no narrative text. It turns the evidence identifiers
- * already approved for one request into an immutable capability set.
- * Providers receive the resulting set but cannot mint new capabilities.
+ * This module contains no narrative text. It turns evidence identifiers already
+ * approved for one request into an immutable capability snapshot.
+ * Providers receive identifiers but cannot mint new capabilities.
  */
 
 export type EvidenceId = string;
@@ -15,7 +15,11 @@ export interface AuthorizedEvidence {
 }
 
 export interface KnowledgeBoundary {
-  readonly evidenceIds: ReadonlySet<EvidenceId>;
+  /**
+   * Frozen snapshot for inspection. It is an array rather than a Set so callers
+   * cannot mutate the internal membership structure at runtime.
+   */
+  readonly evidenceIds: readonly EvidenceId[];
   allows(id: EvidenceId): boolean;
 }
 
@@ -32,11 +36,11 @@ export function createKnowledgeBoundary(
     ids.add(item.id);
   }
 
-  const snapshot = new Set(ids);
+  const snapshot = Object.freeze([...ids]);
   return Object.freeze({
     evidenceIds: snapshot,
     allows(id: EvidenceId): boolean {
-      return snapshot.has(id);
+      return ids.has(id);
     },
   });
 }

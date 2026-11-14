@@ -1,38 +1,8 @@
 import { verifyEvidenceProvenance } from "./evidenceProvenance";
-
-function expect(condition: unknown, message: string): void {
-  if (!condition) throw new Error(message);
-}
-
-const valid = verifyEvidenceProvenance({
-  evidenceId: "mistborn-1-c1",
-  sourceId: "private-catalog",
-  workId: "el-imperio-final",
-  chapter: 1,
-  accessible: true,
-  summary: "Resumen original de una escena ya accesible.",
-  summaryOrigin: "original",
-});
-expect(valid.ok, "La evidencia accesible con resumen original debe aceptarse.");
-
-const inaccessible = verifyEvidenceProvenance({
-  evidenceId: "future",
-  sourceId: "private-catalog",
-  workId: "el-imperio-final",
-  chapter: 2,
-  accessible: false,
-  summary: "No debe utilizarse solo por estar catalogada.",
-  summaryOrigin: "original",
-});
-expect(!inaccessible.ok && inaccessible.reason === "inaccessible_source", "Una fuente inaccesible debe fallar cerrada.");
-
-const nonOriginal = verifyEvidenceProvenance({
-  evidenceId: "bad-origin",
-  sourceId: "private-catalog",
-  workId: "el-imperio-final",
-  chapter: 1,
-  accessible: true,
-  summary: "Contenido no permitido.",
-  summaryOrigin: "original" as "original",
-});
-expect(nonOriginal.ok, "El contrato solo admite el origen original como tipo válido.");
+const expect=(v:unknown,m:string)=>{if(!v) throw new Error(m);};
+const good=verifyEvidenceProvenance({evidenceId:"a",sourceId:"catalog",workId:"book",chapter:1,accessible:true,summary:"Resumen original.",summaryOrigin:"original"});
+expect(good.ok,"Debe aceptar evidencia accesible y original.");
+const blocked=verifyEvidenceProvenance({evidenceId:"b",sourceId:"catalog",workId:"book",chapter:2,accessible:false,summary:"No accesible.",summaryOrigin:"original"});
+expect(!blocked.ok && blocked.reason==="inaccessible_source","Debe rechazar fuentes inaccesibles.");
+const copied=verifyEvidenceProvenance({evidenceId:"c",sourceId:"catalog",workId:"book",chapter:1,accessible:true,summary:"Texto no permitido.",summaryOrigin:"protected_copy"});
+expect(!copied.ok && copied.reason==="non_original_summary","Debe rechazar copias protegidas.");

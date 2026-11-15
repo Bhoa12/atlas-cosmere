@@ -1,4 +1,4 @@
-import { Abstention, abstain } from "./abstention";
+import { HoidAbstention, abstain } from "./abstention";
 
 export type SafeAnswer = {
   kind: "answer";
@@ -8,7 +8,7 @@ export type SafeAnswer = {
   maxChapter: number;
 };
 
-export type SafeResponse = SafeAnswer | Abstention;
+export type SafeResponse = SafeAnswer | HoidAbstention;
 
 /**
  * Final response boundary. Narrative output is accepted only when it stays
@@ -20,11 +20,11 @@ export function finalizeAnswer(candidate: SafeAnswer): SafeResponse {
   const evidenceIds = [...new Set(candidate.evidenceIds.filter(Boolean))];
 
   if (!candidate.bookId.trim() || !Number.isInteger(candidate.maxChapter) || candidate.maxChapter < 1) {
-    return abstain("invalid_scope");
+    return abstain("invalid-request");
   }
 
   if (!text || evidenceIds.length === 0) {
-    return abstain("unverifiable_answer");
+    return abstain("unverifiable-response");
   }
 
   return { ...candidate, text, evidenceIds };

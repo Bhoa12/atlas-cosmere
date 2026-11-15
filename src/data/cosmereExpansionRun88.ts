@@ -87,9 +87,18 @@ export function evaluateSpoilerGate(
   completedUnitIds: string[],
   units: ReadingUnit[],
 ): { visible: boolean; pending: string[] } {
-  const validation = validateExpansion([], [], [{ id: gate.workId, title: "", sourceId: "" }], [], units, [gate]);
-  if (!validation.valid) return { visible: false, pending: [...gate.requiredUnitIds] };
+  const requirements = gate.requiredUnitIds;
+  const unique = new Set(requirements);
+  const validRequirements =
+    requirements.length > 0 &&
+    unique.size === requirements.length &&
+    requirements.every((id) => {
+      const unit = units.find((candidate) => candidate.id === id);
+      return unit?.workId === gate.workId;
+    });
+
+  if (!validRequirements) return { visible: false, pending: [...requirements] };
   const completed = new Set(completedUnitIds);
-  const pending = gate.requiredUnitIds.filter((id) => !completed.has(id));
+  const pending = requirements.filter((id) => !completed.has(id));
   return { visible: pending.length === 0, pending };
 }

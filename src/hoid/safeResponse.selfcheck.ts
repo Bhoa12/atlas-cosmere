@@ -21,7 +21,7 @@ const missingEvidence = finalizeAnswer({
   bookId: "el-imperio-final",
   maxChapter: 12,
 });
-assert(missingEvidence.kind === "abstention", "Sin procedencia debe haber abstención.");
+assert(missingEvidence.kind === "abstain", "Sin procedencia debe haber abstención.");
 
 const invalidScope = finalizeAnswer({
   kind: "answer",
@@ -30,4 +30,4 @@ const invalidScope = finalizeAnswer({
   bookId: "",
   maxChapter: 0,
 });
-assert(invalidScope.kind === "abstention", "Un alcance inválido debe bloquearse.");
+assert(invalidScope.kind === "abstain", "Un alcance inválido debe bloquearse.");

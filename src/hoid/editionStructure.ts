@@ -231,5 +231,5 @@ export function getHoidEditionProgressPolicy(bookId: string): HoidEditionProgres
     }
   }
 
-  return Object.freeze({ kind: "unknown" });
+  return Object.freeze({ kind: "unknown" as const });
 }

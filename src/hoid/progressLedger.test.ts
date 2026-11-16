@@ -359,4 +359,36 @@ describe("Hoid progress ledger", () => {
     });
   });
 
+
+  it("rejects explicitly present but undefined update flags and conflicting fields", async () => {
+    const ledger = new HoidProgressLedger(new MemoryProgressStore(), fixedClock);
+
+    const completionWithUndefinedChapter = {
+      expectedRevision: 0,
+      bookId: "tfe",
+      complete: true,
+      confirmCompletion: true,
+      chapter: undefined,
+    };
+    const chapterWithUndefinedCompletion = {
+      expectedRevision: 0,
+      bookId: "tfe",
+      chapter: 1,
+      complete: undefined,
+    };
+    const undefinedConfirmation = {
+      expectedRevision: 0,
+      bookId: "tfe",
+      complete: true,
+      confirmCompletion: undefined,
+    };
+
+    expect(await ledger.update(completionWithUndefinedChapter))
+      .toEqual({ status: "rejected", reason: "invalid-update" });
+    expect(await ledger.update(chapterWithUndefinedCompletion))
+      .toEqual({ status: "rejected", reason: "invalid-update" });
+    expect(await ledger.update(undefinedConfirmation))
+      .toEqual({ status: "rejected", reason: "invalid-update" });
+  });
+
 });

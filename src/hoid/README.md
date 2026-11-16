@@ -172,3 +172,12 @@ The coordinator treats a reader's completion toggle as an explicit action. Reope
 The ambiguous prefixes remain conservative: Elantris exposes only chapters 1–47, and Viento y verdad only 1–11. Arena blanca and Arcanum remain unavailable for partial numeric cursors until their internal structures are inspected and segmented. `readingCursorAdapter.ts` provides a parallel projection from Atlas progress.
 
 This is a v2 contract alongside the existing chapter-based ledger. The persisted schema and EvidenceRuntime have not yet migrated; the legacy contract remains authoritative until an explicit, tested schema migration is implemented. See `docs/hoid/READING_MANIFESTS.md`.
+
+
+## Cursor-native progress snapshot v2
+
+`cursorProgressLedger.ts` defines a v2 snapshot with edition-bound cursors for partial progress and explicit reader-declared completion states. `validateHoidCursorProgressSnapshot()` validates each cursor against its current manifest, rejects duplicate work positions and preserves the distinction between partial progress and completion.
+
+`migrateHoidProgressV1ToV2()` is a pure, non-destructive migration preparation. It first validates the complete v1 snapshot with the legacy ledger, converts every partial position to an exact manifest cursor, preserves completion, revision, timestamp and editorial order, and rejects the entire migration if any position cannot be mapped unambiguously. It never silently drops a work and never writes to SQLite.
+
+**The v2 snapshot is not yet the production persistence format.** SQLite, the Atlas coordinator and EvidenceRuntime still use v1. Before cutover, implement a transactional v2 adapter, an atomic migration marker, deterministic dual-read, source-revision compare-and-swap and rollback/recovery tests. See `docs/hoid/CURSOR_PROGRESS_MIGRATION.md`.

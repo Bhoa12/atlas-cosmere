@@ -34,7 +34,6 @@ type LedgerRow = Readonly<{
   payload: string;
 }>;
 
-const TABLE_NAME = "hoid_progress_ledger";
 const CREATE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS hoid_progress_ledger (
     id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),

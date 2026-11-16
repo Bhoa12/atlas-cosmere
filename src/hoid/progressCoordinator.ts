@@ -205,6 +205,10 @@ export class HoidProgressCoordinator {
       return Object.freeze({ status: "conflict", snapshot: latest.snapshot });
     }
 
-    return Object.freeze({ status: "rejected", reason: result.reason });
+    if (result.status === "rejected") {
+      return Object.freeze({ status: "rejected", reason: result.reason });
+    }
+
+    return Object.freeze({ status: "unavailable", reason: "storage-error" });
   }
 }

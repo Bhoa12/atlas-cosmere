@@ -257,7 +257,7 @@ function main(): void {
   assert(invalidCatalog.kind === "abstain" && invalidCatalog.reason === "invalid-catalog",
     "un catálogo vacío debe rechazarse");
 
-  console.log("Hoid knowledge graph selfcheck: 16 assertions passed.");
+  console.log("Hoid knowledge graph selfcheck: 20 assertions passed.");
 }
 
 main();

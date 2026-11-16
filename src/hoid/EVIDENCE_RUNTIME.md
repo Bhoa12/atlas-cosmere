@@ -22,13 +22,19 @@ Every claim must contain:
 - one or more evidence IDs;
 - an approval record with `status=approved`, `origin=original-editorial`, reviewer ID and review timestamp.
 
-Every evidence ID must resolve to a valid Hoid knowledge entry. That entry must have a known bibliography source, a book/chapter first-safe appearance, verified provenance and an original summary before it can be retrieved.
+Every evidence ID must resolve to a valid Hoid knowledge entry. That entry must have:
+- a known bibliography source and a stable metadata-only chapter locator;
+- a book/chapter first-safe appearance for entity-mention protection;
+- a separate evidence unlock position for the complete summary;
+- verified provenance and an original summary.
+
+The first appearance and the summary's unlock position are deliberately separate. A character may be named early while a particular summary contains details that are not safe until a later chapter. The strict runtime requires the explicit evidence source and unlock metadata and rejects entries that omit either. The unlock cannot precede the cited source chapter.
 
 The approval fields are governance metadata, not an automatic proof of correctness. The editorial process must verify each claim against an accessible source before marking it approved.
 
 ## Multi-book authorization
 
-A claim is a candidate only when **all** its evidence IDs are present in the request's authorized retrieval context. A cross-book explanation therefore remains unavailable until the reader has reached every evidence position needed by that claim.
+A claim is a candidate only when **all** its evidence IDs are present in the request's authorized retrieval context and every evidence summary has reached its own explicit unlock chapter. A cross-book explanation therefore remains unavailable until the reader has reached every evidence position needed by that claim.
 
 Unknown book IDs are ignored for authorization. Duplicate or malformed progress is rejected. Evidence with `limited` or `unavailable` provenance never enters the provider context.
 
@@ -75,3 +81,17 @@ The private bibliography supplied by the user remains a metadata-only source cat
 3. Add a provider adapter implementing `HoidClaimSelector` without allowing it to return prose.
 4. Inject the runtime at the application composition root and migrate `HoidScreen` away from the legacy service.
 5. Add persistence and revision control for reader progress before enabling cross-session answers.
+
+
+## Chapter-bounded evidence scope
+
+The strict runtime treats two chapter boundaries independently:
+
+- `firstSafeAppearance` prevents the system from exposing an entity name before its first safe appearance.
+- `evidenceUnlock` prevents the system from exposing the complete original summary before the chapter at which every detail in that summary is safe.
+
+Each evidence entry also carries `evidenceSource`: a bibliography book ID, source chapter and opaque chapter locator. These are metadata only; they are not extracted EPUB text or a public file path. The unlock must refer to the same work as the source and cannot precede the source chapter.
+
+If the reader has reached the entity's first appearance but not the summary's unlock chapter, retrieval excludes that evidence before provider invocation. The runtime returns metadata-only source citations with authorized answers so the UI and audit log can show exactly which work, chapter and locator supported the response.
+
+Cross-book claims still require every evidence ID to be independently authorized. Missing, malformed, unknown-work or future evidence scope fails closed.

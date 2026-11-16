@@ -104,7 +104,7 @@ New integrations should prefer `HoidEvidenceRuntime` from `evidenceRuntime.ts` f
 
 Every claim must cite evidence IDs, and every cited evidence item must be retrieved from verified, accessible, chapter-authorized context. Cross-book claims require every cited work and chapter to be unlocked. If no approved claim survives, the runtime abstains.
 
-The older `HoidService` and `HoidPipeline` remain compatibility paths with different provider contracts. Do not assume they provide the same guarantee as the strict ID-only runtime. The strict runtime is not yet wired into `HoidScreen`; a verified editorial claim store and an injected selector adapter are still required.
+The older `HoidService` and `HoidPipeline` remain compatibility paths with different provider contracts. Do not assume they provide the same guarantee as the strict ID-only runtime. `HoidScreen` now uses the strict ID-only runtime through `editorialRegistry.ts`, not the legacy free-text `HoidService`. The production editorial registry is intentionally empty until source passages are accessible and original claims have been reviewed. The screen therefore abstains instead of inventing content; a provider selector can be injected only after approved candidates exist.
 
 ## Chapter-bounded evidence
 
@@ -148,3 +148,11 @@ app uses `createEmptyAtlasReadingProgress()`; see
 `docs/hoid/INITIAL_PROGRESS_POLICY.md` and
 `src/hoid/initialProgress.test.ts`. Demo fixtures must remain outside every
 Hoid authorization and provider path.
+
+
+## Production registry and screen route
+
+The production screen is composed through `editorialRegistry.ts` and
+`HoidEvidenceRuntime`. The registry currently contains zero approved claims,
+so the screen abstains. Do not restore the legacy free-text service as a
+fallback. See `docs/hoid/STRICT_RUNTIME_INTEGRATION.md`.

@@ -22,6 +22,14 @@ Las posiciones inválidas, desconocidas o ambiguas se tratan como no autorizadas
 
 La representación canónica del progreso usa un diccionario sin prototipo. Los identificadores externos, incluidos nombres especiales de propiedades de JavaScript, nunca deben modificar la herencia del estado de autorización.
 
+### Validación estricta de snapshots
+
+`validReadingPositions()` acepta exclusivamente objetos planos con claves conocidas y una de estas formas: capítulo, o finalización explícita. Un registro que combine `chapter` y `completed: true` es contradictorio y rechaza el snapshot completo. Tampoco se descartan silenciosamente posiciones malformadas para continuar con un progreso parcial.
+
+La razón es de seguridad: `completed: true` autoriza toda la obra. Nunca puede inferirse a partir de un capítulo ni coexistir con él. La misma validación se aplica antes de respuestas y recomendaciones.
+
+Consulta `docs/hoid/READING_SNAPSHOT_SECURITY.md` y `src/hoid/readingValidation.test.ts`.
+
 ## Proveedores
 
 Los proveedores se consumen mediante contratos. El núcleo de Hoid no debe depender de una SDK concreta ni contener claves, configuración de red o lógica específica de un modelo.
@@ -111,7 +119,6 @@ Authorized answers return metadata-only source citations. They identify the work
 `toHoidReadingPositions()` now applies those edition policies before the legacy UI progress enters the authorization pipeline. The strict runtime repeats the same checks through `validEditionBoundReadingPositions()`, so a direct caller cannot bypass the UI adapter. Unknown works, out-of-range chapters and ambiguous numeric positions are omitted at the adapter and rejected at the strict runtime boundary. The combined White Sand navigation and the multi-work Arcanum collection do not receive invented global chapter counts. Elantris and Viento y verdad are capped before their first duplicated chapter number until Atlas supplies an unambiguous unit locator.
 
 See `docs/hoid/EDITION_STRUCTURE.md` for the inspected metadata, counts and explicit limitations.
-
 
 ## Versioned progress ledger
 

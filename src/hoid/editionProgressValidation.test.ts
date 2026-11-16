@@ -56,9 +56,11 @@ describe("edition-bound reading authorization", () => {
     ])).toEqual([{ bookId: "tfe", chapter: 4 }]);
   });
 
-  it("rejects zero and non-integer chapter positions for known works", () => {
+  it("rejects zero, non-integer and contradictory positions", () => {
     expect(validEditionBoundReadingPositions([{ bookId: "tfe", chapter: 0 }])).toBeNull();
-    expect(validEditionBoundReadingPositions([{ bookId: "tfe", chapter: 1.5 }])).toEqual([]);
+    expect(validEditionBoundReadingPositions([{ bookId: "tfe", chapter: 1.5 }])).toBeNull();
+    expect(validEditionBoundReadingPositions([{ bookId: "tfe", chapter: 1, completed: true }])).toBeNull();
+    expect(validEditionBoundReadingPositions([{ bookId: "tfe", chapter: -1, completed: true }])).toBeNull();
   });
 
   it("rejects duplicate positions for one work", () => {

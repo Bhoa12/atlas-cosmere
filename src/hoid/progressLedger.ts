@@ -88,8 +88,7 @@ function canonicalPositions(value: unknown): readonly Readonly<ReadingPosition>[
     if (seen.has(raw.bookId)) return null;
     seen.add(raw.bookId);
 
-    const policy = getHoidEditionProgressPolicy(raw.bookId);
-    if (policy.kind === "unknown") return null;
+    if (getHoidEditionProgressPolicy(raw.bookId).kind === "unknown") return null;
 
     if (raw.completed === true) {
       if (raw.chapter !== undefined) return null;
@@ -127,16 +126,17 @@ function canonicalSnapshot(value: unknown): HoidProgressLedgerSnapshot | null {
   if (!isRecord(value) || !hasOnlyKeys(value, new Set(["schemaVersion", "revision", "positions", "updatedAt"]))) return null;
   if (value.schemaVersion !== 1) return null;
   if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 0 || (value.revision as number) > MAX_REVISION) return null;
+  const revision = value.revision as number;
   const positions = canonicalPositions(value.positions);
   if (positions === null) return null;
 
   const updatedAt = value.updatedAt;
   if (updatedAt !== null && !isCanonicalTimestamp(updatedAt)) return null;
-  if ((value.revision === 0 && updatedAt !== null) || (value.revision > 0 && updatedAt === null)) return null;
+  if ((revision === 0 && (updatedAt !== null || positions.length !== 0)) || (revision > 0 && updatedAt === null)) return null;
 
   return Object.freeze({
     schemaVersion: 1,
-    revision: value.revision as number,
+    revision,
     positions,
     updatedAt: updatedAt as string | null,
   });
@@ -186,13 +186,15 @@ export class HoidProgressLedger {
       typeof expectedRevision !== "number" ||
       !Number.isSafeInteger(expectedRevision) ||
       expectedRevision < 0 ||
+      expectedRevision > MAX_REVISION ||
       typeof bookId !== "string" ||
       !bookId ||
       bookId !== bookId.trim()
     ) return Object.freeze({ status: "rejected", reason: "invalid-update" });
 
-    const policy = getHoidEditionProgressPolicy(bookId);
-    if (policy.kind === "unknown") return Object.freeze({ status: "rejected", reason: "unknown-work" });
+    if (getHoidEditionProgressPolicy(bookId).kind === "unknown") {
+      return Object.freeze({ status: "rejected", reason: "unknown-work" });
+    }
 
     const isCompletion = input.complete === true;
     const hasChapter = input.chapter !== undefined;
@@ -209,6 +211,9 @@ export class HoidProgressLedger {
     }
     if (isCompletion && input.confirmCompletion !== true) {
       return Object.freeze({ status: "rejected", reason: "completion-not-confirmed" });
+    }
+    if (!isCompletion && input.confirmCompletion !== undefined) {
+      return Object.freeze({ status: "rejected", reason: "invalid-update" });
     }
     if (isCompletion && (input.allowRegression === true || input.reopenCompleted === true)) {
       return Object.freeze({ status: "rejected", reason: "invalid-update" });
@@ -244,6 +249,9 @@ export class HoidProgressLedger {
       const validated = canonicalPositions([{ bookId, chapter }]);
       if (!validated || validated.length !== 1) {
         return Object.freeze({ status: "rejected", reason: "unsupported-position" });
+      }
+      if (input.reopenCompleted === true && existing?.completed !== true) {
+        return Object.freeze({ status: "rejected", reason: "invalid-update" });
       }
       if (existing?.completed === true && input.reopenCompleted !== true) {
         return Object.freeze({ status: "rejected", reason: "already-completed" });

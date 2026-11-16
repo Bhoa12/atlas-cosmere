@@ -5,11 +5,18 @@ export type HoidKnowledgeKind = 'character' | 'place' | 'event' | 'concept' | 'm
 
 export type HoidKnowledgeProvenance = 'verified' | 'limited' | 'unavailable';
 
+export type HoidEvidenceSource = Readonly<{ bookId: string; chapter: number; locatorId: string }>;
+export type HoidEvidenceUnlock = Readonly<{ bookId: string; chapter: number }>;
+
 export type HoidKnowledgeEntry = {
   id: string;
   aliases: string[];
   kind: HoidKnowledgeKind;
   firstSafeAppearance: { bookId: string; chapter: number };
+  /** Metadata-only location used to verify this original editorial evidence. */
+  evidenceSource?: HoidEvidenceSource;
+  /** Earliest safe reader position for the entire summary, distinct from first appearance. */
+  evidenceUnlock?: HoidEvidenceUnlock;
   /** Original editorial summary; never a source passage. */
   summary?: string;
   /** Context may only use verified summaries. Missing provenance fails closed. */
@@ -58,6 +65,8 @@ export class HoidKnowledgeCatalog {
       ...entry,
       aliases: Array.isArray(entry.aliases) ? [...entry.aliases] : [],
       firstSafeAppearance: { ...entry.firstSafeAppearance },
+      ...(entry.evidenceSource ? { evidenceSource: { ...entry.evidenceSource } } : {}),
+      ...(entry.evidenceUnlock ? { evidenceUnlock: { ...entry.evidenceUnlock } } : {}),
     }));
   }
 

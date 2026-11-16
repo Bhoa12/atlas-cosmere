@@ -6,7 +6,7 @@ import { answerWithinTimeout } from "./providerTimeout";
 import { recommendUnstartedSources, type HoidRecommendation } from "./recommendations";
 import { retrieveAuthorized } from "./retrieval";
 import { validHoidQuestion } from "./requestValidation";
-import { validReadingPositions } from "./readingValidation";
+import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { guardQuestion } from "./spoilerGuard";
 import type { HoidAnswerRequest, ReadingPosition } from "./types";
 
@@ -203,11 +203,9 @@ function abstain(
 }
 
 function knownReadingPositions(value: unknown): ReadingPosition[] | null {
-  const validated = validReadingPositions(value);
+  const validated = validEditionBoundReadingPositions(value);
   if (validated === null) return null;
-  return validated
-    .filter(position => isKnownHoidSource(position.bookId))
-    .map(position => Object.freeze({ ...position }));
+  return validated.map(position => Object.freeze({ ...position }));
 }
 
 /**

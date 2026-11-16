@@ -127,3 +127,8 @@ See `docs/hoid/EDITION_STRUCTURE.md` for the inspected metadata, counts and expl
 The ledger rejects unknown works, malformed or duplicate positions, unsupported numeric progress for unsegmented collections, unconfirmed completion, unconfirmed regression and reopening without an explicit flag. Completion remains a reader-declared state and is not converted into an invented chapter number.
 
 The contract does not itself provide durable storage. Atlas must inject a real adapter whose compare-and-swap operation is atomic across devices/sessions before the progress can be described as synchronized or persistent. See `docs/hoid/PROGRESS_LEDGER.md`.
+
+
+### Progress ledger input boundary
+
+`HoidProgressLedger` canonicalizes both updates and persisted snapshots before reading fields. It rejects accessors, symbols, inherited or unknown properties, sparse arrays, custom array properties and hostile proxies. Malformed data fails closed without running getters or leaking proxy exceptions. See `docs/hoid/PROGRESS_LEDGER_SECURITY.md` and `src/hoid/progressLedger.test.ts`.

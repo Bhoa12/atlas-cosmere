@@ -1,0 +1,45 @@
+name: Hoid strict runtime
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/editorialRegistry.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/initialProgress.ts"
+      - "src/hoid/initialProgress.test.ts"
+      - ".github/workflows/hoid-strict-runtime.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/editorialRegistry.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/initialProgress.ts"
+      - "src/hoid/initialProgress.test.ts"
+      - ".github/workflows/hoid-strict-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  strict-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test strict runtime and empty registry
+        run: npx vitest run src/hoid/editorialRegistry.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/initialProgress.test.ts
+      - name: Type-check strict runtime
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialRegistry.ts src/hoid/evidenceRuntime.ts

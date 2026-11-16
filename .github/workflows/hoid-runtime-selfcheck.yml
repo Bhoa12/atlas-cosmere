@@ -36,6 +36,8 @@ jobs:
         run: npx --yes tsx@4.19.2 src/hoid/readingPlan.selfcheck.ts
       - name: Run multi-book progress engine selfcheck
         run: npx --yes tsx@4.19.2 src/hoid/progressEngine.selfcheck.ts
+      - name: Run multi-book knowledge graph selfcheck
+        run: npx --yes tsx@4.19.2 src/hoid/knowledgeGraph.selfcheck.ts
       - name: Strict type-check Hoid core
         run: >-
           npx --yes --package typescript@5.3.3 tsc --noEmit --strict
@@ -45,8 +47,10 @@ jobs:
           src/hoid/auditedExplanation.ts
           src/hoid/readingPlan.ts
           src/hoid/progressEngine.ts
+          src/hoid/knowledgeGraph.ts
           src/hoid/providerRuntime.selfcheck.ts
           src/hoid/claimFirewall.selfcheck.ts
           src/hoid/auditedExplanation.selfcheck.ts
           src/hoid/readingPlan.selfcheck.ts
           src/hoid/progressEngine.selfcheck.ts
+          src/hoid/knowledgeGraph.selfcheck.ts

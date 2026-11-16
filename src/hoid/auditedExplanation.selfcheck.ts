@@ -153,7 +153,7 @@ async function main(): Promise<void> {
 
   const mutatingSelector: HoidClaimSelector = {
     async selectClaims(_context, candidates) {
-      (candidates as Array<{ id: string }>).push({ id: "injected" });
+      (candidates as unknown as Array<{ id: string }>).push({ id: "injected" });
       return { kind: "selection", claimIds: ["claim-safe-1"] };
     },
   };

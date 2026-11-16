@@ -52,6 +52,19 @@ describe("edition-aware Atlas progress adapter", () => {
     })).toEqual([]);
   });
 
+  it("does not accept inherited completion flags as user progress", () => {
+    const inheritedCompletion = Object.create({ tfe: true }) as Record<string, boolean>;
+    expect(toHoidReadingPositions({
+      chaptersByBook: { tfe: 0 },
+      completedByBook: inheritedCompletion,
+    })).toEqual([]);
+  });
+
+  it("returns an empty snapshot for malformed top-level input", () => {
+    expect(toHoidReadingPositions(null as never)).toEqual([]);
+    expect(toHoidReadingPositions([] as never)).toEqual([]);
+  });
+
   it("does not mutate the caller-owned progress records", () => {
     const progress = { chaptersByBook: { tfe: 4 }, completedByBook: { woa: true } };
     const before = JSON.stringify(progress);

@@ -391,4 +391,29 @@ describe("Hoid progress ledger", () => {
       .toEqual({ status: "rejected", reason: "invalid-update" });
   });
 
+
+  it("rejects indexed array accessors without invoking them", async () => {
+    const store = new MemoryProgressStore();
+    let getterCalled = false;
+    const positions: unknown[] = [];
+    Object.defineProperty(positions, "0", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        getterCalled = true;
+        return { bookId: "tfe", chapter: 1 };
+      },
+    });
+    store.value = {
+      schemaVersion: 1,
+      revision: 1,
+      positions,
+      updatedAt: "2026-11-15T12:00:00.000Z",
+    };
+
+    const ledger = new HoidProgressLedger(store, fixedClock);
+    expect(await ledger.read()).toEqual({ status: "unavailable", reason: "corrupt-ledger" });
+    expect(getterCalled).toBe(false);
+  });
+
 });

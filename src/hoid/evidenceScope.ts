@@ -60,7 +60,7 @@ export function canonicalEvidenceScope(
   if (!validChapter(sourceChapter) || !validChapter(unlockChapter)) return null;
   if (unlockChapter < sourceChapter) return null;
   if (!locatorId || locatorId.length > MAX_LOCATOR_LENGTH) return null;
-  if (/[\\u0000-\\u001F\\u007F]/u.test(locatorId)) return null;
+  if (/[\u0000-\u001F\u007F]/u.test(locatorId)) return null;
 
   return Object.freeze({
     sourceBookId,

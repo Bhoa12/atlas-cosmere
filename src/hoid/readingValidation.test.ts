@@ -11,63 +11,103 @@ describe("validReadingPositions", () => {
     expect(validReadingPositions({})).toBeNull();
   });
 
-  it("drops malformed positions without granting progress", () => {
+  it("rejects the whole snapshot when any position is malformed", () => {
     expect(validReadingPositions([
       null,
-      {},
-      { bookId: "mistborn", chapter: -1 },
-      { bookId: "mistborn", chapter: Number.POSITIVE_INFINITY },
       { bookId: "mistborn", chapter: 4 },
-    ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
+    ])).toBeNull();
+    expect(validReadingPositions([
+      {},
+      { bookId: "mistborn", chapter: 4 },
+    ])).toBeNull();
+    expect(validReadingPositions([
+      { bookId: "mistborn", chapter: -1 },
+      { bookId: "roshar", chapter: 4 },
+    ])).toBeNull();
+    expect(validReadingPositions([
+      { bookId: "mistborn", chapter: Number.POSITIVE_INFINITY },
+      { bookId: "roshar", chapter: 4 },
+    ])).toBeNull();
   });
 
-  it("drops oversized book identifiers before they can authorize progress", () => {
+  it("rejects oversized book identifiers instead of dropping them", () => {
     const oversizedBookId = "x".repeat(DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH + 1);
     expect(validReadingPositions([
       { bookId: oversizedBookId, chapter: 999 },
       { bookId: "mistborn", chapter: 4 },
-    ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
+    ])).toBeNull();
   });
 
-  it("drops oversized chapter values instead of turning arbitrary numbers into spoiler authorization", () => {
+  it("rejects oversized chapter values instead of retaining a partial snapshot", () => {
     expect(validReadingPositions([
       { bookId: "mistborn", chapter: DEFAULT_MAX_READING_POSITION_CHAPTER + 1 },
       { bookId: "roshar", chapter: 4 },
-    ])).toEqual([{ bookId: "roshar", chapter: 4 }]);
+    ])).toBeNull();
   });
 
-  it("drops oversized ordering metadata", () => {
+  it("rejects oversized ordering metadata", () => {
     expect(validReadingPositions([
       { bookId: "mistborn", chapter: 4, order: DEFAULT_MAX_READING_POSITION_ORDER + 1 },
-    ])).toEqual([{ bookId: "mistborn", chapter: 4 }]);
+    ])).toBeNull();
   });
 
-  it("preserves only explicit, conservative completion", () => {
+  it("accepts only literal true as an explicit completion state", () => {
+    expect(validReadingPositions([{ bookId: "roshar", completed: true }]))
+      .toEqual([{ bookId: "roshar", completed: true }]);
+    expect(validReadingPositions([{ bookId: "roshar", completed: "yes" }])).toBeNull();
+    expect(validReadingPositions([{ bookId: "roshar", completed: false }])).toBeNull();
+  });
+
+  it("rejects chapter and completion on the same work", () => {
     expect(validReadingPositions([
-      { bookId: "roshar", completed: "yes" },
-      { bookId: "roshar", completed: true },
-    ])).toEqual([{ bookId: "roshar", completed: true }]);
+      { bookId: "tfe", chapter: 1, completed: true },
+    ])).toBeNull();
+    expect(validReadingPositions([
+      { bookId: "tfe", chapter: -1, completed: true },
+    ])).toBeNull();
   });
 
-  it("fails closed when two valid positions target the same book", () => {
+  it("rejects positions with neither chapter nor explicit completion", () => {
+    expect(validReadingPositions([{ bookId: "tfe" }])).toBeNull();
+  });
+
+  it("rejects unknown fields instead of silently ignoring them", () => {
+    expect(validReadingPositions([
+      { bookId: "tfe", chapter: 4, isFinished: true },
+    ])).toBeNull();
+  });
+
+  it("rejects inherited position fields", () => {
+    const inherited = Object.create({ bookId: "tfe", chapter: 38 });
+    expect(validReadingPositions([inherited])).toBeNull();
+  });
+
+  it("rejects duplicate positions for one work", () => {
     expect(validReadingPositions([
       { bookId: "mistborn", chapter: 2 },
       { bookId: "mistborn", chapter: 8 },
     ])).toBeNull();
   });
 
-  it("does not merge completion with another position for the same book", () => {
-    expect(validReadingPositions([
-      { bookId: "roshar", chapter: 10 },
-      { bookId: "roshar", completed: true },
-    ])).toBeNull();
+  it("rejects a chapter value that is not a safe integer", () => {
+    expect(validReadingPositions([{ bookId: "tfe", chapter: 1.5 }])).toBeNull();
   });
 
-  it("fails closed on oversized progress payloads instead of truncating by input order", () => {
+  it("rejects oversized progress payloads instead of truncating by input order", () => {
     const payload = Array.from({ length: DEFAULT_MAX_READING_POSITIONS + 1 }, (_, index) => ({
       bookId: `book-${index}`,
       chapter: 1,
     }));
     expect(validReadingPositions(payload)).toBeNull();
+  });
+
+  it("accepts the two canonical progress forms with valid ordering metadata", () => {
+    expect(validReadingPositions([
+      { bookId: "tfe", chapter: 4, order: 2 },
+      { bookId: "warbreaker", completed: true, order: 3 },
+    ])).toEqual([
+      { bookId: "tfe", chapter: 4, order: 2 },
+      { bookId: "warbreaker", completed: true, order: 3 },
+    ]);
   });
 });

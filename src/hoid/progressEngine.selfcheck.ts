@@ -14,7 +14,12 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const catalog = [
-  { bookId: "mistborn-era1-book1", chapterCount: 38 },
+  {
+    bookId: "mistborn-era1-book1",
+    chapterCount: 38,
+    chapterCountVerified: true,
+    chapterCountSourceId: "edition-index-mistborn-1",
+  },
   { bookId: "elantris" },
 ];
 
@@ -204,10 +209,18 @@ async function main(): Promise<void> {
     "la ausencia de progreso debe ser explícita y no inferirse");
 
   const completed = confirmedCompletion.kind === "updated"
-    ? completedBookIds(confirmedCompletion.ledger)
-    : [];
-  assert(completed.length === 1 && completed[0] === "mistborn-era1-book1",
+    ? completedBookIds(confirmedCompletion.ledger, catalog)
+    : null;
+  assert(completed !== null && completed.length === 1 && completed[0] === "mistborn-era1-book1",
     "el plan de lectura debe recibir solo obras marcadas completadas");
+
+  const unverifiedCatalog = applyProgressCommand(
+    null,
+    command("set-position", "mistborn-era1-book1", 0, { chapter: 1 }),
+    [{ bookId: "mistborn-era1-book1", chapterCount: 38 }],
+  );
+  assert(unverifiedCatalog.kind === "abstain" && unverifiedCatalog.reason === "invalid-catalog",
+    "un recuento de capítulos sin verificación y procedencia debe invalidar el catálogo");
 
   const store = new MemoryStore();
   const persisted = await persistProgressCommand(
@@ -242,7 +255,7 @@ async function main(): Promise<void> {
   assert(storageFailure.kind === "abstain" && storageFailure.reason === "storage-failure",
     "un fallo del almacenamiento debe producir abstención controlada");
 
-  console.log("Hoid progress engine selfcheck: 24 assertions passed.");
+  console.log("Hoid progress engine selfcheck: 25 assertions passed.");
 }
 
 void main();

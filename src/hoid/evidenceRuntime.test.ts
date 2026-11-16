@@ -382,4 +382,47 @@ describe("HoidEvidenceRuntime", () => {
     expect(result.reason).toBe("provider-unavailable");
     expect(result.text).toContain("No hay un selector de IA configurado");
   });
+
+  it("rejects progress beyond the inspected chapter count before selector invocation", async () => {
+    const selector = vi.fn(async () => ["claim-sazed"]);
+    const runtime = createRuntime(selector);
+
+    const result = await runtime!.answer({
+      question: "¿Quién es Sazed?",
+      reading: [{ bookId: "tfe", chapter: 39 }],
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects ambiguous numeric chapter positions before selector invocation", async () => {
+    const selector = vi.fn(async () => ["claim-sazed"]);
+    const runtime = createRuntime(selector);
+
+    const result = await runtime!.answer({
+      question: "¿Quién es Sazed?",
+      reading: [{ bookId: "elantris", chapter: 48 }],
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects partial progress for a combined-volume or collection source", async () => {
+    const selector = vi.fn(async () => ["claim-sazed"]);
+    const runtime = createRuntime(selector);
+
+    const result = await runtime!.answer({
+      question: "¿Quién es Sazed?",
+      reading: [{ bookId: "white-sand-1", chapter: 1 }],
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
 });

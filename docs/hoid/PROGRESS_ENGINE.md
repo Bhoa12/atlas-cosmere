@@ -14,7 +14,7 @@ A version-1 ledger contains:
 - a status of `reading`, `paused`, or `completed`;
 - the revision at which each book record last changed.
 
-The catalogue is an explicit allow-list of stable book IDs. A `chapterCount` may be supplied only when verified from the actual edition/reading structure. When it is absent, the engine does not invent an upper chapter bound.
+The catalogue is an explicit allow-list of stable book IDs. A `chapterCount` may be supplied only together with `chapterCountVerified: true` and a valid `chapterCountSourceId` identifying the edition's verified chapter index. An unproven count invalidates the catalogue entry. When chapter-count metadata is absent, the engine does not invent an upper chapter bound.
 
 No title, narrative summary, EPUB passage, or provider output is stored in the progress ledger.
 
@@ -53,7 +53,7 @@ The repository does not yet select AsyncStorage, SQLite, or another concrete per
 
 The private EPUB bibliography remains a catalogue of works, not proof that every chapter or passage is available. Progress records contain only stable book IDs, chapter numbers, statuses, and revisions. Do not store EPUB text or narrative summaries here. Do not infer progress from chat history or provider output.
 
-If a book ID is not in the supplied catalogue, the command is rejected. If chapter counts are unavailable or unverified, omit them instead of estimating.
+If a book ID is not in the supplied catalogue, the command is rejected. If chapter counts are unavailable or unverified, omit them instead of estimating. The engine requires an explicit verification flag and source identifier whenever a count is supplied.
 
 ## Checks
 

@@ -46,6 +46,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test Hoid progress and SQLite contracts
-        run: npm run test:hoid
+        run: npx vitest run src/hoid/progressCoordinator.test.ts src/hoid/progressLedger.test.ts src/hoid/sqliteProgressStore.test.ts src/hoid/initialProgress.test.ts
       - name: Type-check app integration
         run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck --jsx react --esModuleInterop src/hoid/progressCoordinator.ts src/hoid/expoProgressCoordinator.ts src/context/CosmereContext.tsx src/screens/HoidScreen.tsx App.tsx

@@ -198,6 +198,36 @@ describe("Hoid progress ledger", () => {
       .toEqual({ status: "rejected", reason: "storage-error" });
   });
 
+  it("allows only one concurrent writer using the same revision", async () => {
+    const store = new MemoryProgressStore();
+    const first = new HoidProgressLedger(store, fixedClock);
+    const second = new HoidProgressLedger(store, fixedClock);
+
+    const results = await Promise.all([
+      first.update({ expectedRevision: 0, bookId: "tfe", chapter: 1 }),
+      second.update({ expectedRevision: 0, bookId: "elantris", chapter: 1 }),
+    ]);
+
+    expect(results.filter(result => result.status === "updated")).toHaveLength(1);
+    expect(results.filter(result => result.status === "conflict")).toHaveLength(1);
+    expect((store.value as HoidProgressLedgerSnapshot).revision).toBe(1);
+    expect((store.value as HoidProgressLedgerSnapshot).positions).toHaveLength(1);
+  });
+
+  it("rejects a store adapter that returns a truthy non-boolean CAS result", async () => {
+    const backing = new MemoryProgressStore();
+    const malformedStore: HoidProgressStore = {
+      read: () => backing.read(),
+      compareAndSwap: async () => "persisted" as unknown as boolean,
+    };
+    const ledger = new HoidProgressLedger(malformedStore, fixedClock);
+
+    const result = await ledger.update({ expectedRevision: 0, bookId: "tfe", chapter: 1 });
+
+    expect(result).toEqual({ status: "rejected", reason: "invalid-store-result" });
+    expect((backing.value as HoidProgressLedgerSnapshot).revision).toBe(0);
+  });
+
   it("rejects a non-canonical clock value before attempting persistence", async () => {
     const store = new MemoryProgressStore();
     const ledger = new HoidProgressLedger(store, () => "tomorrow");

@@ -43,7 +43,8 @@ export type HoidProgressResult =
         | "regression-requires-confirmation"
         | "corrupt-ledger"
         | "invalid-clock"
-        | "storage-error";
+        | "storage-error"
+        | "invalid-store-result";
     }>;
 
 export type HoidProgressReadResult =
@@ -298,8 +299,11 @@ export class HoidProgressLedger {
     if (!next) return Object.freeze({ status: "rejected", reason: "corrupt-ledger" });
 
     try {
-      const written = await this.store.compareAndSwap(expectedRevision, next);
-      if (!written) return Object.freeze({ status: "conflict", expectedRevision });
+      const written: unknown = await this.store.compareAndSwap(expectedRevision, next);
+      if (written === false) return Object.freeze({ status: "conflict", expectedRevision });
+      // A JavaScript adapter can violate its TypeScript declaration at runtime.
+      // Only the literal boolean true proves that the adapter accepted the write.
+      if (written !== true) return Object.freeze({ status: "rejected", reason: "invalid-store-result" });
     } catch {
       return Object.freeze({ status: "rejected", reason: "storage-error" });
     }

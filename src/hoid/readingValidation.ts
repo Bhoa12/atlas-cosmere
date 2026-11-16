@@ -7,10 +7,27 @@ export const DEFAULT_MAX_READING_POSITION_ORDER = 1_000_000;
 
 const ALLOWED_POSITION_KEYS = new Set(["bookId", "chapter", "completed", "order"]);
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+/**
+ * Snapshot only own data properties. Accessors, symbols, proxies that throw,
+ * inherited fields and non-plain objects are rejected before values are read.
+ */
+function canonicalDataRecord(value: unknown): Record<string, unknown> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+
+    const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== "string" || !ALLOWED_POSITION_KEYS.has(key)) return null;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value")) return null;
+      result[key] = descriptor.value;
+    }
+    return result;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -25,8 +42,9 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
  * - { bookId, chapter, order? }
  * - { bookId, completed: true, order? }
  *
- * Unknown keys, inherited fields, invalid values and duplicate work IDs fail
- * closed. Edition-specific chapter limits are enforced by the next boundary.
+ * Unknown keys, inherited fields, accessors, invalid values and duplicate work
+ * IDs fail closed. Edition-specific chapter limits are enforced by the next
+ * boundary.
  */
 export function validReadingPositions(value: unknown): ReadingPosition[] | null {
   if (!Array.isArray(value) || value.length > DEFAULT_MAX_READING_POSITIONS) return null;
@@ -34,10 +52,9 @@ export function validReadingPositions(value: unknown): ReadingPosition[] | null 
   const positions: ReadingPosition[] = [];
   const seenBookIds = new Set<string>();
 
-  for (const item of value) {
-    if (!isPlainRecord(item)) return null;
-    if (Object.keys(item).some(key => !ALLOWED_POSITION_KEYS.has(key))) return null;
-    if (!Object.prototype.hasOwnProperty.call(item, "bookId")) return null;
+  for (const rawItem of value) {
+    const item = canonicalDataRecord(rawItem);
+    if (item === null || !Object.prototype.hasOwnProperty.call(item, "bookId")) return null;
 
     const rawBookId = item.bookId;
     if (

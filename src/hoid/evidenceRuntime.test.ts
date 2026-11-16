@@ -209,7 +209,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "Pregunta sin evidencia en el catálogo",
-      reading: [{ bookId: "tfe", chapter: 100 }],
+      reading: [{ bookId: "tfe", chapter: 38 }],
     });
 
     expect(result.status).toBe("abstain");

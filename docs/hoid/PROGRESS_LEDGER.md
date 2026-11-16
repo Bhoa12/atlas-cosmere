@@ -13,7 +13,7 @@ It never stores EPUB passages, chapter titles, summaries, prompts or provider ou
 - `read()`: returns an untrusted snapshot that must be validated at runtime;
 - `compareAndSwap(expectedRevision, next)`: atomically writes only if the stored revision still equals the expected revision.
 
-A production adapter must implement compare-and-swap atomically across all clients sharing the ledger. A read followed by an unconditional write is not compliant.
+A production adapter must implement compare-and-swap atomically across all clients sharing the ledger. A read followed by an unconditional write is not compliant. The adapter must return the literal boolean `true` only after the write is committed, or `false` when the expected revision no longer matches. Any other runtime value is rejected as an invalid adapter result; a truthy string or object is never treated as proof of persistence.
 
 The core does not select AsyncStorage, SQLite, a remote database or another persistence provider. Those implementations belong in adapters outside `src/hoid`.
 
@@ -42,7 +42,7 @@ An unchanged position does not create a new revision.
 
 The ledger validates its input independently of the UI and never merges duplicate progress positions. Unknown work IDs are rejected instead of silently dropped. Snapshot parsing rejects duplicate IDs, unexpected fields and malformed timestamps.
 
-The revision check protects concurrent updates only when the concrete store provides atomic compare-and-swap. The interface alone cannot make a non-atomic adapter safe.
+The revision check protects concurrent updates only when the concrete store provides atomic compare-and-swap. The interface alone cannot make a non-atomic adapter safe. The service also checks the adapter result at runtime: only `true` confirms a committed write, `false` reports a revision conflict, and non-boolean values fail closed. Tests cover two simultaneous writers and a malformed adapter that returns a truthy string without persisting.
 
 The current API deliberately supports only the edition's verified numeric positions and explicit completion. A later unit-cursor extension must be backed by a separately reviewed, digest-pinned unit manifest before it can authorize chapter-specific evidence. No cursor is inferred for ambiguous chapters, front matter, interludes, merged volumes or collections in this iteration.
 

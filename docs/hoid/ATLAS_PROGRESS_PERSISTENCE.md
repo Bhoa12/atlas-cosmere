@@ -43,3 +43,8 @@ Official API references:
 If opening the database, initializing the table, reading a snapshot or writing a change fails, Atlas reports persistence as unavailable. Hoid does not use the empty initial maps as proof that the reader has read nothing, and it does not ask a model provider to compensate for missing progress.
 
 A later recovery workflow may offer export, backup or explicit reset, but no automatic destructive repair is permitted.
+
+
+## Test scope and legacy migration debt
+
+The dedicated progress workflow runs the coordinator, ledger, SQLite-store and fresh-profile suites, plus a strict TypeScript check of the app integration. A separate attempt to run the entire historical `src/hoid` suite exposed older tests that still use placeholder work IDs, the pre-edition-validation reading shape (including `completed: false` alongside a chapter), or implicit Vitest globals. Those legacy pipeline/snapshot tests are not evidence that the new coordinator failed; they require a separate migration to the current bibliography-bound contracts. The full legacy suite is therefore not reported as green by this workflow.

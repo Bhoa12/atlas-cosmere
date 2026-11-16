@@ -275,7 +275,10 @@ export class HoidEvidenceRuntime {
       return blocked("reading-position", "Esa pregunta puede revelar información que todavía no has alcanzado. Hoid conservará ese misterio.");
     }
 
-    // firstSafeAppearance protects entity mentions; evidenceUnlock separately protects\n    // the full editorial summary. A short alias threshold must never authorize\n    // a summary that contains later-chapter detail.\n    const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)\n      .filter(entry => isEvidenceUnlocked(entry, reading));
+    // firstSafeAppearance protects entity mentions; evidenceUnlock separately protects
+    // the full editorial summary. A short alias threshold must never authorize
+    // a summary that contains later-chapter detail.
+    const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)\n      .filter(entry => isEvidenceUnlocked(entry, reading));
     const authorizedEvidenceIds = new Set(authorizedContext.map(entry => entry.id));
     const candidates = this.claims
       .filter(claim => claim.intent === intent && claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)))
@@ -337,7 +340,9 @@ export class HoidEvidenceRuntime {
       const entry = knowledgeById.get(id);
       return entry ? evidenceCitationFor(entry) : null;
     });
-    if (sources.some(source => source === null)) {\n      return blocked("invalid-selection", "La procedencia de una evidencia no se puede reconstruir. No se mostrará la respuesta.");\n    }
+    if (sources.some(source => source === null)) {
+      return blocked("invalid-selection", "La procedencia de una evidencia no se puede reconstruir. No se mostrará la respuesta.");
+    }
     return Object.freeze({
       status: "authorized",
       text: selectedClaims.map(claim => claim.text).join("\n\n"),

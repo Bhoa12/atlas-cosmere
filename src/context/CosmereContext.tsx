@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createExpoHoidProgressCoordinator } from '../hoid/expoProgressCoordinator';
 import { atlasProgressFromSnapshot, HoidProgressCoordinator, type HoidProgressCoordinatorResult } from '../hoid/progressCoordinator';
+import { setAtlasChapterProgress } from '../hoid/atlasProgressActions';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 import { createEmptyAtlasReadingProgress } from '../hoid/initialProgress';
@@ -27,7 +28,7 @@ interface CosmereContextType {
   testsCompletadosExitosos: { [testId: string]: boolean };
   toggleReinoCognitivo: () => void;
   toggleLibroLeido: (libroId: string) => void;
-  setCapituloLibro: (libroId: string, cap: number) => void;
+  setCapituloLibro: (libroId: string, cap: number) => Promise<HoidProgressCoordinatorResult | null>;
   sumarPuntosTestUnico: (testId: string, puntos: number) => boolean;
   setApodoActivo: (apodo: string) => void;
   setNombreUsuario: (nombre: string) => void;
@@ -106,12 +107,15 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     void progressCoordinator.setCompleted(libroId, !librosLeidos[libroId]).then(aplicarResultadoProgreso);
   };
 
-  const setCapituloLibro = (libroId: string, cap: number) => {
-    if (!progressCoordinator || progresoPersistenciaEstado !== 'ready') return;
-    void progressCoordinator.setChapter(libroId, cap, {
-      allowRegression: true,
-      reopenCompleted: true,
-    }).then(aplicarResultadoProgreso);
+  const setCapituloLibro = async (libroId: string, cap: number): Promise<HoidProgressCoordinatorResult | null> => {
+    if (!progressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
+
+    // The normal Atlas action is forward-only. A backwards correction must
+    // use a dedicated, confirmed flow; a completed work must first be reopened
+    // through the explicit "mark unread" action.
+    const result = await setAtlasChapterProgress(progressCoordinator, libroId, cap);
+    aplicarResultadoProgreso(result);
+    return result;
   };
 
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {

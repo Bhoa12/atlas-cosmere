@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createExpoHoidProgressCoordinator } from '../hoid/expoProgressCoordinator';
+import { atlasProgressFromSnapshot, HoidProgressCoordinator, type HoidProgressCoordinatorResult } from '../hoid/progressCoordinator';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 import { createEmptyAtlasReadingProgress } from '../hoid/initialProgress';
@@ -33,6 +35,7 @@ interface CosmereContextType {
   darLuzTormentosa: (comentarioId: string) => void;
   esContenidoDesbloqueado: (desbloqueoLibroId: string) => boolean;
   todosLosLibrosLeidos: boolean;
+  progresoPersistenciaEstado: 'loading' | 'ready' | 'unavailable';
 }
 
 const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
@@ -44,6 +47,35 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [initialReadingProgress] = useState(createEmptyAtlasReadingProgress);
   const [librosLeidos, setLibrosLeidos] = useState(initialReadingProgress.completedByBook);
   const [capituloActualPorLibro, setCapituloActualPorLibro] = useState(initialReadingProgress.chaptersByBook);
+  const [progresoPersistenciaEstado, setProgresoPersistenciaEstado] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [progressCoordinator, setProgressCoordinator] = useState<HoidProgressCoordinator | null>(null);
+
+  const aplicarResultadoProgreso = (result: HoidProgressCoordinatorResult) => {
+    if (result.status === 'ready' || result.status === 'conflict') {
+      const restored = atlasProgressFromSnapshot(result.snapshot);
+      setCapituloActualPorLibro(restored.chaptersByBook);
+      setLibrosLeidos(restored.completedByBook);
+      setProgresoPersistenciaEstado('ready');
+    } else if (result.status === 'unavailable') {
+      setProgresoPersistenciaEstado('unavailable');
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    createExpoHoidProgressCoordinator().then(async coordinator => {
+      if (!mounted) return;
+      setProgressCoordinator(coordinator);
+      const result = await coordinator.initialize();
+      if (mounted) aplicarResultadoProgreso(result);
+    }).catch(() => {
+      if (mounted) setProgresoPersistenciaEstado('unavailable');
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const [puntosInvestidura, setPuntosInvestidura] = useState<number>(450);
   const [apodoActivo, setApodoActivo] = useState<string>('Ojo de Estaño');
   const [nombreUsuario, setNombreUsuario] = useState<string>('Trotamundos de Silverlight');
@@ -70,11 +102,16 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const todosLosLibrosLeidos = totalLeidosCount >= totalLibrosEnUniverso;
 
   const toggleLibroLeido = (libroId: string) => {
-    setLibrosLeidos(prev => ({ ...prev, [libroId]: !prev[libroId] }));
+    if (!progressCoordinator || progresoPersistenciaEstado !== 'ready') return;
+    void progressCoordinator.setCompleted(libroId, !librosLeidos[libroId]).then(aplicarResultadoProgreso);
   };
 
   const setCapituloLibro = (libroId: string, cap: number) => {
-    setCapituloActualPorLibro(prev => ({ ...prev, [libroId]: cap }));
+    if (!progressCoordinator || progresoPersistenciaEstado !== 'ready') return;
+    void progressCoordinator.setChapter(libroId, cap, {
+      allowRegression: true,
+      reopenCompleted: true,
+    }).then(aplicarResultadoProgreso);
   };
 
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {
@@ -134,7 +171,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       agregarComentario,
       darLuzTormentosa,
       esContenidoDesbloqueado,
-      todosLosLibrosLeidos
+      todosLosLibrosLeidos,
+      progresoPersistenciaEstado
     }}>
       {children}
     </CosmereContext.Provider>

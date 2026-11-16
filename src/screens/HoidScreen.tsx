@@ -13,7 +13,7 @@ interface Mensaje {
 }
 
 export const HoidScreen: React.FC = () => {
-  const { librosLeidos, capituloActualPorLibro } = useCosmere();
+  const { librosLeidos, capituloActualPorLibro, progresoPersistenciaEstado } = useCosmere();
   const [cargando, setCargando] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
@@ -25,7 +25,7 @@ export const HoidScreen: React.FC = () => {
   const [input, setInput] = useState('');
 
   const enviarMensaje = async () => {
-    if (!input.trim() || cargando) return;
+    if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
 
     const textoUsuario = input.trim();
     const nuevoMsgUsuario: Mensaje = { id: Date.now().toString(), emisor: 'usuario', texto: textoUsuario };
@@ -63,9 +63,13 @@ export const HoidScreen: React.FC = () => {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>HOID (SAGAZ) • MODO SEGURO</Text>
           <Text style={styles.headerSub}>
-            {getHoidEditorialRegistryStatus() === 'empty'
-              ? 'Sin afirmaciones editoriales verificadas · runtime estricto'
-              : 'Registro editorial disponible · runtime estricto'}
+            {progresoPersistenciaEstado === 'loading'
+              ? 'Cargando progreso de lectura seguro…'
+              : progresoPersistenciaEstado === 'unavailable'
+                ? 'Progreso no disponible · consultas bloqueadas'
+                : getHoidEditorialRegistryStatus() === 'empty'
+                  ? 'Sin afirmaciones editoriales verificadas · runtime estricto'
+                  : 'Registro editorial disponible · runtime estricto'}
           </Text>
         </View>
       </View>
@@ -90,9 +94,10 @@ export const HoidScreen: React.FC = () => {
           placeholder="Pregúntale a Hoid..."
           placeholderTextColor="#64748b"
           value={input}
+          editable={progresoPersistenciaEstado === 'ready'}
           onChangeText={setInput}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={enviarMensaje}>
+        <TouchableOpacity disabled={progresoPersistenciaEstado !== 'ready' || cargando} style={[styles.sendButton, (progresoPersistenciaEstado !== 'ready' || cargando) && { opacity: 0.45 }]} onPress={enviarMensaje}>
           <Text style={styles.sendButtonText}>➔</Text>
         </TouchableOpacity>
       </View>

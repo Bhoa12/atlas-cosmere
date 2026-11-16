@@ -156,3 +156,10 @@ The production screen is composed through `editorialRegistry.ts` and
 `HoidEvidenceRuntime`. The registry currently contains zero approved claims,
 so the screen abstains. Do not restore the legacy free-text service as a
 fallback. See `docs/hoid/STRICT_RUNTIME_INTEGRATION.md`.
+
+
+## Atlas persistence coordinator
+
+`progressCoordinator.ts` serializes Atlas reading changes through the versioned ledger and projects only validated snapshots back into null-prototype Atlas maps. The native composition adapter in `expoProgressCoordinator.ts` opens the SDK 51-compatible Expo SQLite database. While the ledger is loading or unavailable, Atlas reading controls and Hoid queries stay disabled; a failed or corrupt read is never replaced with a permissive in-memory fallback.
+
+The coordinator treats a reader's completion toggle as an explicit action. Reopening a completed numeric work resets its cursor to chapter 1, while edition structures without a verified numeric cursor remain blocked. Writes are serialized in-process and still use SQLite compare-and-swap for durable conflict detection. This is native, single-device persistence, not cloud synchronization. See `docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md`.

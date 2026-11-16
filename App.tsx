@@ -14,7 +14,7 @@ const MainNavigator = () => {
   const [tab, setTab] = useState<'atlas' | 'wheel' | 'tools' | 'hoid' | 'quiz' | 'comunidad' | 'perfil'>('atlas');
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState(SISTEMAS_COSMERE_COMPLETO[0]);
   const [libroModal, setLibroModal] = useState<Libro | null>(null);
-  const { toggleLibroLeido, librosLeidos, reinoCognitivoActivo, toggleReinoCognitivo } = useCosmere();
+  const { toggleLibroLeido, librosLeidos, reinoCognitivoActivo, toggleReinoCognitivo, progresoPersistenciaEstado } = useCosmere();
 
   const themeBg = reinoCognitivoActivo ? '#030712' : '#090d16';
   const themeCard = reinoCognitivoActivo ? '#0b0f19' : '#0f172a';
@@ -90,6 +90,13 @@ const MainNavigator = () => {
 
             {/* Bibliografía */}
             <Text style={styles.subHeader}>BIBLIOGRAFÍA (PULSA PARA SINOPSIS & PERSONAJES)</Text>
+            {progresoPersistenciaEstado !== 'ready' && (
+              <Text style={{ color: '#fbbf24', fontSize: 11, marginBottom: 10 }}>
+                {progresoPersistenciaEstado === 'loading'
+                  ? 'Cargando progreso guardado…'
+                  : 'No se puede validar el progreso guardado. Los cambios están bloqueados.'}
+              </Text>
+            )}
             {sistemaSeleccionado.libros.map(lib => {
               const leido = !!librosLeidos[lib.id];
               return (
@@ -99,7 +106,8 @@ const MainNavigator = () => {
                     <Text style={styles.bookMeta}>{lib.saga} • {lib.totalCapitulos} Caps</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.readToggleBtn, leido && styles.readToggleBtnActive]}
+                    style={[styles.readToggleBtn, leido && styles.readToggleBtnActive, progresoPersistenciaEstado !== 'ready' && { opacity: 0.4 }]}
+                    disabled={progresoPersistenciaEstado !== 'ready'}
                     onPress={() => toggleLibroLeido(lib.id)}
                   >
                     <Text style={[styles.statusTag, { color: leido ? '#34d399' : '#94a3b8' }]}>

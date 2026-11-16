@@ -8,6 +8,8 @@ on:
       - "package.json"
       - "src/hoid/progressCoordinator.ts"
       - "src/hoid/progressCoordinator.test.ts"
+      - "src/hoid/atlasProgressActions.ts"
+      - "src/hoid/atlasProgressActions.test.ts"
       - "src/hoid/expoProgressCoordinator.ts"
       - "src/hoid/progressLedger.ts"
       - "src/hoid/sqliteProgressStore.ts"
@@ -15,12 +17,15 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "App.tsx"
       - "docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md"
+      - "docs/hoid/ATLAS_CHAPTER_CHANGE_AUTHORIZATION.md"
       - ".github/workflows/hoid-progress-coordinator.yml"
   pull_request:
     paths:
       - "package.json"
       - "src/hoid/progressCoordinator.ts"
       - "src/hoid/progressCoordinator.test.ts"
+      - "src/hoid/atlasProgressActions.ts"
+      - "src/hoid/atlasProgressActions.test.ts"
       - "src/hoid/expoProgressCoordinator.ts"
       - "src/hoid/progressLedger.ts"
       - "src/hoid/sqliteProgressStore.ts"
@@ -28,6 +33,7 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "App.tsx"
       - "docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md"
+      - "docs/hoid/ATLAS_CHAPTER_CHANGE_AUTHORIZATION.md"
       - ".github/workflows/hoid-progress-coordinator.yml"
 
 permissions:
@@ -46,6 +52,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test Hoid progress and SQLite contracts
-        run: npx vitest run src/hoid/progressCoordinator.test.ts src/hoid/progressLedger.test.ts src/hoid/sqliteProgressStore.test.ts src/hoid/initialProgress.test.ts
+        run: npx vitest run src/hoid/atlasProgressActions.test.ts src/hoid/progressCoordinator.test.ts src/hoid/progressLedger.test.ts src/hoid/sqliteProgressStore.test.ts src/hoid/initialProgress.test.ts
       - name: Type-check app integration
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck --jsx react --esModuleInterop src/hoid/progressCoordinator.ts src/hoid/expoProgressCoordinator.ts src/context/CosmereContext.tsx src/screens/HoidScreen.tsx App.tsx
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck --jsx react --esModuleInterop src/hoid/atlasProgressActions.ts src/hoid/progressCoordinator.ts src/hoid/expoProgressCoordinator.ts src/context/CosmereContext.tsx src/screens/HoidScreen.tsx App.tsx

@@ -1,4 +1,5 @@
 import { isKnownHoidSource } from "./bibliography";
+import { canonicalEvidenceScope, evidenceCitationFor, isEvidenceUnlocked, type HoidEvidenceCitation } from "./evidenceScope";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { validatedKnowledge } from "./catalogValidation";
 import { answerWithinTimeout } from "./providerTimeout";
@@ -56,6 +57,7 @@ export type HoidEvidenceAnswer = Readonly<{
   text: string;
   claimIds: readonly string[];
   evidenceIds: readonly string[];
+  sources: readonly HoidEvidenceCitation[];
 }>;
 
 export type HoidEvidenceRecommendationResult =
@@ -93,6 +95,8 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
 
   for (const raw of value) {
     if (!isRecord(raw) || !isRecord(raw.firstSafeAppearance) || !Array.isArray(raw.aliases)) return null;
+    const evidenceScope = canonicalEvidenceScope(raw.evidenceSource, raw.evidenceUnlock);
+    if (!evidenceScope) return null;
     if (typeof raw.id !== "string" || !raw.id.trim() || raw.id.trim().length > MAX_CLAIM_ID_LENGTH) return null;
     if (typeof raw.kind !== "string" || !validKinds.has(raw.kind)) return null;
     if (typeof raw.firstSafeAppearance.bookId !== "string" || !isKnownHoidSource(raw.firstSafeAppearance.bookId)) return null;
@@ -109,6 +113,8 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
       aliases: [...raw.aliases] as string[],
       kind: raw.kind as HoidKnowledgeEntry["kind"],
       firstSafeAppearance: { bookId: raw.firstSafeAppearance.bookId, chapter },
+      evidenceSource: { bookId: evidenceScope.sourceBookId, chapter: evidenceScope.sourceChapter, locatorId: evidenceScope.locatorId },
+      evidenceUnlock: { bookId: evidenceScope.unlockBookId, chapter: evidenceScope.unlockChapter },
       ...(raw.provenance === undefined ? {} : { provenance: raw.provenance as HoidKnowledgeEntry["provenance"] }),
       ...(raw.summary === undefined ? {} : { summary: (raw.summary as string).trim() }),
     });
@@ -121,6 +127,8 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
     ...entry,
     aliases: Object.freeze([...entry.aliases]) as unknown as string[],
     firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
+    evidenceSource: Object.freeze({ ...entry.evidenceSource! }),
+    evidenceUnlock: Object.freeze({ ...entry.evidenceUnlock! }),
   })));
 }
 function canonicalClaims(
@@ -184,14 +192,14 @@ function blocked(
   reason: "invalid-input" | "reading-position" | "invalid-selection",
   text: string,
 ): HoidEvidenceAnswer {
-  return Object.freeze({ status: "blocked", reason, text, claimIds: Object.freeze([]), evidenceIds: Object.freeze([]) });
+  return Object.freeze({ status: "blocked", reason, text, claimIds: Object.freeze([]), evidenceIds: Object.freeze([]), sources: Object.freeze([]) });
 }
 
 function abstain(
   reason: "no-authorized-evidence" | "provider-unavailable",
   text: string,
 ): HoidEvidenceAnswer {
-  return Object.freeze({ status: "abstain", reason, text, claimIds: Object.freeze([]), evidenceIds: Object.freeze([]) });
+  return Object.freeze({ status: "abstain", reason, text, claimIds: Object.freeze([]), evidenceIds: Object.freeze([]), sources: Object.freeze([]) });
 }
 
 function knownReadingPositions(value: unknown): ReadingPosition[] | null {
@@ -267,7 +275,7 @@ export class HoidEvidenceRuntime {
       return blocked("reading-position", "Esa pregunta puede revelar información que todavía no has alcanzado. Hoid conservará ese misterio.");
     }
 
-    const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question);
+    // firstSafeAppearance protects entity mentions; evidenceUnlock separately protects\n    // the full editorial summary. A short alias threshold must never authorize\n    // a summary that contains later-chapter detail.\n    const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)\n      .filter(entry => isEvidenceUnlocked(entry, reading));
     const authorizedEvidenceIds = new Set(authorizedContext.map(entry => entry.id));
     const candidates = this.claims
       .filter(claim => claim.intent === intent && claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)))
@@ -324,11 +332,18 @@ export class HoidEvidenceRuntime {
     }
 
     const evidenceIds = [...new Set(selectedClaims.flatMap(claim => claim.evidenceIds))].sort();
+    const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
+    const sources = evidenceIds.map(id => {
+      const entry = knowledgeById.get(id);
+      return entry ? evidenceCitationFor(entry) : null;
+    });
+    if (sources.some(source => source === null)) {\n      return blocked("invalid-selection", "La procedencia de una evidencia no se puede reconstruir. No se mostrará la respuesta.");\n    }
     return Object.freeze({
       status: "authorized",
       text: selectedClaims.map(claim => claim.text).join("\n\n"),
       claimIds: Object.freeze(selectedClaims.map(claim => claim.id)),
       evidenceIds: Object.freeze(evidenceIds),
+      sources: Object.freeze(sources as HoidEvidenceCitation[]),
     });
   }
 

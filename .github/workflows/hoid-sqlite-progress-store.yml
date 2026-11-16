@@ -1,0 +1,43 @@
+name: Hoid SQLite progress store
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/sqliteProgressStore.ts"
+      - "src/hoid/sqliteProgressStore.test.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/editionStructure.ts"
+      - "docs/hoid/SQLITE_PROGRESS_STORE.md"
+      - ".github/workflows/hoid-sqlite-progress-store.yml"
+  pull_request:
+    paths:
+      - "src/hoid/sqliteProgressStore.ts"
+      - "src/hoid/sqliteProgressStore.test.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/editionStructure.ts"
+      - "docs/hoid/SQLITE_PROGRESS_STORE.md"
+      - ".github/workflows/hoid-sqlite-progress-store.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-progress-store:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run SQLite progress store tests
+        run: npx vitest run src/hoid/sqliteProgressStore.test.ts src/hoid/progressLedger.test.ts
+      - name: Type-check SQLite progress store
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/sqliteProgressStore.ts src/hoid/progressLedger.ts

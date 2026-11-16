@@ -5,53 +5,90 @@ export const DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH = 256;
 export const DEFAULT_MAX_READING_POSITION_CHAPTER = 100_000_000;
 export const DEFAULT_MAX_READING_POSITION_ORDER = 1_000_000;
 
+const ALLOWED_POSITION_KEYS = new Set(["bookId", "chapter", "completed", "order"]);
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 /**
  * Runtime trust boundary for reader progress.
  *
- * Progress normally comes from application state, but Hoid treats it as
- * untrusted at its public boundary. Malformed entries are discarded rather
- * than repaired, so bad runtime data can never unlock narrative knowledge.
+ * A malformed position invalidates the entire snapshot. Silently dropping a
+ * malformed entry can be unsafe: a contradictory { chapter, completed: true }
+ * record must never be normalized into a completed work, because completion
+ * authorizes every chapter in that work.
  *
- * A book may appear only once. Duplicate positions are ambiguous at this
- * boundary, so the whole reading state is rejected instead of merging toward
- * the greatest chapter.
+ * A book may appear only once. Exactly one position form is accepted:
+ * - { bookId, chapter, order? }
+ * - { bookId, completed: true, order? }
+ *
+ * Unknown keys, inherited fields, invalid values and duplicate work IDs fail
+ * closed. Edition-specific chapter limits are enforced by the next boundary.
  */
 export function validReadingPositions(value: unknown): ReadingPosition[] | null {
-  if (!Array.isArray(value)) return null;
-  if (value.length > DEFAULT_MAX_READING_POSITIONS) return null;
+  if (!Array.isArray(value) || value.length > DEFAULT_MAX_READING_POSITIONS) return null;
 
   const positions: ReadingPosition[] = [];
   const seenBookIds = new Set<string>();
 
   for (const item of value) {
-    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
-    const candidate = item as Record<string, unknown>;
-    const rawBookId = typeof candidate.bookId === "string" ? candidate.bookId : "";
-    if (rawBookId.length > DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH) continue;
-    const bookId = rawBookId.trim();
-    if (!bookId) continue;
+    if (!isPlainRecord(item)) return null;
+    if (Object.keys(item).some(key => !ALLOWED_POSITION_KEYS.has(key))) return null;
+    if (!Object.prototype.hasOwnProperty.call(item, "bookId")) return null;
 
-    const chapter = candidate.chapter;
-    const validChapter = typeof chapter === "number" && Number.isFinite(chapter) && chapter >= 0 &&
-      chapter <= DEFAULT_MAX_READING_POSITION_CHAPTER && Number.isInteger(chapter)
-      ? chapter : undefined;
-    const completed = candidate.completed === true;
-    if (validChapter === undefined && !completed) continue;
+    const rawBookId = item.bookId;
+    if (
+      typeof rawBookId !== "string" ||
+      rawBookId.length === 0 ||
+      rawBookId.length > DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH ||
+      rawBookId !== rawBookId.trim()
+    ) return null;
 
+    const bookId = rawBookId;
     if (seenBookIds.has(bookId)) return null;
     seenBookIds.add(bookId);
 
-    const order = candidate.order;
-    const validOrder = typeof order === "number" && Number.isFinite(order) && order >= 0 &&
-      order <= DEFAULT_MAX_READING_POSITION_ORDER && Number.isInteger(order)
-      ? order : undefined;
+    const hasChapter = Object.prototype.hasOwnProperty.call(item, "chapter");
+    const hasCompleted = Object.prototype.hasOwnProperty.call(item, "completed");
+    if (hasChapter === hasCompleted) return null;
+
+    const order = item.order;
+    const hasOrder = Object.prototype.hasOwnProperty.call(item, "order");
+    if (
+      hasOrder &&
+      (typeof order !== "number" ||
+        !Number.isSafeInteger(order) ||
+        order < 0 ||
+        order > DEFAULT_MAX_READING_POSITION_ORDER)
+    ) return null;
+
+    if (hasCompleted) {
+      if (item.completed !== true) return null;
+      positions.push({
+        bookId,
+        completed: true,
+        ...(hasOrder ? { order: order as number } : {}),
+      });
+      continue;
+    }
+
+    const chapter = item.chapter;
+    if (
+      typeof chapter !== "number" ||
+      !Number.isSafeInteger(chapter) ||
+      chapter < 0 ||
+      chapter > DEFAULT_MAX_READING_POSITION_CHAPTER
+    ) return null;
 
     positions.push({
       bookId,
-      ...(validChapter === undefined ? {} : { chapter: validChapter }),
-      ...(completed ? { completed: true } : {}),
-      ...(validOrder === undefined ? {} : { order: validOrder }),
+      chapter,
+      ...(hasOrder ? { order: order as number } : {}),
     });
   }
+
   return positions;
 }

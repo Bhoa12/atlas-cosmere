@@ -1,5 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
-import { validReadingPositions } from "./readingValidation";
+import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { ReadingPosition } from "./types";
 
 /**
@@ -27,7 +27,7 @@ function isKnownBook(bookId: string): boolean {
 export function buildReadingContext(
   reading: ReadingPosition[],
 ): readonly Readonly<HoidReadingContextItem>[] {
-  const validated = validReadingPositions(reading);
+  const validated = validEditionBoundReadingPositions(reading);
   if (!validated) return Object.freeze([]);
 
   const context = validated

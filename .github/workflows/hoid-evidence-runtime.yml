@@ -16,6 +16,7 @@ on:
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/evidenceScope.ts"
+      - "src/hoid/evidenceScope.test.ts"
       - "src/hoid/catalog.ts"
       - ".github/workflows/hoid-evidence-runtime.yml"
 

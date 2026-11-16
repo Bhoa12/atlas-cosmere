@@ -62,7 +62,11 @@ export const HoidScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>HOID (SAGAZ) • MODO SEGURO</Text>
-          <Text style={styles.headerSub}>${getHoidEditorialRegistryStatus() === 'empty' ? 'Sin afirmaciones editoriales verificadas' : 'Registro editorial disponible'} · runtime estricto</Text>
+          <Text style={styles.headerSub}>
+            {getHoidEditorialRegistryStatus() === 'empty'
+              ? 'Sin afirmaciones editoriales verificadas · runtime estricto'
+              : 'Registro editorial disponible · runtime estricto'}
+          </Text>
         </View>
       </View>
 

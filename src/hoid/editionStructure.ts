@@ -209,7 +209,7 @@ export type HoidEditionProgressPolicy =
  * chapter number when the EPUB has distinct locators with the same number.
  */
 export function getHoidEditionProgressPolicy(bookId: string): HoidEditionProgressPolicy {
-  if (typeof bookId !== "string" || !bookId.trim()) return Object.freeze({ kind: "unknown" });
+  if (typeof bookId !== "string" || !bookId.trim()) return Object.freeze({ kind: "unknown" as const });
 
   for (const source of HOID_EDITION_STRUCTURES) {
     for (const work of source.works) {

@@ -271,23 +271,24 @@ export class HoidProgressLedger {
       return Object.freeze({ status: "rejected", reason: "unknown-work" });
     }
 
+    const hasComplete = Object.prototype.hasOwnProperty.call(record, "complete");
+    const hasChapter = Object.prototype.hasOwnProperty.call(record, "chapter");
     const isCompletion = record.complete === true;
-    const hasChapter = record.chapter !== undefined;
-    if (isCompletion === hasChapter) {
-      return Object.freeze({ status: "rejected", reason: "invalid-update" });
-    }
-    if (record.complete !== undefined && record.complete !== true) {
+    if ((hasComplete && !isCompletion) || isCompletion === hasChapter) {
       return Object.freeze({ status: "rejected", reason: "invalid-update" });
     }
     for (const key of ["confirmCompletion", "allowRegression", "reopenCompleted"] as const) {
-      if (record[key] !== undefined && record[key] !== true) {
+      if (
+        Object.prototype.hasOwnProperty.call(record, key) &&
+        record[key] !== true
+      ) {
         return Object.freeze({ status: "rejected", reason: "invalid-update" });
       }
     }
     if (isCompletion && record.confirmCompletion !== true) {
       return Object.freeze({ status: "rejected", reason: "completion-not-confirmed" });
     }
-    if (!isCompletion && record.confirmCompletion !== undefined) {
+    if (!isCompletion && Object.prototype.hasOwnProperty.call(record, "confirmCompletion")) {
       return Object.freeze({ status: "rejected", reason: "invalid-update" });
     }
     if (isCompletion && (record.allowRegression === true || record.reopenCompleted === true)) {

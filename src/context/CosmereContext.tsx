@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
+import { createEmptyAtlasReadingProgress } from '../hoid/initialProgress';
 
 interface ComentarioComunidad {
   id: string;
@@ -38,14 +39,11 @@ const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
 
 export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [reinoCognitivoActivo, setReinoCognitivoActivo] = useState(false);
-  const [librosLeidos, setLibrosLeidos] = useState<{ [libroId: string]: boolean }>({
-    'tfe': true,
-    'twok': true
-  });
-  const [capituloActualPorLibro, setCapituloActualPorLibro] = useState<{ [libroId: string]: number }>({
-    'twok': 75,
-    'tfe': 38
-  });
+  // Progress is security-sensitive authorization data. Fresh profiles
+  // start empty; demo fixtures must never be fed into Hoid's spoiler boundary.
+  const [initialReadingProgress] = useState(createEmptyAtlasReadingProgress);
+  const [librosLeidos, setLibrosLeidos] = useState(initialReadingProgress.completedByBook);
+  const [capituloActualPorLibro, setCapituloActualPorLibro] = useState(initialReadingProgress.chaptersByBook);
   const [puntosInvestidura, setPuntosInvestidura] = useState<number>(450);
   const [apodoActivo, setApodoActivo] = useState<string>('Ojo de Estaño');
   const [nombreUsuario, setNombreUsuario] = useState<string>('Trotamundos de Silverlight');

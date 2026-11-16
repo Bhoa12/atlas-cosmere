@@ -258,7 +258,7 @@ describe("HoidEvidenceRuntime", () => {
 
     expect(result.status).toBe("abstain");
     expect(result.reason).toBe("provider-unavailable");
-    expect(result.text).toBe("");
+    expect(result.text).toContain("El selector no está disponible");
   });
 
   it("returns an explicit abstention when no provider is configured", async () => {

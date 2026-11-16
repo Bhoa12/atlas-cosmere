@@ -11,6 +11,15 @@ export type AtlasReadingProgress = {
   completedByBook?: Record<string, boolean | undefined>;
 };
 
+function ownValue<T>(
+  record: Record<string, T | undefined> | undefined,
+  key: string,
+): T | undefined {
+  return record && Object.prototype.hasOwnProperty.call(record, key)
+    ? record[key]
+    : undefined;
+}
+
 /**
  * Converts Atlas progress into Hoid's provider-independent contract.
  *
@@ -23,6 +32,8 @@ export type AtlasReadingProgress = {
 export function toHoidReadingPositions(
   progress: AtlasReadingProgress,
 ): ReadingPosition[] {
+  if (!progress || typeof progress !== "object" || Array.isArray(progress)) return [];
+
   const ids = new Set([
     ...Object.keys(progress.chaptersByBook ?? {}),
     ...Object.keys(progress.completedByBook ?? {}),
@@ -38,13 +49,13 @@ export function toHoidReadingPositions(
 
     // An explicit user completion is a self-reported reading boundary. Keep
     // it separate from a numeric chapter cursor, which may be ambiguous for
-    // some editions.
-    if (progress.completedByBook?.[bookId] === true) {
+    // some editions. Only own properties count as user-declared progress.
+    if (ownValue(progress.completedByBook, bookId) === true) {
       positions.push({ bookId, completed: true });
       continue;
     }
 
-    const rawChapter = progress.chaptersByBook?.[bookId];
+    const rawChapter = ownValue(progress.chaptersByBook, bookId);
     if (typeof rawChapter !== "number" || !Number.isSafeInteger(rawChapter) || rawChapter < 1) {
       continue;
     }

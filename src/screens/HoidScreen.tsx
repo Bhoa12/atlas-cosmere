@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
-import { HoidService } from '../hoid/HoidService';
+import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
 import { toHoidReadingPositions } from '../hoid/progressAdapter';
+
+const hoidRuntime = createHoidEditorialRuntime();
 
 interface Mensaje {
   id: string;
@@ -17,7 +19,7 @@ export const HoidScreen: React.FC = () => {
     {
       id: '1',
       emisor: 'hoid',
-      texto: 'Saludos, viajero de mundos. Soy Sagaz. La frontera de progreso está preparada, pero esta pantalla todavía no tiene un proveedor de IA ni un registro editorial aprobado conectado. No inventaré respuestas mientras falten esas piezas.'
+      texto: 'Saludos, viajero de mundos. Soy Sagaz. Estoy usando el runtime estricto de evidencias. El registro editorial todavía está vacío, así que no inventaré hechos ni recurriré a respuestas libres.'
     }
   ]);
   const [input, setInput] = useState('');
@@ -32,16 +34,17 @@ export const HoidScreen: React.FC = () => {
     setCargando(true);
 
     try {
-      const service = new HoidService();
       const reading = toHoidReadingPositions({
         chaptersByBook: capituloActualPorLibro,
         completedByBook: librosLeidos,
       });
-      const result = await service.answer({ question: textoUsuario, reading });
+      const result = hoidRuntime
+        ? await hoidRuntime.answer({ question: textoUsuario, reading })
+        : null;
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
-        texto: result.text,
+        texto: result?.text ?? 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.',
       }]);
     } catch {
       setMensajes(prev => [...prev, {
@@ -59,7 +62,7 @@ export const HoidScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>HOID (SAGAZ) • MODO SEGURO</Text>
-          <Text style={styles.headerSub}>Proveedor no conectado · progreso por edición validado</Text>
+          <Text style={styles.headerSub}>${getHoidEditorialRegistryStatus() === 'empty' ? 'Sin afirmaciones editoriales verificadas' : 'Registro editorial disponible'} · runtime estricto</Text>
         </View>
       </View>
 

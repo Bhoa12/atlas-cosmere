@@ -5,19 +5,11 @@ on:
     branches:
       - "feat/hoid-ia-core-run*"
     paths:
-      - "src/hoid/editionStructure.ts"
-      - "src/hoid/editionStructure.test.ts"
-      - "src/hoid/progressAdapter.ts"
-      - "src/hoid/progressAdapter.test.ts"
-      - "src/hoid/bibliography.ts"
+      - "src/hoid/**"
       - ".github/workflows/hoid-edition-structure.yml"
   pull_request:
     paths:
-      - "src/hoid/editionStructure.ts"
-      - "src/hoid/editionStructure.test.ts"
-      - "src/hoid/progressAdapter.ts"
-      - "src/hoid/progressAdapter.test.ts"
-      - "src/hoid/bibliography.ts"
+      - "src/hoid/**"
       - ".github/workflows/hoid-edition-structure.yml"
 
 permissions:
@@ -35,7 +27,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Run Hoid tests
-        run: npm run test:hoid
-      - name: Type-check edition and progress boundaries
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editionStructure.ts src/hoid/progressAdapter.ts
+      - name: Run edition and strict-runtime tests
+        run: npx vitest run src/hoid/editionStructure.test.ts src/hoid/editionProgressValidation.test.ts src/hoid/progressAdapter.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/evidenceScope.test.ts
+      - name: Type-check edition and strict-runtime boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editionStructure.ts src/hoid/editionProgressValidation.ts src/hoid/progressAdapter.ts src/hoid/evidenceRuntime.ts src/hoid/evidenceScope.ts src/hoid/readingContext.ts

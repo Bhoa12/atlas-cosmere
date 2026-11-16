@@ -1,7 +1,7 @@
 import { isKnownHoidSource } from "./bibliography";
 import type { HoidKnowledgeEntry } from "./catalog";
 import type { ReadingPosition } from "./types";
-import { validReadingPositions } from "./readingValidation";
+import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 
 export type HoidEvidenceCitation = Readonly<{
   evidenceId: string;
@@ -82,7 +82,7 @@ export function isEvidenceUnlocked(
 
   // Validate at this public boundary as well as in the runtime. In particular,
   // duplicate book positions are ambiguous and must never unlock evidence.
-  const canonicalReading = validReadingPositions(reading);
+  const canonicalReading = validEditionBoundReadingPositions(reading);
   if (!canonicalReading) return false;
   const position = canonicalReading.find(item => item.bookId === scope.unlockBookId);
   return Boolean(

@@ -245,6 +245,22 @@ describe("HoidEvidenceRuntime", () => {
     expect(invalidRuntime).toBeNull();
   });
 
+
+  it("converts synchronous selector exceptions into a safe abstention", async () => {
+    const runtime = createRuntime(() => {
+      throw new Error("synthetic synchronous failure");
+    });
+
+    const result = await runtime!.answer({
+      question: "¿Quién es Sazed?",
+      reading: [{ bookId: "tfe", chapter: 2 }],
+    });
+
+    expect(result.status).toBe("abstain");
+    expect(result.reason).toBe("provider-unavailable");
+    expect(result.text).toBe("");
+  });
+
   it("returns an explicit abstention when no provider is configured", async () => {
     const runtime = createRuntime();
 

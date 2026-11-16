@@ -111,3 +111,12 @@ Authorized answers return metadata-only source citations. They identify the work
 `toHoidReadingPositions()` now applies those edition policies before the legacy UI progress enters the authorization pipeline. The strict runtime repeats the same checks through `validEditionBoundReadingPositions()`, so a direct caller cannot bypass the UI adapter. Unknown works, out-of-range chapters and ambiguous numeric positions are omitted at the adapter and rejected at the strict runtime boundary. The combined White Sand navigation and the multi-work Arcanum collection do not receive invented global chapter counts. Elantris and Viento y verdad are capped before their first duplicated chapter number until Atlas supplies an unambiguous unit locator.
 
 See `docs/hoid/EDITION_STRUCTURE.md` for the inspected metadata, counts and explicit limitations.
+
+
+## Versioned progress ledger
+
+`progressLedger.ts` defines the provider-neutral `HoidProgressStore` contract and a versioned `HoidProgressLedger` service. Updates require the revision last read and use atomic compare-and-swap; stale writes return a conflict instead of overwriting another session.
+
+The ledger rejects unknown works, malformed or duplicate positions, unsupported numeric progress for unsegmented collections, unconfirmed completion, unconfirmed regression and reopening without an explicit flag. Completion remains a reader-declared state and is not converted into an invented chapter number.
+
+The contract does not itself provide durable storage. Atlas must inject a real adapter whose compare-and-swap operation is atomic across devices/sessions before the progress can be described as synchronized or persistent. See `docs/hoid/PROGRESS_LEDGER.md`.

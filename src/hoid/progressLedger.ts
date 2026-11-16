@@ -53,15 +53,6 @@ export type HoidProgressReadResult =
 
 const MAX_POSITIONS = 256;
 const MAX_REVISION = Number.MAX_SAFE_INTEGER - 1;
-const ALLOWED_UPDATE_KEYS = new Set([
-  "expectedRevision",
-  "bookId",
-  "chapter",
-  "complete",
-  "confirmCompletion",
-  "allowRegression",
-  "reopenCompleted",
-]);
 const ALLOWED_POSITION_KEYS = new Set(["bookId", "chapter", "completed", "order"]);
 const ALLOWED_UPDATE_KEYS = new Set([
   "expectedRevision",
@@ -289,7 +280,7 @@ export class HoidProgressLedger {
       return Object.freeze({ status: "rejected", reason: "invalid-update" });
     }
     for (const key of ["confirmCompletion", "allowRegression", "reopenCompleted"] as const) {
-      if (input[key] !== undefined && input[key] !== true) {
+      if (record[key] !== undefined && record[key] !== true) {
         return Object.freeze({ status: "rejected", reason: "invalid-update" });
       }
     }

@@ -1,3 +1,4 @@
+import { getHoidEditionProgressPolicy } from "./editionStructure";
 import { ReadingPosition } from "./types";
 
 /**
@@ -13,8 +14,11 @@ export type AtlasReadingProgress = {
 /**
  * Converts Atlas progress into Hoid's provider-independent contract.
  *
- * Invalid chapter values are omitted rather than coerced upward: when progress
- * is uncertain, downstream authorization remains conservative.
+ * Chapter positions are accepted only when the inspected EPUB navigation
+ * provides an unambiguous numeric chapter model. Collections and merged
+ * volumes remain completion-only until their sections are mapped. Where a
+ * book repeats chapter numbers at distinct locators, numeric progress is
+ * capped before the first ambiguous number.
  */
 export function toHoidReadingPositions(
   progress: AtlasReadingProgress,
@@ -24,22 +28,39 @@ export function toHoidReadingPositions(
     ...Object.keys(progress.completedByBook ?? {}),
   ]);
 
-  return [...ids]
-    .filter(bookId => bookId.trim().length > 0)
-    .sort()
-    .map(bookId => {
-      const rawChapter = progress.chaptersByBook?.[bookId];
-      const chapter = typeof rawChapter === "number" &&
-        Number.isFinite(rawChapter) &&
-        rawChapter >= 0
-        ? Math.floor(rawChapter)
-        : undefined;
-      const completed = progress.completedByBook?.[bookId] === true;
+  const positions: ReadingPosition[] = [];
 
-      return {
-        bookId,
-        ...(chapter !== undefined ? { chapter } : {}),
-        ...(completed ? { completed: true } : {}),
-      };
-    });
+  for (const bookId of [...ids].sort()) {
+    if (!bookId || bookId !== bookId.trim()) continue;
+
+    const policy = getHoidEditionProgressPolicy(bookId);
+    if (policy.kind === "unknown") continue;
+
+    // An explicit user completion is a self-reported reading boundary. Keep
+    // it separate from a numeric chapter cursor, which may be ambiguous for
+    // some editions.
+    if (progress.completedByBook?.[bookId] === true) {
+      positions.push({ bookId, completed: true });
+      continue;
+    }
+
+    const rawChapter = progress.chaptersByBook?.[bookId];
+    if (typeof rawChapter !== "number" || !Number.isSafeInteger(rawChapter) || rawChapter < 1) {
+      continue;
+    }
+
+    if (policy.kind === "numeric-chapters" && rawChapter <= policy.chapterCount) {
+      positions.push({ bookId, chapter: rawChapter });
+      continue;
+    }
+
+    if (
+      policy.kind === "chapter-number-with-duplicate-locators"
+      && rawChapter <= policy.safeNumericProgressThroughChapter
+    ) {
+      positions.push({ bookId, chapter: rawChapter });
+    }
+  }
+
+  return positions;
 }

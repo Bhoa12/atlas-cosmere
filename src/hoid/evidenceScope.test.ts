@@ -44,4 +44,18 @@ describe("isEvidenceUnlocked public boundary", () => {
   it("rejects malformed progress containers", () => {
     expect(isEvidenceUnlocked(entry, null as never)).toBe(false);
   });
+
+  it("rejects positions beyond the inspected edition chapter count", () => {
+    expect(isEvidenceUnlocked(entry, [{ bookId: "tfe", chapter: 39 }])).toBe(false);
+  });
+
+  it("rejects ambiguous chapter numbers in an edition without a unit locator", () => {
+    const elantrisEntry: HoidKnowledgeEntry = {
+      ...entry,
+      firstSafeAppearance: { bookId: "elantris", chapter: 48 },
+      evidenceSource: { bookId: "elantris", chapter: 48, locatorId: "elantris-48" },
+      evidenceUnlock: { bookId: "elantris", chapter: 48 },
+    };
+    expect(isEvidenceUnlocked(elantrisEntry, [{ bookId: "elantris", chapter: 48 }])).toBe(false);
+  });
 });

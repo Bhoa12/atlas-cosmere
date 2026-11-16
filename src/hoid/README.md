@@ -132,3 +132,9 @@ The contract does not itself provide durable storage. Atlas must inject a real a
 ### Progress ledger input boundary
 
 `HoidProgressLedger` canonicalizes both updates and persisted snapshots before reading fields. It rejects accessors, symbols, inherited or unknown properties, sparse arrays and custom array properties; exceptions from hostile proxy traps are contained. JavaScript cannot reliably identify a transparent proxy, so callers and adapters must decode JSON into plain records before crossing this boundary. See `docs/hoid/PROGRESS_LEDGER_SECURITY.md` and `src/hoid/progressLedger.test.ts`.
+
+## Native SQLite progress adapter
+
+`sqliteProgressStore.ts` provides a durable native adapter for the versioned progress ledger. It receives an Expo SQLite-compatible database port rather than importing Expo into the Hoid core. Its compare-and-swap uses an exclusive SQLite transaction and a revision predicate.
+
+The adapter is single-device persistence only. Expo's exclusive transaction API is not supported on web, and this implementation does not provide cloud synchronization. The app must own database opening and lifecycle, install the SDK-compatible `expo-sqlite` package, and complete an on-device integration test before injecting this store into the UI. See `docs/hoid/SQLITE_PROGRESS_STORE.md`.

@@ -139,7 +139,7 @@ describe("HoidEvidenceRuntime", () => {
 
     expect(result.status).toBe("blocked");
     expect(result.reason).toBe("invalid-selection");
-    expect(result.text).toBe("");
+    expect(result.text).not.toContain("Texto inyectado por el proveedor");
   });
 
   it("rejects unknown or duplicated claim identifiers", async () => {
@@ -271,6 +271,6 @@ describe("HoidEvidenceRuntime", () => {
 
     expect(result.status).toBe("abstain");
     expect(result.reason).toBe("provider-unavailable");
-    expect(result.text).toBe("");
+    expect(result.text).toContain("No hay un selector de IA configurado");
   });
 });

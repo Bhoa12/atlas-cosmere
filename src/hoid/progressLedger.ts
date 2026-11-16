@@ -66,10 +66,12 @@ const ALLOWED_UPDATE_KEYS = new Set([
 const ALLOWED_SNAPSHOT_KEYS = new Set(["schemaVersion", "revision", "positions", "updatedAt"]);
 
 /**
- * Copy a plain data record without reading properties through normal access.
- * Getters, symbols, inherited fields, non-enumerable fields and hostile proxies
- * are rejected. The returned object has no prototype and cannot run user code
- * when a field is read.
+ * Copy a plain data record without invoking property getters.
+ * Getters, symbols, inherited fields, non-enumerable fields and proxies whose
+ * reflection traps throw or expose a non-canonical shape are rejected. JavaScript
+ * cannot reliably distinguish a transparent Proxy from a plain object, so
+ * callers and adapters must supply JSON-origin data records. The returned copy
+ * has no prototype and cannot run a getter when a field is read.
  */
 function canonicalDataRecord(
   value: unknown,
@@ -97,9 +99,10 @@ function canonicalDataRecord(
   }
 }
 
-/** Copy a dense JSON-like array without invoking indexed getters or proxy traps
- * outside this guarded boundary. Sparse arrays and custom/symbol properties
- * are rejected rather than normalized.
+/** Copy a dense JSON-like array without invoking indexed getters. Reflection
+ * on a Proxy can execute its traps; those operations are contained here, but a
+ * transparent Proxy cannot be identified reliably in JavaScript. Sparse arrays
+ * and custom/symbol properties are rejected rather than normalized.
  */
 function canonicalArray(value: unknown, maxLength: number): unknown[] | null {
   try {
@@ -121,7 +124,11 @@ function canonicalArray(value: unknown, maxLength: number): unknown[] | null {
     const result: unknown[] = [];
     for (let index = 0; index < length; index += 1) {
       const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value")) return null;
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
       result.push(descriptor.value);
     }
     return result;

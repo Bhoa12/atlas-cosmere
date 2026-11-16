@@ -1,0 +1,35 @@
+name: Hoid reading manifests
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/**"
+      - "docs/hoid/READING_MANIFESTS.md"
+      - ".github/workflows/hoid-reading-manifests.yml"
+  pull_request:
+    paths:
+      - "src/hoid/**"
+      - "docs/hoid/READING_MANIFESTS.md"
+      - ".github/workflows/hoid-reading-manifests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reading-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test edition manifests and Atlas cursor adapter
+        run: npx vitest run src/hoid/editionStructure.test.ts src/hoid/editionProgressValidation.test.ts src/hoid/progressAdapter.test.ts src/hoid/readingManifest.test.ts src/hoid/readingCursorAdapter.test.ts
+      - name: Type-check manifest and cursor boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/readingManifest.ts src/hoid/readingCursorAdapter.ts

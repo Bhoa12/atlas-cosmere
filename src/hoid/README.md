@@ -163,3 +163,12 @@ fallback. See `docs/hoid/STRICT_RUNTIME_INTEGRATION.md`.
 `progressCoordinator.ts` serializes Atlas reading changes through the versioned ledger and projects only validated snapshots back into null-prototype Atlas maps. The native composition adapter in `expoProgressCoordinator.ts` opens the SDK 51-compatible Expo SQLite database. While the ledger is loading or unavailable, Atlas reading controls and Hoid queries stay disabled; a failed or corrupt read is never replaced with a permissive in-memory fallback.
 
 The coordinator treats a reader's completion toggle as an explicit action. Reopening a completed numeric work resets its cursor to chapter 1, while edition structures without a verified numeric cursor remain blocked. Writes are serialized in-process and still use SQLite compare-and-swap for durable conflict detection. This is native, single-device persistence, not cloud synchronization. See `docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md`.
+
+
+## Versioned reading manifests and cursors
+
+`readingManifest.ts` introduces edition-bound cursor IDs for verified numbered chapters. A cursor carries the edition ID and navigation digest, so a cursor from another edition cannot silently authorize the same numeric position. The manifest scope is explicitly numbered-chapters-only: no prologues, interludes, epilogues or other special sections are inferred.
+
+The ambiguous prefixes remain conservative: Elantris exposes only chapters 1–47, and Viento y verdad only 1–11. Arena blanca and Arcanum remain unavailable for partial numeric cursors until their internal structures are inspected and segmented. `readingCursorAdapter.ts` provides a parallel projection from Atlas progress.
+
+This is a v2 contract alongside the existing chapter-based ledger. The persisted schema and EvidenceRuntime have not yet migrated; the legacy contract remains authoritative until an explicit, tested schema migration is implemented. See `docs/hoid/READING_MANIFESTS.md`.

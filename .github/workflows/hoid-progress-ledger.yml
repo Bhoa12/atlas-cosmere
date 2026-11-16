@@ -10,6 +10,7 @@ on:
       - "src/hoid/editionProgressValidation.ts"
       - "src/hoid/editionStructure.ts"
       - "docs/hoid/PROGRESS_LEDGER.md"
+      - "docs/hoid/PROGRESS_LEDGER_SECURITY.md"
       - ".github/workflows/hoid-progress-ledger.yml"
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - "src/hoid/editionProgressValidation.ts"
       - "src/hoid/editionStructure.ts"
       - "docs/hoid/PROGRESS_LEDGER.md"
+      - "docs/hoid/PROGRESS_LEDGER_SECURITY.md"
       - ".github/workflows/hoid-progress-ledger.yml"
 
 permissions:

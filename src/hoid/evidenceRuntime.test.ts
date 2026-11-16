@@ -141,6 +141,41 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
+
+  it("requires every cross-book evidence summary to reach its own unlock chapter", async () => {
+    const scopedKnowledge = knowledge.map(entry => entry.id === "e-kaladin"
+      ? { ...entry, evidenceUnlock: { bookId: "wor", chapter: 4 } }
+      : entry);
+    const selector = vi.fn(async () => ["claim-cross-book"]);
+    const runtime = createHoidEvidenceRuntime({
+      knowledge: scopedKnowledge,
+      claims: [claims[1]],
+      selector: { selectClaims: selector },
+    });
+
+    const oneChapterShort = await runtime!.answer({
+      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      reading: [
+        { bookId: "tfe", chapter: 2 },
+        { bookId: "wor", chapter: 3 },
+      ],
+    });
+    expect(oneChapterShort.status).toBe("abstain");
+    expect(oneChapterShort.reason).toBe("no-authorized-evidence");
+    expect(selector).not.toHaveBeenCalled();
+
+    const bothUnlocked = await runtime!.answer({
+      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      reading: [
+        { bookId: "tfe", chapter: 2 },
+        { bookId: "wor", chapter: 4 },
+      ],
+    });
+    expect(bothUnlocked.status).toBe("authorized");
+    expect(bothUnlocked.evidenceIds).toEqual(["e-kaladin", "e-sazed"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
   it("never renders text supplied by the selector", async () => {
     const runtime = createRuntime(async () => [
       { id: "claim-sazed", text: "Texto inyectado por el proveedor" },
@@ -330,7 +365,7 @@ describe("HoidEvidenceRuntime", () => {
     expect(createHoidEvidenceRuntime({ knowledge: unknownSource, claims, selector: null })).toBeNull();
 
     const invalidLocator = knowledge.map(entry => entry.id === "e-sazed"
-      ? { ...entry, evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "bad\\nlocator" } }
+      ? { ...entry, evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "bad\nlocator" } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: invalidLocator, claims, selector: null })).toBeNull();
   });

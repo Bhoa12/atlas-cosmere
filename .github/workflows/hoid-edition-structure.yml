@@ -1,0 +1,41 @@
+name: Hoid edition structure
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/editionStructure.test.ts"
+      - "src/hoid/progressAdapter.ts"
+      - "src/hoid/progressAdapter.test.ts"
+      - "src/hoid/bibliography.ts"
+      - ".github/workflows/hoid-edition-structure.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/editionStructure.test.ts"
+      - "src/hoid/progressAdapter.ts"
+      - "src/hoid/progressAdapter.test.ts"
+      - "src/hoid/bibliography.ts"
+      - ".github/workflows/hoid-edition-structure.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  edition-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run Hoid tests
+        run: npm run test:hoid
+      - name: Type-check edition and progress boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editionStructure.ts src/hoid/progressAdapter.ts

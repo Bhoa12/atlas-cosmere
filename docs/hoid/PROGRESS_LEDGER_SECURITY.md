@@ -19,7 +19,7 @@ The ledger now copies input into inert data before applying progress policy:
 - Symbol keys, inherited fields, custom prototypes and unknown properties are rejected.
 - Progress arrays must be dense, bounded arrays with no custom or symbol properties.
 - Array indices are read through own property descriptors rather than normal property access.
-- Proxy traps and revoked proxies are contained and treated as invalid data.
+- Exceptions from proxy reflection traps and revoked proxies are contained and treated as invalid data. JavaScript cannot reliably distinguish a transparent `Proxy` from a plain object; callers and adapters must supply JSON-origin records, not arbitrary executable objects.
 - Edition validation runs against the copied records, not against the original caller-owned objects.
 
 A malformed update returns `rejected / invalid-update`. A malformed persisted snapshot returns `unavailable / corrupt-ledger` on read, or `rejected / corrupt-ledger` during update. No partial snapshot is salvaged.
@@ -28,7 +28,7 @@ A malformed update returns `rejected / invalid-update`. A malformed persisted sn
 
 The progress ledger is upstream of chapter authorization. A getter or proxy must not be able to execute while the ledger is deciding whether a work is complete or which chapter has been reached. Otherwise an untrusted value could mutate state during validation or throw out of the expected fail-closed path.
 
-The ledger therefore treats canonicalization as a security boundary, not a convenience conversion. Only the resulting immutable snapshot may be passed to evidence authorization.
+The ledger therefore treats canonicalization as a security boundary, not a convenience conversion. Reflection on a `Proxy` can execute its traps, so this layer contains exceptions and rejects non-canonical results but cannot promise that every transparent proxy is detectable. Application and persistence boundaries must decode JSON into plain records before calling the ledger. Only the resulting immutable snapshot may be passed to evidence authorization.
 
 ## Regression coverage
 

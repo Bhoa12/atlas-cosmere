@@ -1,0 +1,41 @@
+name: Hoid progress ledger
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/progressLedger.test.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/editionStructure.ts"
+      - "docs/hoid/PROGRESS_LEDGER.md"
+      - ".github/workflows/hoid-progress-ledger.yml"
+  pull_request:
+    paths:
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/progressLedger.test.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/editionStructure.ts"
+      - "docs/hoid/PROGRESS_LEDGER.md"
+      - ".github/workflows/hoid-progress-ledger.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  progress-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run progress ledger tests
+        run: npx vitest run src/hoid/progressLedger.test.ts
+      - name: Type-check progress ledger
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/progressLedger.ts

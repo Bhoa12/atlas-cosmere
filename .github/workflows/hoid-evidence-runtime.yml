@@ -9,7 +9,11 @@ on:
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/evidenceScope.test.ts"
+      - "src/hoid/readingValidation.ts"
+      - "src/hoid/readingValidation.test.ts"
+      - "src/hoid/progressCompletionSpoof.test.ts"
       - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/editionProgressValidation.test.ts"
       - "src/hoid/editionStructure.ts"
       - ".github/workflows/hoid-evidence-runtime.yml"
   pull_request:
@@ -18,7 +22,11 @@ on:
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/evidenceScope.test.ts"
+      - "src/hoid/readingValidation.ts"
+      - "src/hoid/readingValidation.test.ts"
+      - "src/hoid/progressCompletionSpoof.test.ts"
       - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/editionProgressValidation.test.ts"
       - "src/hoid/editionStructure.ts"
       - ".github/workflows/hoid-evidence-runtime.yml"
 
@@ -37,7 +45,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Run focused Hoid evidence tests
-        run: npx vitest run src/hoid/evidenceRuntime.test.ts src/hoid/evidenceScope.test.ts src/hoid/editionProgressValidation.test.ts
-      - name: Type-check evidence and edition progress boundaries
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/evidenceRuntime.ts src/hoid/evidenceScope.ts src/hoid/editionProgressValidation.ts src/hoid/editionStructure.ts
+      - name: Run focused Hoid evidence and progress tests
+        run: npx vitest run src/hoid/evidenceRuntime.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingValidation.test.ts src/hoid/progressCompletionSpoof.test.ts src/hoid/editionProgressValidation.test.ts
+      - name: Type-check evidence and progress boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/evidenceRuntime.ts src/hoid/evidenceScope.ts src/hoid/readingValidation.ts src/hoid/editionProgressValidation.ts src/hoid/editionStructure.ts

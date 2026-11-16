@@ -12,14 +12,8 @@ describe("validReadingPositions", () => {
   });
 
   it("rejects the whole snapshot when any position is malformed", () => {
-    expect(validReadingPositions([
-      null,
-      { bookId: "mistborn", chapter: 4 },
-    ])).toBeNull();
-    expect(validReadingPositions([
-      {},
-      { bookId: "mistborn", chapter: 4 },
-    ])).toBeNull();
+    expect(validReadingPositions([null, { bookId: "mistborn", chapter: 4 }])).toBeNull();
+    expect(validReadingPositions([{}, { bookId: "mistborn", chapter: 4 }])).toBeNull();
     expect(validReadingPositions([
       { bookId: "mistborn", chapter: -1 },
       { bookId: "roshar", chapter: 4 },
@@ -59,12 +53,8 @@ describe("validReadingPositions", () => {
   });
 
   it("rejects chapter and completion on the same work", () => {
-    expect(validReadingPositions([
-      { bookId: "tfe", chapter: 1, completed: true },
-    ])).toBeNull();
-    expect(validReadingPositions([
-      { bookId: "tfe", chapter: -1, completed: true },
-    ])).toBeNull();
+    expect(validReadingPositions([{ bookId: "tfe", chapter: 1, completed: true }])).toBeNull();
+    expect(validReadingPositions([{ bookId: "tfe", chapter: -1, completed: true }])).toBeNull();
   });
 
   it("rejects positions with neither chapter nor explicit completion", () => {
@@ -72,14 +62,40 @@ describe("validReadingPositions", () => {
   });
 
   it("rejects unknown fields instead of silently ignoring them", () => {
-    expect(validReadingPositions([
-      { bookId: "tfe", chapter: 4, isFinished: true },
-    ])).toBeNull();
+    expect(validReadingPositions([{ bookId: "tfe", chapter: 4, isFinished: true }])).toBeNull();
   });
 
   it("rejects inherited position fields", () => {
     const inherited = Object.create({ bookId: "tfe", chapter: 38 });
     expect(validReadingPositions([inherited])).toBeNull();
+  });
+
+  it("rejects accessors without invoking them", () => {
+    let getterCalled = false;
+    const accessorPosition = Object.defineProperty({}, "bookId", {
+      enumerable: true,
+      get() {
+        getterCalled = true;
+        return "tfe";
+      },
+    });
+    Object.defineProperty(accessorPosition, "chapter", { enumerable: true, value: 4 });
+
+    expect(validReadingPositions([accessorPosition])).toBeNull();
+    expect(getterCalled).toBe(false);
+  });
+
+  it("rejects symbol properties and hostile proxies", () => {
+    const withSymbol = { bookId: "tfe", chapter: 4 };
+    Object.defineProperty(withSymbol, Symbol("extra"), { value: "ignored" });
+    expect(validReadingPositions([withSymbol])).toBeNull();
+
+    const hostileProxy = new Proxy({}, {
+      getPrototypeOf() {
+        throw new Error("synthetic proxy failure");
+      },
+    });
+    expect(validReadingPositions([hostileProxy])).toBeNull();
   });
 
   it("rejects duplicate positions for one work", () => {

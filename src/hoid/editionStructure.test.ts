@@ -77,7 +77,7 @@ describe("Hoid edition structure", () => {
     const invalid = [{
       ...source,
       works: source.works.map((work, index) => index === 8
-        ? { workIds: ["elantris"], mode: "numeric-chapters" as const, chapterCount: 63 }
+        ? { workIds: ["elantris"], mode: "chapter-number-with-duplicate-locators" as const, chapterCount: 63 }
         : work),
     }, ...HOID_EDITION_STRUCTURES.slice(1)];
 

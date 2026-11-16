@@ -90,3 +90,12 @@ El límite de contexto se aplica después de la autorización. Reducir el contex
 - comprobar la salida del proveedor, incluso cuando su entrada haya sido segura;
 - mantener pruebas separadas para autorización, recuperación, proveedores y filtros;
 - documentar cualquier nueva capacidad de recuperación antes de conectarla a una fuente privada.
+
+
+## Strict evidence-selection runtime
+
+New integrations should prefer `HoidEvidenceRuntime` from `evidenceRuntime.ts` for narrative responses. Its provider is an ID-only selector: it can choose among locally approved original-editorial claims, but Hoid renders the exact claim text from the local registry. It never displays free-form model prose.
+
+Every claim must cite evidence IDs, and every cited evidence item must be retrieved from verified, accessible, chapter-authorized context. Cross-book claims require every cited work and chapter to be unlocked. If no approved claim survives, the runtime abstains.
+
+The older `HoidService` and `HoidPipeline` remain compatibility paths with different provider contracts. Do not assume they provide the same guarantee as the strict ID-only runtime. The strict runtime is not yet wired into `HoidScreen`; a verified editorial claim store and an injected selector adapter are still required.

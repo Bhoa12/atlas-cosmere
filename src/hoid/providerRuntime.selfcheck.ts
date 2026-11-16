@@ -128,7 +128,7 @@ async function main(): Promise<void> {
   assert(noEvidence.kind === "abstain" && noEvidence.reason === "no-authorized-evidence",
     "la ausencia de evidencia autorizada debe terminar en abstención");
 
-  console.log("Hoid provider runtime selfcheck: 10 groups passed.");
+  console.log("Hoid provider runtime selfcheck: 12 groups passed.");
 }
 
 void main();

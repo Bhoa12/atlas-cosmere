@@ -17,7 +17,10 @@ type FakeRow = {
 type FakeState = { row: FakeRow | null };
 
 class FakeTransaction implements HoidSqliteTransactionPort {
-  constructor(private readonly state: FakeState) {}
+  constructor(
+    private readonly state: FakeState,
+    private readonly writes: Array<{ sql: string; params: readonly HoidSqliteBindValue[] }>,
+  ) {}
 
   async execAsync(source: string): Promise<void> {
     if (!source.includes("CREATE TABLE IF NOT EXISTS hoid_progress_ledger")) {
@@ -31,6 +34,7 @@ class FakeTransaction implements HoidSqliteTransactionPort {
   }
 
   async runAsync(source: string, ...params: HoidSqliteBindValue[]): Promise<HoidSqliteRunResult> {
+    this.writes.push({ sql: source, params: [...params] });
     if (source.includes("INSERT OR IGNORE INTO hoid_progress_ledger")) {
       if (this.state.row) return { changes: 0 };
       this.state.row = {
@@ -61,6 +65,7 @@ class FakeSqliteDatabase implements HoidSqliteDatabasePort {
   private row: FakeRow | null = null;
   private transactionTail: Promise<void> = Promise.resolve();
   failNextTransaction: unknown = null;
+  readonly writes: Array<{ sql: string; params: readonly HoidSqliteBindValue[] }> = [];
 
   seed(row: FakeRow | null): void {
     this.row = row ? { ...row } : null;
@@ -96,7 +101,7 @@ class FakeSqliteDatabase implements HoidSqliteDatabasePort {
         this.failNextTransaction = null;
         throw failure;
       }
-      await task(new FakeTransaction(staged));
+      await task(new FakeTransaction(staged, this.writes));
       this.row = staged.row;
     } finally {
       release();
@@ -215,12 +220,15 @@ describe("Expo SQLite Hoid progress store", () => {
     expect(database.inspect()?.revision).toBe(0);
   });
 
-  it("does not interpolate reader-controlled values into SQL statements", async () => {
+  it("binds the serialized snapshot instead of interpolating it into SQL", async () => {
     const database = new FakeSqliteDatabase();
     const ledger = new HoidProgressLedger(new ExpoSqliteHoidProgressStore(database), fixedClock);
     const result = await ledger.update({ expectedRevision: 0, bookId: "tfe", chapter: 1 });
+    const update = database.writes.find(write => write.sql.includes("UPDATE hoid_progress_ledger"));
 
     expect(result.status).toBe("updated");
-    expect(database.inspect()?.payload).toContain('"bookId":"tfe"');
+    expect(update?.sql).not.toContain('"bookId":"tfe"');
+    expect(update?.sql).toContain("WHERE id = 1 AND revision = ?");
+    expect(update?.params[2]).toContain('"bookId":"tfe"');
   });
 });

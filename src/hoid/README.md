@@ -138,3 +138,13 @@ The contract does not itself provide durable storage. Atlas must inject a real a
 `sqliteProgressStore.ts` provides a durable native adapter for the versioned progress ledger. It receives an Expo SQLite-compatible database port rather than importing Expo into the Hoid core. Its compare-and-swap uses an exclusive SQLite transaction and a revision predicate.
 
 The adapter is single-device persistence only. Expo's exclusive transaction API is not supported on web, and this implementation does not provide cloud synchronization. The app must own database opening and lifecycle, install the SDK-compatible `expo-sqlite` package, and complete an on-device integration test before injecting this store into the UI. See `docs/hoid/SQLITE_PROGRESS_STORE.md`.
+
+
+## Fresh-profile progress safety
+
+Fresh Atlas profiles must start with empty chapter and completion maps. Reading
+progress is authorization data and must never inherit sample/demo values. The
+app uses `createEmptyAtlasReadingProgress()`; see
+`docs/hoid/INITIAL_PROGRESS_POLICY.md` and
+`src/hoid/initialProgress.test.ts`. Demo fixtures must remain outside every
+Hoid authorization and provider path.

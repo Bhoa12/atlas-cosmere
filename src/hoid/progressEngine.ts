@@ -3,6 +3,8 @@ export type ProgressStatus = "reading" | "paused" | "completed";
 export interface ProgressCatalogBook {
   readonly bookId: string;
   readonly chapterCount?: number;
+  readonly chapterCountVerified?: true;
+  readonly chapterCountSourceId?: string;
 }
 
 export interface BookProgress {
@@ -143,15 +145,27 @@ function readCatalog(value: unknown): Map<string, ProgressCatalogBook> | null {
   const catalog = new Map<string, ProgressCatalogBook>();
   for (const item of value) {
     if (!isRecord(item) ||
-        !(hasExactKeys(item, ["bookId"]) || hasExactKeys(item, ["bookId", "chapterCount"])) ||
+        !(hasExactKeys(item, ["bookId"]) ||
+          hasExactKeys(item, ["bookId", "chapterCount", "chapterCountVerified", "chapterCountSourceId"])) ||
         !isId(item.bookId) ||
-        (item.chapterCount !== undefined && !isPositiveInteger(item.chapterCount)) ||
         catalog.has(item.bookId)) {
       return null;
     }
+
+    if (item.chapterCount !== undefined &&
+        (!isPositiveInteger(item.chapterCount) ||
+         item.chapterCountVerified !== true ||
+         !isId(item.chapterCountSourceId))) {
+      return null;
+    }
+
     catalog.set(item.bookId, Object.freeze({
       bookId: item.bookId,
-      ...(item.chapterCount === undefined ? {} : { chapterCount: item.chapterCount as number }),
+      ...(item.chapterCount === undefined ? {} : {
+        chapterCount: item.chapterCount as number,
+        chapterCountVerified: true as const,
+        chapterCountSourceId: item.chapterCountSourceId as string,
+      }),
     }));
   }
   return catalog;
@@ -380,8 +394,16 @@ export function selectBookProgress(
   };
 }
 
-/** Returns only explicitly completed IDs for the existing metadata-only reading planner. */
-export function completedBookIds(ledger: ProgressLedger): readonly string[] {
+/** Returns only explicitly completed IDs from a validated snapshot, or null for invalid input. */
+export function completedBookIds(
+  ledgerInput: unknown,
+  catalogInput: unknown,
+): readonly string[] | null {
+  const catalog = readCatalog(catalogInput);
+  if (!catalog) return null;
+  const ledger = readLedger(ledgerInput, catalog);
+  if (!ledger) return null;
+
   return Object.freeze(
     ledger.entries
       .filter((entry) => entry.status === "completed")

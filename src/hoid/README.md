@@ -99,3 +99,10 @@ New integrations should prefer `HoidEvidenceRuntime` from `evidenceRuntime.ts` f
 Every claim must cite evidence IDs, and every cited evidence item must be retrieved from verified, accessible, chapter-authorized context. Cross-book claims require every cited work and chapter to be unlocked. If no approved claim survives, the runtime abstains.
 
 The older `HoidService` and `HoidPipeline` remain compatibility paths with different provider contracts. Do not assume they provide the same guarantee as the strict ID-only runtime. The strict runtime is not yet wired into `HoidScreen`; a verified editorial claim store and an injected selector adapter are still required.
+
+
+## Chapter-bounded evidence
+
+The strict evidence runtime distinguishes an entity's `firstSafeAppearance` from the unlock chapter of each complete editorial summary. Every strict-runtime knowledge entry must include a metadata-only `evidenceSource` (bibliography work, chapter and opaque locator) and an `evidenceUnlock` threshold. A summary is never released merely because its subject was mentioned earlier. Missing or malformed scope is rejected before provider invocation.
+
+Authorized answers return metadata-only source citations. They identify the work, chapter and locator used without copying or exposing EPUB passages.

@@ -17,7 +17,7 @@ on:
       - ".github/workflows/hoid-runtime-selfcheck.yml"
 
 jobs:
-  provider-runtime:
+  hoid-core:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,7 +26,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Run Hoid security selfcheck
+      - name: Run provider boundary selfcheck
         run: npx --yes tsx@4.19.2 src/hoid/providerRuntime.selfcheck.ts
-      - name: Type-check Hoid runtime
-        run: npx --yes --package typescript@5.3.3 tsc --noEmit --strict --target ES2020 --module commonjs src/hoid/providerRuntime.ts src/hoid/providerRuntime.selfcheck.ts
+      - name: Run claim firewall selfcheck
+        run: npx --yes tsx@4.19.2 src/hoid/claimFirewall.selfcheck.ts
+      - name: Run audited explanation selfcheck
+        run: npx --yes tsx@4.19.2 src/hoid/auditedExplanation.selfcheck.ts
+      - name: Run reading plan selfcheck
+        run: npx --yes tsx@4.19.2 src/hoid/readingPlan.selfcheck.ts
+      - name: Strict type-check Hoid core
+        run: >-
+          npx --yes --package typescript@5.3.3 tsc --noEmit --strict
+          --target ES2020 --module commonjs
+          src/hoid/providerRuntime.ts
+          src/hoid/claimFirewall.ts
+          src/hoid/auditedExplanation.ts
+          src/hoid/readingPlan.ts
+          src/hoid/providerRuntime.selfcheck.ts
+          src/hoid/claimFirewall.selfcheck.ts
+          src/hoid/auditedExplanation.selfcheck.ts
+          src/hoid/readingPlan.selfcheck.ts

@@ -235,4 +235,128 @@ describe("Hoid progress ledger", () => {
     expect(result).toEqual({ status: "rejected", reason: "invalid-clock" });
     expect((store.value as HoidProgressLedgerSnapshot).revision).toBe(0);
   });
+
+  it("rejects update accessors without invoking them", async () => {
+    const store = new MemoryProgressStore();
+    const ledger = new HoidProgressLedger(store, fixedClock);
+    let getterCalled = false;
+    const update = { expectedRevision: 0, chapter: 1 } as Record<string, unknown>;
+    Object.defineProperty(update, "bookId", {
+      enumerable: true,
+      get() {
+        getterCalled = true;
+        throw new Error("getter must not run");
+      },
+    });
+
+    expect(await ledger.update(update)).toEqual({ status: "rejected", reason: "invalid-update" });
+    expect(getterCalled).toBe(false);
+    expect((store.value as HoidProgressLedgerSnapshot).revision).toBe(0);
+  });
+
+  it("contains hostile update proxies and returns a rejection instead of throwing", async () => {
+    const ledger = new HoidProgressLedger(new MemoryProgressStore(), fixedClock);
+    const hostile = new Proxy(
+      { expectedRevision: 0, bookId: "tfe", chapter: 1 },
+      {
+        getPrototypeOf() {
+          throw new Error("synthetic proxy failure");
+        },
+      },
+    );
+
+    await expect(ledger.update(hostile)).resolves.toEqual({
+      status: "rejected",
+      reason: "invalid-update",
+    });
+  });
+
+  it("rejects snapshot accessors without invoking them", async () => {
+    const store = new MemoryProgressStore();
+    let getterCalled = false;
+    const snapshot = {
+      schemaVersion: 1,
+      revision: 1,
+      updatedAt: "2026-11-15T12:00:00.000Z",
+    } as Record<string, unknown>;
+    Object.defineProperty(snapshot, "positions", {
+      enumerable: true,
+      get() {
+        getterCalled = true;
+        throw new Error("snapshot getter must not run");
+      },
+    });
+    store.value = snapshot;
+
+    const ledger = new HoidProgressLedger(store, fixedClock);
+    expect(await ledger.read()).toEqual({ status: "unavailable", reason: "corrupt-ledger" });
+    expect(getterCalled).toBe(false);
+  });
+
+  it("rejects hostile snapshot proxies without leaking proxy exceptions", async () => {
+    const store = new MemoryProgressStore();
+    store.value = new Proxy(
+      {
+        schemaVersion: 1,
+        revision: 0,
+        positions: [],
+        updatedAt: null,
+      },
+      {
+        ownKeys() {
+          throw new Error("synthetic ownKeys failure");
+        },
+      },
+    );
+
+    const ledger = new HoidProgressLedger(store, fixedClock);
+    await expect(ledger.read()).resolves.toEqual({
+      status: "unavailable",
+      reason: "corrupt-ledger",
+    });
+  });
+
+  it("rejects sparse progress arrays and arrays with symbol properties", async () => {
+    const sparseStore = new MemoryProgressStore();
+    const sparse = new Array(1);
+    sparseStore.value = {
+      schemaVersion: 1,
+      revision: 1,
+      positions: sparse,
+      updatedAt: "2026-11-15T12:00:00.000Z",
+    };
+    const sparseLedger = new HoidProgressLedger(sparseStore, fixedClock);
+    expect(await sparseLedger.read()).toEqual({ status: "unavailable", reason: "corrupt-ledger" });
+
+    const symbolStore = new MemoryProgressStore();
+    const positions = [{ bookId: "tfe", chapter: 1 }];
+    Object.defineProperty(positions, Symbol("unexpected"), { value: true });
+    symbolStore.value = {
+      schemaVersion: 1,
+      revision: 1,
+      positions,
+      updatedAt: "2026-11-15T12:00:00.000Z",
+    };
+    const symbolLedger = new HoidProgressLedger(symbolStore, fixedClock);
+    expect(await symbolLedger.read()).toEqual({ status: "unavailable", reason: "corrupt-ledger" });
+  });
+
+  it("contains revoked array proxies at the persisted snapshot boundary", async () => {
+    const store = new MemoryProgressStore();
+    const revocable = Proxy.revocable([{ bookId: "tfe", chapter: 1 }], {});
+    revocable.revoke();
+    store.value = {
+      schemaVersion: 1,
+      revision: 1,
+      positions: revocable.proxy,
+      updatedAt: "2026-11-15T12:00:00.000Z",
+    };
+
+    const ledger = new HoidProgressLedger(store, fixedClock);
+    await expect(ledger.read()).resolves.toEqual({
+      status: "unavailable",
+      reason: "corrupt-ledger",
+    });
+  });
+
 });

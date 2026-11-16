@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { HoidService } from '../hoid/HoidService';
 import { toHoidReadingPositions } from '../hoid/progressAdapter';
@@ -17,11 +17,10 @@ export const HoidScreen: React.FC = () => {
     {
       id: '1',
       emisor: 'hoid',
-      texto: 'Saludos, viajero de mundos. Soy Sagaz (Cephandrius para quienes me conocieron antes del Gran Cataclismo). Pregúntame sobre cualquier misterio, filosofía o personaje... pero si tus ojos no han leído esa historia, tendré que tocarte una melodía evasiva.'
+      texto: 'Saludos, viajero de mundos. Soy Sagaz. La frontera de progreso está preparada, pero esta pantalla todavía no tiene un proveedor de IA ni un registro editorial aprobado conectado. No inventaré respuestas mientras falten esas piezas.'
     }
   ]);
   const [input, setInput] = useState('');
-
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando) return;
@@ -32,22 +31,35 @@ export const HoidScreen: React.FC = () => {
     setInput('');
     setCargando(true);
 
-    const service = new HoidService();
-    const reading = toHoidReadingPositions({
-      chaptersByBook: capituloActualPorLibro,
-      completedByBook: librosLeidos,
-    });
-    const result = await service.answer({ question: textoUsuario, reading });
-    setMensajes(prev => [...prev, { id: (Date.now() + 1).toString(), emisor: 'hoid', texto: result.text }]);
-    setCargando(false);
+    try {
+      const service = new HoidService();
+      const reading = toHoidReadingPositions({
+        chaptersByBook: capituloActualPorLibro,
+        completedByBook: librosLeidos,
+      });
+      const result = await service.answer({ question: textoUsuario, reading });
+      setMensajes(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        emisor: 'hoid',
+        texto: result.text,
+      }]);
+    } catch {
+      setMensajes(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        emisor: 'hoid',
+        texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completaré la respuesta mediante suposiciones.',
+      }]);
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>HOID (SAGAZ) • IA CANÓNICA</Text>
-          <Text style={styles.headerSub}>Filtro de conocimiento adaptado a tus lecturas</Text>
+          <Text style={styles.headerTitle}>HOID (SAGAZ) • MODO SEGURO</Text>
+          <Text style={styles.headerSub}>Proveedor no conectado · progreso por edición validado</Text>
         </View>
       </View>
 

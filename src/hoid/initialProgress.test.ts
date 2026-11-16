@@ -32,7 +32,7 @@ describe("safe initial Atlas reading progress", () => {
   it("does not seed the former sample completions", () => {
     const initial = createEmptyAtlasReadingProgress();
 
-    expect(Object.hasOwn(initial.completedByBook, "tfe")).toBe(false);
-    expect(Object.hasOwn(initial.completedByBook, "twok")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(initial.completedByBook, "tfe")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(initial.completedByBook, "twok")).toBe(false);
   });
 });

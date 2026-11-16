@@ -1,6 +1,6 @@
 import { isKnownHoidSource } from "./bibliography";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
-import { isValidKnowledgeEntry, validatedKnowledge } from "./catalogValidation";
+import { validatedKnowledge } from "./catalogValidation";
 import { answerWithinTimeout } from "./providerTimeout";
 import { recommendUnstartedSources, type HoidRecommendation } from "./recommendations";
 import { retrieveAuthorized } from "./retrieval";
@@ -88,22 +88,29 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
   if (!Array.isArray(value) || value.length > MAX_KNOWLEDGE_ENTRIES) return null;
 
   const entries: HoidKnowledgeEntry[] = [];
-  for (const raw of value) {
-    if (!isRecord(raw) || !isValidKnowledgeEntry(raw as unknown as HoidKnowledgeEntry)) return null;
+  const validKinds = new Set(["character", "place", "event", "concept", "magic", "organization", "object"]);
+  const validProvenance = new Set(["verified", "limited", "unavailable"]);
 
-    const entry = raw as unknown as HoidKnowledgeEntry;
-    if (!isKnownHoidSource(entry.firstSafeAppearance.bookId)) return null;
-    if (entry.id.trim().length > MAX_CLAIM_ID_LENGTH) return null;
-    if (entry.aliases.length > 64 || entry.aliases.some(alias => alias.trim().length === 0 || alias.length > 256)) return null;
-    if (entry.provenance !== undefined && !["verified", "limited", "unavailable"].includes(entry.provenance)) return null;
-    if (entry.summary !== undefined && (typeof entry.summary !== "string" || entry.summary.length > MAX_CLAIM_TEXT_LENGTH)) return null;
+  for (const raw of value) {
+    if (!isRecord(raw) || !isRecord(raw.firstSafeAppearance) || !Array.isArray(raw.aliases)) return null;
+    if (typeof raw.id !== "string" || !raw.id.trim() || raw.id.trim().length > MAX_CLAIM_ID_LENGTH) return null;
+    if (typeof raw.kind !== "string" || !validKinds.has(raw.kind)) return null;
+    if (typeof raw.firstSafeAppearance.bookId !== "string" || !isKnownHoidSource(raw.firstSafeAppearance.bookId)) return null;
+    const chapter = raw.firstSafeAppearance.chapter;
+    if (typeof chapter !== "number" || !Number.isFinite(chapter) || !Number.isInteger(chapter) || chapter < 0) return null;
+    if (raw.aliases.length === 0 || raw.aliases.length > 64 || !raw.aliases.every(alias =>
+      typeof alias === "string" && alias.trim().length > 0 && alias.length <= 256
+    )) return null;
+    if (raw.provenance !== undefined && (typeof raw.provenance !== "string" || !validProvenance.has(raw.provenance))) return null;
+    if (raw.summary !== undefined && (typeof raw.summary !== "string" || raw.summary.length > MAX_CLAIM_TEXT_LENGTH)) return null;
 
     entries.push({
-      ...entry,
-      id: entry.id.trim(),
-      aliases: [...entry.aliases],
-      firstSafeAppearance: { ...entry.firstSafeAppearance },
-      ...(entry.summary === undefined ? {} : { summary: entry.summary.trim() }),
+      id: raw.id.trim(),
+      aliases: [...raw.aliases] as string[],
+      kind: raw.kind as HoidKnowledgeEntry["kind"],
+      firstSafeAppearance: { bookId: raw.firstSafeAppearance.bookId, chapter },
+      ...(raw.provenance === undefined ? {} : { provenance: raw.provenance as HoidKnowledgeEntry["provenance"] }),
+      ...(raw.summary === undefined ? {} : { summary: (raw.summary as string).trim() }),
     });
   }
 
@@ -116,7 +123,6 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
     firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
   })));
 }
-
 function canonicalClaims(
   value: unknown,
   knowledgeIds: ReadonlySet<string>,
@@ -286,7 +292,7 @@ export class HoidEvidenceRuntime {
     });
 
     const rawSelection = await answerWithinTimeout(
-      this.selector.selectClaims(selectionRequest),
+      Promise.resolve().then(() => this.selector!.selectClaims(selectionRequest)),
       this.providerTimeoutMs,
     );
 

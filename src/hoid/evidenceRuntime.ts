@@ -278,7 +278,8 @@ export class HoidEvidenceRuntime {
     // firstSafeAppearance protects entity mentions; evidenceUnlock separately protects
     // the full editorial summary. A short alias threshold must never authorize
     // a summary that contains later-chapter detail.
-    const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)\n      .filter(entry => isEvidenceUnlocked(entry, reading));
+    const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)
+      .filter(entry => isEvidenceUnlocked(entry, reading));
     const authorizedEvidenceIds = new Set(authorizedContext.map(entry => entry.id));
     const candidates = this.claims
       .filter(claim => claim.intent === intent && claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)))

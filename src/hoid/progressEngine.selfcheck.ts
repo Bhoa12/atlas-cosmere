@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     catalog,
   );
   assert(unconfirmedCompletion.kind === "abstain" &&
-    unconfirmedCompletion.reason === "invalid-command",
+    unconfirmedCompletion.reason === "completion-unconfirmed",
   "la finalización debe exigir confirmación explícita en el contrato");
 
   const confirmedCompletion = applyProgressCommand(
@@ -149,7 +149,7 @@ async function main(): Promise<void> {
     command("set-status", "mistborn-era1-book1", 6, { status: "reading" }),
     catalog,
   );
-  assert(unconfirmedReopen.kind === "abstain" && unconfirmedReopen.reason === "invalid-command",
+  assert(unconfirmedReopen.kind === "abstain" && unconfirmedReopen.reason === "reopen-unconfirmed",
     "reabrir una obra completada debe requerir confirmación");
 
   const reopened = applyProgressCommand(
@@ -242,7 +242,7 @@ async function main(): Promise<void> {
   assert(storageFailure.kind === "abstain" && storageFailure.reason === "storage-failure",
     "un fallo del almacenamiento debe producir abstención controlada");
 
-  console.log("Hoid progress engine selfcheck: 18 groups passed.");
+  console.log("Hoid progress engine selfcheck: 24 assertions passed.");
 }
 
 void main();

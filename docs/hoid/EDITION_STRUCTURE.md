@@ -60,7 +60,7 @@ Los tres volúmenes de Arena blanca se mantienen como tres IDs bibliográficos, 
 - progreso parcial de Arena blanca o Arcanum: se omite hasta implementar cursores por volumen/sección;
 - finalización explícita del lector: se conserva como autodeclaración independiente del contador numérico.
 
-La omisión significa que Hoid no puede usar esa posición parcial para desbloquear evidencia. No significa que el lector no haya avanzado; significa que el formato actual de progreso no representa ese avance con precisión suficiente.
+La omisión significa que Hoid no puede usar esa posición parcial para desbloquear evidencia. No significa que el lector no haya avanzado; significa que el formato actual de progreso no representa ese avance con precisión suficiente. La misma regla se aplica dentro de `HoidEvidenceRuntime`, `isEvidenceUnlocked()` y el constructor de contexto: llamar directamente al runtime no permite saltarse el adaptador de interfaz.
 
 ## Límites y trabajo pendiente
 

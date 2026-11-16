@@ -108,6 +108,6 @@ Authorized answers return metadata-only source citations. They identify the work
 
 `editionStructure.ts` records metadata-only chapter counts and SHA-256 fingerprints of the EPUB navigation documents inspected for the supplied source editions. It stores no chapter titles, locators, summaries or narrative text.
 
-`toHoidReadingPositions()` now applies those edition policies before the legacy UI progress enters the authorization pipeline. Unknown works, out-of-range chapters and ambiguous numeric positions are omitted. The combined White Sand navigation and the multi-work Arcanum collection do not receive invented global chapter counts. Elantris and Viento y verdad are capped before their first duplicated chapter number until Atlas supplies an unambiguous unit locator.
+`toHoidReadingPositions()` now applies those edition policies before the legacy UI progress enters the authorization pipeline. The strict runtime repeats the same checks through `validEditionBoundReadingPositions()`, so a direct caller cannot bypass the UI adapter. Unknown works, out-of-range chapters and ambiguous numeric positions are omitted at the adapter and rejected at the strict runtime boundary. The combined White Sand navigation and the multi-work Arcanum collection do not receive invented global chapter counts. Elantris and Viento y verdad are capped before their first duplicated chapter number until Atlas supplies an unambiguous unit locator.
 
 See `docs/hoid/EDITION_STRUCTURE.md` for the inspected metadata, counts and explicit limitations.

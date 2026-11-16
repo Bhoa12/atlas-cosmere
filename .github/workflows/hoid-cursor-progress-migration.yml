@@ -1,0 +1,43 @@
+name: Hoid cursor progress migration
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/cursorProgressLedger.test.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "docs/hoid/CURSOR_PROGRESS_MIGRATION.md"
+      - ".github/workflows/hoid-cursor-progress-migration.yml"
+  pull_request:
+    paths:
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/cursorProgressLedger.test.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "docs/hoid/CURSOR_PROGRESS_MIGRATION.md"
+      - ".github/workflows/hoid-cursor-progress-migration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cursor-progress-migration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cursor snapshot migration and adjacent contracts
+        run: npx vitest run src/hoid/cursorProgressLedger.test.ts src/hoid/progressLedger.test.ts src/hoid/readingManifest.test.ts src/hoid/readingCursorAdapter.test.ts
+      - name: Type-check cursor progress boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/cursorProgressLedger.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/editionProgressValidation.ts src/hoid/progressLedger.ts src/hoid/types.ts src/hoid/bibliography.ts

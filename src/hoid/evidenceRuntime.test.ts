@@ -12,6 +12,8 @@ const knowledge: HoidKnowledgeEntry[] = [
     aliases: ["Sazed"],
     kind: "character",
     firstSafeAppearance: { bookId: "tfe", chapter: 2 },
+    evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "tfe-chapter-2" },
+    evidenceUnlock: { bookId: "tfe", chapter: 2 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Sazed.",
   },
@@ -20,6 +22,8 @@ const knowledge: HoidKnowledgeEntry[] = [
     aliases: ["Kaladin"],
     kind: "character",
     firstSafeAppearance: { bookId: "wor", chapter: 3 },
+    evidenceSource: { bookId: "wor", chapter: 3, locatorId: "wor-chapter-3" },
+    evidenceUnlock: { bookId: "wor", chapter: 3 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Kaladin.",
   },
@@ -28,6 +32,8 @@ const knowledge: HoidKnowledgeEntry[] = [
     aliases: ["Concepto limitado"],
     kind: "concept",
     firstSafeAppearance: { bookId: "tfe", chapter: 1 },
+    evidenceSource: { bookId: "tfe", chapter: 1, locatorId: "tfe-chapter-1" },
+    evidenceUnlock: { bookId: "tfe", chapter: 1 },
     provenance: "limited",
     summary: "Resumen que todavía no puede utilizarse como evidencia.",
   },
@@ -94,6 +100,14 @@ describe("HoidEvidenceRuntime", () => {
     expect(result.text).toBe("Afirmación editorial aprobada sobre Sazed.");
     expect(result.claimIds).toEqual(["claim-sazed"]);
     expect(result.evidenceIds).toEqual(["e-sazed"]);
+    expect(result.sources).toEqual([{
+      evidenceId: "e-sazed",
+      sourceBookId: "tfe",
+      sourceChapter: 2,
+      locatorId: "tfe-chapter-2",
+      unlockBookId: "tfe",
+      unlockChapter: 2,
+    }]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
@@ -259,6 +273,66 @@ describe("HoidEvidenceRuntime", () => {
     expect(result.status).toBe("abstain");
     expect(result.reason).toBe("provider-unavailable");
     expect(result.text).toContain("El selector no está disponible");
+  });
+
+
+  it("keeps a summary locked until its explicit evidence unlock chapter", async () => {
+    const delayedKnowledge = knowledge.map(entry => entry.id === "e-sazed"
+      ? {
+          ...entry,
+          evidenceUnlock: { bookId: "tfe", chapter: 5 },
+        }
+      : entry);
+    const selector = vi.fn(async () => ["claim-sazed"]);
+    const runtime = createHoidEvidenceRuntime({
+      knowledge: delayedKnowledge,
+      claims: [claims[0]],
+      selector: { selectClaims: selector },
+    });
+
+    const beforeUnlock = await runtime!.answer({
+      question: "¿Quién es Sazed?",
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    });
+    expect(beforeUnlock.status).toBe("abstain");
+    expect(beforeUnlock.reason).toBe("no-authorized-evidence");
+    expect(selector).not.toHaveBeenCalled();
+
+    const atUnlock = await runtime!.answer({
+      question: "¿Quién es Sazed?",
+      reading: [{ bookId: "tfe", chapter: 5 }],
+    });
+    expect(atUnlock.status).toBe("authorized");
+    expect(atUnlock.sources[0].unlockChapter).toBe(5);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when evidence source or unlock metadata is missing", () => {
+    const missingUnlock = knowledge.map(entry => {
+      if (entry.id !== "e-sazed") return entry;
+      const { evidenceUnlock: _ignored, ...withoutUnlock } = entry;
+      return withoutUnlock as HoidKnowledgeEntry;
+    });
+    expect(createHoidEvidenceRuntime({ knowledge: missingUnlock, claims, selector: null })).toBeNull();
+  });
+
+  it("rejects evidence whose unlock precedes its source chapter", () => {
+    const invalidScope = knowledge.map(entry => entry.id === "e-sazed"
+      ? { ...entry, evidenceUnlock: { bookId: "tfe", chapter: 1 } }
+      : entry);
+    expect(createHoidEvidenceRuntime({ knowledge: invalidScope, claims, selector: null })).toBeNull();
+  });
+
+  it("rejects unknown source works and malformed chapter locators", () => {
+    const unknownSource = knowledge.map(entry => entry.id === "e-sazed"
+      ? { ...entry, evidenceSource: { bookId: "unknown-work", chapter: 2, locatorId: "x" }, evidenceUnlock: { bookId: "unknown-work", chapter: 2 } }
+      : entry);
+    expect(createHoidEvidenceRuntime({ knowledge: unknownSource, claims, selector: null })).toBeNull();
+
+    const invalidLocator = knowledge.map(entry => entry.id === "e-sazed"
+      ? { ...entry, evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "bad\\nlocator" } }
+      : entry);
+    expect(createHoidEvidenceRuntime({ knowledge: invalidLocator, claims, selector: null })).toBeNull();
   });
 
   it("returns an explicit abstention when no provider is configured", async () => {

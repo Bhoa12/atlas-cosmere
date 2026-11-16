@@ -211,7 +211,7 @@ describe("HoidEvidenceRuntime", () => {
 
     expect(result.status).toBe("abstain");
     expect(result.reason).toBe("provider-unavailable");
-    expect(result.text).toBe("");
+    expect(result.text).toContain("El selector no está disponible");
   });
 
   it("keeps recommendations metadata-only and rejects malformed progress", () => {

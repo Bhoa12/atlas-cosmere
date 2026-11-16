@@ -1,0 +1,32 @@
+name: Hoid runtime selfcheck
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/**"
+      - "docs/hoid/**"
+      - ".github/workflows/hoid-runtime-selfcheck.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/hoid/**"
+      - "docs/hoid/**"
+      - ".github/workflows/hoid-runtime-selfcheck.yml"
+
+jobs:
+  provider-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run Hoid security selfcheck
+        run: npx --yes tsx@4.19.2 src/hoid/providerRuntime.selfcheck.ts
+      - name: Type-check Hoid runtime
+        run: npx --yes --package typescript@5.3.3 tsc --noEmit --strict --target ES2020 --module commonjs src/hoid/providerRuntime.ts src/hoid/providerRuntime.selfcheck.ts

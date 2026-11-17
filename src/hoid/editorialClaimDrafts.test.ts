@@ -114,6 +114,20 @@ describe("Hoid atomic editorial claim drafts", () => {
     if (completed.status === "ready") expect(completed.evaluations[0].status).toBe("eligible-for-review");
   });
 
+  it("waits for a later per-source unlock threshold even when the source chapter is verified", () => {
+    const value = draft("synthetic.later-unlock", [evidence("twok", 1, 2)]);
+    const before = evaluateHoidEditorialClaimDrafts([value], [
+      { bookId: "twok", chapter: 1 },
+    ]);
+    const reached = evaluateHoidEditorialClaimDrafts([value], [
+      { bookId: "twok", chapter: 2 },
+    ]);
+    expect(before.status).toBe("ready");
+    if (before.status === "ready") expect(before.evaluations[0].status).toBe("withheld");
+    expect(reached.status).toBe("ready");
+    if (reached.status === "ready") expect(reached.evaluations[0].status).toBe("eligible-for-review");
+  });
+
   it("rejects an unlock threshold before its source chapter", () => {
     const item = evidence("twok");
     const invalid = {

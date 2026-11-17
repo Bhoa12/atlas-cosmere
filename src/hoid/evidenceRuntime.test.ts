@@ -234,7 +234,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Quién es Sazed?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "tfe", chapter: 99 },
+        { bookId: "twok", chapter: 99 },
       ],
     });
 

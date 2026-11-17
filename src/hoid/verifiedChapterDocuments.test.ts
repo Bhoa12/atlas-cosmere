@@ -47,6 +47,25 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       2,
     )).toBe("511dd868f3feb65f3cc28566bbac167762ad70dddccffcae863be31e64f144dc");
+
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      3,
+    )).toBe("aad893dde20e24a5444100d260f4d466f6ef553a13d676457d6f42015d774a0e");
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      3,
+    )).toBe("2a82686dd7fa7908d4b175f9b03f165309e08ccbb2294c6bcd32443b6d0d3905");
+    expect(getVerifiedChapterDocumentSha256(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      3,
+    )).toBe("709bca2ea215db4e90fc654b4b503a7c71d96bb40a508d5347ec83006b8cc286");
   });
 
   it("returns only the two individually inspected Mistborn chapter digests", () => {
@@ -85,11 +104,11 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      3,
+      4,
     )).toBeNull();
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(2);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(2);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(2);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(3);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(3);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(3);
     expect(getVerifiedChapterDocumentCount("unknown-work")).toBe(0);
   });
 

@@ -295,3 +295,14 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - Two new character drafts (Vin and Kelsier) are pending editorial review. They are not production knowledge and do not populate the approved entity or alias registries.
 - One atomic claim draft is staged for the chapter-2 Vin material, with its own SHA-256 integrity and chapter-3 completion threshold. It remains pending review and is not available to the answer runtime.
 - No EPUB bytes or source passages were committed. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md and docs/hoid/COSMERE_TFE_CHAPTERS_1_2_INGESTION.md.
+
+
+## Run 116 — chapter-three ingestion and relationship claim staging
+
+- Three additional chapter-three XHTML documents were inspected from the currently accessible Roshar EPUBs. Their navigation digests were rechecked and individual document SHA-256 values were added to the sparse verification allowlist.
+- Three original summaries are staged for El camino de los reyes, Danzante del Filo and Esquirla del amanecer. Each uses a chapter-four unlock threshold and remains pending review.
+- Schema v2 stages binary relationships with subject/object evidence-index mappings and explicit relation-evidence indices. Every participant must be covered by the evidence that supports the relation.
+- Relationship drafts reuse the existing atomic-claim validator for edition-bound locators, source hashes and AND authorization. Cross-work claims remain withheld until every source threshold is met.
+- Relationship review packets have a separate seven-part checklist, including entity identity. Approval only returns an awaiting-promotion outcome; it never writes to production.
+- Three relationship examples are staging-only. They do not create approved entities, aliases or graph edges. Production registries remain empty.
+- No EPUB bytes or source passages were committed. See docs/hoid/ROSHAR_CHAPTER_THREE_INGESTION.md and docs/hoid/EDITORIAL_RELATIONSHIP_CLAIMS.md.

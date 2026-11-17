@@ -73,6 +73,12 @@ describe("cosmere.epub navigation audit", () => {
       expect(getVerifiedChapterDocumentCount(bookId)).toBe(bookId === "tfe" ? 2 : 0);
     }
     expect(getVerifiedChapterDocumentCount("tfe")).toBe(2);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(3);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(3);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(3);
+    for (const bookId of ["wor", "ob", "row", "sawt"]) {
+      expect(getVerifiedChapterDocumentCount(bookId)).toBe(0);
+    }
   });
 
   it("preserves the existing Roshar locator inventory", () => {

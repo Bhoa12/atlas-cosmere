@@ -87,9 +87,9 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       4,
     )).toBe("a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb");
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(6);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(7);
   });
 
   it("returns the three individually inspected Roshar chapter-five digests", () => {
@@ -111,9 +111,9 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       5,
     )).toBe("3aefc41eadb2b580c80d738552b3d10e1f93fd7c8755cf98b824e6922a9df515");
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(6);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(7);
   });
 
   it("returns only the two individually inspected Mistborn chapter digests", () => {
@@ -152,12 +152,36 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      7,
+      8,
     )).toBeNull();
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(6);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(7);
     expect(getVerifiedChapterDocumentCount("unknown-work")).toBe(0);
+  });
+
+  it("returns the three individually inspected Roshar chapter-seven digests", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      7,
+    )).toBe("30d9cecf9748261ad6e47fcea6064ac2f93ec523e8fe6a2d528d76306233bebb");
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      7,
+    )).toBe("c98233f98e7b5368a1e9e1d6db216ebbc4c22b43aa056624758a76ff67d7540f");
+    expect(getVerifiedChapterDocumentSha256(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      7,
+    )).toBe("c2d2eb939495f883a1d507a42728ca3f39b561534e6984de56af574872066aaf");
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(7);
   });
 
   it("rejects malformed input", () => {
@@ -185,9 +209,9 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       6,
     )).toBe("4025cf190a6b7d6e17d66036705f6aa1f16f3194b3964a29ea4aa77249a3bc3b");
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(6);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(6);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(7);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(7);
   });
 
 

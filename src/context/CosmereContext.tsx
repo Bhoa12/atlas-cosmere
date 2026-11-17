@@ -20,7 +20,7 @@ interface ComentarioComunidad {
 }
 
 interface CosmereContextType {
-  reinoCognitivoActivo: boolean; // INTERRUPTOR DE SHADESMAR
+  reinoCognitivoActivo: boolean;
   librosLeidos: { [libroId: string]: boolean };
   capituloActualPorLibro: { [libroId: string]: number };
   puntosInvestidura: number;
@@ -33,6 +33,8 @@ interface CosmereContextType {
   toggleLibroLeido: (libroId: string) => void;
   setCapituloLibro: (libroId: string, cap: number) => Promise<HoidCursorCoordinatorResult | null>;
   hoidCursorProgressSnapshot: HoidCursorProgressSnapshot | null;
+  /** Reads the coordinator's live snapshot, including commits not yet projected into React state. */
+  getHoidCursorProgressSnapshot: () => HoidCursorProgressSnapshot | null;
   sumarPuntosTestUnico: (testId: string, puntos: number) => boolean;
   setApodoActivo: (apodo: string) => void;
   setNombreUsuario: (nombre: string) => void;
@@ -47,8 +49,6 @@ const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
 
 export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [reinoCognitivoActivo, setReinoCognitivoActivo] = useState(false);
-  // Progress is security-sensitive authorization data. Fresh profiles
-  // start empty; demo fixtures must never be fed into Hoid's spoiler boundary.
   const [initialReadingProgress] = useState(createEmptyAtlasReadingProgress);
   const [librosLeidos, setLibrosLeidos] = useState(initialReadingProgress.completedByBook);
   const [capituloActualPorLibro, setCapituloActualPorLibro] = useState(initialReadingProgress.chaptersByBook);
@@ -109,9 +109,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   ]);
 
-  const toggleReinoCognitivo = () => {
-    setReinoCognitivoActivo(prev => !prev);
-  };
+  const toggleReinoCognitivo = () => setReinoCognitivoActivo(prev => !prev);
 
   const totalLibrosEnUniverso = SISTEMAS_COSMERE_COMPLETO.reduce((acc, sis) => acc + sis.libros.length, 0);
   const totalLeidosCount = Object.values(librosLeidos).filter(Boolean).length;
@@ -159,8 +157,6 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return { status: 'rejected', reason };
     }
 
-    // Ordinary Atlas chapter updates are forward-only. Corrections require a
-    // separate confirmed operation and cannot pass through this setter.
     const result = await cursorProgressCoordinator.advance(libroId, created.cursor);
     aplicarResultadoProgreso(result);
     return result;
@@ -185,6 +181,12 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   })();
 
   const esContenidoDesbloqueado = (desbloqueoLibroId: string) => !!librosLeidos[desbloqueoLibroId];
+
+  const getHoidCursorProgressSnapshot = (): HoidCursorProgressSnapshot | null => {
+    return cursorProgressCoordinator
+      ? cursorProgressCoordinator.getSnapshot()
+      : hoidCursorProgressSnapshot;
+  };
 
   const agregarComentario = (sagaId: string, libroId: string, capitulo: number, texto: string) => {
     const nuevo: ComentarioComunidad = {
@@ -225,7 +227,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       esContenidoDesbloqueado,
       todosLosLibrosLeidos,
       progresoPersistenciaEstado,
-      hoidCursorProgressSnapshot
+      hoidCursorProgressSnapshot,
+      getHoidCursorProgressSnapshot,
     }}>
       {children}
     </CosmereContext.Provider>

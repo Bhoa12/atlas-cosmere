@@ -28,6 +28,17 @@ const answer: HoidEvidenceAnswer = Object.freeze({
   sources: Object.freeze([]),
 });
 
+const tfeRecommendation = Object.freeze({
+  sourceId: "tfe",
+  title: "El Imperio Final",
+  reason: "unread-source",
+});
+const elantrisRecommendation = Object.freeze({
+  sourceId: "elantris",
+  title: "Elantris",
+  reason: "unread-source",
+});
+
 function setup(initial = snapshot(3)) {
   let current: unknown = initial;
   const runtime = { answer: vi.fn(async () => answer) };
@@ -166,5 +177,132 @@ describe("HoidConversationGateway", () => {
     expect(await gateway.answer({ question: "Pregunta\u0000", progress: snapshot(3) }))
       .toEqual({ status: "unavailable", reason: "invalid-request" });
     expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("returns only catalogue-backed, unstarted recommendations", async () => {
+    const current = snapshot(3);
+    const runtime = {
+      answer: vi.fn(async () => answer),
+      recommend: vi.fn(async () => ({
+        status: "ready" as const,
+        items: [tfeRecommendation, elantrisRecommendation],
+      })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.recommend({ progress: current, limit: 2 });
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.items).toEqual([tfeRecommendation, elantrisRecommendation]);
+    expect(result.progressRevision).toBe(1);
+    expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(runtime.recommend).toHaveBeenCalledWith(current, 2);
+  });
+
+  it("does not invoke the recommender when the request snapshot is stale", async () => {
+    const current = snapshot(4);
+    const runtime = {
+      answer: vi.fn(async () => answer),
+      recommend: vi.fn(async () => ({ status: "ready" as const, items: [tfeRecommendation] })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.recommend({ progress: snapshot(3), limit: 1 });
+    expect(result).toEqual({ status: "unavailable", reason: "progress-changed" });
+    expect(runtime.recommend).not.toHaveBeenCalled();
+  });
+
+  it("discards recommendations if progress changes while the recommender is pending", async () => {
+    let finish: ((value: unknown) => void) | undefined;
+    const initial = snapshot(3);
+    let current: unknown = initial;
+    const runtime = {
+      answer: vi.fn(async () => answer),
+      recommend: vi.fn(() => new Promise(resolve => { finish = resolve; })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const pending = gateway.recommend({ progress: initial, limit: 1 });
+    current = snapshot(4);
+    finish?.({ status: "ready", items: [tfeRecommendation] });
+
+    const result = await pending;
+    expect(result).toEqual({ status: "unavailable", reason: "progress-changed" });
+    expect(result).not.toHaveProperty("items");
+  });
+
+  it("rejects started, unknown, duplicate and title-mismatched recommendation entries", async () => {
+    const current = snapshot(3);
+    const invalidBatches = [
+      [{ sourceId: "twok", title: "El Camino de los Reyes", reason: "unread-source" }],
+      [{ sourceId: "unknown", title: "Obra desconocida", reason: "unread-source" }],
+      [{ sourceId: "tfe", title: "Título manipulado", reason: "unread-source" }],
+      [tfeRecommendation, tfeRecommendation],
+    ];
+
+    for (const items of invalidBatches) {
+      const gateway = createHoidConversationGateway({
+        runtime: {
+          answer: vi.fn(async () => answer),
+          recommend: vi.fn(async () => ({ status: "ready" as const, items })),
+        },
+        getCurrentProgress: () => current,
+      });
+      if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+      expect(await gateway.recommend({ progress: current, limit: 3 }))
+        .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
+    }
+  });
+
+  it("rejects recommendation requests with extra properties or invalid limits", async () => {
+    const current = snapshot(3);
+    const runtime = {
+      answer: vi.fn(async () => answer),
+      recommend: vi.fn(async () => ({ status: "ready" as const, items: [] })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.recommend({ progress: current, extra: true }))
+      .toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(await gateway.recommend({ progress: current, limit: 21 }))
+      .toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.recommend).not.toHaveBeenCalled();
+  });
+
+  it("abstains when the runtime has no recommendation capability", async () => {
+    const { gateway } = setup();
+    expect(await gateway.recommend({ progress: snapshot(3), limit: 3 }))
+      .toEqual({ status: "unavailable", reason: "runtime-unavailable" });
+  });
+
+  it("treats an invalid-progress recommendation result as unavailable", async () => {
+    const current = snapshot(3);
+    const gateway = createHoidConversationGateway({
+      runtime: {
+        answer: vi.fn(async () => answer),
+        recommend: vi.fn(async () => ({ status: "abstain" as const, reason: "invalid-progress" as const, items: [] as const })),
+      },
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.recommend({ progress: current }))
+      .toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
 });

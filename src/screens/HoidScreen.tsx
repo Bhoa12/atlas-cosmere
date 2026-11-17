@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
 import { createHoidCursorEvidenceRuntime } from '../hoid/cursorEvidenceRuntime';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
+import type { HoidRecommendation } from '../hoid/recommendations';
 
 const editorialRuntime = createHoidEditorialRuntime();
 const hoidRuntime = editorialRuntime ? createHoidCursorEvidenceRuntime(editorialRuntime) : null;
@@ -15,13 +16,19 @@ interface Mensaje {
 }
 
 export const HoidScreen: React.FC = () => {
-  const { hoidCursorProgressSnapshot, progresoPersistenciaEstado } = useCosmere();
-  const progressRef = useRef(hoidCursorProgressSnapshot);
-  progressRef.current = hoidCursorProgressSnapshot;
+  const {
+    hoidCursorProgressSnapshot,
+    getHoidCursorProgressSnapshot,
+    progresoPersistenciaEstado,
+  } = useCosmere();
+  const progressReaderRef = useRef(getHoidCursorProgressSnapshot);
+  progressReaderRef.current = getHoidCursorProgressSnapshot;
   const conversationGateway = hoidRuntime
-    ? createHoidConversationGateway({ runtime: hoidRuntime, getCurrentProgress: () => progressRef.current })
+    ? createHoidConversationGateway({ runtime: hoidRuntime, getCurrentProgress: () => progressReaderRef.current() })
     : null;
+
   const [cargando, setCargando] = useState(false);
+  const [cargandoRecomendaciones, setCargandoRecomendaciones] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
       id: '1',
@@ -30,9 +37,20 @@ export const HoidScreen: React.FC = () => {
     }
   ]);
   const [input, setInput] = useState('');
+  const [recomendaciones, setRecomendaciones] = useState<readonly HoidRecommendation[]>([]);
+  const [recommendationRevision, setRecommendationRevision] = useState<number | null>(null);
+  const [recommendationMessage, setRecommendationMessage] = useState('');
+
+  useEffect(() => {
+    setRecomendaciones([]);
+    setRecommendationRevision(null);
+    setRecommendationMessage('');
+  }, [hoidCursorProgressSnapshot?.revision, progresoPersistenciaEstado]);
 
   const enviarMensaje = async () => {
-    if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready' || !hoidCursorProgressSnapshot) return;
+    if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
+    const currentProgress = progressReaderRef.current();
+    if (!currentProgress) return;
 
     const textoUsuario = input.trim();
     const nuevoMsgUsuario: Mensaje = { id: Date.now().toString(), emisor: 'usuario', texto: textoUsuario };
@@ -42,7 +60,7 @@ export const HoidScreen: React.FC = () => {
 
     try {
       const result = conversationGateway
-        ? await conversationGateway.answer({ question: textoUsuario, progress: hoidCursorProgressSnapshot })
+        ? await conversationGateway.answer({ question: textoUsuario, progress: currentProgress })
         : null;
       const respuesta = result?.status === 'ready'
         ? result.answer.text
@@ -67,6 +85,51 @@ export const HoidScreen: React.FC = () => {
     }
   };
 
+  const cargarRecomendaciones = async () => {
+    if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready' || !conversationGateway) return;
+    const currentProgress = progressReaderRef.current();
+    if (!currentProgress) {
+      setRecomendaciones([]);
+      setRecommendationRevision(null);
+      setRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones.');
+      return;
+    }
+
+    setCargandoRecomendaciones(true);
+    setRecomendaciones([]);
+    setRecommendationRevision(null);
+    setRecommendationMessage('');
+
+    try {
+      const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
+      if (result.status === 'ready') {
+        setRecomendaciones(result.items);
+        setRecommendationRevision(result.progressRevision);
+        setRecommendationMessage(result.items.length === 0
+          ? 'No quedan obras sin empezar en el catálogo actual.'
+          : 'Son obras del catálogo que todavía no has empezado; el orden no representa una ruta de lectura.');
+      } else {
+        setRecomendaciones([]);
+        setRecommendationRevision(null);
+        setRecommendationMessage(result.reason === 'progress-changed'
+          ? 'Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.'
+          : 'No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
+      }
+    } catch {
+      setRecomendaciones([]);
+      setRecommendationRevision(null);
+      setRecommendationMessage('No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
+    } finally {
+      setCargandoRecomendaciones(false);
+    }
+  };
+
+  const liveProgress = progressReaderRef.current();
+  const recommendationsAreCurrent =
+    recommendationRevision !== null &&
+    liveProgress !== null &&
+    recommendationRevision === liveProgress.revision;
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.header}>
@@ -82,6 +145,38 @@ export const HoidScreen: React.FC = () => {
                   : 'Registro editorial disponible · runtime estricto'}
           </Text>
         </View>
+      </View>
+
+      <View style={styles.recommendationPanel}>
+        <View style={styles.recommendationHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.recommendationTitle}>DESCUBRIR OBRAS</Text>
+            <Text style={styles.recommendationNote}>
+              Solo catálogo y progreso; no establece un orden de lectura.
+            </Text>
+          </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            disabled={progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !conversationGateway}
+            style={[
+              styles.recommendationButton,
+              (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !conversationGateway) && styles.disabledButton,
+            ]}
+            onPress={cargarRecomendaciones}
+          >
+            <Text style={styles.recommendationButtonText}>Explorar</Text>
+          </TouchableOpacity>
+        </View>
+        {cargandoRecomendaciones && <ActivityIndicator color="#818cf8" style={{ marginTop: 8 }} />}
+        {recommendationMessage.length > 0 && (
+          <Text style={styles.recommendationMessage}>{recommendationMessage}</Text>
+        )}
+        {recommendationsAreCurrent && recomendaciones.map(item => (
+          <View key={item.sourceId} style={styles.recommendationItem}>
+            <Text style={styles.recommendationItemText}>{item.title}</Text>
+            <Text style={styles.recommendationItemMeta}>Todavía no empezada</Text>
+          </View>
+        ))}
       </View>
 
       <FlatList
@@ -107,7 +202,7 @@ export const HoidScreen: React.FC = () => {
           editable={progresoPersistenciaEstado === 'ready'}
           onChangeText={setInput}
         />
-        <TouchableOpacity disabled={progresoPersistenciaEstado !== 'ready' || cargando} style={[styles.sendButton, (progresoPersistenciaEstado !== 'ready' || cargando) && { opacity: 0.45 }]} onPress={enviarMensaje}>
+        <TouchableOpacity disabled={progresoPersistenciaEstado !== 'ready' || cargando} style={[styles.sendButton, (progresoPersistenciaEstado !== 'ready' || cargando) && styles.disabledButton]} onPress={enviarMensaje}>
           <Text style={styles.sendButtonText}>➔</Text>
         </TouchableOpacity>
       </View>
@@ -120,11 +215,17 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0f172a', borderBottomWidth: 1, borderColor: '#1e293b' },
   headerTitle: { color: '#f8fafc', fontSize: 14, fontWeight: '900', letterSpacing: 1.5 },
   headerSub: { color: '#818cf8', fontSize: 11, marginTop: 2 },
-  keyBtn: { backgroundColor: '#1e293b', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-  keyBtnText: { color: '#38bdf8', fontSize: 11, fontWeight: 'bold' },
-  keyBox: { backgroundColor: '#131e36', padding: 12, borderBottomWidth: 1, borderColor: '#1e293b' },
-  keyLabel: { color: '#cbd5e1', fontSize: 11, marginBottom: 6 },
-  keyInput: { backgroundColor: '#090d16', color: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, fontSize: 12, borderWidth: 1, borderColor: '#334155' },
+  recommendationPanel: { padding: 12, backgroundColor: '#101a2e', borderBottomWidth: 1, borderColor: '#1e293b' },
+  recommendationHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  recommendationTitle: { color: '#e2e8f0', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
+  recommendationNote: { color: '#94a3b8', fontSize: 10, marginTop: 3 },
+  recommendationButton: { backgroundColor: '#312e81', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
+  recommendationButtonText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
+  recommendationMessage: { color: '#cbd5e1', fontSize: 11, lineHeight: 16, marginTop: 8 },
+  recommendationItem: { paddingVertical: 7, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 7 },
+  recommendationItemText: { color: '#f8fafc', fontSize: 12, fontWeight: '700' },
+  recommendationItemMeta: { color: '#94a3b8', fontSize: 10, marginTop: 2 },
+  disabledButton: { opacity: 0.45 },
   chatList: { padding: 16, paddingBottom: 20 },
   bubble: { padding: 14, borderRadius: 14, marginBottom: 12, maxWidth: '85%' },
   userBubble: { alignSelf: 'flex-end', backgroundColor: '#0284c7' },

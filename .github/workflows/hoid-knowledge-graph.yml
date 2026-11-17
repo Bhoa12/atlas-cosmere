@@ -15,6 +15,8 @@ on:
       - "src/hoid/conversationGateway.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/screens/HoidScreen.tsx"
+      - "src/context/CosmereContext.tsx"
+      - "src/hoid/recommendations.ts"
       - "src/hoid/sha256.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
@@ -37,6 +39,7 @@ on:
       - "docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md"
       - "docs/hoid/ENTITY_RESOLUTION.md"
       - "docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md"
+      - "docs/hoid/RECOMMENDATION_POLICY.md"
       - ".github/workflows/hoid-knowledge-graph.yml"
   pull_request:
     paths:
@@ -50,6 +53,8 @@ on:
       - "src/hoid/conversationGateway.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/screens/HoidScreen.tsx"
+      - "src/context/CosmereContext.tsx"
+      - "src/hoid/recommendations.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceScope.ts"
@@ -70,6 +75,7 @@ on:
       - "docs/hoid/KNOWLEDGE_GRAPH_AUTHORIZATION.md"
       - "docs/hoid/ENTITY_RESOLUTION.md"
       - "docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md"
+      - "docs/hoid/RECOMMENDATION_POLICY.md"
       - ".github/workflows/hoid-knowledge-graph.yml"
 
 permissions:

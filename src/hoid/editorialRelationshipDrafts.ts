@@ -637,13 +637,18 @@ export function validateHoidEditorialRelationshipReviewReceipt(
   }
   const reviewedAt = typeof raw.reviewedAt === "string" ? raw.reviewedAt : "";
   const parsedDate = Date.parse(reviewedAt);
-  if (!Number.isFinite(parsedDate) || new Date(parsedDate).toISOString() !== reviewedAt) {
-    return Object.freeze({ status: "invalid", reason: "invalid-date" });
+  let canonicalDate = false;
+  try {
+    canonicalDate = Number.isFinite(parsedDate) && new Date(parsedDate).toISOString() === reviewedAt;
+  } catch {
+    canonicalDate = false;
   }
+  if (!canonicalDate) return Object.freeze({ status: "invalid", reason: "invalid-date" });
+  const decision = raw.decision;
   if (
-    raw.decision !== "approved" &&
-    raw.decision !== "revision-required" &&
-    raw.decision !== "rejected"
+    decision !== "approved" &&
+    decision !== "revision-required" &&
+    decision !== "rejected"
   ) return Object.freeze({ status: "invalid", reason: "invalid-receipt-shape" });
 
   const checklist = canonicalChecklist(raw.checklist);
@@ -652,7 +657,7 @@ export function validateHoidEditorialRelationshipReviewReceipt(
     return Object.freeze({ status: "invalid", reason: "invalid-checklist" });
   }
 
-  if (raw.decision === "approved") {
+  if (decision === "approved") {
     if (!allChecklistPassed(checklist) || noteCodes.length !== 1 || noteCodes[0] !== "no-issues") {
       return Object.freeze({ status: "invalid", reason: "incomplete-approval" });
     }
@@ -668,7 +673,7 @@ export function validateHoidEditorialRelationshipReviewReceipt(
     packetId: packet.packetId,
     draftId: packet.draftId,
     claimSha256: packet.claimSha256,
-    decision: raw.decision,
+    decision,
     reviewerId,
     reviewedAt,
     checklist,
@@ -676,9 +681,9 @@ export function validateHoidEditorialRelationshipReviewReceipt(
   });
   return Object.freeze({
     status: "valid",
-    outcome: raw.decision === "approved"
+    outcome: decision === "approved"
       ? "approved-awaiting-source-promotion"
-      : raw.decision,
+      : decision,
     promotionAllowed: false,
     receipt,
   });

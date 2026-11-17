@@ -276,3 +276,12 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - Three additional original chapter-two summaries are staged for `twok`, `edgedancer` and `dawnshard`. Their XHTML digests are registered independently and their unlock threshold is chapter three. All remain pending review and are not production knowledge.
 - The chapter-two ingestion record is documented in `docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md`. No EPUB or protected passage is committed.
 - `cosmere.epub` was not accessible in the Library during this run; no new Cosmere chapter bodies were inspected.
+
+## Run 115 — entity-scoped claim retrieval
+
+- Natural-language mention preflight now permits several distinct, individually authorized aliases in one question; a shared spelling, blocked alias or truncated match set remains ambiguous/withheld.
+- The gateway binds the resolved entity IDs to the same v2 progress revision and fingerprint as the request, then forwards only those IDs to the cursor evidence facade.
+- HoidCursorEvidenceRuntime preserves the entity scope. HoidEvidenceRuntime validates IDs against its local knowledge catalog and filters approved claims before provider selection.
+- Entity-scoped claims must explicitly list every resolved entity ID. Legacy unscoped claims are not eligible for entity-scoped questions. Every claim still requires all evidence IDs to be authorized.
+- The selector receives only the already-filtered candidate set; it cannot add claims or author response text.
+- Production registries remain empty. Tests use synthetic entities and claims only. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md.

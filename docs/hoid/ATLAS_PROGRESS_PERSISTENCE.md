@@ -1,50 +1,48 @@
-# Atlas progress persistence
+# Persistencia cursor-native de Atlas
 
-## Purpose
+## Fuente autoritativa
 
-This integration makes the versioned Hoid Progress Ledger the persisted source of truth for the reading progress exposed by Atlas. The React context is a projection of the validated ledger snapshot; it is not an independent authorization store.
+El snapshot v2 de cursores es ahora la única fuente autoritativa del progreso. `CosmereContext` mantiene mapas numéricos únicamente como proyección de presentación para componentes heredados. HoidScreen recibe el snapshot v2 completo y nunca reconstruye la autorización desde esos mapas.
 
-## Startup sequence
+## Secuencia de inicio
 
-1. A fresh React context starts with empty, null-prototype progress maps and status `loading`.
-2. The native composition adapter opens `atlas-cosmere-hoid.db`.
-3. `ExpoSqliteHoidProgressStore` initializes or reads the versioned ledger.
-4. `HoidProgressCoordinator` validates the snapshot through `HoidProgressLedger`.
-5. Only a `ready` snapshot is projected into Atlas chapter and completion maps.
-6. Reading controls and Hoid questions remain disabled while loading or when storage is unavailable.
+1. El contexto empieza con mapas vacíos y estado `loading`; esos mapas no se consideran progreso autorizado.
+2. `createExpoHoidCursorProgressCoordinator()` abre `atlas-cosmere-hoid.db`.
+3. `ExpoSqliteHoidCursorProgressStore` crea las tablas necesarias y lee v1, v2 y el justificante dentro de una transacción exclusiva.
+4. Si todavía no existe v2, valida el snapshot v1 completo, convierte todas las posiciones inequívocas a cursores y escribe snapshot v2 y justificante en una misma transacción.
+5. Conserva el payload v1 exacto como origen de migración y comprueba que no haya divergido.
+6. `HoidCursorProgressCoordinator` valida el snapshot y lo expone a Atlas.
+7. `atlasProgressFromCursorSnapshot()` genera los mapas de presentación. Hoid recibe el snapshot original, no la proyección.
 
-Corrupt or unreadable persisted data is never replaced with an empty snapshot automatically. The UI remains fail-closed and requires an explicit recovery path rather than silently resetting authorization state.
+Si falla la migración, el snapshot, el manifiesto, la proyección o SQLite, el contexto pasa a `unavailable`, elimina el snapshot en memoria y bloquea las consultas y los cambios. No hay fallback automático a v1 ni a progreso vacío.
 
-## Write semantics
+## Operaciones de escritura
 
-- Setting a chapter is an explicit reader action.
-- Moving backwards requires the coordinator's explicit regression option.
-- Setting a book as read records a distinct completion state and passes the ledger's explicit confirmation flag.
-- Marking a completed numeric work as unread reopens it at chapter 1.
-- Reopening a completed work to a chosen chapter requires an explicit reopen option.
-- Unsegmented collections such as Arcanum ilimitado and the merged Arena blanca volumes cannot be reopened using an invented numeric cursor; the edition validator rejects that operation.
+- Marcar una obra como leída registra `completed: true`; no se infiere al llegar al último capítulo.
+- Reabrir una obra terminada exige una confirmación explícita de la interfaz y utiliza `reopenCompletedWork()`.
+- Avanzar capítulos crea un cursor desde el manifiesto actual y utiliza `advance()`.
+- Los retrocesos están bloqueados por la operación ordinaria. Las correcciones deben utilizar `correctCursor()` con confirmación diferenciada.
+- Obras sin primera unidad verificada no se reabren mediante un capítulo inventado.
+- El coordinador serializa operaciones locales y el store aplica compare-and-swap dentro de SQLite.
 
-The coordinator serializes writes in one application instance. SQLite's revision predicate remains the final compare-and-swap guard. A conflict refreshes the local snapshot but does not silently replay the user's operation.
+## Migración y protección de versiones antiguas
 
-## Platform and scope
+El snapshot v2 y el marcador se insertan en la misma transacción exclusiva. El marcador conserva versión, revisión y payload exacto del origen v1. Cada lectura y escritura v2 comprueba que el registro v1 conservado siga coincidiendo con el marcador. Cualquier divergencia bloquea v2. El registro v1 se conserva para trazabilidad, pero no vuelve a ser una fuente alternativa tras el corte.
 
-- Native Android/iOS only in this integration.
-- Expo SDK 51 uses the rewritten async SQLite API. The project pins the SDK-compatible `expo-sqlite` dependency to `~14.0.6`.
-- `withExclusiveTransactionAsync` is not supported on web. Web requires a separate adapter and integration tests; this implementation deliberately does not fall back to a weaker transaction.
-- Persistence is local to one device. There is no cloud synchronization or cross-device conflict resolution.
-- The database contains reading metadata only. It does not contain EPUB content or copyrighted passages.
+## Plataforma y alcance
 
-Official API references:
-- [Expo SDK 51 release notes](https://expo.dev/changelog/2024-05-07-sdk-51)
-- [Expo SQLite transaction documentation](https://docs.expo.dev/versions/latest/sdk/sqlite/)
+- Android/iOS nativos.
+- Expo SDK 51 y `expo-sqlite ~14.0.6`.
+- La API de transacciones exclusivas no está soportada en web; web permanece bloqueado hasta disponer de otro adaptador transaccional verificado.
+- Persistencia local de un solo dispositivo. No hay sincronización en la nube.
+- La base almacena metadatos de lectura, no EPUBs ni pasajes protegidos.
 
-## Failure policy
+Referencias oficiales:
+- [Expo SDK 51](https://expo.dev/changelog/2024-05-07-sdk-51)
+- [Expo SQLite](https://docs.expo.dev/versions/latest/sdk/sqlite/)
 
-If opening the database, initializing the table, reading a snapshot or writing a change fails, Atlas reports persistence as unavailable. Hoid does not use the empty initial maps as proof that the reader has read nothing, and it does not ask a model provider to compensate for missing progress.
+## Verificación y limitaciones
 
-A later recovery workflow may offer export, backup or explicit reset, but no automatic destructive repair is permitted.
+La CI cubre el contrato del coordinador, el ledger v2, el adaptador SQLite simulado, la migración y el runtime. Esas pruebas no equivalen a una prueba física de Android/iOS. Antes de publicar debe verificarse en dispositivo el cierre y reapertura de la app, una migración interrumpida, un rollback transaccional y la detección de una escritura v1 concurrente.
 
-
-## Test scope and legacy migration debt
-
-The dedicated progress workflow runs the coordinator, ledger, SQLite-store and fresh-profile suites, plus a strict TypeScript check of the app integration. A separate attempt to run the entire historical `src/hoid` suite exposed older tests that still use placeholder work IDs, the pre-edition-validation reading shape (including `completed: false` alongside a chapter), or implicit Vitest globals. Those legacy pipeline/snapshot tests are not evidence that the new coordinator failed; they require a separate migration to the current bibliography-bound contracts. The full legacy suite is therefore not reported as green by this workflow.
+El registro editorial sigue vacío hasta que haya pasajes accesibles y afirmaciones originales revisadas. Por tanto, Hoid debe abstenerse de responder preguntas narrativas.

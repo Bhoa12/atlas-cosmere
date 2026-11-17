@@ -711,6 +711,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
   }),
 ]);
 
+// Chapter-five summaries remain staging-only and require chapter six completion.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

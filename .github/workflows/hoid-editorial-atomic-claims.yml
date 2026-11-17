@@ -33,6 +33,12 @@ on:
     paths:
       - "src/hoid/editorialClaimDrafts.ts"
       - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/sqliteProgressStore.ts"
       - "src/hoid/sha256.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/editionProgressValidation.ts"

@@ -40,7 +40,9 @@ export function projectHoidCursorPositionToBoundary(
     !position ||
     typeof position.bookId !== "string" ||
     position.bookId.length === 0 ||
-    position.bookId !== position.bookId.trim()
+    position.bookId !== position.bookId.trim() ||
+    (position.order !== undefined &&
+      (!Number.isSafeInteger(position.order) || position.order < 0 || position.order > 1_000_000))
   ) return null;
 
   if ("completed" in position) {

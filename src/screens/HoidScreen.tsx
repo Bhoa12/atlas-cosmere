@@ -70,7 +70,24 @@ export const HoidScreen: React.FC = () => {
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
       } else if (!conversationGateway) {
         respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
-      } else if (intentPlan.intent === 'recommend') {
+      } else if (intentPlan.mode === 'reading-progress') {
+        const result = await conversationGateway.readingContext({ progress: currentProgress });
+        if (result.status === 'ready') {
+          const positions = result.context.positions;
+          respuesta = positions.length === 0
+            ? 'No hay obras iniciadas en el progreso guardado.'
+            : 'Este es tu progreso de lectura registrado:\\n\\n'
+              + positions.map(position => position.status === 'completed'
+                ? `• ${position.title}: obra marcada como terminada.`
+                : `• ${position.title}: estás en el capítulo ${position.currentChapter}; completado hasta ${position.completedThroughChapter ?? 'ningún capítulo'}.`
+              ).join('\\n')
+              + `\\n\\nTienes ${result.context.startedCount} obras iniciadas de ${result.context.catalogSize}; ${result.context.unstartedCount} siguen sin empezar. Esto describe únicamente tu posición registrada, no es un resumen narrativo.`;
+        } else {
+          respuesta = result.reason === 'progress-changed'
+            ? 'Tu progreso ha cambiado mientras consultaba tu posición. He descartado el resultado; vuelve a preguntarme.'
+            : 'No puedo verificar el progreso actual. No mostraré una posición de lectura estimada.';
+        }
+      } else if (intentPlan.mode === 'catalogue-recommendation') {
         const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
         if (result.status === 'ready') {
           respuesta = result.items.length === 0

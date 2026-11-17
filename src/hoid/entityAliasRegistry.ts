@@ -14,6 +14,12 @@ export type HoidEntityAliasRecord = Readonly<{
   alias: string;
   /** Every item is mandatory (AND semantics) before this alias can be resolved. */
   evidence: readonly HoidEntityAliasEvidence[];
+  review: Readonly<{
+    status: "approved";
+    origin: "original-editorial";
+    reviewerId: string;
+    reviewedAt: string;
+  }>;
 }>;
 
 /**

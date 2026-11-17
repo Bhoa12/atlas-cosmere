@@ -374,7 +374,7 @@ describe("HoidEvidenceRuntime", () => {
     expect(createHoidEvidenceRuntime({ knowledge: unknownSource, claims, selector: null })).toBeNull();
 
     const invalidLocator = knowledge.map(entry => entry.id === "e-sazed"
-      ? { ...entry, evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "bad\nlocator" } }
+      ? { ...entry, evidenceSource: { bookId: "twok", chapter: 2, locatorId: "bad\nlocator" } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: invalidLocator, claims, selector: null })).toBeNull();
   });

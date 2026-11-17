@@ -6,7 +6,6 @@ import {
 } from "./cursorEvidenceRuntime";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry } from "./catalog";
-import { getHoidReadingManifest } from "./readingManifest";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);

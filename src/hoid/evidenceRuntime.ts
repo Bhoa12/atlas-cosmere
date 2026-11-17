@@ -8,6 +8,7 @@ import { retrieveAuthorized } from "./retrieval";
 import { validHoidQuestion } from "./requestValidation";
 import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { guardQuestion } from "./spoilerGuard";
+import { getHoidReadingManifest } from "./readingManifest";
 import type { HoidAnswerRequest, ReadingPosition } from "./types";
 
 export type HoidClaimIntent = "explain" | "recommend" | "context";
@@ -99,9 +100,17 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
     if (!evidenceScope) return null;
     if (typeof raw.id !== "string" || !raw.id.trim() || raw.id.trim().length > MAX_CLAIM_ID_LENGTH) return null;
     if (typeof raw.kind !== "string" || !validKinds.has(raw.kind)) return null;
-    if (typeof raw.firstSafeAppearance.bookId !== "string" || !isKnownHoidSource(raw.firstSafeAppearance.bookId)) return null;
+    const firstAppearanceBookId = typeof raw.firstSafeAppearance.bookId === "string"
+      ? raw.firstSafeAppearance.bookId.trim()
+      : "";
+    if (!firstAppearanceBookId || !isKnownHoidSource(firstAppearanceBookId)) return null;
     const chapter = raw.firstSafeAppearance.chapter;
-    if (typeof chapter !== "number" || !Number.isFinite(chapter) || !Number.isInteger(chapter) || chapter < 0) return null;
+    if (typeof chapter !== "number" || !Number.isSafeInteger(chapter) || chapter < 1) return null;
+    const firstAppearanceManifest = getHoidReadingManifest(firstAppearanceBookId);
+    if (
+      firstAppearanceManifest.status !== "ready" ||
+      !firstAppearanceManifest.manifest.units.some(unit => unit.chapterNumber === chapter)
+    ) return null;
     if (raw.aliases.length === 0 || raw.aliases.length > 64 || !raw.aliases.every(alias =>
       typeof alias === "string" && alias.trim().length > 0 && alias.length <= 256
     )) return null;
@@ -112,7 +121,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
       id: raw.id.trim(),
       aliases: [...raw.aliases] as string[],
       kind: raw.kind as HoidKnowledgeEntry["kind"],
-      firstSafeAppearance: { bookId: raw.firstSafeAppearance.bookId, chapter },
+      firstSafeAppearance: { bookId: firstAppearanceBookId, chapter },
       evidenceSource: { bookId: evidenceScope.sourceBookId, chapter: evidenceScope.sourceChapter, locatorId: evidenceScope.locatorId },
       evidenceUnlock: { bookId: evidenceScope.unlockBookId, chapter: evidenceScope.unlockChapter },
       ...(raw.provenance === undefined ? {} : { provenance: raw.provenance as HoidKnowledgeEntry["provenance"] }),

@@ -79,3 +79,8 @@ The authority gate also requires a separate `HoidPromotionProgressPort` backed b
 If the reader moves, rewinds, reopens a completed work or corrects progress while the review adapter is running, the gate returns `progress-changed` and no maintainer-commit authorization is produced. Invalid or unavailable progress and either adapter timeout also fail closed.
 
 The source-control snapshot names the exact manifest path and its plan fingerprint. Review timestamps later than the adapter's verification time are rejected. The progress port is read-only and must not use a React component cache or a stale UI projection.
+
+
+## Canonical manifest helpers
+
+`buildHoidEditorialPromotionManifest()` serializes the canonical plan fields into a metadata-only manifest with a deterministic fingerprint. `validateHoidEditorialPromotionManifest()` rejects unknown keys, malformed plans and fingerprint mismatches. A source-control adapter should fetch the manifest bytes from the exact PR head, parse them, run this validator and place the resulting fingerprint and exact path in its snapshot.

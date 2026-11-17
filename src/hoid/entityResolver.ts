@@ -370,7 +370,7 @@ function canonicalAliasRecords(
   const records: CanonicalAliasRecord[] = [];
 
   for (const raw of rawRecords) {
-    const record = canonicalRecord(raw, ["id", "entityId", "alias", "evidence"]);
+    const record = canonicalRecord(raw, ["id", "entityId", "alias", "evidence", "review"]);
     const id = record?.id;
     const entityId = record?.entityId;
     const alias = record?.alias;
@@ -387,6 +387,21 @@ function canonicalAliasRecords(
       alias !== alias.trim() ||
       /[\u0000-\u001F\u007F\p{Cf}]/u.test(alias)
     ) return null;
+
+    const review = canonicalRecord(record.review, ["status", "origin", "reviewerId", "reviewedAt"]);
+    const reviewerId = review?.reviewerId;
+    const reviewedAt = review?.reviewedAt;
+    if (
+      !review ||
+      review.status !== "approved" ||
+      review.origin !== "original-editorial" ||
+      typeof reviewerId !== "string" ||
+      !reviewerId.trim() ||
+      reviewerId.length > 128 ||
+      typeof reviewedAt !== "string"
+    ) return null;
+    const reviewedAtMs = Date.parse(reviewedAt);
+    if (!Number.isFinite(reviewedAtMs) || new Date(reviewedAtMs).toISOString() !== reviewedAt) return null;
 
     const entity = knowledgeById.get(entityId);
     if (!entity || !entity.aliases.includes(alias)) return null;

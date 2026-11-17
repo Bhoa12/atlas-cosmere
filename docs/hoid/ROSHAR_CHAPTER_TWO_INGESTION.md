@@ -4,7 +4,7 @@
 
 This run inspected chapter-two XHTML documents from the three accessible private Roshar EPUBs. Only original editorial summaries, source locators and SHA-256 metadata are stored in the repository. No protected chapter prose or complete EPUB is uploaded.
 
-The Library also contained duplicate copies of these EPUBs with a "(1)" suffix. The unsuffixed copies were used for inspection; their chapter-document hashes matched the registered edition/navigation identities.
+The Library also listed additional entries with a "(1)" suffix and matching file sizes. The unsuffixed copies were used for inspection; the suffixed entries were not compared byte-for-byte and are not treated as independently verified editions.
 
 ## Inspected source documents
 

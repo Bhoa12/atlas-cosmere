@@ -22,10 +22,30 @@ function cloneDraft(overrides: Record<string, unknown> = {}) {
 describe("Hoid editorial draft staging", () => {
   it("loads one original summary as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(1);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(3);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
+  });
+
+  it("stages one independently sourced chapter-one draft for each accessible Roshar EPUB", () => {
+    expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
+      "twok.chapter-001.cenn-battle",
+      "edgedancer.chapter-001.lift-departure",
+      "dawnshard.chapter-001.akinah-expedition",
+    ]);
+    for (const draft of HOID_EDITORIAL_DRAFTS) {
+      expect(draft.evidenceSource.chapter).toBe(1);
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 2 });
+      expect(draft.review.status).toBe("pending-review");
+      expect(draft.summary.length).toBeGreaterThan(80);
+    }
+  });
+
+  it("validates every staged source locator against its own edition manifest", () => {
+    for (const draft of HOID_EDITORIAL_DRAFTS) {
+      expect(validateHoidEditorialDraft(draft).status).toBe("valid");
+    }
   });
 
   it("binds the draft to the exact chapter locator and chapter-document digest", () => {

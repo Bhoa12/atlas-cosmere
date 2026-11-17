@@ -1,6 +1,7 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { validateHoidCursorProgressSnapshot } from "./cursorProgressLedger";
 import { projectHoidCursorPositionToBoundary } from "./readingBoundary";
+import { getHoidReadingManifest } from "./readingManifest";
 
 export type HoidCursorReadingContextPosition =
   | Readonly<{
@@ -24,7 +25,9 @@ export type HoidCursorReadingContext = Readonly<{
   updatedAt: string | null;
   positions: readonly HoidCursorReadingContextPosition[];
   startedCount: number;
-  unstartedCount: number;
+  trackableWorkCount: number;
+  trackableUnstartedCount: number;
+  untrackedWorkCount: number;
   catalogSize: number;
   unitScope: "verified-numbered-chapters-only";
 }>;
@@ -85,6 +88,17 @@ export function buildHoidCursorReadingContext(
   });
 
   const frozenPositions = Object.freeze(positions);
+  const startedIds = new Set(frozenPositions.map(position => position.bookId));
+  const trackableIds = new Set(
+    HOID_SOURCE_BIBLIOGRAPHY
+      .filter(work => getHoidReadingManifest(work.id).status === "ready")
+      .map(work => work.id),
+  );
+  const trackableStartedCount = [...startedIds].filter(id => trackableIds.has(id)).length;
+  const untrackedWorkCount = HOID_SOURCE_BIBLIOGRAPHY
+    .filter(work => !trackableIds.has(work.id) && !startedIds.has(work.id))
+    .length;
+
   return Object.freeze({
     status: "ready",
     context: Object.freeze({
@@ -92,7 +106,9 @@ export function buildHoidCursorReadingContext(
       updatedAt: validation.snapshot.updatedAt,
       positions: frozenPositions,
       startedCount: frozenPositions.length,
-      unstartedCount: HOID_SOURCE_BIBLIOGRAPHY.length - frozenPositions.length,
+      trackableWorkCount: trackableIds.size,
+      trackableUnstartedCount: trackableIds.size - trackableStartedCount,
+      untrackedWorkCount,
       catalogSize: HOID_SOURCE_BIBLIOGRAPHY.length,
       unitScope: "verified-numbered-chapters-only",
     }),

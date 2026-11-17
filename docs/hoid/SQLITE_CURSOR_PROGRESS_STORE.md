@@ -10,9 +10,9 @@ The adapter maintains three records:
 
 - `hoid_progress_ledger`: the existing v1 source row. It is retained after migration.
 - `hoid_cursor_progress_ledger`: the validated v2 snapshot.
-- `hoid_progress_migrations`: a one-row migration receipt recording source schema, target schema, source revision and migration time.
+- `hoid_progress_migrations`: a one-row migration receipt recording source schema, target schema, source revision, the exact metadata-only v1 JSON payload and migration time.
 
-The v2 snapshot and migration receipt are written in the same exclusive SQLite transaction. A failed insert throws from the transaction callback so SQLite rolls back both writes. The v1 row is never deleted or rewritten by this adapter.
+The v2 snapshot and migration receipt are written in the same exclusive SQLite transaction. A failed insert throws from the transaction callback so SQLite rolls back both writes. The v1 row is never deleted or rewritten by this adapter. The receipt retains the exact v1 progress JSON (metadata only, not EPUB content) so every v2 read can detect a still-running legacy writer. If the v1 source changes after migration, the adapter returns `migration-source-changed` and blocks v2 reads and writes until the mixed-version rollout is resolved.
 
 ## Load and migration behavior
 
@@ -21,7 +21,7 @@ The v2 snapshot and migration receipt are written in the same exclusive SQLite t
 1. Create the v1, v2 and migration tables if they do not exist.
 2. Insert an empty v1 snapshot only when no v1 row exists.
 3. If both v2 and a valid migration receipt exist, validate and return v2.
-4. If only one of v2 or the receipt exists, fail closed.
+4. If only one of v2 or the receipt exists, fail closed. The current v1 row must also match the exact source revision and payload recorded in the receipt.
 5. If neither exists, acquire an exclusive transaction and re-check both records.
 6. Decode and validate the complete v1 source through `migrateHoidProgressV1ToV2()`.
 7. Refuse the entire migration if any work or chapter has no unambiguous edition-bound cursor.
@@ -39,6 +39,7 @@ The adapter distinguishes:
 - `corrupt-v2`: the v2 envelope, snapshot or migration receipt is invalid.
 - `migration-marker-missing`: a v2 row exists without its receipt.
 - `migration-marker-orphaned`: a receipt exists without its v2 row.
+- `migration-source-changed`: the retained v1 row no longer matches the source revision/payload captured by the migration receipt; this detects a legacy coordinator still writing v1.
 - `migration-conflict`: SQLite reports a transient lock while loading/migrating, or the source revision guard fails.
 - `storage-error`: another storage operation fails.
 
@@ -71,6 +72,6 @@ The pure migration and this adapter never inspect EPUB prose. They use only the 
 
 ## Tests
 
-`cursorSqliteProgressStore.test.ts` uses an in-memory SQLite-port test double with transaction-copy/commit semantics. It covers fresh-profile migration, chapter cursor conversion, explicit completion, ambiguous source rejection, corrupt rows, repeated loads, compare-and-swap, stale writers, no fallback from corrupt v2, orphaned receipts and rollback when the receipt insert fails.
+`cursorSqliteProgressStore.test.ts` uses an in-memory SQLite-port test double with transaction-copy/commit semantics. It covers fresh-profile migration, chapter cursor conversion, explicit completion, ambiguous source rejection, corrupt rows, repeated loads, compare-and-swap, stale writers, no fallback from corrupt v2, orphaned receipts and rollback when the receipt insert fails, hostile accessor rejection and detection of legacy v1 writes after migration.
 
 These tests validate adapter logic and transaction sequencing. They are not a substitute for native SQLite tests on Android/iOS.

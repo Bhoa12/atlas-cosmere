@@ -4,7 +4,9 @@ import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidReadingCursor } from "./readingManifest";
 import {
   authorizeHoidPromotionCommit,
+  buildHoidEditorialPromotionManifest,
   fingerprintHoidEditorialPromotionPlan,
+  validateHoidEditorialPromotionManifest,
   verifyHoidProtectedReviewSnapshot,
   type HoidPromotionReviewRequest,
   type HoidEditorialPromotionPlanInput,
@@ -126,6 +128,27 @@ describe("Hoid protected source-control review authority", () => {
     expect(first).toMatch(/^[a-f0-9]{64}$/);
     expect(fingerprintHoidEditorialPromotionPlan(plan)).toBe(first);
     expect(fingerprintHoidEditorialPromotionPlan({ ...plan, productionWritePerformed: true })).toBeNull();
+  });
+
+  it("builds and validates a canonical promotion manifest", () => {
+    const built = buildHoidEditorialPromotionManifest(plan);
+    expect(built.status).toBe("valid");
+    if (built.status !== "valid") return;
+    expect(validateHoidEditorialPromotionManifest(built.manifest)).toEqual(built);
+    expect(built.manifest.planFingerprint).toBe(fingerprintHoidEditorialPromotionPlan(plan));
+  });
+
+  it("rejects a manifest whose plan fingerprint or schema is altered", () => {
+    const built = buildHoidEditorialPromotionManifest(plan);
+    if (built.status !== "valid") throw new Error("Manifest de fixture no disponible");
+    expect(validateHoidEditorialPromotionManifest({
+      ...built.manifest,
+      planFingerprint: "0".repeat(64),
+    })).toEqual({ status: "invalid", reason: "plan-fingerprint-mismatch" });
+    expect(validateHoidEditorialPromotionManifest({
+      ...built.manifest,
+      schemaVersion: 2,
+    })).toEqual({ status: "invalid", reason: "invalid-manifest" });
   });
 
   it("supports class-based source-control adapters without accepting accessors", async () => {

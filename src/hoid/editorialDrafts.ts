@@ -330,6 +330,48 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-001.lift-departure",
+    kind: "event",
+    aliases: Object.freeze(["partida de Lift de Azir"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 1 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 1,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/001.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 2 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "8a85e1ccb126c5915f3948351266030b0966abb822403ddd0415791c671ce7dc",
+    }),
+    summary: "El capítulo presenta a Lift mientras se aleja de Azir acompañada por Wyndle. Su carrera y el uso de sus capacidades para deslizarse reflejan su deseo de seguir moviéndose y evitar quedar atrapada por las expectativas ajenas. Al detenerse, contempla la ciudad que deja atrás y reconoce que su salida es una despedida deliberada, no un simple impulso pasajero. La escena establece el conflicto entre conservar su independencia y afrontar los cambios que intenta esquivar.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-001.akinah-expedition",
+    kind: "event",
+    aliases: Object.freeze(["expedición a Akinah"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 1 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 1,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/1.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 2 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "eac1f947b3303414b0b8a69ff19eabcd396c1fdd32caa1c1349c931eb8d8d2ae",
+    }),
+    summary: "Rysn revisa informes comerciales para encontrar una nueva oportunidad de viaje mientras intenta atender a Chiri-Chiri, cuya salud ha empeorado. La relación con Nikli muestra que procura conservar su autonomía pese a necesitar ayuda en algunas tareas. La información que recibe sobre Akinah como posible hogar de Chiri-Chiri coincide con una solicitud de Navani para investigar la zona de una expedición marítima anterior. Rysn conecta ambas pistas y decide acudir a Urithiru para estudiar el encargo.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 ]);
 
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);

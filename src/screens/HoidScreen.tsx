@@ -156,7 +156,7 @@ export const HoidScreen: React.FC = () => {
             : result.reason === 'invalid-progress'
               ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
               : result.reason === 'entity-blocked' || result.reason === 'entity-ambiguous' || result.reason === 'entity-unavailable'
-                ? 'No puedo identificar con seguridad la referencia de esta pregunta con el conocimiento y el progreso disponibles. No mostraré una respuesta que pueda adelantar información.'
+                ? 'No hay afirmaciones editoriales autorizadas para esta consulta.'
                 : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
         }
       }

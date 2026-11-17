@@ -291,7 +291,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("rejects knowledge accessors without executing them", () => {
-    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]) as Record<string, unknown>;
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]) as unknown as Record<string, unknown>;
     let invoked = false;
     Object.defineProperty(entry, "aliases", {
       enumerable: true,

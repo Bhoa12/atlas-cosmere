@@ -218,3 +218,10 @@ See `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md` and `src/hoid/editorialDrafts.test.t
 ## Editorial summary integrity and review packets
 
 Pending original summaries are now bound to a recomputed UTF-8 SHA-256 digest. The deterministic review-packet builder includes only original editorial prose and metadata; a structurally valid approval receipt remains `approved-awaiting-source-promotion` and cannot modify the production registry. Human reviewer identity must be authenticated through protected GitHub review, not by trusting a local receipt. See `docs/hoid/EDITORIAL_REVIEW_PACKETS.md`.
+
+
+## Atomic editorial claim staging
+
+`editorialClaimDrafts.ts` models one original assertion with one or more independently verified chapter sources. Each source has its own edition-bound locator, document digest and unlock threshold. Cross-work claims use AND semantics: every source threshold must be satisfied before the claim is marked eligible for independent review.
+
+The eligibility projection returns claim IDs and unmet metadata requirements only; it never returns assertion text and is not a provider-context API. Drafts remain `pending-review` and cannot enter `editorialRegistry.ts`. SHA-256 is an integrity check, not an author or reviewer signature. See `docs/hoid/EDITORIAL_ATOMIC_CLAIMS.md`.

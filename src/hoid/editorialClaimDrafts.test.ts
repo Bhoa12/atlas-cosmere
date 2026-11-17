@@ -319,7 +319,7 @@ describe("Hoid atomic editorial claim drafts", () => {
     expect(value.evidence).toHaveLength(1);
     expect(value.evidence[0].source.bookId).toBe("tfe");
     expect(value.evidence[0].source.chapter).toBe(2);
-    expect(value.evidence[0].source.locatorId).toContain("/books/b000001/OEBPS/Text/002.xhtml");
+    expect(value.evidence[0].source.locatorId).toBe("nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/002.xhtml");
     expect(value.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 3 });
     expect(value.review.status).toBe("pending-review");
     expect(validateHoidEditorialClaimDraftBatch(HOID_EDITORIAL_CLAIM_DRAFTS).status).toBe("valid");

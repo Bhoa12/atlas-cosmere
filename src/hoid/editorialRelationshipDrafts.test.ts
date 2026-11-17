@@ -78,9 +78,9 @@ function approvedReceipt(overrides: Record<string, unknown> = {}) {
 describe("Hoid multi-entity relationship staging", () => {
   it("stages three binary relationship claims from individually inspected chapter-three documents", () => {
     expect(getHoidEditorialRelationshipDraftDiagnostics()).toEqual([
-      { index: 0, id: "twok.relationship.shallan-seeks-jasnah", status: "valid" },
-      { index: 1, id: "edgedancer.relationship.hauka-intercepts-girl", status: "valid" },
-      { index: 2, id: "dawnshard.relationship.lopen-taliks-candid-exchange", status: "valid" },
+      { index: 0, id: "twok.relationship.shallan-seeks-jasnah", evidenceAvailable: true, status: "valid" },
+      { index: 1, id: "edgedancer.relationship.hauka-intercepts-girl", evidenceAvailable: true, status: "valid" },
+      { index: 2, id: "dawnshard.relationship.lopen-taliks-candid-exchange", evidenceAvailable: true, status: "valid" },
     ]);
     expect(getHoidEditorialRelationshipDraftStatus()).toBe("pending-review");
     expect(HOID_EDITORIAL_RELATIONSHIP_DRAFTS.map(item => item.id)).toEqual([

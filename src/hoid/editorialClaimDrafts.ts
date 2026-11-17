@@ -1,5 +1,5 @@
 import type { HoidKnowledgeKind } from "./catalog";
-import { validEditionBoundReadingPositions } from "./editionProgressValidation";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { canonicalEvidenceScope } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
@@ -386,24 +386,26 @@ export function validateHoidEditorialClaimDraftBatch(value: unknown): HoidEditor
 }
 
 /**
- * Evaluate staging claims for review eligibility using already-safe reading
- * positions projected by the cursor boundary. Every evidence unlock is a
- * mandatory requirement. The result deliberately omits assertion text and
- * can never be passed to a provider as narrative context.
+ * Evaluate staging claims for review eligibility from the authoritative v2
+ * cursor snapshot. The existing cursor boundary performs manifest validation
+ * and projects chapter N to completed-through N-1 before any requirement is
+ * evaluated. Every evidence unlock is a mandatory requirement. The result
+ * deliberately omits assertion text and is not a provider-context API.
  */
 export function evaluateHoidEditorialClaimDrafts(
   claimsInput: unknown,
-  safeReadingInput: unknown,
+  cursorProgressSnapshot: unknown,
 ): HoidEditorialClaimEvaluationResult {
   const batch = validateHoidEditorialClaimDraftBatch(claimsInput);
   if (batch.status !== "valid") {
     return Object.freeze({ status: "unavailable", reason: "invalid-claims" });
   }
 
-  const reading = validEditionBoundReadingPositions(safeReadingInput);
-  if (reading === null) {
+  const projection = projectHoidCursorProgressSnapshot(cursorProgressSnapshot);
+  if (projection.status !== "ready") {
     return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
   }
+  const reading = projection.reading;
 
   const positions = new Map(reading.map(position => [position.bookId, position]));
   const evaluations = batch.drafts.map(draft => {

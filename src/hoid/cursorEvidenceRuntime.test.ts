@@ -116,6 +116,24 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
   });
 
+  it("unlocks a chapter-two summary only after chapter two is no longer the open chapter", async () => {
+    const { facade, selector } = createFacade();
+
+    const whileChapterTwoIsOpen = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
+    });
+    expect(whileChapterTwoIsOpen.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
+
+    const afterAdvancingToChapterThree = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
+    });
+    expect(afterAdvancingToChapterThree.status).toBe("authorized");
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
   it("authorizes an explanation only after validating the cursor manifest", async () => {
     const { facade, selector } = createFacade();
     const result = await facade.answer({

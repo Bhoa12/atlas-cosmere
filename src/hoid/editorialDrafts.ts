@@ -467,6 +467,51 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-001.vin",
+    kind: "character",
+    aliases: Object.freeze(["Vin"]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 1 }),
+    evidenceSource: Object.freeze({
+      bookId: "tfe",
+      chapter: 1,
+      locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/001.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 2 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "cosmere-epub-merged-v1",
+      navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      documentSha256: "cfc6a6057a477cfba6e7795d30dca2324a97a5dbdefa86b6500aa437a625844a",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "fe550c8880d21a183cdd690039f6ef9b828837282558c75b0924f2311fdee36a" }),
+    summary: "Vin vive escondida en el refugio de una banda de ladrones de Luthadel y organiza su conducta alrededor de la desconfianza aprendida tras la traición de su hermano Reen. Camon, el jefe de la banda, prepara una estafa haciéndose pasar por un noble empobrecido que busca un contrato de transporte con el Ministerio. Vin detecta que la puesta en escena no encaja con la situación económica fingida y propone cambios que vuelven más convincente el engaño. También utiliza de forma instintiva la capacidad que llama Suerte para moderar la ira de Camon y reducir las sospechas del prelado durante la negociación. El capítulo destaca su observación, su resistencia y el modo discreto en que influye en quienes la rodean, sin explicar todavía el origen de esa capacidad.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-002.kelsier",
+    kind: "character",
+    aliases: Object.freeze(["Kelsier", "Kell"]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 2 }),
+    evidenceSource: Object.freeze({
+      bookId: "tfe",
+      chapter: 2,
+      locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/002.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 3 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "cosmere-epub-merged-v1",
+      navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      documentSha256: "13604dc85df709443e6cd215a3e1a9deabe8f69f118dcc9823127b82ad486fc1",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "2832f63706c3dcead79763a97373e9f218d437b0185553f0d9b784ad849f98f2" }),
+    summary: "Kelsier regresa a Luthadel y se reúne con Dockson para reunir un equipo para un trabajo ambicioso cuyo objetivo todavía no se detalla. Conversan sobre antiguos miembros de la banda, reclutan especialistas y mencionan la participación de Yeden y de Marsh, hermano de Kelsier. En paralelo, Vin acompaña a Camon al Ministerio y descubre que pretende traicionar a Theron y quedarse con el beneficio de la operación. La entrevista con el sumo prelado Arriev termina con la concesión del contrato, después de que Vin vuelva a influir en sus emociones. Kelsier y Dockson observan la salida, reconocen indicios de alomancia en Vin y consideran que podría ser una nacida de la bruma. Cuando aparece un Inquisidor de acero, Kelsier decide distraerlo mientras Dockson se ocupa de los perseguidores. El capítulo conecta por primera vez las tramas de Kelsier y Vin sin revelar el desarrollo posterior.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]);
 
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);

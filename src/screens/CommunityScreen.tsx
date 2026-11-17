@@ -5,7 +5,7 @@ import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { isChapterBeyondCompletedReadingBoundary } from '../hoid/readingBoundary';
 
 export const CommunityScreen: React.FC = () => {
-  const { comentarios, agregarComentario, darLuzTormentosa, capituloActualPorLibro } = useCosmere();
+  const { comentarios, agregarComentario, darLuzTormentosa, capituloActualPorLibro, librosLeidos } = useCosmere();
   const [sagaSeleccionada, setSagaSeleccionada] = useState<string>('Archivo de las Tormentas');
   const [libroSeleccionadoId, setLibroSeleccionadoId] = useState<string>('twok');
   const [nuevoTexto, setNuevoTexto] = useState('');
@@ -107,7 +107,11 @@ export const CommunityScreen: React.FC = () => {
         }
         renderItem={({ item }) => {
           const capUsuarioEnEseLibro = capituloActualPorLibro[item.libroId] || 0;
-          const esSpoiler = isChapterBeyondCompletedReadingBoundary(item.capituloMaximo, capUsuarioEnEseLibro);
+          const esSpoiler = isChapterBeyondCompletedReadingBoundary(
+            item.capituloMaximo,
+            capUsuarioEnEseLibro,
+            librosLeidos[item.libroId] === true,
+          );
           const estaRevelado = reveladosManualmente[item.id];
 
           return (

@@ -188,3 +188,12 @@ The v2 cursor contract is now the authoritative production progress representati
 `cursorEvidenceRuntime.ts` accepts a complete v2 progress snapshot, validates its edition-bound cursors, and only then projects it into the compatibility position contract consumed by `HoidEvidenceRuntime`. It preserves explicit completion, rejects stale manifests and malformed request envelopes before selector invocation, and provides metadata-only recommendations from the same validated snapshot.
 
 `HoidCursorEvidenceRuntime` is now the production answer path in HoidScreen. It receives the authoritative v2 snapshot, revalidates every edition-bound cursor, then delegates to the strict evidence runtime. It does not accept a second numeric progress input. See `docs/hoid/CURSOR_EVIDENCE_RUNTIME.md` and `src/hoid/cursorEvidenceRuntime.test.ts`.
+
+
+## Verified chapter-level evidence locators
+
+`verifiedChapterLocators.ts` records relative EPUB navigation hrefs for the three unique Roshar EPUBs available in the current Library runtime. Each locator is namespaced by the edition ID and the navigation-document SHA-256. `readingManifest.ts` attaches it only to the matching numbered chapter unit.
+
+The strict evidence boundary now requires an exact locator match for `evidenceSource`, validates both source and unlock chapters against the same edition manifest, and validates `firstSafeAppearance` against a real unit in its own work. Arbitrary locator strings and sources without an inspected TOC are rejected before provider selection.
+
+The private `cosmere.epub` was not available in the current Library listing. Its works remain in the bibliography, but this run deliberately adds no passage-level locators for them. A chapter-count record is not a substitute for a verified source locator. No chapter titles or prose are stored. See `docs/hoid/VERIFIED_CHAPTER_LOCATORS.md`.

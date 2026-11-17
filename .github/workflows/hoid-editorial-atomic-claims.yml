@@ -41,6 +41,7 @@ on:
       - "docs/hoid/EDITORIAL_RELATIONSHIP_CLAIMS.md"
       - "docs/hoid/ROSHAR_CHAPTER_THREE_INGESTION.md"
       - "docs/hoid/ROSHAR_CHAPTER_FOUR_INGESTION.md"
+      - "docs/hoid/ROSHAR_CHAPTER_FIVE_INGESTION.md"
       - "docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md"
       - ".github/workflows/hoid-editorial-atomic-claims.yml"
   pull_request:
@@ -81,6 +82,7 @@ on:
       - "docs/hoid/EDITORIAL_RELATIONSHIP_CLAIMS.md"
       - "docs/hoid/ROSHAR_CHAPTER_THREE_INGESTION.md"
       - "docs/hoid/ROSHAR_CHAPTER_FOUR_INGESTION.md"
+      - "docs/hoid/ROSHAR_CHAPTER_FIVE_INGESTION.md"
       - "docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md"
       - ".github/workflows/hoid-editorial-atomic-claims.yml"
 

@@ -83,3 +83,16 @@ The dedicated workflow also runs strict TypeScript checks over the draft validat
 ## Copyright boundary
 
 Do not commit EPUBs, XHTML, copied paragraphs, chapter transcripts or extracted passage caches. Keep only bibliographic metadata, opaque navigation locators, cryptographic digests and original editorial summaries with explicit review status.
+
+
+## Run 119 — chapter-six source ingestion
+
+- Inspected chapter six in the three Roshar EPUB editions currently available in the Library.
+- Revalidated each edition's existing navigation digest and resolved the exact chapter-six relative href from its TOC.
+- Added only the chapter-body SHA-256 values to the sparse verified-document allowlist; no XHTML, passages or images are stored.
+- Added three original Spanish summaries to staging for `twok`, `edgedancer` and `dawnshard`. Each summary is bound to its exact edition, chapter locator and document digest.
+- The chapter-six summaries require chapter seven completion. Opening chapter seven is not enough; the v2 cursor authorizes only through chapter six.
+- The staging inventory now contains 20 summaries backed by 20 individually inspected chapter documents: chapters one through six in the three Roshar works, plus chapters one and two of El Imperio Final.
+- All 20 summaries remain pending review. Production registry and graph remain unchanged.
+- The current Library listing did not expose `cosmere.epub`; no new Cosmere chapter was inspected.
+- No EPUB bytes, XHTML bodies, copied passages or images were committed.

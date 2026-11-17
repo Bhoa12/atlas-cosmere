@@ -1,9 +1,15 @@
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry, type HoidKnowledgeKind } from "./catalog";
 import { HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import {
+  HOID_ENTITY_ALIAS_EVIDENCE,
+  type HoidEntityAliasEvidence,
+  type HoidEntityAliasRecord,
+} from "./entityAliasRegistry";
+import {
   canonicalEvidenceScope,
   evidenceCitationFor,
   isEvidenceUnlocked,
+  type CanonicalHoidEvidenceScope,
   type HoidEvidenceCitation,
 } from "./evidenceScope";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
@@ -22,6 +28,8 @@ const KINDS = new Set<HoidKnowledgeKind>([
 ]);
 const MAX_ENTRIES = 512;
 const MAX_ALIASES = 64;
+const MAX_ALIAS_RECORDS = 2_048;
+const MAX_ALIAS_EVIDENCE = 8;
 const MAX_ALIAS_LENGTH = 256;
 const MAX_SUMMARY_LENGTH = 4_000;
 const MAX_QUERY_LENGTH = 256;
@@ -40,11 +48,18 @@ export type HoidResolvedEntitySource = HoidEvidenceCitation & Readonly<{
   documentSha256: string;
 }>;
 
+export type HoidResolvedAliasEvidence = Readonly<{
+  evidenceId: string;
+  source: HoidResolvedEntitySource;
+}>;
+
 export type HoidResolvedEntity = Readonly<{
   id: string;
   kind: HoidKnowledgeKind;
   matchedAlias: string;
-  source: HoidResolvedEntitySource;
+  entitySource: HoidResolvedEntitySource;
+  /** Every alias disclosure source is returned for audit; all must be unlocked. */
+  aliasEvidence: readonly HoidResolvedAliasEvidence[];
 }>;
 
 export type HoidEntityResolutionResult =
@@ -65,6 +80,20 @@ type CanonicalQuery = Readonly<{
   normalizedText: string;
   kind?: HoidKnowledgeKind;
   maxResults: number;
+}>;
+
+type CanonicalAliasEvidence = Readonly<{
+  id: string;
+  scope: CanonicalHoidEvidenceScope;
+  source: HoidResolvedEntitySource;
+}>;
+
+type CanonicalAliasRecord = Readonly<{
+  id: string;
+  entityId: string;
+  alias: string;
+  normalizedAlias: string;
+  evidence: readonly CanonicalAliasEvidence[];
 }>;
 
 function canonicalRecord(
@@ -309,12 +338,138 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
   return Object.freeze(entries);
 }
 
+function sourceForEntry(entry: HoidKnowledgeEntry): HoidResolvedEntitySource | null {
+  const citation = evidenceCitationFor(entry);
+  const bookId = entry.evidenceSource?.bookId;
+  const chapter = entry.evidenceSource?.chapter;
+  const manifestResult = getHoidReadingManifest(bookId);
+  if (!citation || manifestResult.status !== "ready") return null;
+  const documentSha256 = getVerifiedChapterDocumentSha256(
+    bookId,
+    manifestResult.manifest.editionId,
+    manifestResult.manifest.navigationSha256,
+    chapter,
+  );
+  if (!documentSha256) return null;
+  return Object.freeze({
+    ...citation,
+    editionId: manifestResult.manifest.editionId,
+    navigationSha256: manifestResult.manifest.navigationSha256,
+    documentSha256,
+  });
+}
+
+function canonicalAliasRecords(
+  value: unknown,
+  knowledge: readonly HoidKnowledgeEntry[],
+): readonly CanonicalAliasRecord[] | null {
+  const rawRecords = canonicalDenseArray(value, 0, MAX_ALIAS_RECORDS);
+  if (!rawRecords) return null;
+  const knowledgeById = new Map(knowledge.map(entry => [entry.id, entry]));
+  const recordIds = new Set<string>();
+  const evidenceIds = new Set<string>();
+  const entityAliases = new Set<string>();
+  const records: CanonicalAliasRecord[] = [];
+
+  for (const raw of rawRecords) {
+    const record = canonicalRecord(raw, ["id", "entityId", "alias", "evidence"]);
+    const id = record?.id;
+    const entityId = record?.entityId;
+    const alias = record?.alias;
+    if (
+      !record ||
+      typeof id !== "string" ||
+      !ID_PATTERN.test(id) ||
+      recordIds.has(id) ||
+      typeof entityId !== "string" ||
+      !ID_PATTERN.test(entityId) ||
+      typeof alias !== "string" ||
+      alias.length < 1 ||
+      alias.length > MAX_ALIAS_LENGTH ||
+      alias !== alias.trim() ||
+      /[\u0000-\u001F\u007F\p{Cf}]/u.test(alias)
+    ) return null;
+
+    const entity = knowledgeById.get(entityId);
+    if (!entity || !entity.aliases.includes(alias)) return null;
+    const normalizedAlias = normalizeAlias(alias);
+    if (!normalizedAlias) return null;
+    const entityAliasKey = entityId + "\n" + normalizedAlias;
+    if (entityAliases.has(entityAliasKey)) return null;
+
+    const rawEvidence = canonicalDenseArray(record.evidence, 1, MAX_ALIAS_EVIDENCE);
+    if (!rawEvidence) return null;
+    const evidence: CanonicalAliasEvidence[] = [];
+    for (const rawItem of rawEvidence) {
+      const item = canonicalRecord(rawItem, ["id", "source", "unlock"]);
+      const evidenceId = item?.id;
+      if (
+        !item ||
+        typeof evidenceId !== "string" ||
+        !ID_PATTERN.test(evidenceId) ||
+        evidenceIds.has(evidenceId)
+      ) return null;
+
+      const scope = canonicalEvidenceScope(item.source, item.unlock);
+      if (!scope) return null;
+      const manifestResult = getHoidReadingManifest(scope.sourceBookId);
+      if (manifestResult.status !== "ready") return null;
+      const documentSha256 = getVerifiedChapterDocumentSha256(
+        scope.sourceBookId,
+        manifestResult.manifest.editionId,
+        manifestResult.manifest.navigationSha256,
+        scope.sourceChapter,
+      );
+      if (!documentSha256) return null;
+
+      const source: HoidResolvedEntitySource = Object.freeze({
+        evidenceId,
+        sourceBookId: scope.sourceBookId,
+        sourceChapter: scope.sourceChapter,
+        locatorId: scope.locatorId,
+        unlockBookId: scope.unlockBookId,
+        unlockChapter: scope.unlockChapter,
+        editionId: manifestResult.manifest.editionId,
+        navigationSha256: manifestResult.manifest.navigationSha256,
+        documentSha256,
+      });
+      evidence.push(Object.freeze({ id: evidenceId, scope, source }));
+      evidenceIds.add(evidenceId);
+    }
+
+    records.push(Object.freeze({
+      id,
+      entityId,
+      alias,
+      normalizedAlias,
+      evidence: Object.freeze(evidence),
+    }));
+    recordIds.add(id);
+    entityAliases.add(entityAliasKey);
+  }
+
+  return Object.freeze(records);
+}
+
+function aliasEvidenceIsUnlocked(
+  evidence: CanonicalAliasEvidence,
+  reading: readonly Readonly<{ bookId: string; chapter?: number; completed?: boolean }>[],
+): boolean {
+  const position = reading.find(item => item.bookId === evidence.scope.unlockBookId);
+  return Boolean(
+    position &&
+    (position.completed === true ||
+      (typeof position.chapter === "number" && position.chapter >= evidence.scope.unlockChapter)),
+  );
+}
+
 function unavailable(reason: "invalid-query" | "invalid-knowledge" | "invalid-progress"): HoidEntityResolutionResult {
   return Object.freeze({ status: "unavailable", reason });
 }
 
 function resolve(
   knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
   progressInput: unknown,
   queryInput: unknown,
 ): HoidEntityResolutionResult {
@@ -323,6 +478,8 @@ function resolve(
 
   const knowledge = canonicalKnowledge(knowledgeInput);
   if (!knowledge) return unavailable("invalid-knowledge");
+  const aliasRecords = canonicalAliasRecords(aliasEvidenceInput, knowledge);
+  if (!aliasRecords) return unavailable("invalid-knowledge");
 
   // Validate the v2 snapshot exactly once. All matching below uses this
   // completed-through projection; an open chapter is never treated as read.
@@ -333,34 +490,28 @@ function resolve(
   const catalog = new HoidKnowledgeCatalog([...knowledge]);
   const safeEntries = catalog.entriesForContext(reading)
     .filter(entry => isEvidenceUnlocked(entry, reading));
+  const safeById = new Map(safeEntries.map(entry => [entry.id, entry]));
 
   const matches: HoidResolvedEntity[] = [];
-  for (const entry of safeEntries) {
-    if (query.kind !== undefined && entry.kind !== query.kind) continue;
-    const matchedAlias = entry.aliases.find(alias => normalizeAlias(alias) === query.normalizedText);
-    if (!matchedAlias) continue;
+  for (const aliasRecord of aliasRecords) {
+    const entity = safeById.get(aliasRecord.entityId);
+    if (!entity || (query.kind !== undefined && entity.kind !== query.kind)) continue;
+    if (aliasRecord.normalizedAlias !== query.normalizedText) continue;
+    // Alias disclosure is independent from first appearance and summary
+    // unlock. Every alias-specific source is mandatory (AND semantics).
+    if (!aliasRecord.evidence.every(item => aliasEvidenceIsUnlocked(item, reading))) continue;
 
-    const citation = evidenceCitationFor(entry);
-    const manifestResult = getHoidReadingManifest(entry.evidenceSource?.bookId);
-    if (!citation || manifestResult.status !== "ready") return unavailable("invalid-knowledge");
-    const documentSha256 = getVerifiedChapterDocumentSha256(
-      entry.evidenceSource?.bookId,
-      manifestResult.manifest.editionId,
-      manifestResult.manifest.navigationSha256,
-      entry.evidenceSource?.chapter,
-    );
-    if (!documentSha256) return unavailable("invalid-knowledge");
-
+    const entitySource = sourceForEntry(entity);
+    if (!entitySource) return unavailable("invalid-knowledge");
     matches.push(Object.freeze({
-      id: entry.id,
-      kind: entry.kind,
-      matchedAlias,
-      source: Object.freeze({
-        ...citation,
-        editionId: manifestResult.manifest.editionId,
-        navigationSha256: manifestResult.manifest.navigationSha256,
-        documentSha256,
-      }),
+      id: entity.id,
+      kind: entity.kind,
+      matchedAlias: aliasRecord.alias,
+      entitySource,
+      aliasEvidence: Object.freeze(aliasRecord.evidence.map(item => Object.freeze({
+        evidenceId: item.id,
+        source: item.source,
+      }))),
     }));
   }
 
@@ -384,27 +535,32 @@ function resolve(
 }
 
 /**
- * Resolve exact names and aliases only among entries whose source document,
- * first appearance, full-summary unlock threshold and v2 reading boundary are
- * all verified. A locked alias and an unknown alias produce the same
- * not-found result; hidden catalog entries never affect visible candidates.
+ * Resolve exact names and aliases only after both the entity and the alias
+ * disclosure are authorized. A locked alias and an unknown alias produce the
+ * same not-found result; hidden records never affect visible candidates.
  *
  * This generic entry point is intended for controlled composition and tests.
- * Production UI must use resolveProductionHoidEntities(), which is bound to the
- * source-controlled editorial registry.
+ * Production UI must use resolveProductionHoidEntities(), which is bound to
+ * the source-controlled knowledge and alias registries.
  */
 export function resolveHoidAuthorizedEntities(
   knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
   progressInput: unknown,
   queryInput: unknown,
 ): HoidEntityResolutionResult {
-  return resolve(knowledgeInput, progressInput, queryInput);
+  return resolve(knowledgeInput, aliasEvidenceInput, progressInput, queryInput);
 }
 
-/** Production entity resolution bound to the local editorial registry. */
+/** Production entity resolution bound to local source-controlled registries. */
 export function resolveProductionHoidEntities(
   progressInput: unknown,
   queryInput: unknown,
 ): HoidEntityResolutionResult {
-  return resolve(HOID_EDITORIAL_KNOWLEDGE, progressInput, queryInput);
+  return resolve(
+    HOID_EDITORIAL_KNOWLEDGE,
+    HOID_ENTITY_ALIAS_EVIDENCE,
+    progressInput,
+    queryInput,
+  );
 }

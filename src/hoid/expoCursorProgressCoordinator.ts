@@ -1,9 +1,7 @@
 import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
-import {
-  createExpoSqliteHoidCursorProgressStore,
-  type HoidSqliteDatabasePort,
-} from "./cursorSqliteProgressStore";
+import { createExpoSqliteHoidCursorProgressStore } from "./cursorSqliteProgressStore";
+import type { HoidSqliteDatabasePort } from "./sqliteProgressStore";
 import { HoidCursorProgressCoordinator } from "./cursorProgressCoordinator";
 
 let coordinatorPromise: Promise<HoidCursorProgressCoordinator> | null = null;

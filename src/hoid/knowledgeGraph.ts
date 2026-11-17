@@ -9,7 +9,6 @@ import {
 } from "./catalog";
 import {
   evidenceCitationFor,
-  getHoidEvidenceSourceIntegrity,
   isEvidenceUnlocked,
   type HoidEvidenceCitation,
 } from "./evidenceScope";

@@ -24,6 +24,46 @@ export type HoidCursorBoundaryProjection = Readonly<{
   safeReadingPosition: ReadingPosition | null;
 }>;
 
+const POSITION_KEYS = new Set(["bookId", "cursor", "completed", "order"]);
+const MAX_ORDER = 1_000_000;
+
+function canonicalPosition(value: unknown): Record<string, unknown> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+
+    const result = Object.create(null) as Record<string, unknown>;
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== "string" || !POSITION_KEYS.has(key)) return null;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      result[key] = descriptor.value;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(result, "bookId")) return null;
+    const hasCursor = Object.prototype.hasOwnProperty.call(result, "cursor");
+    const hasCompleted = Object.prototype.hasOwnProperty.call(result, "completed");
+    if (hasCursor === hasCompleted) return null;
+    if (hasCompleted && result.completed !== true) return null;
+    if (
+      Object.prototype.hasOwnProperty.call(result, "order") &&
+      (typeof result.order !== "number" ||
+        !Number.isSafeInteger(result.order) ||
+        result.order < 0 ||
+        result.order > MAX_ORDER)
+    ) return null;
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * A v2 cursor records the chapter currently open/in progress in Atlas.
  * It does not assert that the reader has finished that chapter.
@@ -32,48 +72,52 @@ export type HoidCursorBoundaryProjection = Readonly<{
  * Explicit completion is the only state that authorizes the entire work.
  * This exclusive boundary prevents a chapter's own summary from appearing
  * while the reader is still on that chapter.
+ *
+ * This is also a public trust boundary: it canonicalizes own data properties
+ * and rejects accessors, inherited values, unknown keys and hostile traps.
  */
 export function projectHoidCursorPositionToBoundary(
-  position: HoidCursorProgressPosition,
+  position: HoidCursorProgressPosition | unknown,
 ): HoidCursorBoundaryProjection | null {
+  const record = canonicalPosition(position);
+  if (record === null) return null;
+
+  const bookId = record.bookId;
   if (
-    !position ||
-    typeof position.bookId !== "string" ||
-    position.bookId.length === 0 ||
-    position.bookId !== position.bookId.trim() ||
-    (position.order !== undefined &&
-      (!Number.isSafeInteger(position.order) || position.order < 0 || position.order > 1_000_000))
+    typeof bookId !== "string" ||
+    bookId.length === 0 ||
+    bookId !== bookId.trim()
   ) return null;
 
-  if ("completed" in position) {
-    if (position.completed !== true || "cursor" in position) return null;
+  const order = record.order as number | undefined;
+  if (record.completed === true) {
     const boundary: HoidReaderBoundary = Object.freeze({
       kind: "completed",
-      bookId: position.bookId,
+      bookId,
       completedThrough: "entire-work",
-      ...(position.order === undefined ? {} : { order: position.order }),
+      ...(order === undefined ? {} : { order }),
     });
     return Object.freeze({
       boundary,
       safeReadingPosition: Object.freeze({
-        bookId: position.bookId,
+        bookId,
         completed: true,
-        ...(position.order === undefined ? {} : { order: position.order }),
+        ...(order === undefined ? {} : { order }),
       }),
     });
   }
 
-  const validation = validateHoidReadingCursor(position.cursor);
-  if (validation.status !== "valid" || validation.cursor.bookId !== position.bookId) return null;
+  const validation = validateHoidReadingCursor(record.cursor);
+  if (validation.status !== "valid" || validation.cursor.bookId !== bookId) return null;
 
   const currentChapter = validation.cursor.chapterNumber;
   const completedThroughChapter = currentChapter > 1 ? currentChapter - 1 : null;
   const boundary: HoidReaderBoundary = Object.freeze({
     kind: "in-progress",
-    bookId: position.bookId,
+    bookId,
     currentChapter,
     completedThroughChapter,
-    ...(position.order === undefined ? {} : { order: position.order }),
+    ...(order === undefined ? {} : { order }),
   });
 
   return Object.freeze({
@@ -81,9 +125,9 @@ export function projectHoidCursorPositionToBoundary(
     safeReadingPosition: completedThroughChapter === null
       ? null
       : Object.freeze({
-          bookId: position.bookId,
+          bookId,
           chapter: completedThroughChapter,
-          ...(position.order === undefined ? {} : { order: position.order }),
+          ...(order === undefined ? {} : { order }),
         }),
   });
 }

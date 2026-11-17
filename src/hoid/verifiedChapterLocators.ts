@@ -99,6 +99,7 @@ export function getVerifiedChapterLocatorId(
     chapterNumber < 1
   ) return null;
 
+  if (!Object.prototype.hasOwnProperty.call(VERIFIED, bookId)) return null;
   const source = VERIFIED[bookId];
   if (
     !source ||
@@ -115,5 +116,7 @@ export function getVerifiedChapterLocatorId(
 /** Number of chapter locators verified for a work in its exact source edition. */
 export function getVerifiedChapterLocatorCount(bookId: unknown): number {
   if (typeof bookId !== "string") return 0;
-  return VERIFIED[bookId]?.chapterHrefs.length ?? 0;
+  return Object.prototype.hasOwnProperty.call(VERIFIED, bookId)
+    ? VERIFIED[bookId].chapterHrefs.length
+    : 0;
 }

@@ -1,3 +1,5 @@
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { sha256Hex } from "./sha256";
 
 export type HoidEditorialPromotionPlanInput = Readonly<{
@@ -36,6 +38,11 @@ export type HoidSourceControlReviewPort = Readonly<{
    * It returns untrusted data; the Hoid core validates every field again.
    */
   fetchProtectedReviewSnapshot(request: HoidProtectedReviewFetchRequest): Promise<unknown>;
+}>;
+
+export type HoidPromotionProgressPort = Readonly<{
+  /** Read the authoritative live Atlas cursor snapshot; never return a UI cache. */
+  readAuthoritativeProgressSnapshot(): Promise<unknown>;
 }>;
 
 export type HoidProtectedReviewSnapshot = Readonly<{
@@ -120,7 +127,12 @@ export type HoidPromotionCommitAuthorization =
         | "invalid-source-control-port"
         | "review-source-unavailable"
         | "review-timeout"
-        | "review-not-satisfied";
+        | "review-not-satisfied"
+        | "invalid-progress-port"
+        | "progress-source-unavailable"
+        | "progress-timeout"
+        | "invalid-progress"
+        | "progress-changed";
       verificationReason?: HoidProtectedReviewFailureReason;
       promotionAllowed: false;
       productionWritePerformed: false;
@@ -480,18 +492,21 @@ export function verifyHoidProtectedReviewSnapshot(
   });
 }
 
-function sourceControlMethod(value: unknown): ((request: HoidProtectedReviewFetchRequest) => Promise<unknown>) | null {
+function methodFromPort<T>(
+  value: unknown,
+  methodName: string,
+): ((request?: T) => Promise<unknown>) | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
     let current: object | null = value;
     for (let depth = 0; current !== null && current !== Object.prototype && depth < 4; depth += 1) {
-      const descriptor = Object.getOwnPropertyDescriptor(current, "fetchProtectedReviewSnapshot");
+      const descriptor = Object.getOwnPropertyDescriptor(current, methodName);
       if (descriptor) {
         if (
           !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
           typeof descriptor.value !== "function"
         ) return null;
-        return (descriptor.value as (request: HoidProtectedReviewFetchRequest) => Promise<unknown>).bind(value);
+        return (descriptor.value as (request?: T) => Promise<unknown>).bind(value);
       }
       current = Object.getPrototypeOf(current) as object | null;
     }
@@ -499,6 +514,53 @@ function sourceControlMethod(value: unknown): ((request: HoidProtectedReviewFetc
   } catch {
     return null;
   }
+}
+
+function sourceControlMethod(
+  value: unknown,
+): ((request: HoidProtectedReviewFetchRequest) => Promise<unknown>) | null {
+  return methodFromPort<HoidProtectedReviewFetchRequest>(value, "fetchProtectedReviewSnapshot") as
+    | ((request: HoidProtectedReviewFetchRequest) => Promise<unknown>)
+    | null;
+}
+
+function progressMethod(value: unknown): (() => Promise<unknown>) | null {
+  return methodFromPort<never>(value, "readAuthoritativeProgressSnapshot") as
+    | (() => Promise<unknown>)
+    | null;
+}
+
+function currentProgressFailure(
+  plan: HoidEditorialPromotionPlanInput,
+  snapshot: unknown,
+): "invalid-progress" | "progress-changed" | null {
+  const projection = projectHoidCursorProgressSnapshot(snapshot);
+  if (projection.status !== "ready") return "invalid-progress";
+  return projection.revision === plan.progressRevision &&
+    fingerprintHoidCursorProgressProjection(projection) === plan.progressFingerprint
+    ? null
+    : "progress-changed";
+}
+
+type TimedCallOutcome =
+  | Readonly<{ kind: "value"; value: unknown }>
+  | Readonly<{ kind: "error" }>
+  | Readonly<{ kind: "timeout" }>;
+
+async function callWithTimeout(call: () => Promise<unknown>): Promise<TimedCallOutcome> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const result = Promise.resolve()
+    .then(call)
+    .then<TimedCallOutcome, TimedCallOutcome>(
+      value => Object.freeze({ kind: "value", value }),
+      () => Object.freeze({ kind: "error" }),
+    );
+  const timeout = new Promise<TimedCallOutcome>(resolve => {
+    timer = setTimeout(() => resolve(Object.freeze({ kind: "timeout" })), DEFAULT_TIMEOUT_MS);
+  });
+  const outcome = await Promise.race([result, timeout]);
+  if (timer !== undefined) clearTimeout(timer);
+  return outcome;
 }
 
 function blocked(
@@ -525,6 +587,7 @@ export async function authorizeHoidPromotionCommit(
   promotionPlanInput: unknown,
   requestInput: unknown,
   sourceControlPortInput: unknown,
+  progressPortInput: unknown,
 ): Promise<HoidPromotionCommitAuthorization> {
   const plan = canonicalPromotionPlan(promotionPlanInput);
   if (!plan) {
@@ -544,30 +607,22 @@ export async function authorizeHoidPromotionCommit(
 
   const fetchSnapshot = sourceControlMethod(sourceControlPortInput);
   if (!fetchSnapshot) return blocked("invalid-source-control-port");
+  const readProgress = progressMethod(progressPortInput);
+  if (!readProgress) return blocked("invalid-progress-port");
+
+  // Check the live Atlas coordinator before contacting source control.
+  const before = await callWithTimeout(readProgress);
+  if (before.kind === "timeout") return blocked("progress-timeout");
+  if (before.kind === "error") return blocked("progress-source-unavailable");
+  const beforeFailure = currentProgressFailure(plan, before.value);
+  if (beforeFailure) return blocked(beforeFailure);
 
   const planFingerprint = promotionPlanFingerprint(plan);
   const fetchRequest: HoidProtectedReviewFetchRequest = Object.freeze({
     ...request,
     promotionPlanFingerprint: planFingerprint,
   });
-
-  type Outcome =
-    | Readonly<{ kind: "value"; value: unknown }>
-    | Readonly<{ kind: "error" }>
-    | Readonly<{ kind: "timeout" }>;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const call = Promise.resolve()
-    .then(() => fetchSnapshot(fetchRequest))
-    .then<Outcome, Outcome>(
-      value => Object.freeze({ kind: "value", value }),
-      () => Object.freeze({ kind: "error" }),
-    );
-  const timeout = new Promise<Outcome>(resolve => {
-    timer = setTimeout(() => resolve(Object.freeze({ kind: "timeout" })), DEFAULT_TIMEOUT_MS);
-  });
-  const outcome = await Promise.race([call, timeout]);
-  if (timer !== undefined) clearTimeout(timer);
-
+  const outcome = await callWithTimeout(() => fetchSnapshot(fetchRequest));
   if (outcome.kind === "timeout") return blocked("review-timeout");
   if (outcome.kind === "error") return blocked("review-source-unavailable");
 
@@ -575,6 +630,13 @@ export async function authorizeHoidPromotionCommit(
   if (verification.status !== "verified") {
     return blocked("review-not-satisfied", verification.reason);
   }
+
+  // The progress may have changed while the source-control adapter was fetching reviews.
+  const after = await callWithTimeout(readProgress);
+  if (after.kind === "timeout") return blocked("progress-timeout");
+  if (after.kind === "error") return blocked("progress-source-unavailable");
+  const afterFailure = currentProgressFailure(plan, after.value);
+  if (afterFailure) return blocked(afterFailure);
 
   return Object.freeze({
     status: "ready-for-maintainer-commit",

@@ -16,6 +16,7 @@ Esta política es deliberadamente conservadora. Evita mostrar el resumen de un c
 - `readingBoundary.ts` convierte una posición v2 validada en un límite explícito.
 - `projectHoidCursorPositionToBoundary()` conserva por separado `currentChapter` y `completedThroughChapter`.
 - `cursorEvidenceRuntime.ts` proyecta al contrato legado únicamente el prefijo completado.
+- `CommunityScreen.tsx` utiliza la misma regla: una teoría que alcanza el capítulo actualmente abierto permanece oculta.
 - El capítulo 1 no se representa como capítulo 0: simplemente no produce una `ReadingPosition`.
 - `startedBookIds` conserva la distinción entre una obra iniciada y una obra no empezada para que las recomendaciones no vuelvan a sugerir como inédita una obra cuyo lector está en el capítulo 1.
 
@@ -33,7 +34,9 @@ Las pruebas cubren:
 - discrepancia entre identidad de libro y cursor;
 - cursor manipulado u obsoleto;
 - no desbloquear una afirmación del capítulo que está abierto;
-- excluir obras iniciadas de recomendaciones de obras no empezadas.
+- excluir obras iniciadas de recomendaciones de obras no empezadas;
+- ocultar comentarios comunitarios del capítulo actual y posteriores;
+- tratar metadatos de capítulo o progreso malformados como spoiler.
 
 ## Limitación
 

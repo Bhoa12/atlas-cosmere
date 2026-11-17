@@ -1,6 +1,7 @@
 import type { HoidKnowledgeKind } from "./catalog";
 import { canonicalEvidenceScope } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 
 export type HoidEditorialDraft = Readonly<{
   schemaVersion: 1;
@@ -200,13 +201,23 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
     true,
   );
   const sourceManifest = getHoidReadingManifest(scope.sourceBookId);
+  const verifiedDocumentSha256 = sourceManifest.status === "ready"
+    ? getVerifiedChapterDocumentSha256(
+        scope.sourceBookId,
+        sourceManifest.manifest.editionId,
+        sourceManifest.manifest.navigationSha256,
+        scope.sourceChapter,
+      )
+    : null;
   if (
     !integrity ||
     sourceManifest.status !== "ready" ||
     integrity.editionId !== sourceManifest.manifest.editionId ||
     integrity.navigationSha256 !== sourceManifest.manifest.navigationSha256 ||
     typeof integrity.documentSha256 !== "string" ||
-    !/^[a-f0-9]{64}$/.test(integrity.documentSha256)
+    !/^[a-f0-9]{64}$/.test(integrity.documentSha256) ||
+    !verifiedDocumentSha256 ||
+    integrity.documentSha256 !== verifiedDocumentSha256
   ) return Object.freeze({ status: "invalid", reason: "invalid-source-integrity" });
 
   if (

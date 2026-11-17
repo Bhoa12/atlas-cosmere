@@ -330,8 +330,8 @@ export function validateHoidEditorialDraftBatch(
 }
 
 /**
- * First source-backed draft produced from the accessible El camino de los
- * reyes EPUB. It is pending review and is intentionally not imported by the
+ * Source-backed original summaries from the accessible Roshar and Cosmere
+ * EPUBs. Every draft is pending review and is intentionally excluded from the
  * production editorial registry.
  */
 const RAW_DRAFTS: readonly unknown[] = Object.freeze([

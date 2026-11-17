@@ -77,6 +77,7 @@ function snapshotFor(fetchRequest: HoidProtectedReviewFetchRequest): HoidProtect
     headRef: request.expectedHeadRef,
     headSha: request.expectedHeadSha,
     authorId: "pull-request-author",
+    promotionManifestPath: request.promotionManifestPath,
     promotionPlanFingerprint: fetchRequest.promotionPlanFingerprint,
     verifiedAt: "2026-11-17T21:00:00.000Z",
     branchProtection: Object.freeze({
@@ -222,6 +223,17 @@ describe("Hoid protected source-control review authority", () => {
     expect(result).toEqual({ status: "invalid", reason: "head-mismatch" });
   });
 
+  it("requires the adapter to identify the exact promotion manifest path", () => {
+    const valid = snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) });
+    expect(verifyHoidProtectedReviewSnapshot(request, {
+      ...valid,
+      promotionManifestPath: "docs/hoid/other-plan.json",
+    }, "b".repeat(64))).toEqual({
+      status: "invalid",
+      reason: "promotion-manifest-mismatch",
+    });
+  });
+
   it("rejects a snapshot whose promotion manifest fingerprint differs from the reviewed plan", () => {
     const valid = snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) });
     expect(verifyHoidProtectedReviewSnapshot(request, valid, "c".repeat(64))).toEqual({
@@ -261,6 +273,20 @@ describe("Hoid protected source-control review authority", () => {
       })),
     }, "b".repeat(64));
     expect(result).toEqual({ status: "invalid", reason: "approval-quorum-not-met" });
+  });
+
+  it("rejects review timestamps later than the adapter verification time", () => {
+    const valid = snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) });
+    expect(verifyHoidProtectedReviewSnapshot(request, {
+      ...valid,
+      reviews: valid.reviews.map((review, index) => ({
+        ...review,
+        submittedAt: index === 0 ? "2026-11-17T22:00:00.000Z" : review.submittedAt,
+      })),
+    }, "b".repeat(64))).toEqual({
+      status: "invalid",
+      reason: "invalid-snapshot",
+    });
   });
 
   it("requires one effective review per reviewer to avoid ambiguous review history", () => {

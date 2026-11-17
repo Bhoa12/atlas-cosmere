@@ -112,7 +112,7 @@ function canonicalStringArray(value: unknown): readonly string[] | null {
         typeof descriptor.value !== "string"
       ) return null;
       const alias = descriptor.value.trim();
-      const canonical = alias.normalize("NFKC").toLocaleLowerCase("es");
+      const canonical = alias.normalize("NFKC").toLowerCase();
       if (!alias || alias.length > 256 || seen.has(canonical)) return null;
       seen.add(canonical);
       result.push(alias);
@@ -165,10 +165,12 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
   ) return Object.freeze({ status: "invalid", reason: "invalid-appearance" });
 
   const appearanceManifest = getHoidReadingManifest(appearance.bookId);
-  if (
-    appearanceManifest.status !== "ready" ||
-    !appearanceManifest.manifest.units.some(unit => unit.chapterNumber === appearance.chapter)
-  ) return Object.freeze({ status: "invalid", reason: "invalid-appearance" });
+  const appearanceUnit = appearanceManifest.status === "ready"
+    ? appearanceManifest.manifest.units.find(unit => unit.chapterNumber === appearance.chapter)
+    : undefined;
+  if (!appearanceUnit || !appearanceUnit.locatorId) {
+    return Object.freeze({ status: "invalid", reason: "invalid-appearance" });
+  }
 
   const source = canonicalRecord(
     raw.evidenceSource,
@@ -184,6 +186,13 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
 
   const scope = canonicalEvidenceScope(source, unlock);
   if (!scope) return Object.freeze({ status: "invalid", reason: "invalid-evidence" });
+
+  // Draft schema v1 deliberately keeps first appearance, source and unlock
+  // within one work. Cross-work chronology needs a separately reviewed schema.
+  if (
+    appearance.bookId !== scope.sourceBookId ||
+    appearance.chapter > scope.unlockChapter
+  ) return Object.freeze({ status: "invalid", reason: "invalid-appearance" });
 
   const integrity = canonicalRecord(
     raw.sourceIntegrity,

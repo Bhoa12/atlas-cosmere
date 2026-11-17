@@ -19,7 +19,7 @@ Run 115 connects exact, spoiler-aware entity mention resolution to the strict ed
 
 Approved claims may declare an optional entityIds array. The array must be dense, bounded, unique, syntactically canonical, and reference only IDs in the validated knowledge catalog.
 
-For an entity-scoped request, a claim is eligible only when its entity scope contains every resolved entity ID. A claim without entity scope is not eligible for an entity-scoped request. For an unscoped question, existing claims retain their prior behavior.
+For an entity-scoped request, a claim is eligible only when its entity scope contains every resolved entity ID. Each scoped entity ID must also appear in that claim's evidence ID set, so an association cannot be declared without corresponding evidence. A claim without entity scope is not eligible for an entity-scoped request. For an unscoped question, existing claims retain their prior behavior.
 
 This makes relationship questions require a claim explicitly associated with all named entities; two unrelated claims about each endpoint are not silently combined into a relationship.
 

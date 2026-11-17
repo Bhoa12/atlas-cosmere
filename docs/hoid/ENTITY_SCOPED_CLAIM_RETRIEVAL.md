@@ -45,6 +45,6 @@ The provider receives no entity alias registry, no hidden aliases, and no author
 
 ## Editorial status
 
-The production knowledge, approved-claim and alias registries remain empty. No real Cosmere entities or claims are added by this run. Synthetic tests validate the mechanism only.
+The current atomic editorial claim draft v1 still carries one primary subjectId; a reviewed multi-entity relationship draft schema is a follow-up. The runtime contract can already enforce multi-entity approved claims, but no such claim is currently promoted. The production knowledge, approved-claim and alias registries remain empty. No real Cosmere entity or approved claim is added by this run. Synthetic tests validate the retrieval mechanism only.
 
 No EPUB, source passage or protected chapter text is stored in Git. Source-backed claims still require individually inspected documents, original summaries, independent review and explicit promotion.

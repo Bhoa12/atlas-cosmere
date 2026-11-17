@@ -70,3 +70,12 @@ The adapter call has an eight-second timeout. A timed-out operation may continue
 The test suite covers exact-head binding, plan-manifest binding, author exclusion, stale/dismissed approvals, reviewer uniqueness, branch protection, Code Owner approval, draft/closed PRs, hostile accessors, adapter failure and timeout.
 
 Test adapters are synthetic fixtures only. They are not production approvals.
+
+
+## Live progress freshness
+
+The authority gate also requires a separate `HoidPromotionProgressPort` backed by the authoritative Atlas cursor coordinator. It reads the current snapshot before the source-control call and again after review verification. Both snapshots must project to the exact revision and fingerprint stored in the promotion plan.
+
+If the reader moves, rewinds, reopens a completed work or corrects progress while the review adapter is running, the gate returns `progress-changed` and no maintainer-commit authorization is produced. Invalid or unavailable progress and either adapter timeout also fail closed.
+
+The source-control snapshot names the exact manifest path and its plan fingerprint. Review timestamps later than the adapter's verification time are rejected. The progress port is read-only and must not use a React component cache or a stale UI projection.

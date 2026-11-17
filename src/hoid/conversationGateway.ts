@@ -53,7 +53,7 @@ function canonicalRequest(value: unknown): Readonly<{ question: string; progress
       result.question.length < 1 ||
       result.question.length > MAX_QUESTION_LENGTH ||
       result.question !== result.question.trim() ||
-      /[\\u0000-\\u001F\\u007F]/u.test(result.question) ||
+      /[\u0000-\u001F\u007F]/u.test(result.question) ||
       !Object.prototype.hasOwnProperty.call(result, "progress")
     ) return null;
 

@@ -26,6 +26,10 @@ An explicitly completed work is represented as `completedThrough: "entire-work"`
 
 `HoidConversationGateway.readingContext()` validates the request snapshot against the live coordinator snapshot before projection and rechecks it after projection. A stale or invalid snapshot returns no context payload.
 
+## Coverage and counts
+
+The context distinguishes works with a verified numbered-chapter manifest from works whose segmentation is not yet verified. It does not label every absent cursor as “unread”: some catalogue works may not yet have a trackable reading structure. Counts therefore separate started positions, trackable-but-unstarted works and untracked works.
+
 ## Coverage
 
 The context reports only verified numbered-chapter units. Special sections, ambiguous chapter numbers, graphic-novel volumes and story-level structures remain unavailable until their manifests are independently verified. The output is not a plot summary and must not be sent to a provider as narrative evidence.

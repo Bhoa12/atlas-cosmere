@@ -7,6 +7,12 @@ on:
     paths:
       - "src/hoid/editorialClaimDrafts.ts"
       - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/sqliteProgressStore.ts"
       - "src/hoid/sha256.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/editionProgressValidation.ts"
@@ -60,6 +66,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test atomic claim validation and spoiler gating
-        run: npx vitest run src/hoid/editorialClaimDrafts.test.ts src/hoid/editorialDrafts.test.ts src/hoid/editorialReviewPackets.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingManifest.test.ts src/hoid/readingBoundary.test.ts src/hoid/editorialRegistry.test.ts
+        run: npx vitest run src/hoid/editorialClaimDrafts.test.ts src/hoid/editorialDrafts.test.ts src/hoid/editorialReviewPackets.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingManifest.test.ts src/hoid/readingBoundary.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/editorialRegistry.test.ts
       - name: Type-check claim and provenance boundaries
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialClaimDrafts.ts src/hoid/sha256.ts src/hoid/evidenceScope.ts src/hoid/editionProgressValidation.ts src/hoid/readingValidation.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/verifiedChapterLocators.ts src/hoid/verifiedChapterDocuments.ts src/hoid/bibliography.ts src/hoid/catalog.ts src/hoid/catalogValidation.ts src/hoid/readingContext.ts src/hoid/types.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialClaimDrafts.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/cursorProgressLedger.ts src/hoid/readingBoundary.ts src/hoid/progressLedger.ts src/hoid/sqliteProgressStore.ts src/hoid/sha256.ts src/hoid/evidenceScope.ts src/hoid/editionProgressValidation.ts src/hoid/readingValidation.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/verifiedChapterLocators.ts src/hoid/verifiedChapterDocuments.ts src/hoid/bibliography.ts src/hoid/catalog.ts src/hoid/catalogValidation.ts src/hoid/readingContext.ts src/hoid/types.ts

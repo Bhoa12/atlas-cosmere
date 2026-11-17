@@ -25,12 +25,12 @@ describe("Hoid complete editorial knowledge bundle", () => {
     if (first.status !== "blocked" || second.status !== "blocked") return;
 
     expect(first.manifest).toEqual(second.manifest);
-    expect(first.manifest.records).toHaveLength(36);
-    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(20);
+    expect(first.manifest.records).toHaveLength(39);
+    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(23);
     expect(first.manifest.records.filter(item => item.kind === "atomic-claim")).toHaveLength(1);
     expect(first.manifest.records.filter(item => item.kind === "entity")).toHaveLength(12);
     expect(first.manifest.records.filter(item => item.kind === "relationship")).toHaveLength(3);
-    expect(first.manifest.sources).toHaveLength(20);
+    expect(first.manifest.sources).toHaveLength(23);
     expect(first.manifest.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(first.promotionAllowed).toBe(false);
     expect(first.productionWritePerformed).toBe(false);

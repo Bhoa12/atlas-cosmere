@@ -21,6 +21,7 @@ on:
       - "src/hoid/verifiedChapterDocuments.test.ts"
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - "docs/hoid/EDITORIAL_REVIEW_PACKETS.md"
+      - "docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md"
       - ".github/workflows/hoid-editorial-draft-validation.yml"
   pull_request:
     paths:
@@ -40,6 +41,7 @@ on:
       - "src/hoid/verifiedChapterDocuments.test.ts"
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - "docs/hoid/EDITORIAL_REVIEW_PACKETS.md"
+      - "docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md"
       - ".github/workflows/hoid-editorial-draft-validation.yml"
 
 permissions:

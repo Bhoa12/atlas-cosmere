@@ -109,6 +109,13 @@ describe("Hoid reader spoiler boundary", () => {
     expect(invoked).toBe(false);
   });
 
+  it("rejects explicit completion for a work outside the bibliography", () => {
+    expect(projectHoidCursorPositionToBoundary({
+      bookId: "unknown-work",
+      completed: true,
+    })).toBeNull();
+  });
+
   it("rejects unknown fields and contradictory completion/cursor states", () => {
     expect(projectHoidCursorPositionToBoundary({
       bookId: "twok",

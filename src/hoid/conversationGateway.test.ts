@@ -5,7 +5,8 @@ import {
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
 import { createHoidReadingCursor } from "./readingManifest";
-import { createHoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
+import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidEditorialRuntime } from "./editorialRegistry";
 
 const UPDATED_AT = "2026-11-17T14:00:00.000Z";
@@ -41,12 +42,13 @@ const elantrisRecommendation = Object.freeze({
   reason: "unread-source",
 });
 
-function setup(initial = snapshot(3)) {
+function setup(initial = snapshot(3), resolveEntities?: HoidConversationGatewayConfig["resolveEntities"]) {
   let current: unknown = initial;
   const runtime = { answer: vi.fn(async () => answer) };
   const config: HoidConversationGatewayConfig = {
     runtime,
     getCurrentProgress: () => current,
+    ...(resolveEntities ? { resolveEntities } : {}),
   };
   const gateway = createHoidConversationGateway(config);
   if (!gateway) throw new Error("No se pudo crear el gateway sintético");
@@ -453,6 +455,60 @@ describe("HoidConversationGateway", () => {
       completedThrough: "entire-work",
     });
     expect(result.context.positions[0]).not.toHaveProperty("currentChapter");
+  });
+
+
+  it("blocks a known but unauthorized entity mention before invoking the answer runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current, () => ({ status: "blocked" }));
+    const result = await gateway.answer({ question: "Pregunta con alias bloqueado", progress: current });
+
+    expect(result).toEqual({ status: "unavailable", reason: "entity-blocked" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("blocks ambiguous authorized entity mentions instead of selecting one silently", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const { gateway, runtime } = setup(current, () => ({
+      status: "ready",
+      resolution: "ambiguous",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [],
+      truncated: false,
+    }));
+    const result = await gateway.answer({ question: "Pregunta ambigua", progress: current });
+
+    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("rejects an entity resolver result bound to another progress identity", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current, () => ({
+      status: "ready",
+      resolution: "not-found",
+      progressRevision: 1,
+      progressFingerprint: "0".repeat(64),
+      matches: [],
+      truncated: false,
+    }));
+    const result = await gateway.answer({ question: "Pregunta", progress: current });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-progress" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("contains entity resolver failures without invoking the answer runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current, () => { throw new Error("synthetic resolver failure"); });
+    const result = await gateway.answer({ question: "Pregunta", progress: current });
+
+    expect(result).toEqual({ status: "unavailable", reason: "entity-unavailable" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).not.toContain("synthetic resolver failure");
   });
 
 });

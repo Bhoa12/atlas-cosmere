@@ -46,3 +46,7 @@ La fachada demuestra y prueba la frontera de autorización por cursor, lista par
 ## Fuentes
 
 El módulo utiliza únicamente los manifiestos de metadatos y los contratos existentes. No incorpora títulos de capítulos, localizadores, resúmenes narrativos ni texto de los EPUB privados.
+
+## Verificación de composición
+
+La suite específica debe ejecutarse en CI junto con el contrato de snapshots v2, el manifiesto de lectura y el runtime estricto existente. La prueba de integración usa únicamente afirmaciones y evidencias sintéticas; no representa contenido narrativo extraído de los EPUB privados.

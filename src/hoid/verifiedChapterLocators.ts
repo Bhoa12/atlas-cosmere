@@ -80,7 +80,7 @@ const VERIFIED: Readonly<Record<string, VerifiedNavigationSource>> = Object.free
 );
 
 /**
- * Return an opaque, edition-bound locator for one numbered chapter.
+ * Return a stable, edition-bound locator for one numbered chapter.
  * The underlying EPUB href is metadata only; it is namespaced by the exact
  * edition and navigation digest so it cannot be reused across editions.
  */

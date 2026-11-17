@@ -266,3 +266,13 @@ This is stale-response suppression, not provider cancellation. A selector alread
 ## Conversation history spoiler invalidation
 
 Run 113 binds every ready assistant answer, reading-context result and catalogue recommendation to the exact v2 progress revision and fingerprint. HoidScreen filters stale messages during render, prunes them from state after a progress change, and checks request/result/live scopes immediately before committing a response. User-authored messages and the static greeting remain. See `docs/hoid/CONVERSATION_HISTORY_SPOILER_INVALIDATION.md` and `conversationHistoryPolicy.ts`.
+
+
+## Run 114 additions
+
+- `resolveProductionHoidEntityMentions()` scans exact, Unicode-normalized whole-word aliases in natural-language questions before `HoidConversationGateway.answer()` invokes the evidence runtime.
+- Known aliases without their own reviewed disclosure record, aliases whose entity or evidence is still locked, mixed safe/blocked mentions, and ambiguous matches fail closed. The UI uses the same generic no-authorized-evidence wording so it does not disclose which alias caused the block.
+- The entity preflight is a safety gate only; it does not replace claim selection, source provenance or chapter-level authorization.
+- Three additional original chapter-two summaries are staged for `twok`, `edgedancer` and `dawnshard`. Their XHTML digests are registered independently and their unlock threshold is chapter three. All remain pending review and are not production knowledge.
+- The chapter-two ingestion record is documented in `docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md`. No EPUB or protected passage is committed.
+- `cosmere.epub` was not accessible in the Library during this run; no new Cosmere chapter bodies were inspected.

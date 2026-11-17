@@ -577,3 +577,173 @@ export function resolveProductionHoidEntities(
     queryInput,
   );
 }
+
+
+export type HoidEntityMentionResolutionResult =
+  | Readonly<{
+      status: "ready";
+      resolution: "matched" | "ambiguous" | "not-found";
+      progressRevision: number;
+      progressFingerprint: string;
+      matches: readonly HoidResolvedEntity[];
+      truncated: boolean;
+    }>
+  /** A known alias was mentioned but its entity or disclosure scope is not authorized. */
+  | Readonly<{ status: "blocked" }>
+  | Readonly<{
+      status: "unavailable";
+      reason: "invalid-question" | "invalid-knowledge" | "invalid-progress";
+    }>;
+
+const MAX_ENTITY_MENTION_QUESTION_LENGTH = 4_000;
+const MAX_ENTITY_MENTION_ALIASES = 4_096;
+
+function canonicalEntityMentionQuestion(value: unknown): string | null {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > MAX_ENTITY_MENTION_QUESTION_LENGTH ||
+    value !== value.trim() ||
+    /[\u0000-\u001F\u007F\p{Cf}]/u.test(value)
+  ) return null;
+  const normalized = normalizeAlias(value);
+  return normalized.length > 0 ? normalized : null;
+}
+
+function containsNormalizedAliasMention(question: string, alias: string): boolean {
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp("(^|[^\\p{L}\\p{N}])" + escaped + "($|[^\\p{L}\\p{N}])", "u");
+  return pattern.test(question);
+}
+
+function resolveEntityMentions(
+  knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
+  progressInput: unknown,
+  questionInput: unknown,
+): HoidEntityMentionResolutionResult {
+  const question = canonicalEntityMentionQuestion(questionInput);
+  if (!question) return Object.freeze({ status: "unavailable", reason: "invalid-question" });
+
+  const knowledge = canonicalKnowledge(knowledgeInput);
+  if (!knowledge) return Object.freeze({ status: "unavailable", reason: "invalid-knowledge" });
+  const aliasRecords = canonicalAliasRecords(aliasEvidenceInput, knowledge);
+  if (!aliasRecords) return Object.freeze({ status: "unavailable", reason: "invalid-knowledge" });
+
+  let aliasCount = 0;
+  for (const entry of knowledge) {
+    aliasCount += entry.aliases.length;
+    if (aliasCount > MAX_ENTITY_MENTION_ALIASES) {
+      return Object.freeze({ status: "unavailable", reason: "invalid-knowledge" });
+    }
+  }
+
+  const projection = projectHoidCursorProgressSnapshot(progressInput);
+  if (projection.status !== "ready") {
+    return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+  }
+
+  const reading = [...projection.reading];
+  const catalog = new HoidKnowledgeCatalog([...knowledge]);
+  const safeEntries = catalog.entriesForContext(reading)
+    .filter(entry => isEvidenceUnlocked(entry, reading));
+  const safeById = new Map(safeEntries.map(entry => [entry.id, entry]));
+  const aliasByEntityAndName = new Map(
+    aliasRecords.map(record => [record.entityId + "\\n" + record.normalizedAlias, record]),
+  );
+  const matchesByEntity = new Map<string, HoidResolvedEntity>();
+  let blockedMention = false;
+
+  // Scan every catalogued alias, not only approved alias records. If a known
+  // spelling appears without its own reviewed disclosure record, it is still
+  // withheld. This prevents an incomplete alias registry from turning a
+  // known-but-undisclosed name into an ordinary provider query.
+  for (const entry of knowledge) {
+    for (const alias of entry.aliases) {
+      const normalizedAlias = normalizeAlias(alias);
+      if (!containsNormalizedAliasMention(question, normalizedAlias)) continue;
+
+      const aliasRecord = aliasByEntityAndName.get(entry.id + "\\n" + normalizedAlias);
+      const safeEntry = safeById.get(entry.id);
+      if (
+        !aliasRecord ||
+        !safeEntry ||
+        !aliasRecord.evidence.every(item => aliasEvidenceIsUnlocked(item, reading))
+      ) {
+        blockedMention = true;
+        continue;
+      }
+
+      const entitySource = sourceForEntry(safeEntry);
+      if (!entitySource) {
+        return Object.freeze({ status: "unavailable", reason: "invalid-knowledge" });
+      }
+
+      const candidate: HoidResolvedEntity = Object.freeze({
+        id: safeEntry.id,
+        kind: safeEntry.kind,
+        matchedAlias: alias,
+        entitySource,
+        aliasEvidence: Object.freeze(aliasRecord.evidence.map(item => Object.freeze({
+          evidenceId: item.id,
+          source: item.source,
+        }))),
+      });
+      const existing = matchesByEntity.get(candidate.id);
+      if (!existing || candidate.matchedAlias < existing.matchedAlias) {
+        matchesByEntity.set(candidate.id, candidate);
+      }
+    }
+  }
+
+  // Do not reveal which alias, entity or source was blocked. If a question
+  // mixes authorized and blocked names, the whole question is withheld.
+  if (blockedMention) return Object.freeze({ status: "blocked" });
+
+  const matches = [...matchesByEntity.values()]
+    .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+  const truncated = matches.length > MAX_RESULTS;
+  const visibleMatches = Object.freeze(matches.slice(0, MAX_RESULTS));
+  const resolution = visibleMatches.length === 0
+    ? "not-found"
+    : visibleMatches.length === 1 && !truncated
+      ? "matched"
+      : "ambiguous";
+
+  return Object.freeze({
+    status: "ready",
+    resolution,
+    progressRevision: projection.revision,
+    progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+    matches: visibleMatches,
+    truncated,
+  });
+}
+
+/**
+ * Resolve every exact, whole-word entity alias mentioned in natural language.
+ * Known-but-locked aliases and known aliases without their own approved
+ * disclosure evidence produce the same opaque "blocked" result. No hidden
+ * alias text or entity identifier is returned.
+ */
+export function resolveHoidAuthorizedEntityMentions(
+  knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
+  progressInput: unknown,
+  questionInput: unknown,
+): HoidEntityMentionResolutionResult {
+  return resolveEntityMentions(knowledgeInput, aliasEvidenceInput, progressInput, questionInput);
+}
+
+/** Production mention resolution bound to source-controlled editorial registries. */
+export function resolveProductionHoidEntityMentions(
+  progressInput: unknown,
+  questionInput: unknown,
+): HoidEntityMentionResolutionResult {
+  return resolveEntityMentions(
+    HOID_EDITORIAL_KNOWLEDGE,
+    HOID_ENTITY_ALIAS_EVIDENCE,
+    progressInput,
+    questionInput,
+  );
+}

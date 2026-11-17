@@ -5,6 +5,7 @@ import { buildHoidCursorReadingContext, type HoidCursorReadingContext } from "./
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
+import { resolveProductionHoidEntityMentions, type HoidEntityMentionResolutionResult } from "./entityResolver";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
   recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
@@ -23,7 +24,10 @@ export type HoidConversationGatewayResult =
         | "invalid-request"
         | "invalid-progress"
         | "progress-changed"
-        | "runtime-failed";
+        | "runtime-failed"
+        | "entity-blocked"
+        | "entity-ambiguous"
+        | "entity-unavailable";
     }>;
 
 export type HoidConversationRecommendationResult =
@@ -60,6 +64,8 @@ export type HoidConversationGatewayConfig = Readonly<{
   runtime: HoidConversationRuntime;
   /** Must return the coordinator's latest authoritative v2 snapshot. */
   getCurrentProgress: () => unknown;
+  /** Optional test seam; production defaults to the source-controlled mention resolver. */
+  resolveEntities?: (progress: unknown, question: string) => HoidEntityMentionResolutionResult;
 }>;
 
 const REQUEST_KEYS = ["question", "progress", "intent"] as const;
@@ -304,6 +310,36 @@ export class HoidConversationGateway {
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) {
       return unavailable("progress-changed");
+    }
+
+    // Resolve every known alias mentioned in the natural-language question
+    // before the evidence runtime can select claims. A known but locked alias,
+    // or an alias without its own approved disclosure record, blocks the whole
+    // question with an opaque result. Unknown text remains indistinguishable
+    // from an absent alias and cannot create knowledge.
+    let entityResolution: HoidEntityMentionResolutionResult;
+    try {
+      entityResolution = (this.config.resolveEntities ?? resolveProductionHoidEntityMentions)(
+        request.progress,
+        request.question,
+      );
+    } catch {
+      return unavailable("entity-unavailable");
+    }
+    if (entityResolution.status === "unavailable") {
+      return unavailable("entity-unavailable");
+    }
+    if (entityResolution.status === "blocked") {
+      return unavailable("entity-blocked");
+    }
+    if (entityResolution.resolution === "ambiguous") {
+      return unavailable("entity-ambiguous");
+    }
+    if (
+      entityResolution.progressRevision !== requestedProgress.revision ||
+      entityResolution.progressFingerprint !== requestedProgress.fingerprint
+    ) {
+      return unavailable("invalid-progress");
     }
 
     let answer: HoidEvidenceAnswer;

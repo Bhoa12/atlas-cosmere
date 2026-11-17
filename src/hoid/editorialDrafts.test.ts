@@ -20,7 +20,7 @@ function cloneDraft(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Hoid editorial draft staging", () => {
-  it("loads one original summary as pending review, not as production knowledge", () => {
+  it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS).toHaveLength(3);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");

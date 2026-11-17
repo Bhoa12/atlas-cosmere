@@ -100,6 +100,17 @@ describe("Hoid editorial draft staging", () => {
     });
   });
 
+  it("rejects a well-formed but unverified chapter document digest", () => {
+    const sourceIntegrity = {
+      ...validDraft.sourceIntegrity,
+      documentSha256: "a".repeat(64),
+    };
+    expect(validateHoidEditorialDraft(cloneDraft({ sourceIntegrity }))).toEqual({
+      status: "invalid",
+      reason: "invalid-source-integrity",
+    });
+  });
+
   it("rejects an unlock threshold earlier than the source chapter", () => {
     expect(validateHoidEditorialDraft(cloneDraft({
       evidenceUnlock: { bookId: "twok", chapter: 1 },

@@ -47,6 +47,9 @@ on:
       - "src/hoid/entityResolver.ts"
       - "src/hoid/entityResolver.test.ts"
       - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceScope.ts"
@@ -66,6 +69,7 @@ on:
       - "src/hoid/types.ts"
       - "docs/hoid/KNOWLEDGE_GRAPH_AUTHORIZATION.md"
       - "docs/hoid/ENTITY_RESOLUTION.md"
+      - "docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md"
       - ".github/workflows/hoid-knowledge-graph.yml"
 
 permissions:

@@ -27,6 +27,8 @@ on:
       - "src/hoid/readingManifest.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterDocuments.test.ts"
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - ".github/workflows/hoid-editorial-draft-validation.yml"
 

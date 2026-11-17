@@ -1,0 +1,51 @@
+name: Hoid cursor-native Atlas integration
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/context/CosmereContext.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/cursorAtlasAdapter.ts"
+      - "src/hoid/cursorAtlasAdapter.test.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/CURSOR_NATIVE_ATLAS_INTEGRATION.md"
+      - ".github/workflows/hoid-cursor-native-atlas.yml"
+  pull_request:
+    paths:
+      - "src/context/CosmereContext.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/cursorAtlasAdapter.ts"
+      - "src/hoid/cursorAtlasAdapter.test.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/CURSOR_NATIVE_ATLAS_INTEGRATION.md"
+      - ".github/workflows/hoid-cursor-native-atlas.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cursor-native-atlas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cursor-native progress and evidence
+        run: npx vitest run src/hoid/cursorAtlasAdapter.test.ts src/hoid/cursorProgressCoordinator.test.ts src/hoid/cursorSqliteProgressStore.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/readingManifest.test.ts
+      - name: Type-check Atlas and Hoid screen integration
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --jsx react --esModuleInterop --skipLibCheck src/context/CosmereContext.tsx src/screens/HoidScreen.tsx

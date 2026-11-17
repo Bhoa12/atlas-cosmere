@@ -777,9 +777,76 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-007.shallan-palanaeum-wait",
+    kind: "event",
+    aliases: Object.freeze(["espera de Shallan en el Palaneo"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 7 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 7,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-020.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 8 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "30d9cecf9748261ad6e47fcea6064ac2f93ec523e8fe6a2d528d76306233bebb",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "10c850eaefe0ded795c175f8b9e6ffeba49a02808e746b138d2105b3c327951b" }),
+    summary: "Shallan espera en el Palaneo mientras prepara un nuevo intento de convencer a Jasnah para que la acepte como pupila. Al recorrer la biblioteca descubre el coste de acceso a sus fondos y decide aguardar en una sala de lectura. Para ordenar sus ideas, dibuja Kharbranth y a las personas que ha conocido; después reproduce de memoria una demostración de Jasnah con el moldeador de almas y redacta una carta que presenta su insistencia como una petición razonada. Su objetivo no es sencillo: busca aprender de Jasnah, pero también persigue un propósito privado relacionado con el fabrial. Durante la espera conoce al hermano Kabsal, un fervoroso de trato informal que se interesa por sus dibujos y le pide que anuncie su visita a Jasnah. El capítulo termina cuando Jasnah llega a la sala.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-007.lift-tracks-darkness",
+    kind: "event",
+    aliases: Object.freeze(["seguimiento de Oscuridad en Yeddaw"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 7 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 7,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/007.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 8 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "c98233f98e7b5368a1e9e1d6db216ebbc4c22b43aa056624758a76ff67d7540f",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "006c275d6a9539b5ebdff94228ef5cc10576ed13b88751967d574aa4ee36fc24" }),
+    summary: "Lift sigue a la capitana de la guardia hasta su vivienda y pasa la noche vigilando desde las terrazas cultivadas en la roca. Cuando Wyndle la despierta, descubre que Oscuridad ha acudido a interrogar a la capitana sobre una joven con poderes inusuales. Lift escucha cómo él contrasta los detalles del incidente en la entrada y ordena que continúe la búsqueda. Al reconocer que el informe ha atraído a su perseguidor, Lift comprende que su maniobra ha funcionado, pero también que está cerca de alguien peligroso. Decide seguirlo para averiguar a quién busca y qué pretende.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-007.lopen-crew-unease",
+    kind: "event",
+    aliases: Object.freeze(["inquietud de Lopen durante la travesía"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 7 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 7,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/7.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 8 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "c2d2eb939495f883a1d507a42728ca3f39b561534e6984de56af574872066aaf",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "fc38f6238ac4f8bd52f544543f63afa5d5e0cff5a6e02ce0f6b0f0c0e4033854" }),
+    summary: "Lopen conversa con Cuerda sobre la tripulación y sobre las señales extrañas que ella observa entre los spren. Cuerda explica que ha empezado a sentirse atraída por lo desconocido y comenta un aumento de suertespren, mientras Lopen decide comunicar el hallazgo a Rushu. Después, Lopen y Huio hablan de la guerra y de la inquietud que les produce la aparente falta de avances. Huio experimenta con aluminio y una vinculacaña, observa una reacción de los spren y daña accidentalmente el mecanismo. Cuando Lopen vuelve a cubierta, encuentra a los marineros reunidos alrededor de algo grande y sin vida que flota junto al barco.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]);
 
-// Chapter-six summaries remain staging-only and require chapter seven completion.
+// Chapter-seven summaries remain staging-only and require chapter eight completion.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

@@ -1,12 +1,13 @@
 import type { HoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
-import type { HoidEvidenceAnswer, HoidEvidenceRecommendationResult } from "./evidenceRuntime";
+import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import type { HoidRecommendation } from "./recommendations";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 
-type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> &
-  Partial<Pick<HoidCursorEvidenceRuntime, "recommend">>;
+type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
+  recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
+};
 
 export type HoidConversationGatewayResult =
   | Readonly<{
@@ -209,9 +210,11 @@ function canonicalRecommendationResult(
 
   if (record.status === "abstain") {
     if (
-      Object.keys(record).length !== 2 ||
+      Object.keys(record).length !== 3 ||
       record.reason !== "invalid-progress"
     ) return null;
+    const emptyItems = canonicalDenseArray(record.items, 0);
+    if (!emptyItems || emptyItems.length !== 0) return null;
     return Object.freeze({ status: "invalid-progress" });
   }
 
@@ -345,7 +348,7 @@ export class HoidConversationGateway {
       return unavailableRecommendation("runtime-unavailable");
     }
 
-    let rawResult: HoidEvidenceRecommendationResult;
+    let rawResult: unknown;
     try {
       rawResult = await recommend.call(this.config.runtime, request.progress, request.limit);
     } catch {

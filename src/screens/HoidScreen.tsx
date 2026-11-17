@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
-import { createHoidCursorEvidenceRuntime } from '../hoid/cursorEvidenceRuntime';
+import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from '../hoid/cursorEvidenceRuntime';
+import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import type { HoidRecommendation } from '../hoid/recommendations';
 
@@ -39,13 +40,15 @@ export const HoidScreen: React.FC = () => {
   const [input, setInput] = useState('');
   const [recomendaciones, setRecomendaciones] = useState<readonly HoidRecommendation[]>([]);
   const [recommendationRevision, setRecommendationRevision] = useState<number | null>(null);
+  const [recommendationFingerprint, setRecommendationFingerprint] = useState<string | null>(null);
   const [recommendationMessage, setRecommendationMessage] = useState('');
 
   useEffect(() => {
     setRecomendaciones([]);
     setRecommendationRevision(null);
+    setRecommendationFingerprint(null);
     setRecommendationMessage('');
-  }, [hoidCursorProgressSnapshot?.revision, progresoPersistenciaEstado]);
+  }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado]);
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
@@ -91,6 +94,7 @@ export const HoidScreen: React.FC = () => {
     if (!currentProgress) {
       setRecomendaciones([]);
       setRecommendationRevision(null);
+      setRecommendationFingerprint(null);
       setRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones.');
       return;
     }
@@ -98,6 +102,7 @@ export const HoidScreen: React.FC = () => {
     setCargandoRecomendaciones(true);
     setRecomendaciones([]);
     setRecommendationRevision(null);
+    setRecommendationFingerprint(null);
     setRecommendationMessage('');
 
     try {
@@ -105,12 +110,14 @@ export const HoidScreen: React.FC = () => {
       if (result.status === 'ready') {
         setRecomendaciones(result.items);
         setRecommendationRevision(result.progressRevision);
+        setRecommendationFingerprint(result.progressFingerprint);
         setRecommendationMessage(result.items.length === 0
           ? 'No quedan obras sin empezar en el catálogo actual.'
           : 'Son obras del catálogo que todavía no has empezado; el orden no representa una ruta de lectura.');
       } else {
         setRecomendaciones([]);
         setRecommendationRevision(null);
+        setRecommendationFingerprint(null);
         setRecommendationMessage(result.reason === 'progress-changed'
           ? 'Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.'
           : 'No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
@@ -118,6 +125,7 @@ export const HoidScreen: React.FC = () => {
     } catch {
       setRecomendaciones([]);
       setRecommendationRevision(null);
+      setRecommendationFingerprint(null);
       setRecommendationMessage('No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
     } finally {
       setCargandoRecomendaciones(false);
@@ -125,10 +133,16 @@ export const HoidScreen: React.FC = () => {
   };
 
   const liveProgress = progressReaderRef.current();
+  const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
+  const liveFingerprint = liveProjection?.status === 'ready'
+    ? fingerprintHoidCursorProgressProjection(liveProjection)
+    : null;
   const recommendationsAreCurrent =
     recommendationRevision !== null &&
+    recommendationFingerprint !== null &&
     liveProgress !== null &&
-    recommendationRevision === liveProgress.revision;
+    recommendationRevision === liveProgress.revision &&
+    recommendationFingerprint === liveFingerprint;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>

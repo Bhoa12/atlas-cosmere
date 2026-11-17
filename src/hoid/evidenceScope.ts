@@ -24,14 +24,40 @@ export type CanonicalHoidEvidenceScope = Readonly<{
 const MAX_CHAPTER = 100_000_000;
 const MAX_LOCATOR_LENGTH = 256;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function canonicalDataRecord(
+  value: unknown,
+  expectedKeys: readonly string[],
+): Record<string, unknown> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== expectedKeys.length) return null;
+
+    const result = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof key !== "string" || !expectedKeys.includes(key)) return null;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      result[key] = descriptor.value;
+    }
+    for (const key of expectedKeys) {
+      if (!Object.prototype.hasOwnProperty.call(result, key)) return null;
+    }
+    return result;
+  } catch {
+    return null;
+  }
 }
 
 function validChapter(value: unknown): value is number {
   return typeof value === "number"
-    && Number.isInteger(value)
-    && Number.isFinite(value)
+    && Number.isSafeInteger(value)
     && value >= 1
     && value <= MAX_CHAPTER;
 }
@@ -48,13 +74,15 @@ export function canonicalEvidenceScope(
   sourceInput: unknown,
   unlockInput: unknown,
 ): CanonicalHoidEvidenceScope | null {
-  if (!isRecord(sourceInput) || !isRecord(unlockInput)) return null;
+  const sourceRecord = canonicalDataRecord(sourceInput, ["bookId", "chapter", "locatorId"]);
+  const unlockRecord = canonicalDataRecord(unlockInput, ["bookId", "chapter"]);
+  if (!sourceRecord || !unlockRecord) return null;
 
-  const sourceBookId = typeof sourceInput.bookId === "string" ? sourceInput.bookId.trim() : "";
-  const unlockBookId = typeof unlockInput.bookId === "string" ? unlockInput.bookId.trim() : "";
-  const sourceChapter = sourceInput.chapter;
-  const unlockChapter = unlockInput.chapter;
-  const locatorId = typeof sourceInput.locatorId === "string" ? sourceInput.locatorId.trim() : "";
+  const sourceBookId = typeof sourceRecord.bookId === "string" ? sourceRecord.bookId.trim() : "";
+  const unlockBookId = typeof unlockRecord.bookId === "string" ? unlockRecord.bookId.trim() : "";
+  const sourceChapter = sourceRecord.chapter;
+  const unlockChapter = unlockRecord.chapter;
+  const locatorId = typeof sourceRecord.locatorId === "string" ? sourceRecord.locatorId.trim() : "";
 
   if (!sourceBookId || !unlockBookId) return null;
   if (!isKnownHoidSource(sourceBookId) || !isKnownHoidSource(unlockBookId)) return null;

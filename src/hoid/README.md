@@ -230,3 +230,8 @@ The eligibility projection accepts the authoritative v2 cursor snapshot and inte
 ## Navegación verificada de cosmere.epub
 
 Run 106 inspeccionó el OPF y `EPUB/nav.xhtml` del EPUB privado. Se incorporaron 653 localizadores relativos para capítulos numerados de 13 IDs bibliográficos, vinculados al digest de navegación de la edición. Elantris se limita a 1–47; Arena blanca y Arcanum siguen sin cursores numéricos hasta segmentar sus unidades especiales. Los localizadores no equivalen a documentos narrativos inspeccionados ni a afirmaciones aprobadas. Consulta `docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md`.
+
+
+## Consultas al grafo y planes de explicación
+
+`knowledgeGraphQuery.ts` consulta únicamente el grafo autorizado, con recorrido dirigido y límites de profundidad, número de rutas y expansiones. `createHoidExplanationPlan()` genera un plan sin texto narrativo; `renderHoidExplanationPlan()` solo recupera declaraciones editoriales locales cuyos IDs, evidencias y SHA-256 coinciden y cuyo snapshot v2 conserva la misma huella. La ruta de producción está vinculada a los registros locales, actualmente vacíos. No se generan hechos ni prosa factual del proveedor. Consulta `docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md`.

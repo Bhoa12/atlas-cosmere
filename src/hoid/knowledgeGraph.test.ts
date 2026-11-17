@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildHoidAuthorizedKnowledgeGraph,
   buildProductionHoidAuthorizedKnowledgeGraph,
+  fingerprintHoidCursorProgressSnapshot,
   HOID_KNOWLEDGE_GRAPH_DEFINITION,
   type HoidKnowledgeGraphDefinition,
   type HoidKnowledgeGraphRelation,
@@ -29,6 +30,12 @@ function progress(
   };
 }
 
+function progressFingerprint(snapshot: unknown): string {
+  const result = fingerprintHoidCursorProgressSnapshot(snapshot);
+  if (result.status !== "ready") throw new Error("Fingerprint de fixture no disponible");
+  return result.sha256;
+}
+
 function knowledge(
   id: string,
   bookId: string,
@@ -41,7 +48,7 @@ function knowledge(
   if (!unit?.locatorId) throw new Error("Localizador de fixture no disponible");
   return {
     id,
-    aliases: [id],
+    aliases: ["alias-" + id],
     kind: "character" as const,
     firstSafeAppearance: { bookId, chapter: 1 },
     evidenceSource: { bookId, chapter: 1, locatorId: unit.locatorId },
@@ -84,6 +91,7 @@ describe("Hoid authorized knowledge graph", () => {
     expect(buildProductionHoidAuthorizedKnowledgeGraph(progress([]))).toEqual({
       status: "ready",
       progressRevision: 0,
+      progressFingerprint: progressFingerprint(progress([])),
       nodes: [],
       edges: [],
     });
@@ -99,6 +107,7 @@ describe("Hoid authorized knowledge graph", () => {
     expect(result).toEqual({
       status: "ready",
       progressRevision: 0,
+      progressFingerprint: progressFingerprint(progress([])),
       nodes: [],
       edges: [],
     });
@@ -275,6 +284,35 @@ describe("Hoid authorized knowledge graph", () => {
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
   });
 
+
+  it("rejects control characters in summaries and approved claim statements", () => {
+    const a = knowledge("synthetic.entity-a", "twok");
+    const b = knowledge("synthetic.entity-b", "edgedancer");
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const invalidSummary = {
+      ...a,
+      summary: "Resumen con control" + String.fromCharCode(0) + "incrustado.",
+    };
+    const badKnowledge = buildHoidAuthorizedKnowledgeGraph(
+      definition([]),
+      [invalidSummary, b],
+      [claim],
+      progress([]),
+    );
+    const invalidClaim = {
+      ...claim,
+      text: "Afirmación con control" + String.fromCharCode(0) + "incrustado.",
+    };
+    const badClaim = buildHoidAuthorizedKnowledgeGraph(
+      definition([]),
+      [a, b],
+      [invalidClaim],
+      progress([]),
+    );
+    expect(badKnowledge).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+    expect(badClaim).toEqual({ status: "unavailable", reason: "invalid-claims" });
+  });
+
   it("rejects a relation whose endpoints are not both cited by its approved claim", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
@@ -285,7 +323,7 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([]),
     );
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-definition" });
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-claims" });
   });
 
   it("rejects unknown claims and duplicate relation identities", () => {

@@ -16,6 +16,7 @@ import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
+import { sha256Hex } from "./sha256";
 
 export type HoidKnowledgeGraphPredicate =
   | "related-to"
@@ -61,6 +62,7 @@ export type HoidKnowledgeGraphEdge = Readonly<{
   predicate: HoidKnowledgeGraphPredicate;
   claimId: string;
   evidenceIds: readonly string[];
+  claimTextSha256: string;
   sources: readonly HoidKnowledgeGraphSource[];
 }>;
 
@@ -68,6 +70,7 @@ export type HoidKnowledgeGraphResult =
   | Readonly<{
       status: "ready";
       progressRevision: number;
+      progressFingerprint: string;
       nodes: readonly HoidKnowledgeGraphNode[];
       edges: readonly HoidKnowledgeGraphEdge[];
     }>
@@ -200,7 +203,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
       typeof appearanceChapter !== "number" || !Number.isSafeInteger(appearanceChapter) || appearanceChapter < 1 ||
       typeof unlockChapter !== "number" || !Number.isSafeInteger(unlockChapter) || unlockChapter < sourceChapter ||
       summary !== summary.trim() || summary.length < 1 || summary.length > MAX_SUMMARY_LENGTH ||
-      /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(summary)
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(summary)
     ) return null;
 
     const manifestResult = getHoidReadingManifest(bookId);
@@ -255,7 +258,7 @@ function canonicalClaims(
     const intent = record.intent;
     if (
       !text || text !== text.trim() || text.length > MAX_CLAIM_TEXT_LENGTH ||
-      /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(text)
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text)
     ) return null;
     if (intent !== "explain" && intent !== "context") return null;
 
@@ -329,7 +332,7 @@ function canonicalDefinition(value: unknown): readonly HoidKnowledgeGraphRelatio
       ids.has(id)
     ) return null;
 
-    const triple = [subjectId, predicate, objectId, claimId].join("\\n");
+    const triple = [subjectId, predicate, objectId, claimId].join("\n");
     if (triples.has(triple)) return null;
     ids.add(id);
     triples.add(triple);
@@ -343,6 +346,42 @@ function canonicalDefinition(value: unknown): readonly HoidKnowledgeGraphRelatio
   }
   relations.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   return Object.freeze(relations);
+}
+
+type ReadyHoidProgressProjection = Extract<
+  ReturnType<typeof projectHoidCursorProgressSnapshot>,
+  { status: "ready" }
+>;
+
+export function fingerprintHoidCursorProgressProjection(projection: ReadyHoidProgressProjection): string {
+  const positions = projection.reading
+    .map((position): readonly [string, number | null, boolean, number | null] => [
+      position.bookId,
+      typeof position.chapter === "number" ? position.chapter : null,
+      position.completed === true,
+      typeof position.order === "number" ? position.order : null,
+    ])
+    .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  const started = [...projection.startedBookIds].sort();
+  return sha256Hex(JSON.stringify([
+    "hoid-cursor-progress-fingerprint-v1",
+    projection.revision,
+    positions,
+    started,
+  ]));
+}
+
+/** Fingerprint a validated v2 snapshot for stale-plan detection. */
+export function fingerprintHoidCursorProgressSnapshot(
+  value: unknown,
+): Readonly<{ status: "ready"; revision: number; sha256: string }> | Readonly<{ status: "unavailable" }> {
+  const projection = projectHoidCursorProgressSnapshot(value);
+  if (projection.status !== "ready") return Object.freeze({ status: "unavailable" });
+  return Object.freeze({
+    status: "ready",
+    revision: projection.revision,
+    sha256: fingerprintHoidCursorProgressProjection(projection),
+  });
 }
 
 function unavailable(
@@ -447,6 +486,7 @@ export function buildHoidAuthorizedKnowledgeGraph(
       predicate: relation.predicate,
       claimId: claim.id,
       evidenceIds: Object.freeze([...claim.evidenceIds]),
+      claimTextSha256: sha256Hex(claim.text),
       sources: Object.freeze(sources),
     }));
   }
@@ -454,6 +494,7 @@ export function buildHoidAuthorizedKnowledgeGraph(
   return Object.freeze({
     status: "ready",
     progressRevision: projection.revision,
+    progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
     nodes: Object.freeze([...nodesById.values()].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
     edges: Object.freeze(edges),
   });

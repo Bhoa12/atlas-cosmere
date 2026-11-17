@@ -147,6 +147,35 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
+  it("rejects sparse draft batches", () => {
+    const sparse = new Array(1);
+    expect(validateHoidEditorialDraftBatch(sparse)).toEqual({
+      status: "invalid",
+      reason: "invalid-batch",
+    });
+  });
+
+  it("rejects custom array properties in a draft batch", () => {
+    const batch = [validDraft] as typeof HOID_EDITORIAL_DRAFTS[number][] & { unexpected?: string };
+    batch.unexpected = "not part of the batch contract";
+    expect(validateHoidEditorialDraftBatch(batch)).toEqual({
+      status: "invalid",
+      reason: "invalid-batch",
+    });
+  });
+
+  it("contains exceptions from hostile batch proxies", () => {
+    const hostile = new Proxy([validDraft], {
+      ownKeys() {
+        throw new Error("hostile ownKeys trap");
+      },
+    });
+    expect(validateHoidEditorialDraftBatch(hostile)).toEqual({
+      status: "invalid",
+      reason: "invalid-batch",
+    });
+  });
+
   it("never exposes a pending draft through the production answer runtime", async () => {
     const selectClaims = vi.fn(async () => []);
     const runtime = createHoidEditorialRuntime({ selectClaims });

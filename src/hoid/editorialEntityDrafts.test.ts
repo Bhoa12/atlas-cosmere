@@ -7,6 +7,7 @@ import {
   createHoidEditorialEntityDraft,
   evaluateHoidEditorialEntityDrafts,
   getHoidEditorialEntityDraftStatus,
+  getHoidEditorialEntityDraftDiagnostics,
   HOID_EDITORIAL_ENTITY_DRAFTS,
   validateHoidEditorialEntityDraft,
   validateHoidEditorialEntityReviewReceipt,
@@ -82,6 +83,10 @@ function approvedRelationshipReceipt(packet: {
 }
 
 describe("Hoid editorial entity identity staging", () => {
+  it("reports every source-backed entity input as valid before batch assembly", () => {
+    expect(getHoidEditorialEntityDraftDiagnostics().filter(item => item.status === "invalid")).toEqual([]);
+  });
+
   it("stages twelve identity dossiers without populating production knowledge or aliases", () => {
     expect(getHoidEditorialEntityDraftStatus()).toBe("pending-review");
     expect(HOID_EDITORIAL_ENTITY_DRAFTS).toHaveLength(12);

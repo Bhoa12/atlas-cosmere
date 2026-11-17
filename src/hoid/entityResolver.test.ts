@@ -533,7 +533,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
       },
     });
     const result = resolveHoidAuthorizedEntities(
-      [entry], progress([{ bookId: "twok", chapter: 2 }),
+      [entry], progress([{ bookId: "twok", chapter: 2 }]),
       { text: "Synthetic Entity" }, [record],
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });

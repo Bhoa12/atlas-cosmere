@@ -306,3 +306,16 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - Relationship review packets have a separate seven-part checklist, including entity identity. Approval only returns an awaiting-promotion outcome; it never writes to production.
 - Three relationship examples are staging-only. They do not create approved entities, aliases or graph edges. Production registries remain empty.
 - No EPUB bytes or source passages were committed. See docs/hoid/ROSHAR_CHAPTER_THREE_INGESTION.md and docs/hoid/EDITORIAL_RELATIONSHIP_CLAIMS.md.
+
+
+## Run 117 — chapter-four ingestion and entity identity promotion gates
+
+- Three additional chapter-four XHTML documents were inspected from the currently accessible Roshar EPUBs. The registered navigation digests were rechecked and the exact chapter-body SHA-256 values were added to the sparse verification allowlist. The verified counts are now four chapters each for El camino de los reyes, Danzante del Filo and Esquirla del amanecer; El Imperio Final remains at two.
+- Three original chapter-four summaries are staged with chapter-five unlock thresholds. The complete editorial-summary staging set now contains fourteen summaries; all remain pending review.
+- Twelve entity identity dossiers are staged from individually verified chapter documents. Eleven have candidate canonical labels and one deliberately remains unresolved because the source does not establish a name. These dossiers do not claim first appearance and contain no alias list.
+- Entity review packets use a six-part checklist for factual accuracy, identity resolution, uniqueness, completeness, spoiler ceiling and provenance. An unresolved identity cannot receive an approved receipt.
+- buildHoidEditorialPromotionPlan() joins entity and relationship reviews, checks that each relationship participant has a matching identity dossier with the same kind and exact evidence scope, and re-evaluates every unlock against the current cursor snapshot.
+- The promotion planner is non-writing by contract. Even a fully eligible synthetic test bundle returns ready-for-maintainer-commit, requiresProtectedReview: true, promotionAllowed: false and productionWritePerformed: false. A real reviewer identity must be authenticated through protected GitHub review; a local receipt is not a signature.
+- The current staging bundle remains blocked: the unnamed Edgedancer participant is unresolved, and no independent review receipts exist. Production knowledge, alias and graph registries remain empty.
+- The current Library listing exposes the three Roshar EPUBs (with duplicate copies) but not cosmere.epub. No new Mistborn chapter was inspected in this run.
+- No EPUB bytes, XHTML bodies or protected passages were committed. Only source metadata, chapter locators, SHA-256 digests and original summaries are stored. See docs/hoid/ROSHAR_CHAPTER_FOUR_INGESTION.md and docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md.

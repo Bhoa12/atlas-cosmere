@@ -68,6 +68,30 @@ describe("verified EPUB chapter document fingerprints", () => {
     )).toBe("709bca2ea215db4e90fc654b4b503a7c71d96bb40a508d5347ec83006b8cc286");
   });
 
+  it("returns the three individually inspected Roshar chapter-four digests", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      4,
+    )).toBe("1a5d55dd8eaa304b14a10526e50a98826de139abbc402013150dd795f44bef89");
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      4,
+    )).toBe("4437c0e0ff5a617490a087d7c887117e63ff5f6f627d5e9f4515206fb77a3507");
+    expect(getVerifiedChapterDocumentSha256(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      4,
+    )).toBe("a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb");
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(4);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(4);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(4);
+  });
+
   it("returns only the two individually inspected Mistborn chapter digests", () => {
     expect(getVerifiedChapterDocumentSha256(
       "tfe",
@@ -104,11 +128,11 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      4,
+      5,
     )).toBeNull();
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(3);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(3);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(3);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(4);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(4);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(4);
     expect(getVerifiedChapterDocumentCount("unknown-work")).toBe(0);
   });
 

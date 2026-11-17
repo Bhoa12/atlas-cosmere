@@ -727,15 +727,18 @@ const RAW_RELATIONSHIP_DRAFTS: readonly unknown[] = Object.freeze([
 export function getHoidEditorialRelationshipDraftDiagnostics(): readonly Readonly<{
   index: number;
   id: string | null;
+  evidenceAvailable: boolean;
   status: "valid" | "invalid";
   reason?: string;
 }>[] {
   return Object.freeze(RAW_RELATIONSHIP_DRAFTS.map((item, index) => {
     const raw = canonicalRecord(item, CORE_KEYS);
+    const evidence = canonicalDenseArray(raw?.evidence, 0, MAX_EVIDENCE);
     const result = createHoidEditorialRelationshipDraft(item);
     return Object.freeze({
       index,
       id: typeof raw?.id === "string" ? raw.id : null,
+      evidenceAvailable: Boolean(evidence?.length && evidence.every(Boolean)),
       status: result.status,
       ...(result.status === "invalid" ? { reason: result.reason } : {}),
     });

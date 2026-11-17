@@ -204,9 +204,7 @@ function unavailable(
 }
 
 function unavailableReadingContext(
-  reason: HoidConversationReadingContextResult extends infer T
-    ? T extends { status: "unavailable"; reason: infer R } ? R : never
-    : never,
+  reason: Extract<HoidConversationReadingContextResult, { status: "unavailable" }>["reason"],
 ): HoidConversationReadingContextResult {
   return Object.freeze({ status: "unavailable", reason });
 }

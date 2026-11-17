@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
-import { toHoidReadingPositions } from '../hoid/progressAdapter';
+import { createHoidCursorEvidenceRuntime } from '../hoid/cursorEvidenceRuntime';
 
-const hoidRuntime = createHoidEditorialRuntime();
+const editorialRuntime = createHoidEditorialRuntime();
+const hoidRuntime = editorialRuntime ? createHoidCursorEvidenceRuntime(editorialRuntime) : null;
 
 interface Mensaje {
   id: string;
@@ -13,19 +14,19 @@ interface Mensaje {
 }
 
 export const HoidScreen: React.FC = () => {
-  const { librosLeidos, capituloActualPorLibro, progresoPersistenciaEstado } = useCosmere();
+  const { hoidCursorProgressSnapshot, progresoPersistenciaEstado } = useCosmere();
   const [cargando, setCargando] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
       id: '1',
       emisor: 'hoid',
-      texto: 'Saludos, viajero de mundos. Soy Sagaz. Estoy usando el runtime estricto de evidencias. El registro editorial todavía está vacío, así que no inventaré hechos ni recurriré a respuestas libres.'
+      texto: 'Saludos, viajero de mundos. Soy Sagaz. Estoy usando el runtime estricto con el progreso de lectura vinculado a la edición. El registro editorial todavía está vacío, así que no inventaré hechos ni recurriré a respuestas libres.'
     }
   ]);
   const [input, setInput] = useState('');
 
   const enviarMensaje = async () => {
-    if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
+    if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready' || !hoidCursorProgressSnapshot) return;
 
     const textoUsuario = input.trim();
     const nuevoMsgUsuario: Mensaje = { id: Date.now().toString(), emisor: 'usuario', texto: textoUsuario };
@@ -34,12 +35,8 @@ export const HoidScreen: React.FC = () => {
     setCargando(true);
 
     try {
-      const reading = toHoidReadingPositions({
-        chaptersByBook: capituloActualPorLibro,
-        completedByBook: librosLeidos,
-      });
       const result = hoidRuntime
-        ? await hoidRuntime.answer({ question: textoUsuario, reading })
+        ? await hoidRuntime.answer({ question: textoUsuario, progress: hoidCursorProgressSnapshot })
         : null;
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),

@@ -34,10 +34,11 @@ A draft must pass all of the following before it can be considered for productio
 2. Its source locator matches the exact chapter unit in that edition.
 3. Its navigation digest matches the edition manifest.
 4. Its source-document digest is a valid SHA-256 fingerprint recorded by the offline ingestion step.
-5. Its unlock threshold is a real unit in the same work and does not precede the source chapter.
-6. Its summary is original editorial prose and contains no copied source passage.
-7. An independent reviewer checks factual accuracy, completeness, originality and spoiler ceiling.
-8. Only after review may a separate change add a knowledge entry and approved claim to `editorialRegistry.ts`.
+5. Its first appearance, source and unlock are all in the same work for draft schema v1; the first-appearance unit must have an exact locator, and the appearance cannot follow the unlock threshold. Cross-work chronology requires a future separately reviewed schema.
+6. Its unlock threshold is a real unit in the same work and does not precede the source chapter.
+7. Its summary is original editorial prose and contains no copied source passage.
+8. An independent reviewer checks factual accuracy, completeness, originality and spoiler ceiling.
+9. Only after review may a separate change add a knowledge entry and approved claim to `editorialRegistry.ts`.
 
 The validator in `editorialDrafts.ts` deliberately accepts only `pending-review` records. It does not provide an API that promotes arbitrary runtime input into approved knowledge. Approval remains a separate source-controlled editorial action.
 

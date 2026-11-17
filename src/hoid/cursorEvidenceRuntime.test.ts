@@ -6,6 +6,15 @@ import {
 } from "./cursorEvidenceRuntime";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry } from "./catalog";
+import { getHoidReadingManifest } from "./readingManifest";
+
+function locator(bookId: string, chapter: number): string {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") throw new Error("Manifest de prueba no disponible");
+  const unit = result.manifest.units.find(candidate => candidate.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Localizador de prueba no disponible");
+  return unit.locatorId;
+}
 
 const updatedAt = "2026-11-17T00:00:00.000Z";
 
@@ -14,9 +23,9 @@ const knowledge: HoidKnowledgeEntry[] = [
     id: "e-sazed",
     aliases: ["Sazed"],
     kind: "character",
-    firstSafeAppearance: { bookId: "tfe", chapter: 2 },
-    evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "tfe-chapter-2" },
-    evidenceUnlock: { bookId: "tfe", chapter: 2 },
+    firstSafeAppearance: { bookId: "twok", chapter: 2 },
+    evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
+    evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "verified",
     summary: "Resumen editorial sintético de prueba sobre Sazed.",
   },
@@ -25,7 +34,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     aliases: ["Kaladin"],
     kind: "character",
     firstSafeAppearance: { bookId: "wor", chapter: 3 },
-    evidenceSource: { bookId: "wor", chapter: 3, locatorId: "wor-chapter-3" },
+    evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
     evidenceUnlock: { bookId: "wor", chapter: 3 },
     provenance: "verified",
     summary: "Resumen editorial sintético de prueba sobre Kaladin.",
@@ -83,7 +92,7 @@ function createFacade(selector = vi.fn(async (_request: HoidClaimSelectionReques
 describe("HoidCursorEvidenceRuntime", () => {
   it("projects only validated edition-bound cursors and explicit completion", () => {
     const result = projectHoidCursorProgressSnapshot(snapshot([
-      { bookId: "tfe", cursor: cursor("tfe", 2), order: 4 },
+      { bookId: "twok", cursor: cursor("twok", 2), order: 4 },
       { bookId: "woa", completed: true, order: 5 },
     ], 2));
 
@@ -91,7 +100,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     if (result.status !== "ready") return;
     expect(result.revision).toBe(2);
     expect(result.reading).toEqual([
-      { bookId: "tfe", chapter: 2, order: 4 },
+      { bookId: "twok", chapter: 2, order: 4 },
       { bookId: "woa", completed: true, order: 5 },
     ]);
   });
@@ -100,7 +109,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     const { facade, selector } = createFacade();
     const result = await facade.answer({
       question: "¿Quién es Sazed?",
-      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
     });
 
     expect(result.status).toBe("authorized");
@@ -117,7 +126,7 @@ describe("HoidCursorEvidenceRuntime", () => {
 
     const locked = await facade.answer({
       question: "¿Qué relación hay entre Sazed y Kaladin?",
-      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
     });
     expect(locked.status).toBe("blocked");
     expect(selector).not.toHaveBeenCalled();
@@ -125,7 +134,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     const unlocked = await facade.answer({
       question: "¿Qué relación hay entre Sazed y Kaladin?",
       progress: snapshot([
-        { bookId: "tfe", cursor: cursor("tfe", 2) },
+        { bookId: "twok", cursor: cursor("twok", 2) },
         { bookId: "wor", cursor: cursor("wor", 3) },
       ], 2),
     });
@@ -137,10 +146,10 @@ describe("HoidCursorEvidenceRuntime", () => {
   it("rejects an obsolete edition digest before provider invocation", async () => {
     const selector = vi.fn(async () => ["claim-sazed"]);
     const { facade } = createFacade(selector);
-    const stale = { ...cursor("tfe", 2), manifestId: "hoid:obsolete-edition" };
+    const stale = { ...cursor("twok", 2), manifestId: "hoid:obsolete-edition" };
     const result = await facade.answer({
       question: "¿Quién es Sazed?",
-      progress: snapshot([{ bookId: "tfe", cursor: stale }]),
+      progress: snapshot([{ bookId: "twok", cursor: stale }]),
     });
 
     expect(result.status).toBe("blocked");
@@ -172,7 +181,7 @@ describe("HoidCursorEvidenceRuntime", () => {
   it("rejects malformed snapshots and does not call the selector", async () => {
     const selector = vi.fn(async () => ["claim-sazed"]);
     const { facade } = createFacade(selector);
-    const invalid = snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]);
+    const invalid = snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]);
     (invalid as Record<string, unknown>).extra = true;
 
     const result = await facade.answer({
@@ -187,7 +196,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     const { facade, selector } = createFacade();
     let invoked = false;
     const input = {
-      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
     };
     Object.defineProperty(input, "question", {
       enumerable: true,
@@ -206,7 +215,7 @@ describe("HoidCursorEvidenceRuntime", () => {
   it("keeps recommendations metadata-only and rejects invalid cursor progress", () => {
     const { facade } = createFacade();
     const recommendations = facade.recommend(snapshot([
-      { bookId: "tfe", cursor: cursor("tfe", 1) },
+      { bookId: "twok", cursor: cursor("twok", 1) },
     ]), 3);
 
     expect(recommendations.status).toBe("ready");
@@ -222,7 +231,7 @@ describe("HoidCursorEvidenceRuntime", () => {
 
   it("rejects invalid recommendation limits", () => {
     const { facade } = createFacade();
-    const progress = snapshot([{ bookId: "tfe", cursor: cursor("tfe", 1) }]);
+    const progress = snapshot([{ bookId: "twok", cursor: cursor("twok", 1) }]);
     expect(facade.recommend(progress, -1).status).toBe("abstain");
     expect(facade.recommend(progress, 1.5).status).toBe("abstain");
     expect(facade.recommend(progress, 21).status).toBe("abstain");
@@ -232,7 +241,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     const { facade, selector } = createFacade();
     const result = await facade.answer({
       question: "¿Quién es Sazed?",
-      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
       knowledgeContext: [{ id: "injected", text: "spoiler" }],
     });
     expect(result.status).toBe("blocked");

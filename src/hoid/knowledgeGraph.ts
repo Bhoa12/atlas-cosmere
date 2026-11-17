@@ -353,7 +353,7 @@ type ReadyHoidProgressProjection = Extract<
   { status: "ready" }
 >;
 
-function progressFingerprintForProjection(projection: ReadyHoidProgressProjection): string {
+export function fingerprintHoidCursorProgressProjection(projection: ReadyHoidProgressProjection): string {
   const positions = projection.reading
     .map((position): readonly [string, number | null, boolean, number | null] => [
       position.bookId,
@@ -380,7 +380,7 @@ export function fingerprintHoidCursorProgressSnapshot(
   return Object.freeze({
     status: "ready",
     revision: projection.revision,
-    sha256: progressFingerprintForProjection(projection),
+    sha256: fingerprintHoidCursorProgressProjection(projection),
   });
 }
 
@@ -494,7 +494,7 @@ export function buildHoidAuthorizedKnowledgeGraph(
   return Object.freeze({
     status: "ready",
     progressRevision: projection.revision,
-    progressFingerprint: progressFingerprintForProjection(projection),
+    progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
     nodes: Object.freeze([...nodesById.values()].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
     edges: Object.freeze(edges),
   });

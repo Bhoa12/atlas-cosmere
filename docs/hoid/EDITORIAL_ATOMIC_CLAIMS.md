@@ -28,9 +28,9 @@ A claim with evidence from several works uses logical AND semantics.
 
 For example, a synthetic claim with one requirement in work A and another in work B is withheld if either work is missing or has not reached its own unlock threshold. Completing work A does not unlock work B's requirement.
 
-evaluateHoidEditorialClaimDrafts() accepts only already-safe ReadingPosition[] values projected by the cursor reading-boundary layer. Callers must not pass the raw current-chapter cursor. A cursor on chapter N is projected to completed-through chapter N-1 before this function is called.
+evaluateHoidEditorialClaimDrafts() accepts the authoritative v2 cursor-progress snapshot, not a caller-supplied chapter map. It calls the existing cursor-native projection internally, validates every cursor against its edition manifest, and converts an open chapter N to completed-through chapter N-1 before evaluating any evidence requirement. A malformed or duplicated snapshot makes the whole evaluation unavailable.
 
-The evaluation result contains claim IDs and missing book/chapter requirements only. It deliberately omits statement text, so the review preview is not a provider-context API.
+The evaluation result contains claim IDs and missing book/chapter requirements only. It deliberately omits statement text, so the review preview is not a provider-context API. The staging evaluator does not call a provider or alter the production registry.
 
 ## Fail-closed behavior
 

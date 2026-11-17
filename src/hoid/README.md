@@ -133,11 +133,11 @@ The contract does not itself provide durable storage. Atlas must inject a real a
 
 `HoidProgressLedger` canonicalizes both updates and persisted snapshots before reading fields. It rejects accessors, symbols, inherited or unknown properties, sparse arrays and custom array properties; exceptions from hostile proxy traps are contained. JavaScript cannot reliably identify a transparent proxy, so callers and adapters must decode JSON into plain records before crossing this boundary. See `docs/hoid/PROGRESS_LEDGER_SECURITY.md` and `src/hoid/progressLedger.test.ts`.
 
-## Native SQLite progress adapter
+## Native SQLite progress adapters
 
-`sqliteProgressStore.ts` provides a durable native adapter for the versioned progress ledger. It receives an Expo SQLite-compatible database port rather than importing Expo into the Hoid core. Its compare-and-swap uses an exclusive SQLite transaction and a revision predicate.
+`sqliteProgressStore.ts` is the legacy v1 adapter retained as the migration source. Production Atlas now uses `cursorSqliteProgressStore.ts`, which stores edition-bound v2 cursors and atomically migrates the complete v1 snapshot with a source-payload receipt. Both adapters receive an Expo SQLite-compatible database port; the Hoid core does not import Expo.
 
-The adapter is single-device persistence only. Expo's exclusive transaction API is not supported on web, and this implementation does not provide cloud synchronization. The app must own database opening and lifecycle, install the SDK-compatible `expo-sqlite` package, and complete an on-device integration test before injecting this store into the UI. See `docs/hoid/SQLITE_PROGRESS_STORE.md`.
+The active v2 adapter is single-device native persistence. Expo's exclusive transaction API is not supported on web, and there is no cloud synchronization. Android/iOS restart and interruption testing remains a release gate. See `docs/hoid/SQLITE_CURSOR_PROGRESS_STORE.md` and `docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md`.
 
 
 ## Fresh-profile progress safety
@@ -158,11 +158,11 @@ so the screen abstains. Do not restore the legacy free-text service as a
 fallback. See `docs/hoid/STRICT_RUNTIME_INTEGRATION.md`.
 
 
-## Atlas persistence coordinator
+## Atlas cursor-native progress coordinator
 
-`progressCoordinator.ts` serializes Atlas reading changes through the versioned ledger and projects only validated snapshots back into null-prototype Atlas maps. The native composition adapter in `expoProgressCoordinator.ts` opens the SDK 51-compatible Expo SQLite database. While the ledger is loading or unavailable, Atlas reading controls and Hoid queries stay disabled; a failed or corrupt read is never replaced with a permissive in-memory fallback.
+`cursorProgressCoordinator.ts` serializes advancement, explicit completion, confirmed reopening and confirmed correction through the v2 cursor ledger. `expoCursorProgressCoordinator.ts` composes the native SQLite v2 store. `CosmereContext` now treats that snapshot as authoritative and projects it to null-prototype chapter/completion maps only for legacy Atlas presentation. `HoidScreen` receives the original v2 snapshot and passes it to `HoidCursorEvidenceRuntime`.
 
-The coordinator treats a reader's completion toggle as an explicit action. Reopening a completed numeric work resets its cursor to chapter 1, while edition structures without a verified numeric cursor remain blocked. Writes are serialized in-process and still use SQLite compare-and-swap for durable conflict detection. This is native, single-device persistence, not cloud synchronization. See `docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md`.
+While migration, validation or storage is unavailable, Atlas reading controls and Hoid queries remain disabled. A corrupt v2 snapshot or a changed retained v1 source never falls back to permissive in-memory or legacy progress. This remains native, single-device persistence, not cloud synchronization. See `docs/hoid/ATLAS_PROGRESS_PERSISTENCE.md` and `docs/hoid/CURSOR_NATIVE_ATLAS_INTEGRATION.md`.
 
 
 ## Versioned reading manifests and cursors

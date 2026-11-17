@@ -171,7 +171,7 @@ The coordinator treats a reader's completion toggle as an explicit action. Reope
 
 The ambiguous prefixes remain conservative: Elantris exposes only chapters 1–47, and Viento y verdad only 1–11. Arena blanca and Arcanum remain unavailable for partial numeric cursors until their internal structures are inspected and segmented. `readingCursorAdapter.ts` provides a parallel projection from Atlas progress.
 
-This is a v2 contract alongside the existing chapter-based ledger. The persisted schema and EvidenceRuntime have not yet migrated; the legacy contract remains authoritative until an explicit, tested schema migration is implemented. See `docs/hoid/READING_MANIFESTS.md`.
+The v2 cursor contract is now the authoritative production progress representation. The transactional SQLite adapter migrates v1, retains its exact source payload and rejects later divergence. Atlas UI chapter maps are read-only projections; Hoid authorization consumes the complete v2 snapshot. See `docs/hoid/READING_MANIFESTS.md` and `docs/hoid/CURSOR_NATIVE_ATLAS_INTEGRATION.md`.
 
 
 ## Cursor-native progress snapshot v2
@@ -180,11 +180,11 @@ This is a v2 contract alongside the existing chapter-based ledger. The persisted
 
 `migrateHoidProgressV1ToV2()` is a pure, non-destructive migration preparation. It first validates the complete v1 snapshot with the legacy ledger, converts every partial position to an exact manifest cursor, preserves completion, revision, timestamp and editorial order, and rejects the entire migration if any position cannot be mapped unambiguously. It never silently drops a work and never writes to SQLite.
 
-**The v2 snapshot is not yet the production persistence format.** SQLite, the Atlas coordinator and EvidenceRuntime still use v1. Before cutover, implement a transactional v2 adapter, an atomic migration marker, deterministic dual-read, source-revision compare-and-swap and rollback/recovery tests. See `docs/hoid/CURSOR_PROGRESS_MIGRATION.md`.
+**Production cutover completed in Run 100.** `cursorSqliteProgressStore.ts` performs the transactional v1-to-v2 migration with a marker containing the exact retained source payload. `CosmereContext` uses `HoidCursorProgressCoordinator` and `HoidScreen` passes the v2 snapshot to `HoidCursorEvidenceRuntime`. There is no permissive fallback to v1 after migration. Device-level restart/interruption testing remains a release gate. See `docs/hoid/CURSOR_PROGRESS_MIGRATION.md` and `docs/hoid/CURSOR_NATIVE_ATLAS_INTEGRATION.md`.
 
 
 ## Cursor-native strict evidence runtime bridge
 
 `cursorEvidenceRuntime.ts` accepts a complete v2 progress snapshot, validates its edition-bound cursors, and only then projects it into the compatibility position contract consumed by `HoidEvidenceRuntime`. It preserves explicit completion, rejects stale manifests and malformed request envelopes before selector invocation, and provides metadata-only recommendations from the same validated snapshot.
 
-This is an authorization bridge for the v2 contract, not a SQLite migration or production screen cutover. Atlas and HoidScreen continue using the v1 persisted ledger until the transactional v2 adapter, atomic migration marker, dual-read and rollback path are implemented and tested. See `docs/hoid/CURSOR_EVIDENCE_RUNTIME.md` and `src/hoid/cursorEvidenceRuntime.test.ts`.
+`HoidCursorEvidenceRuntime` is now the production answer path in HoidScreen. It receives the authoritative v2 snapshot, revalidates every edition-bound cursor, then delegates to the strict evidence runtime. It does not accept a second numeric progress input. See `docs/hoid/CURSOR_EVIDENCE_RUNTIME.md` and `src/hoid/cursorEvidenceRuntime.test.ts`.

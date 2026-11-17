@@ -179,7 +179,7 @@ const VERIFIED: Readonly<Record<string, VerifiedNavigationSource>> = Object.free
       !/^[a-f0-9]{64}$/.test(source.navigationSha256) ||
       hrefs.length === 0 ||
       new Set(hrefs).size !== hrefs.length ||
-      !hrefs.every(href => /^(?:(?:L[1-5]-[0-9]{3}|Text\\/[0-9]{1,3})\\.xhtml|books\\/b[0-9]{6}\\/OEBPS\\/Text\\/[A-Za-z0-9._-]+\\.(?:xhtml|html))$/.test(href) && !href.includes(".."))
+      !hrefs.every(href => /^(?:(?:L[1-5]-[0-9]{3}|Text[/][0-9]{1,3})[.]xhtml|books[/]b[0-9]{6}[/]OEBPS[/]Text[/][A-Za-z0-9._-]+[.](?:xhtml|html))$/.test(href) && !href.includes(".."))
     ) {
       throw new Error("Invalid verified Hoid chapter navigation metadata");
     }

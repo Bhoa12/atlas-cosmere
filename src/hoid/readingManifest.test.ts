@@ -18,6 +18,7 @@ describe("edition-bound reading manifests", () => {
       kind: "chapter",
       ordinal: 1,
       chapterNumber: 1,
+      locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/001.xhtml",
     });
     expect(result.manifest.units[37].id).toBe("chapter:038");
     expect(result.manifest.unitScope).toBe("numbered-chapters-only");
@@ -152,18 +153,20 @@ describe("edition-bound reading manifests", () => {
     });
   });
 
-  it("attaches exact navigation locators only for inspected source editions", () => {
-    const inspected = getHoidReadingManifest("twok");
-    expect(inspected.status).toBe("ready");
-    if (inspected.status !== "ready") return;
-    expect(inspected.manifest.units[0].locatorId).toBe(
+  it("attaches exact navigation locators for both inspected source groups", () => {
+    const roshar = getHoidReadingManifest("twok");
+    expect(roshar.status).toBe("ready");
+    if (roshar.status !== "ready") return;
+    expect(roshar.manifest.units[0].locatorId).toBe(
       "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-012.xhtml",
     );
 
-    const unavailableSource = getHoidReadingManifest("tfe");
-    expect(unavailableSource.status).toBe("ready");
-    if (unavailableSource.status !== "ready") return;
-    expect(unavailableSource.manifest.units[0].locatorId).toBeUndefined();
+    const cosmere = getHoidReadingManifest("tfe");
+    expect(cosmere.status).toBe("ready");
+    if (cosmere.status !== "ready") return;
+    expect(cosmere.manifest.units[0].locatorId).toBe(
+      "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/001.xhtml",
+    );
   });
 
 

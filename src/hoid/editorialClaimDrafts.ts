@@ -48,15 +48,7 @@ export type HoidEditorialClaimDraftResult =
   | Readonly<{ status: "valid"; draft: HoidEditorialClaimDraft }>
   | Readonly<{
       status: "invalid";
-      reason:
-        | "invalid-shape"
-        | "invalid-identity"
-        | "invalid-kind"
-        | "invalid-statement"
-        | "invalid-evidence"
-        | "duplicate-evidence"
-        | "invalid-integrity"
-        | "invalid-review";
+      reason: "invalid-shape" | "invalid-evidence" | "invalid-integrity" | "invalid-review";
     }>;
 
 export type HoidEditorialClaimBatchResult =

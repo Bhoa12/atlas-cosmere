@@ -130,3 +130,29 @@ export function projectHoidCursorPositionToBoundary(
         }),
   });
 }
+
+
+/**
+ * Community posts declare the last chapter they discuss. While chapter N is
+ * open, only chapters before N are completed; therefore a post mentioning N
+ * or later must remain shielded. Invalid progress or chapter metadata fails
+ * closed and is treated as a spoiler.
+ */
+export function isChapterBeyondCompletedReadingBoundary(
+  commentChapter: unknown,
+  currentChapter: unknown,
+): boolean {
+  if (
+    typeof commentChapter !== "number" ||
+    !Number.isSafeInteger(commentChapter) ||
+    commentChapter < 1 ||
+    commentChapter > 100_000_000 ||
+    typeof currentChapter !== "number" ||
+    !Number.isSafeInteger(currentChapter) ||
+    currentChapter < 0 ||
+    currentChapter > 100_000_000
+  ) return true;
+
+  const completedThroughChapter = currentChapter > 0 ? currentChapter - 1 : 0;
+  return commentChapter > completedThroughChapter;
+}

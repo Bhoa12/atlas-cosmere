@@ -376,7 +376,7 @@ describe("HoidConversationGateway", () => {
   it("rejects Unicode format characters at the conversation boundary", async () => {
     const { gateway, runtime } = setup();
     const result = await gateway.answer({
-      question: "¿Quién es\\u200B?",
+      question: "¿Quién es" + String.fromCharCode(0x200B) + "?",
       progress: snapshot(3),
     });
 

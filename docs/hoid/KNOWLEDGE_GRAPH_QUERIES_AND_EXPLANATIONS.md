@@ -48,3 +48,6 @@ The SHA-256 digest detects substitution or mutation; it is not an author or revi
 The module fails closed for malformed queries, invalid graph inputs, invalid progress, stale plans, changed claim text, missing evidence, locked citations and traversal-budget exhaustion. No partial explanation is returned on a failure.
 
 The production graph and claim registry remain empty until original editorial assertions have been inspected and independently approved. Synthetic fixtures test traversal and rendering mechanics only; they assert no Cosmere narrative facts.
+
+
+The explanation renderer derives the progress fingerprint from the same single validated projection used to recheck unlock thresholds. It does not parse a caller-supplied snapshot twice, avoiding inconsistent reads from stateful proxy inputs.

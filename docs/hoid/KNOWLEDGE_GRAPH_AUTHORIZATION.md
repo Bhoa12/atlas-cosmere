@@ -114,3 +114,8 @@ No new EPUB passages were accessible during this run, so no new summaries, entit
 - production binding to the currently empty local registry.
 
 The tests do not assert any Cosmere narrative fact.
+
+
+## Consultas y planes de explicación
+
+Consulta `KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md`. El recorrido es dirigido, breadth-first, limitado por profundidad, número de rutas y presupuesto de expansiones. Los planes contienen únicamente IDs de afirmaciones, huellas de integridad y citas. La resolución revalida la misma huella de progreso v2 y recupera el texto editorial local exacto; no acepta prosa factual del proveedor.

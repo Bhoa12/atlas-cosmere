@@ -17,24 +17,24 @@ function locator(bookId: string, chapter: number): string {
 
 const knowledge: HoidKnowledgeEntry[] = [
   {
-    id: "e-sazed",
-    aliases: ["Sazed"],
+    id: "e-alpha",
+    aliases: ["Personaje Alfa"],
     kind: "character",
     firstSafeAppearance: { bookId: "twok", chapter: 2 },
     evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
     evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "verified",
-    summary: "Resumen editorial original de prueba sobre Sazed.",
+    summary: "Resumen editorial original de prueba sobre Personaje Alfa.",
   },
   {
-    id: "e-kaladin",
-    aliases: ["Kaladin"],
+    id: "e-beta",
+    aliases: ["Personaje Beta"],
     kind: "character",
     firstSafeAppearance: { bookId: "wor", chapter: 3 },
     evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
     evidenceUnlock: { bookId: "wor", chapter: 3 },
     provenance: "verified",
-    summary: "Resumen editorial original de prueba sobre Kaladin.",
+    summary: "Resumen editorial original de prueba sobre Personaje Beta.",
   },
   {
     id: "e-limited",
@@ -57,17 +57,17 @@ const review: HoidApprovedClaim["review"] = {
 
 const claims: HoidApprovedClaim[] = [
   {
-    id: "claim-sazed",
-    text: "Afirmación editorial aprobada sobre Sazed.",
+    id: "claim-alpha",
+    text: "Afirmación editorial aprobada sobre Personaje Alfa.",
     intent: "explain",
-    evidenceIds: ["e-sazed"],
+    evidenceIds: ["e-alpha"],
     review,
   },
   {
     id: "claim-cross-book",
     text: "Relación editorial aprobada que requiere ambas evidencias.",
     intent: "explain",
-    evidenceIds: ["e-sazed", "e-kaladin"],
+    evidenceIds: ["e-alpha", "e-beta"],
     review,
   },
   {
@@ -92,25 +92,25 @@ function createRuntime(
 describe("HoidEvidenceRuntime", () => {
   it("sends only claims whose complete evidence set is authorized", async () => {
     const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
-      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-sazed"]);
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
       expect(Object.isFrozen(request)).toBe(true);
       expect(Object.isFrozen(request.candidates)).toBe(true);
       expect("aliases" in request.candidates[0]).toBe(false);
-      return ["claim-sazed"];
+      return ["claim-alpha"];
     });
     const runtime = createRuntime(selector);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("authorized");
-    expect(result.text).toBe("Afirmación editorial aprobada sobre Sazed.");
-    expect(result.claimIds).toEqual(["claim-sazed"]);
-    expect(result.evidenceIds).toEqual(["e-sazed"]);
+    expect(result.text).toBe("Afirmación editorial aprobada sobre Personaje Alfa.");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(result.evidenceIds).toEqual(["e-alpha"]);
     expect(result.sources).toEqual([{
-      evidenceId: "e-sazed",
+      evidenceId: "e-alpha",
       sourceBookId: "twok",
       sourceChapter: 2,
       locatorId: locator("twok", 2),
@@ -125,7 +125,7 @@ describe("HoidEvidenceRuntime", () => {
     const runtime = createRuntime(selector);
 
     const locked = await runtime!.answer({
-      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 2 },
@@ -137,7 +137,7 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
 
     const unlocked = await runtime!.answer({
-      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 3 },
@@ -146,13 +146,13 @@ describe("HoidEvidenceRuntime", () => {
 
     expect(unlocked.status).toBe("authorized");
     expect(unlocked.claimIds).toEqual(["claim-cross-book"]);
-    expect(unlocked.evidenceIds).toEqual(["e-kaladin", "e-sazed"]);
+    expect(unlocked.evidenceIds).toEqual(["e-beta", "e-alpha"]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
 
   it("requires every cross-book evidence summary to reach its own unlock chapter", async () => {
-    const scopedKnowledge = knowledge.map(entry => entry.id === "e-kaladin"
+    const scopedKnowledge = knowledge.map(entry => entry.id === "e-beta"
       ? { ...entry, evidenceUnlock: { bookId: "wor", chapter: 4 } }
       : entry);
     const selector = vi.fn(async () => ["claim-cross-book"]);
@@ -163,7 +163,7 @@ describe("HoidEvidenceRuntime", () => {
     });
 
     const oneChapterShort = await runtime!.answer({
-      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 3 },
@@ -174,24 +174,24 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
 
     const bothUnlocked = await runtime!.answer({
-      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 4 },
       ],
     });
     expect(bothUnlocked.status).toBe("authorized");
-    expect(bothUnlocked.evidenceIds).toEqual(["e-kaladin", "e-sazed"]);
+    expect(bothUnlocked.evidenceIds).toEqual(["e-beta", "e-alpha"]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
   it("never renders text supplied by the selector", async () => {
     const runtime = createRuntime(async () => [
-      { id: "claim-sazed", text: "Texto inyectado por el proveedor" },
+      { id: "claim-alpha", text: "Texto inyectado por el proveedor" },
     ]);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
     });
 
@@ -201,10 +201,10 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("rejects unknown or duplicated claim identifiers", async () => {
-    const runtime = createRuntime(async () => ["claim-sazed", "claim-sazed"]);
+    const runtime = createRuntime(async () => ["claim-alpha", "claim-alpha"]);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
     });
 
@@ -213,7 +213,7 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("does not call a selector when no authorized evidence matches the question", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createRuntime(selector);
 
     const result = await runtime!.answer({
@@ -227,11 +227,11 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("rejects ambiguous duplicate progress before provider invocation", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createRuntime(selector);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [
         { bookId: "twok", chapter: 2 },
         { bookId: "twok", chapter: 99 },
@@ -263,7 +263,7 @@ describe("HoidEvidenceRuntime", () => {
     });
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
     });
 
@@ -310,7 +310,7 @@ describe("HoidEvidenceRuntime", () => {
     });
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
     });
 
@@ -321,13 +321,13 @@ describe("HoidEvidenceRuntime", () => {
 
 
   it("keeps a summary locked until its explicit evidence unlock chapter", async () => {
-    const delayedKnowledge = knowledge.map(entry => entry.id === "e-sazed"
+    const delayedKnowledge = knowledge.map(entry => entry.id === "e-alpha"
       ? {
           ...entry,
           evidenceUnlock: { bookId: "twok", chapter: 5 },
         }
       : entry);
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createHoidEvidenceRuntime({
       knowledge: delayedKnowledge,
       claims: [claims[0]],
@@ -335,7 +335,7 @@ describe("HoidEvidenceRuntime", () => {
     });
 
     const beforeUnlock = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 4 }],
     });
     expect(beforeUnlock.status).toBe("abstain");
@@ -343,7 +343,7 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
 
     const atUnlock = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 5 }],
     });
     expect(atUnlock.status).toBe("authorized");
@@ -353,7 +353,7 @@ describe("HoidEvidenceRuntime", () => {
 
   it("fails closed when evidence source or unlock metadata is missing", () => {
     const missingUnlock = knowledge.map(entry => {
-      if (entry.id !== "e-sazed") return entry;
+      if (entry.id !== "e-alpha") return entry;
       const { evidenceUnlock: _ignored, ...withoutUnlock } = entry;
       return withoutUnlock as HoidKnowledgeEntry;
     });
@@ -361,19 +361,19 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("rejects evidence whose unlock precedes its source chapter", () => {
-    const invalidScope = knowledge.map(entry => entry.id === "e-sazed"
+    const invalidScope = knowledge.map(entry => entry.id === "e-alpha"
       ? { ...entry, evidenceUnlock: { bookId: "twok", chapter: 1 } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: invalidScope, claims, selector: null })).toBeNull();
   });
 
   it("rejects unknown source works and malformed chapter locators", () => {
-    const unknownSource = knowledge.map(entry => entry.id === "e-sazed"
+    const unknownSource = knowledge.map(entry => entry.id === "e-alpha"
       ? { ...entry, evidenceSource: { bookId: "unknown-work", chapter: 2, locatorId: "x" }, evidenceUnlock: { bookId: "unknown-work", chapter: 2 } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: unknownSource, claims, selector: null })).toBeNull();
 
-    const invalidLocator = knowledge.map(entry => entry.id === "e-sazed"
+    const invalidLocator = knowledge.map(entry => entry.id === "e-alpha"
       ? { ...entry, evidenceSource: { bookId: "twok", chapter: 2, locatorId: "bad\nlocator" } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: invalidLocator, claims, selector: null })).toBeNull();
@@ -383,7 +383,7 @@ describe("HoidEvidenceRuntime", () => {
     const runtime = createRuntime();
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
     });
 
@@ -393,11 +393,11 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("rejects progress beyond the inspected chapter count before selector invocation", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createRuntime(selector);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "tfe", chapter: 39 }],
     });
 
@@ -407,11 +407,11 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("rejects ambiguous numeric chapter positions before selector invocation", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createRuntime(selector);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "elantris", chapter: 48 }],
     });
 
@@ -421,11 +421,11 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("rejects partial progress for a combined-volume or collection source", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createRuntime(selector);
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "white-sand-1", chapter: 1 }],
     });
 

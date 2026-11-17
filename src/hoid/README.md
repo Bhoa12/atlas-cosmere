@@ -98,6 +98,14 @@ El límite de contexto se aplica después de la autorización. Reducir el contex
 - mantener pruebas separadas para autorización, recuperación, proveedores y filtros;
 - documentar cualquier nueva capacidad de recuperación antes de conectarla a una fuente privada.
 
+## Protected editorial promotion
+
+`buildHoidEditorialPromotionPlan()` is a pure, non-writing consistency check; its receipt validators do not authenticate reviewer identities. Do not treat a ready plan or a synthetic receipt as proof of a protected review.
+
+For a maintainer-controlled promotion, use `authorizeHoidPromotionCommit()` from `promotionReviewAuthority.ts` with a trusted, read-only `HoidSourceControlReviewPort` adapter. The adapter must fetch the exact PR head, effective reviews, branch/ruleset protection and the promotion manifest at that commit. The core revalidates the snapshot, reviewer quorum, author exclusion, stale/dismissed reviews, Code Owner policy and plan fingerprint.
+
+The authority gate never writes production or merges a PR. It always returns `promotionAllowed: false` and `productionWritePerformed: false`; repository protected-branch rules and a separate maintainer-controlled source change remain mandatory. See `docs/hoid/PROTECTED_SOURCE_CONTROL_REVIEW_AUTHORITY.md`.
+
 ## Strict evidence-selection runtime
 
 New integrations should prefer `HoidEvidenceRuntime` from `evidenceRuntime.ts` for narrative responses. Its provider is an ID-only selector: it can choose among locally approved original-editorial claims, but Hoid renders the exact claim text from the local registry. It never displays free-form model prose.
@@ -319,3 +327,6 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - The current staging bundle remains blocked: the unnamed Edgedancer participant is unresolved, and no independent review receipts exist. Production knowledge, alias and graph registries remain empty.
 - The current Library listing exposes the three Roshar EPUBs (with duplicate copies) but not cosmere.epub. No new Mistborn chapter was inspected in this run.
 - No EPUB bytes, XHTML bodies or protected passages were committed. Only source metadata, chapter locators, SHA-256 digests and original summaries are stored. See docs/hoid/ROSHAR_CHAPTER_FOUR_INGESTION.md and docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md.
+
+
+The protected promotion gate also requires a read-only `HoidPromotionProgressPort`. It checks the authoritative Atlas cursor snapshot both before and after the source-control review fetch; the revision and fingerprint must still match the plan. This closes the race where a reader changes or rewinds progress while approvals are being checked. Missing, invalid, stale or changed progress fails closed.

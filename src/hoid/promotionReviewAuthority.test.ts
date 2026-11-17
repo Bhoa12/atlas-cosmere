@@ -415,6 +415,25 @@ describe("Hoid protected source-control review authority", () => {
     });
   });
 
+  it("does not coerce attacker-controlled review-state objects", () => {
+    const valid = snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) });
+    let invoked = false;
+    const hostileState = {
+      toString: () => {
+        invoked = true;
+        return "APPROVED";
+      },
+    };
+    const result = verifyHoidProtectedReviewSnapshot(request, {
+      ...valid,
+      reviews: valid.reviews.map((review, index) =>
+        index === 0 ? { ...review, state: hostileState } : review
+      ),
+    }, "b".repeat(64));
+    expect(result).toEqual({ status: "invalid", reason: "invalid-snapshot" });
+    expect(invoked).toBe(false);
+  });
+
   it("rejects accessor-based snapshots rather than executing getters", () => {
     const valid = snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) });
     const hostile = { ...valid } as Record<string, unknown>;

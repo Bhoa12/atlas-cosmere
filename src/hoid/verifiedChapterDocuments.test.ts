@@ -49,6 +49,28 @@ describe("verified EPUB chapter document fingerprints", () => {
     )).toBe("511dd868f3feb65f3cc28566bbac167762ad70dddccffcae863be31e64f144dc");
   });
 
+  it("returns only the two individually inspected Mistborn chapter digests", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "tfe",
+      "cosmere-epub-merged-v1",
+      "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      1,
+    )).toBe("cfc6a6057a477cfba6e7795d30dca2324a97a5dbdefa86b6500aa437a625844a");
+    expect(getVerifiedChapterDocumentSha256(
+      "tfe",
+      "cosmere-epub-merged-v1",
+      "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      2,
+    )).toBe("13604dc85df709443e6cd215a3e1a9deabe8f69f118dcc9823127b82ad486fc1");
+    expect(getVerifiedChapterDocumentCount("tfe")).toBe(2);
+    expect(getVerifiedChapterDocumentSha256(
+      "tfe",
+      "cosmere-epub-merged-v1",
+      "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      3,
+    )).toBeNull();
+  });
+
   it("rejects a digest lookup from another edition or navigation document", () => {
     expect(getVerifiedChapterDocumentSha256(
       "twok",

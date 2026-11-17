@@ -251,3 +251,8 @@ Matching is exact after NFKD normalization, mark/format folding, case folding an
 `conversationGateway.ts` wraps the strict cursor evidence runtime and checks the canonical v2 progress fingerprint before and after each asynchronous answer. If the authoritative snapshot changes, the gateway discards the complete answer and returns only a neutral reason code. `HoidScreen` uses a ref-backed getter so the post-await check sees the latest rendered context snapshot.
 
 This is stale-response suppression, not provider cancellation. A selector already invoked may finish with its previously authorized candidate set, but its answer and citations are never rendered after a progress change. See `docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md` and `src/hoid/conversationGateway.test.ts`.
+
+
+### Conversational intent routing
+
+`conversationIntent.ts` deterministically routes valid Spanish questions to `explain`, `context` or metadata-only `recommend`. The gateway validates the selected intent independently. Recommendation requests bypass the narrative selector and use the catalogue-only recommender; see `docs/hoid/CONVERSATION_INTENT_ROUTING.md`.

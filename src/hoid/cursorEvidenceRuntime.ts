@@ -9,6 +9,7 @@ import type {
   HoidClaimIntent,
 } from "./evidenceRuntime";
 import { projectHoidCursorPositionToBoundary } from "./readingBoundary";
+import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import type { ReadingPosition } from "./types";
 
 export type HoidCursorProgressProjection =
@@ -176,7 +177,7 @@ export class HoidCursorEvidenceRuntime {
     // Ask the metadata-only recommender for a bounded candidate set, then
     // remove every work already present in the v2 snapshot. Chapter-one
     // readers have no completed chapter yet, but their work is still started.
-    const candidates = this.runtime.recommend([...projection.reading], MAX_RECOMMENDATION_LIMIT);
+    const candidates = this.runtime.recommend([...projection.reading], HOID_SOURCE_BIBLIOGRAPHY.length);
     if (candidates.status !== "ready") return candidates;
     const started = new Set(projection.startedBookIds);
     return Object.freeze({

@@ -268,7 +268,7 @@ function canonicalIdentity(value: unknown): HoidEditorialEntityIdentity | null {
         label.length < 2 ||
         label.length > MAX_LABEL_LENGTH ||
         label !== label.trim() ||
-        /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(label)
+        /[\u0000-\u001F\u007F\p{Cf}]/u.test(label)
       ) return null;
       return Object.freeze({ status: "resolved", canonicalLabel: label });
     }

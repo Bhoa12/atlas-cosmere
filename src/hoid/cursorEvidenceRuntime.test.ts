@@ -102,6 +102,18 @@ describe("HoidCursorEvidenceRuntime", () => {
       { bookId: "twok", chapter: 1, order: 4 },
       { bookId: "woa", completed: true, order: 5 },
     ]);
+    expect(result.startedBookIds).toEqual(["twok", "woa"]);
+  });
+
+  it("does not unlock a summary from the chapter currently open in Atlas", async () => {
+    const { facade, selector } = createFacade();
+    const result = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
   });
 
   it("authorizes an explanation only after validating the cursor manifest", async () => {

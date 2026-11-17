@@ -284,6 +284,35 @@ describe("Hoid authorized knowledge graph", () => {
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
   });
 
+
+  it("rejects control characters in summaries and approved claim statements", () => {
+    const a = knowledge("synthetic.entity-a", "twok");
+    const b = knowledge("synthetic.entity-b", "edgedancer");
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const invalidSummary = {
+      ...a,
+      summary: "Resumen con control" + String.fromCharCode(0) + "incrustado.",
+    };
+    const badKnowledge = buildHoidAuthorizedKnowledgeGraph(
+      definition([]),
+      [invalidSummary, b],
+      [claim],
+      progress([]),
+    );
+    const invalidClaim = {
+      ...claim,
+      text: "Afirmación con control" + String.fromCharCode(0) + "incrustado.",
+    };
+    const badClaim = buildHoidAuthorizedKnowledgeGraph(
+      definition([]),
+      [a, b],
+      [invalidClaim],
+      progress([]),
+    );
+    expect(badKnowledge).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+    expect(badClaim).toEqual({ status: "unavailable", reason: "invalid-claims" });
+  });
+
   it("rejects a relation whose endpoints are not both cited by its approved claim", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");

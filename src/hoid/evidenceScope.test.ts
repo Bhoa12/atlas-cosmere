@@ -96,4 +96,28 @@ describe("isEvidenceUnlocked public boundary", () => {
     expect(canonicalEvidenceScope(invalidUnlock.evidenceSource, invalidUnlock.evidenceUnlock)).toBeNull();
   });
 
+  it("rejects accessor-bearing evidence metadata without executing getters", () => {
+    let invoked = false;
+    const source = { bookId: "twok", chapter: 2 } as Record<string, unknown>;
+    Object.defineProperty(source, "locatorId", {
+      enumerable: true,
+      get: () => {
+        invoked = true;
+        return locator("twok", 2);
+      },
+    });
+    expect(canonicalEvidenceScope(source, entry.evidenceUnlock)).toBeNull();
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects extra fields at the evidence provenance boundary", () => {
+    const source = {
+      bookId: "twok",
+      chapter: 2,
+      locatorId: locator("twok", 2),
+      summary: "untrusted extra text",
+    };
+    expect(canonicalEvidenceScope(source, entry.evidenceUnlock)).toBeNull();
+  });
+
 });

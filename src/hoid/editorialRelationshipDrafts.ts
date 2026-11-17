@@ -409,18 +409,18 @@ export function validateHoidEditorialRelationshipDraft(value: unknown): HoidEdit
   });
 }
 
-export function validateHoidEditorialRelationshipDraftBatch(value: unknown): HoidEditorialRelationshipBatchResult {
+function collectRelationshipDraftBatch(
+  value: unknown,
+  createCoreInputs: boolean,
+): HoidEditorialRelationshipBatchResult {
   const raw = canonicalDenseArray(value, 0, 512);
   if (!raw) return Object.freeze({ status: "invalid", reason: "invalid-batch" });
   const drafts: HoidEditorialRelationshipDraft[] = [];
   const seen = new Set<string>();
   for (const item of raw) {
-    let result = validateHoidEditorialRelationshipDraft(item);
-    // Staging source records are core-only inputs; persisted or reviewed
-    // records must pass the full integrity-bearing validator above.
-    if (result.status === "invalid" && result.reason === "invalid-shape") {
-      result = createHoidEditorialRelationshipDraft(item);
-    }
+    const result = createCoreInputs
+      ? createHoidEditorialRelationshipDraft(item)
+      : validateHoidEditorialRelationshipDraft(item);
     if (result.status !== "valid") {
       return Object.freeze({ status: "invalid", reason: "invalid-draft" });
     }
@@ -432,6 +432,16 @@ export function validateHoidEditorialRelationshipDraftBatch(value: unknown): Hoi
   }
   drafts.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   return Object.freeze({ status: "valid", drafts: Object.freeze(drafts) });
+}
+
+/** Create integrity-bearing drafts from source-controlled core-only staging inputs. */
+export function createHoidEditorialRelationshipDraftBatch(value: unknown): HoidEditorialRelationshipBatchResult {
+  return collectRelationshipDraftBatch(value, true);
+}
+
+/** Strictly validate complete drafts; never re-hash an integrity-bearing record with missing digests. */
+export function validateHoidEditorialRelationshipDraftBatch(value: unknown): HoidEditorialRelationshipBatchResult {
+  return collectRelationshipDraftBatch(value, false);
 }
 
 export function evaluateHoidEditorialRelationshipDrafts(
@@ -750,7 +760,7 @@ export function getHoidEditorialRelationshipDraftDiagnostics(): readonly Readonl
   }));
 }
 
-const VALIDATED_RELATIONSHIP_BATCH = validateHoidEditorialRelationshipDraftBatch(
+const VALIDATED_RELATIONSHIP_BATCH = createHoidEditorialRelationshipDraftBatch(
   RAW_RELATIONSHIP_DRAFTS,
 );
 

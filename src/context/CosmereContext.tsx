@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { createExpoHoidProgressCoordinator } from '../hoid/expoProgressCoordinator';
-import { atlasProgressFromSnapshot, HoidProgressCoordinator, type HoidProgressCoordinatorResult } from '../hoid/progressCoordinator';
-import { setAtlasChapterProgress } from '../hoid/atlasProgressActions';
+import { Alert } from 'react-native';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 import { createEmptyAtlasReadingProgress } from '../hoid/initialProgress';
+import { createExpoHoidCursorProgressCoordinator } from '../hoid/expoCursorProgressCoordinator';
+import { HoidCursorProgressCoordinator, type HoidCursorCoordinatorResult } from '../hoid/cursorProgressCoordinator';
+import type { HoidCursorProgressSnapshot } from '../hoid/cursorProgressLedger';
+import { createHoidReadingCursor } from '../hoid/readingManifest';
+import { atlasProgressFromCursorSnapshot } from '../hoid/cursorAtlasAdapter';
 
 interface ComentarioComunidad {
   id: string;
@@ -28,7 +31,8 @@ interface CosmereContextType {
   testsCompletadosExitosos: { [testId: string]: boolean };
   toggleReinoCognitivo: () => void;
   toggleLibroLeido: (libroId: string) => void;
-  setCapituloLibro: (libroId: string, cap: number) => Promise<HoidProgressCoordinatorResult | null>;
+  setCapituloLibro: (libroId: string, cap: number) => Promise<HoidCursorCoordinatorResult | null>;
+  hoidCursorProgressSnapshot: HoidCursorProgressSnapshot | null;
   sumarPuntosTestUnico: (testId: string, puntos: number) => boolean;
   setApodoActivo: (apodo: string) => void;
   setNombreUsuario: (nombre: string) => void;
@@ -49,28 +53,39 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [librosLeidos, setLibrosLeidos] = useState(initialReadingProgress.completedByBook);
   const [capituloActualPorLibro, setCapituloActualPorLibro] = useState(initialReadingProgress.chaptersByBook);
   const [progresoPersistenciaEstado, setProgresoPersistenciaEstado] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-  const [progressCoordinator, setProgressCoordinator] = useState<HoidProgressCoordinator | null>(null);
+  const [cursorProgressCoordinator, setCursorProgressCoordinator] = useState<HoidCursorProgressCoordinator | null>(null);
+  const [hoidCursorProgressSnapshot, setHoidCursorProgressSnapshot] = useState<HoidCursorProgressSnapshot | null>(null);
 
-  const aplicarResultadoProgreso = (result: HoidProgressCoordinatorResult) => {
+  const aplicarResultadoProgreso = (result: HoidCursorCoordinatorResult) => {
     if (result.status === 'ready' || result.status === 'conflict') {
-      const restored = atlasProgressFromSnapshot(result.snapshot);
-      setCapituloActualPorLibro(restored.chaptersByBook);
-      setLibrosLeidos(restored.completedByBook);
+      const restored = atlasProgressFromCursorSnapshot(result.snapshot);
+      if (restored.status !== 'ready') {
+        setHoidCursorProgressSnapshot(null);
+        setProgresoPersistenciaEstado('unavailable');
+        return;
+      }
+      setHoidCursorProgressSnapshot(restored.snapshot);
+      setCapituloActualPorLibro(Object.assign(Object.create(null), restored.chaptersByBook));
+      setLibrosLeidos(Object.assign(Object.create(null), restored.completedByBook));
       setProgresoPersistenciaEstado('ready');
     } else if (result.status === 'unavailable') {
+      setHoidCursorProgressSnapshot(null);
       setProgresoPersistenciaEstado('unavailable');
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    createExpoHoidProgressCoordinator().then(async coordinator => {
+    createExpoHoidCursorProgressCoordinator().then(async coordinator => {
       if (!mounted) return;
-      setProgressCoordinator(coordinator);
+      setCursorProgressCoordinator(coordinator);
       const result = await coordinator.initialize();
       if (mounted) aplicarResultadoProgreso(result);
     }).catch(() => {
-      if (mounted) setProgresoPersistenciaEstado('unavailable');
+      if (mounted) {
+        setHoidCursorProgressSnapshot(null);
+        setProgresoPersistenciaEstado('unavailable');
+      }
     });
 
     return () => {
@@ -103,17 +118,50 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const todosLosLibrosLeidos = totalLeidosCount >= totalLibrosEnUniverso;
 
   const toggleLibroLeido = (libroId: string) => {
-    if (!progressCoordinator || progresoPersistenciaEstado !== 'ready') return;
-    void progressCoordinator.setCompleted(libroId, !librosLeidos[libroId]).then(aplicarResultadoProgreso);
+    if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return;
+
+    if (librosLeidos[libroId]) {
+      Alert.alert(
+        'Reabrir libro',
+        '¿Quieres retirar la marca de leído y volver a situar el progreso al inicio? Esta acción cambiará qué información puede revelar Hoid.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Reabrir',
+            style: 'destructive',
+            onPress: () => {
+              void cursorProgressCoordinator.reopenCompletedWork(libroId, { confirmed: true }).then(result => {
+                aplicarResultadoProgreso(result);
+                if (result.status === 'rejected' && result.reason === 'unsupported-position') {
+                  Alert.alert('Estructura no verificada', 'Esta obra todavía no dispone de una primera unidad de lectura inequívoca. No se ha modificado el progreso.');
+                }
+              });
+            },
+          },
+        ],
+      );
+      return;
+    }
+
+    void cursorProgressCoordinator.complete(libroId).then(aplicarResultadoProgreso);
   };
 
-  const setCapituloLibro = async (libroId: string, cap: number): Promise<HoidProgressCoordinatorResult | null> => {
-    if (!progressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
+  const setCapituloLibro = async (libroId: string, cap: number): Promise<HoidCursorCoordinatorResult | null> => {
+    if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
 
-    // The normal Atlas action is forward-only. A backwards correction must
-    // use a dedicated, confirmed flow; a completed work must first be reopened
-    // through the explicit "mark unread" action.
-    const result = await setAtlasChapterProgress(progressCoordinator, libroId, cap);
+    const created = createHoidReadingCursor(libroId, cap);
+    if (created.status !== 'ready') {
+      const reason = created.reason === 'unknown-work'
+        ? 'unknown-work'
+        : created.reason === 'segmentation-unverified'
+          ? 'unsupported-position'
+          : 'invalid-cursor';
+      return { status: 'rejected', reason };
+    }
+
+    // Ordinary Atlas chapter updates are forward-only. Corrections require a
+    // separate confirmed operation and cannot pass through this setter.
+    const result = await cursorProgressCoordinator.advance(libroId, created.cursor);
     aplicarResultadoProgreso(result);
     return result;
   };
@@ -176,7 +224,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       darLuzTormentosa,
       esContenidoDesbloqueado,
       todosLosLibrosLeidos,
-      progresoPersistenciaEstado
+      progresoPersistenciaEstado,
+      hoidCursorProgressSnapshot
     }}>
       {children}
     </CosmereContext.Provider>

@@ -139,7 +139,16 @@ describe("Hoid atomic editorial claim drafts", () => {
       assertionKind: "interpretation",
       intent: "explain",
       statement: "Afirmación sintética que intenta citar un capítulo no inspeccionado.",
-      evidence: [evidence("twok", 2)],
+      evidence: [{
+        ...evidence("twok"),
+        source: {
+          bookId: "twok",
+          chapter: 2,
+          locatorId: getHoidReadingManifest("twok").status === "ready"
+            ? getHoidReadingManifest("twok").manifest.units.find(item => item.chapterNumber === 2)?.locatorId ?? "missing"
+            : "missing",
+        },
+      }],
     }).status).toBe("invalid");
   });
 

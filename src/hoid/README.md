@@ -261,3 +261,8 @@ This is stale-response suppression, not provider cancellation. A selector alread
 ### Cursor-native conversation context
 
 `cursorReadingContext.ts` projects the authoritative SQLite v2 snapshot into book titles, open chapter numbers and completed-through boundaries. It is metadata-only; narrative recaps still require approved editorial claims. The freshness-checked gateway exposes this as `readingContext()`. See `docs/hoid/CURSOR_READING_CONTEXT.md` and `docs/hoid/CONVERSATION_INTENT_ROUTING.md`.
+
+
+## Conversation history spoiler invalidation
+
+Run 113 binds every ready assistant answer, reading-context result and catalogue recommendation to the exact v2 progress revision and fingerprint. HoidScreen filters stale messages during render, prunes them from state after a progress change, and checks request/result/live scopes immediately before committing a response. User-authored messages and the static greeting remain. See `docs/hoid/CONVERSATION_HISTORY_SPOILER_INVALIDATION.md` and `conversationHistoryPolicy.ts`.

@@ -27,6 +27,16 @@ export type HoidPromotionReviewRequest = Readonly<{
   requireEnforcedAdmins: boolean;
 }>;
 
+export type HoidEditorialPromotionManifest = Readonly<{
+  schemaVersion: 1;
+  plan: HoidEditorialPromotionPlanInput;
+  planFingerprint: string;
+}>;
+
+export type HoidEditorialPromotionManifestValidation =
+  | Readonly<{ status: "valid"; manifest: HoidEditorialPromotionManifest }>
+  | Readonly<{ status: "invalid"; reason: "invalid-manifest" | "plan-fingerprint-mismatch" }>;
+
 export type HoidProtectedReviewFetchRequest = HoidPromotionReviewRequest & Readonly<{
   promotionPlanFingerprint: string;
 }>;
@@ -373,6 +383,39 @@ function promotionPlanFingerprint(plan: HoidEditorialPromotionPlanInput): string
 }
 
 /** Fingerprint a canonical promotion manifest using the same fields as the planner. */
+export function buildHoidEditorialPromotionManifest(
+  value: unknown,
+): HoidEditorialPromotionManifestValidation {
+  const plan = canonicalPromotionPlan(value);
+  if (!plan) return Object.freeze({ status: "invalid", reason: "invalid-manifest" });
+  return Object.freeze({
+    status: "valid",
+    manifest: Object.freeze({
+      schemaVersion: 1,
+      plan,
+      planFingerprint: promotionPlanFingerprint(plan),
+    }),
+  });
+}
+
+export function validateHoidEditorialPromotionManifest(
+  value: unknown,
+): HoidEditorialPromotionManifestValidation {
+  const raw = canonicalRecord(value, new Set(["schemaVersion", "plan", "planFingerprint"]));
+  if (
+    !raw ||
+    raw.schemaVersion !== 1 ||
+    typeof raw.planFingerprint !== "string" ||
+    !/^[a-f0-9]{64}$/.test(raw.planFingerprint)
+  ) return Object.freeze({ status: "invalid", reason: "invalid-manifest" });
+  const built = buildHoidEditorialPromotionManifest(raw.plan);
+  if (built.status !== "valid") return built;
+  if (built.manifest.planFingerprint !== raw.planFingerprint) {
+    return Object.freeze({ status: "invalid", reason: "plan-fingerprint-mismatch" });
+  }
+  return built;
+}
+
 export function fingerprintHoidEditorialPromotionPlan(value: unknown): string | null {
   const plan = canonicalPromotionPlan(value);
   return plan ? promotionPlanFingerprint(plan) : null;

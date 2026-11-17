@@ -39,7 +39,7 @@ describe("verified EPUB chapter document fingerprints", () => {
       "edgedancer-epub-v1",
       "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
       2,
-    )).toBe("397c116112ca87b77cdd2c324156349594f47660d332a104fcba7128bca8075");
+    )).toBe("397c116112ca87b77cdd2c324156349594f47660d332a10417884119c8e7b0a0");
 
     expect(getVerifiedChapterDocumentSha256(
       "dawnshard",

@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
+import { createHoidReadingCursor } from "./readingManifest";
 import {
   authorizeHoidPromotionCommit,
   fingerprintHoidEditorialPromotionPlan,
@@ -11,6 +14,21 @@ import {
 
 const HEAD_SHA = "a".repeat(40);
 
+function progressSnapshot(chapter = 5, revision = 17) {
+  const cursor = createHoidReadingCursor("twok", chapter);
+  if (cursor.status !== "ready") throw new Error("Cursor de promoción de prueba no disponible");
+  return Object.freeze({
+    schemaVersion: 2,
+    revision,
+    positions: Object.freeze([Object.freeze({ bookId: "twok", cursor: cursor.cursor })]),
+    updatedAt: "2026-11-17T21:00:00.000Z",
+  });
+}
+
+const initialProgress = progressSnapshot();
+const initialProjection = projectHoidCursorProgressSnapshot(initialProgress);
+if (initialProjection.status !== "ready") throw new Error("Proyección de progreso de prueba no disponible");
+
 const plan: HoidEditorialPromotionPlanInput = Object.freeze({
   status: "ready-for-maintainer-commit",
   entityIds: Object.freeze(["dawnshard.lopen", "twok.shallan"]),
@@ -18,12 +36,21 @@ const plan: HoidEditorialPromotionPlanInput = Object.freeze({
     "dawnshard.relationship.lopen-taliks-candid-exchange",
     "twok.relationship.shallan-seeks-jasnah",
   ]),
-  progressRevision: 17,
-  progressFingerprint: "f".repeat(64),
+  progressRevision: initialProjection.revision,
+  progressFingerprint: fingerprintHoidCursorProgressProjection(initialProjection),
   requiresProtectedReview: true,
   promotionAllowed: false,
   productionWritePerformed: false,
 });
+
+function progressPortWith(snapshots: readonly unknown[] = [initialProgress, initialProgress]) {
+  let index = 0;
+  return {
+    readAuthoritativeProgressSnapshot: vi.fn(async () =>
+      snapshots[Math.min(index++, snapshots.length - 1)]
+    ),
+  };
+}
 
 const request: HoidPromotionReviewRequest = Object.freeze({
   schemaVersion: 1,
@@ -106,7 +133,7 @@ describe("Hoid protected source-control review authority", () => {
         return snapshotFor(fetchRequest);
       }
     }
-    const result = await authorizeHoidPromotionCommit(plan, request, new Adapter());
+    const result = await authorizeHoidPromotionCommit(plan, request, new Adapter(), progressPortWith());
     expect(result.status).toBe("ready-for-maintainer-commit");
 
     const hostile = Object.create(null) as Record<string, unknown>;
@@ -122,7 +149,7 @@ describe("Hoid protected source-control review authority", () => {
 
   it("authorizes only a reviewed exact PR head and never writes production", async () => {
     const port = portWith();
-    const result = await authorizeHoidPromotionCommit(plan, request, port);
+    const result = await authorizeHoidPromotionCommit(plan, request, port, progressPortWith());
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
       repositoryFullName: request.repositoryFullName,
@@ -140,7 +167,7 @@ describe("Hoid protected source-control review authority", () => {
 
   it("does not call the source-control adapter for a blocked promotion plan", async () => {
     const port = portWith();
-    const result = await authorizeHoidPromotionCommit({ status: "blocked" }, request, port);
+    const result = await authorizeHoidPromotionCommit({ status: "blocked" }, request, port, progressPortWith());
     expect(result).toEqual({
       status: "blocked",
       reason: "promotion-plan-blocked",
@@ -152,7 +179,7 @@ describe("Hoid protected source-control review authority", () => {
 
   it("rejects a forged or malformed ready plan before calling the adapter", async () => {
     const port = portWith();
-    const result = await authorizeHoidPromotionCommit({ ...plan, promotionAllowed: true }, request, port);
+    const result = await authorizeHoidPromotionCommit({ ...plan, promotionAllowed: true }, request, port, progressPortWith());
     expect(result).toMatchObject({ status: "blocked", reason: "invalid-plan" });
     expect(port.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
   });
@@ -282,11 +309,11 @@ describe("Hoid protected source-control review authority", () => {
     const throwingPort = {
       fetchProtectedReviewSnapshot: async () => { throw new Error("network failure"); },
     };
-    expect(await authorizeHoidPromotionCommit(plan, request, throwingPort)).toMatchObject({
+    expect(await authorizeHoidPromotionCommit(plan, request, throwingPort, progressPortWith())).toMatchObject({
       status: "blocked",
       reason: "review-source-unavailable",
     });
-    expect(await authorizeHoidPromotionCommit(plan, request, {})).toMatchObject({
+    expect(await authorizeHoidPromotionCommit(plan, request, {}, progressPortWith())).toMatchObject({
       status: "blocked",
       reason: "invalid-source-control-port",
     });
@@ -298,12 +325,45 @@ describe("Hoid protected source-control review authority", () => {
       const port = {
         fetchProtectedReviewSnapshot: vi.fn(() => new Promise<unknown>(() => undefined)),
       };
-      const pending = authorizeHoidPromotionCommit(plan, request, port);
+      const pending = authorizeHoidPromotionCommit(plan, request, port, progressPortWith());
       await vi.advanceTimersByTimeAsync(8_000);
       await expect(pending).resolves.toMatchObject({ status: "blocked", reason: "review-timeout" });
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("checks the live Atlas cursor before and after source-control review", async () => {
+    const port = portWith();
+    const progressPort = progressPortWith([initialProgress, progressSnapshot(6, 18)]);
+    const result = await authorizeHoidPromotionCommit(plan, request, port, progressPort);
+    expect(result).toMatchObject({ status: "blocked", reason: "progress-changed" });
+    expect(port.fetchProtectedReviewSnapshot).toHaveBeenCalledTimes(1);
+    expect(progressPort.readAuthoritativeProgressSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not contact source control when the live cursor already differs from the plan", async () => {
+    const port = portWith();
+    const progressPort = progressPortWith([progressSnapshot(6, 18)]);
+    const result = await authorizeHoidPromotionCommit(plan, request, port, progressPort);
+    expect(result).toMatchObject({ status: "blocked", reason: "progress-changed" });
+    expect(port.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the authoritative progress port is unavailable or invalid", async () => {
+    const port = portWith();
+    const unavailable = {
+      readAuthoritativeProgressSnapshot: async () => { throw new Error("coordinator unavailable"); },
+    };
+    expect(await authorizeHoidPromotionCommit(plan, request, port, unavailable)).toMatchObject({
+      status: "blocked",
+      reason: "progress-source-unavailable",
+    });
+    const invalid = progressPortWith([{ schemaVersion: 2, revision: -1, positions: [], updatedAt: "bad" }]);
+    expect(await authorizeHoidPromotionCommit(plan, request, port, invalid)).toMatchObject({
+      status: "blocked",
+      reason: "invalid-progress",
+    });
   });
 
   it("rejects accessor-based snapshots rather than executing getters", () => {

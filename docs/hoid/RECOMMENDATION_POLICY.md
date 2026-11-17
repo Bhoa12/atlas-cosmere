@@ -1,20 +1,54 @@
-# Hoid IA: frontera de recomendaciones
+# Hoid IA: recomendaciones vinculadas al progreso v2
 
-Las recomendaciones de Hoid IA son una frontera de seguridad independiente de la generación de respuestas.
+## Alcance
+
+La primera recomendación conversacional muestra obras del catálogo bibliográfico que todavía no se han empezado. Es una función de descubrimiento de catálogo, no un algoritmo de orden de lectura.
+
+El catálogo contiene 24 identidades bibliográficas: 17 entradas del grupo cosmere.epub y siete del grupo roshar-epubs. La existencia de una entrada acredita únicamente que forma parte de la bibliografía aportada; no acredita que su contenido narrativo se haya inspeccionado.
+
+## Fuente de progreso
+
+Las recomendaciones reciben exclusivamente un snapshot v2 validado por projectHoidCursorProgressSnapshot().
+
+- Un cursor de capítulo 1 cuenta como obra empezada aunque todavía no autorice ningún capítulo.
+- Un cursor posterior sigue contando como obra empezada.
+- Una finalización explícita cuenta como obra empezada y terminada.
+- Un snapshot inválido o un cursor que no coincide con el manifiesto produce abstención.
+
+No se convierte el progreso de una obra en autorización para otra.
 
 ## Datos permitidos
 
-`planSafeCatalogRecommendations` trabaja únicamente con identificadores candidatos, títulos y metadatos del catálogo, y progreso de lectura validado por los contratos existentes.
+Cada resultado contiene únicamente:
 
-No acepta ni genera acontecimientos narrativos como justificación. Sus razones son categorías cerradas:
+- sourceId;
+- título exacto del catálogo;
+- razón cerrada unread-source;
+- revisión y huella del progreso que autorizó la lista.
 
-- `catalog-availability`;
-- `recorded-reading-continuity`.
+El gateway vuelve a validar cada elemento contra HOID_SOURCE_BIBLIOGRAPHY. Rechaza IDs desconocidos, títulos manipulados, duplicados, obras ya empezadas, razones no admitidas y lotes superiores al límite solicitado.
 
-## Fallo conservador
+## Ausencia de inferencias narrativas
 
-Los lotes de candidatos sobredimensionados o malformados devuelven una lista vacía. Los identificadores duplicados se deduplican de forma estable y los candidatos desconocidos o ambiguos se rechazan.
+Las recomendaciones no:
 
-La frontera no establece un orden narrativo universal ni infiere continuidad argumental. Si una integración necesita una secuencia de lectura, debe aportar una lista de candidatos previamente validada por metadatos estructurales; la frontera solo comprueba que cada resultado pueda expresarse sin introducir hechos no autorizados.
+- infieren cronología argumental;
+- afirman dependencias entre novelas;
+- revelan personajes, acontecimientos, alias ni conexiones;
+- utilizan resúmenes no aprobados;
+- piden al proveedor que invente razones;
+- presentan el orden interno del catálogo como orden recomendado.
 
-Como el resto de Hoid IA, este módulo no copia ni almacena pasajes protegidos de las fuentes privadas.
+La interfaz lo declara expresamente: las obras mostradas pertenecen al catálogo y no constituyen una ruta de lectura.
+
+## Frescura
+
+La lista se vincula a la revisión y huella SHA-256 del snapshot. El gateway compara el progreso antes y después de la operación. Si cambia, descarta toda la lista. La interfaz también oculta resultados cuya revisión ya no coincide con el snapshot vivo del coordinador.
+
+## Privacidad y fuentes
+
+La función trabaja con metadatos de bibliografía y progreso. No lee ni copia texto de EPUB, no sube fuentes privadas y no requiere un proveedor de IA. Una obra incluida en el catálogo no se presenta como narrativamente inspeccionada.
+
+## Verificación
+
+Las pruebas de conversationGateway.test.ts cubren progreso obsoleto, cambio durante la operación, límites, IDs desconocidos, títulos manipulados, duplicados, exclusión de obras empezadas, capacidad de recomendación ausente y abstención por progreso inválido.

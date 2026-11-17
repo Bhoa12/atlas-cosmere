@@ -55,6 +55,7 @@ export type HoidProtectedReviewSnapshot = Readonly<{
   headRef: string;
   headSha: string;
   authorId: string;
+  promotionManifestPath: string;
   promotionPlanFingerprint: string;
   verifiedAt: string;
   branchProtection: Readonly<{
@@ -97,6 +98,7 @@ export type HoidProtectedReviewVerification =
         | "branch-mismatch"
         | "head-mismatch"
         | "promotion-plan-mismatch"
+        | "promotion-manifest-mismatch"
         | "branch-protection-unverified"
         | "branch-protection-insufficient"
         | "approval-quorum-not-met"
@@ -171,6 +173,7 @@ const SNAPSHOT_KEYS = new Set([
   "headRef",
   "headSha",
   "authorId",
+  "promotionManifestPath",
   "promotionPlanFingerprint",
   "verifiedAt",
   "branchProtection",
@@ -403,6 +406,7 @@ export function verifyHoidProtectedReviewSnapshot(
   if (raw.headSha !== request.expectedHeadSha || typeof raw.headSha !== "string" || !SHA_PATTERN.test(raw.headSha)) {
     return invalidVerification("head-mismatch");
   }
+  if (raw.promotionManifestPath !== request.promotionManifestPath) return invalidVerification("promotion-manifest-mismatch");
   if (raw.promotionPlanFingerprint !== expectedPlanFingerprintInput) {
     return invalidVerification("promotion-plan-mismatch");
   }
@@ -449,6 +453,7 @@ export function verifyHoidProtectedReviewSnapshot(
       typeof review.commitSha !== "string" ||
       !SHA_PATTERN.test(review.commitSha) ||
       !canonicalTimestamp(review.submittedAt) ||
+      Date.parse(review.submittedAt) > Date.parse(raw.verifiedAt as string) ||
       typeof review.dismissed !== "boolean" ||
       typeof review.isCodeOwner !== "boolean"
     ) return invalidVerification("invalid-snapshot");

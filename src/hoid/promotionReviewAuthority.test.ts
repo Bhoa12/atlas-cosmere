@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   authorizeHoidPromotionCommit,
+  fingerprintHoidEditorialPromotionPlan,
   verifyHoidProtectedReviewSnapshot,
   type HoidPromotionReviewRequest,
   type HoidEditorialPromotionPlanInput,
@@ -92,6 +93,33 @@ function portWith(
 }
 
 describe("Hoid protected source-control review authority", () => {
+  it("produces a deterministic fingerprint for the canonical promotion manifest", () => {
+    const first = fingerprintHoidEditorialPromotionPlan(plan);
+    expect(first).toMatch(/^[a-f0-9]{64}$/);
+    expect(fingerprintHoidEditorialPromotionPlan(plan)).toBe(first);
+    expect(fingerprintHoidEditorialPromotionPlan({ ...plan, productionWritePerformed: true })).toBeNull();
+  });
+
+  it("supports class-based source-control adapters without accepting accessors", async () => {
+    class Adapter {
+      async fetchProtectedReviewSnapshot(fetchRequest: HoidProtectedReviewFetchRequest): Promise<unknown> {
+        return snapshotFor(fetchRequest);
+      }
+    }
+    const result = await authorizeHoidPromotionCommit(plan, request, new Adapter());
+    expect(result.status).toBe("ready-for-maintainer-commit");
+
+    const hostile = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(hostile, "fetchProtectedReviewSnapshot", {
+      enumerable: true,
+      get: () => async () => snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) }),
+    });
+    expect(await authorizeHoidPromotionCommit(plan, request, hostile)).toMatchObject({
+      status: "blocked",
+      reason: "invalid-source-control-port",
+    });
+  });
+
   it("authorizes only a reviewed exact PR head and never writes production", async () => {
     const port = portWith();
     const result = await authorizeHoidPromotionCommit(plan, request, port);

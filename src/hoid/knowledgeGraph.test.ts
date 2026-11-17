@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildHoidAuthorizedKnowledgeGraph,
+  buildProductionHoidAuthorizedKnowledgeGraph,
   HOID_KNOWLEDGE_GRAPH_DEFINITION,
   type HoidKnowledgeGraphDefinition,
   type HoidKnowledgeGraphRelation,
@@ -79,6 +80,15 @@ function definition(relations: readonly HoidKnowledgeGraphRelation[]): HoidKnowl
 }
 
 describe("Hoid authorized knowledge graph", () => {
+  it("binds the production graph to the currently empty editorial registry", () => {
+    expect(buildProductionHoidAuthorizedKnowledgeGraph(progress([]))).toEqual({
+      status: "ready",
+      progressRevision: 0,
+      nodes: [],
+      edges: [],
+    });
+  });
+
   it("keeps the production graph empty until reviewed relations are added", () => {
     const result = buildHoidAuthorizedKnowledgeGraph(
       HOID_KNOWLEDGE_GRAPH_DEFINITION,

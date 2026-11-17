@@ -7,10 +7,7 @@ import {
   emptyHoidProgressLedger,
   type HoidProgressLedgerSnapshot,
 } from "./progressLedger";
-import {
-  type HoidSqliteDatabasePort,
-  type HoidSqliteTransactionPort,
-} from "./sqliteProgressStore";
+import { type HoidSqliteDatabasePort } from "./sqliteProgressStore";
 
 export type HoidCursorStoreLoadResult =
   | Readonly<{
@@ -26,6 +23,7 @@ export type HoidCursorStoreLoadResult =
         | "corrupt-v2"
         | "migration-marker-missing"
         | "migration-marker-orphaned"
+        | "migration-source-changed"
         | "migration-conflict"
         | "storage-error";
       bookId?: string;
@@ -53,6 +51,7 @@ type MigrationRow = Readonly<{
   source_schema_version: number;
   target_schema_version: number;
   source_revision: number;
+  source_payload: string;
   migrated_at: string;
 }>;
 
@@ -78,6 +77,7 @@ const CREATE_MIGRATION_TABLE_SQL = `
     source_schema_version INTEGER NOT NULL CHECK (source_schema_version = 1),
     target_schema_version INTEGER NOT NULL CHECK (target_schema_version = 2),
     source_revision INTEGER NOT NULL CHECK (source_revision >= 0),
+    source_payload TEXT NOT NULL,
     migrated_at TEXT NOT NULL
   )
 `;
@@ -97,7 +97,7 @@ const SELECT_V2_SQL = `
   WHERE id = 1
 `;
 const SELECT_MIGRATION_SQL = `
-  SELECT source_schema_version, target_schema_version, source_revision, migrated_at
+  SELECT source_schema_version, target_schema_version, source_revision, source_payload, migrated_at
   FROM hoid_progress_migrations
   WHERE id = 1
 `;
@@ -108,8 +108,8 @@ const INSERT_V2_SQL = `
 `;
 const INSERT_MIGRATION_SQL = `
   INSERT INTO hoid_progress_migrations
-    (id, source_schema_version, target_schema_version, source_revision, migrated_at)
-  VALUES (1, ?, ?, ?, ?)
+    (id, source_schema_version, target_schema_version, source_revision, source_payload, migrated_at)
+  VALUES (1, ?, ?, ?, ?, ?)
 `;
 const UPDATE_V2_SQL = `
   UPDATE hoid_cursor_progress_ledger
@@ -183,6 +183,7 @@ function validMigrationMarker(row: MigrationRow | null): row is MigrationRow {
     row.target_schema_version === 2 &&
     Number.isSafeInteger(row.source_revision) &&
     row.source_revision >= 0 &&
+    typeof row.source_payload === "string" &&
     typeof row.migrated_at === "string" &&
     Number.isFinite(Date.parse(row.migrated_at)) &&
     new Date(Date.parse(row.migrated_at)).toISOString() === row.migrated_at
@@ -190,6 +191,7 @@ function validMigrationMarker(row: MigrationRow | null): row is MigrationRow {
 }
 
 function readUnavailableReason(
+  v1Row: LedgerRow | null,
   v2Row: LedgerRow | null,
   marker: MigrationRow | null,
 ): HoidCursorStoreLoadResult | null {
@@ -207,6 +209,14 @@ function readUnavailableReason(
     if (!snapshot || snapshot.revision < marker.source_revision) {
       return Object.freeze({ status: "unavailable", reason: "corrupt-v2" });
     }
+    if (
+      !v1Row ||
+      v1Row.schema_version !== marker.source_schema_version ||
+      v1Row.revision !== marker.source_revision ||
+      v1Row.payload !== marker.source_payload
+    ) {
+      return Object.freeze({ status: "unavailable", reason: "migration-source-changed" });
+    }
     return Object.freeze({ status: "ready", snapshot, migratedFromV1: false });
   }
   return null;
@@ -216,8 +226,9 @@ function readUnavailableReason(
  * Native SQLite v2 store with a one-way, non-destructive v1 migration.
  *
  * The legacy row is retained after migration. The v2 snapshot and migration
- * marker are inserted in the same exclusive transaction. If any step fails,
- * SQLite rolls both writes back and the v1 row remains authoritative.
+ * marker (including the exact source payload) are inserted in one exclusive
+ * transaction. A later v1 write is detected and blocks v2 reads instead of
+ * silently serving a stale cursor snapshot during a mixed-version rollout.
  */
 export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStore {
   private initialization: Promise<void> | null = null;
@@ -252,9 +263,10 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
   async load(): Promise<HoidCursorStoreLoadResult> {
     try {
       await this.ensureInitialized();
+      const existingV1 = await this.database.getFirstAsync<LedgerRow>(SELECT_V1_SQL);
       const existingV2 = await this.database.getFirstAsync<LedgerRow>(SELECT_V2_SQL);
       const existingMarker = await this.database.getFirstAsync<MigrationRow>(SELECT_MIGRATION_SQL);
-      const existing = readUnavailableReason(existingV2, existingMarker);
+      const existing = readUnavailableReason(existingV1, existingV2, existingMarker);
       if (existing) return existing;
 
       return await this.migrateAtomically();
@@ -294,11 +306,11 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
     try {
       let updated = false;
       await this.database.withExclusiveTransactionAsync(async transaction => {
+        const source = await transaction.getFirstAsync<LedgerRow>(SELECT_V1_SQL);
         const row = await transaction.getFirstAsync<LedgerRow>(SELECT_V2_SQL);
         const marker = await transaction.getFirstAsync<MigrationRow>(SELECT_MIGRATION_SQL);
-        if (!validMigrationMarker(marker)) return;
-        const current = decodeV2Row(row);
-        if (!current || current.revision !== expectedRevision) return;
+        const state = readUnavailableReason(source, row, marker);
+        if (state?.status !== "ready" || state.snapshot.revision !== expectedRevision) return;
 
         const result = await transaction.runAsync(
           UPDATE_V2_SQL,
@@ -323,15 +335,16 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
     });
 
     await this.database.withExclusiveTransactionAsync(async transaction => {
+      const currentV1 = await transaction.getFirstAsync<LedgerRow>(SELECT_V1_SQL);
       const currentV2 = await transaction.getFirstAsync<LedgerRow>(SELECT_V2_SQL);
       const currentMarker = await transaction.getFirstAsync<MigrationRow>(SELECT_MIGRATION_SQL);
-      const current = readUnavailableReason(currentV2, currentMarker);
+      const current = readUnavailableReason(currentV1, currentV2, currentMarker);
       if (current) {
         outcome = current;
         return;
       }
 
-      const sourceRow = await transaction.getFirstAsync<LedgerRow>(SELECT_V1_SQL);
+      const sourceRow = currentV1;
       const sourceSnapshot = decodeV1Row(sourceRow);
       if (!sourceSnapshot || !sourceRow) {
         outcome = Object.freeze({ status: "unavailable", reason: "corrupt-v1" });
@@ -349,7 +362,7 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
       }
 
       // Re-read the source inside the same exclusive transaction. This is an
-      // explicit source-revision guard in addition to SQLite's write lock.
+      // explicit source-revision and payload guard in addition to the DB lock.
       const confirmedSource = await transaction.getFirstAsync<LedgerRow>(SELECT_V1_SQL);
       if (
         !confirmedSource ||
@@ -390,6 +403,7 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
         1,
         2,
         migration.sourceRevision,
+        sourceRow.payload,
         timestamp,
       );
       if (markerWrite.changes !== 1) throw new Error("Hoid migration marker insert failed");

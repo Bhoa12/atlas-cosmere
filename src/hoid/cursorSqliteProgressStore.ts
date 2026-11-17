@@ -205,7 +205,9 @@ function readUnavailableReason(
   }
   if (v2Row && marker) {
     const snapshot = decodeV2Row(v2Row);
-    if (!snapshot) return Object.freeze({ status: "unavailable", reason: "corrupt-v2" });
+    if (!snapshot || snapshot.revision < marker.source_revision) {
+      return Object.freeze({ status: "unavailable", reason: "corrupt-v2" });
+    }
     return Object.freeze({ status: "ready", snapshot, migratedFromV1: false });
   }
   return null;
@@ -274,17 +276,15 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
     expectedRevision: number,
     next: HoidCursorProgressSnapshot,
   ): Promise<boolean> {
-    if (
-      !Number.isSafeInteger(expectedRevision) ||
-      expectedRevision < 0 ||
-      next === null ||
-      typeof next !== "object" ||
-      next.schemaVersion !== 2 ||
-      next.revision !== expectedRevision + 1
-    ) return false;
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return false;
 
+    // Validate before reading any property from an untrusted runtime value.
+    // The validator inspects own data descriptors and contains proxy traps.
     const validation = validateHoidCursorProgressSnapshot(next);
-    if (validation.status !== "valid") return false;
+    if (
+      validation.status !== "valid" ||
+      validation.snapshot.revision !== expectedRevision + 1
+    ) return false;
 
     const loaded = await this.load();
     if (loaded.status !== "ready") return false;
@@ -297,8 +297,9 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
       await this.database.withExclusiveTransactionAsync(async transaction => {
         const row = await transaction.getFirstAsync<LedgerRow>(SELECT_V2_SQL);
         const marker = await transaction.getFirstAsync<MigrationRow>(SELECT_MIGRATION_SQL);
-        if (!validMigrationMarker(marker) || !decodeV2Row(row)) return;
-        if (row.revision !== expectedRevision) return;
+        if (!validMigrationMarker(marker)) return;
+        const current = decodeV2Row(row);
+        if (!current || current.revision !== expectedRevision) return;
 
         const result = await transaction.runAsync(
           UPDATE_V2_SQL,

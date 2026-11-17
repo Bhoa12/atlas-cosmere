@@ -5,7 +5,8 @@ import {
   evaluateHoidEditorialClaimDrafts,
   type HoidEditorialClaimEvidence,
 } from "./editorialClaimDrafts";
-import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
+import { getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { sha256Hex } from "./sha256";
 
 export type HoidEditorialRelationshipParticipant = Readonly<{
@@ -668,13 +669,25 @@ export function validateHoidEditorialRelationshipReviewReceipt(
   });
 }
 
-function evidenceFromDraft(draftId: string): HoidEditorialClaimEvidence | null {
-  const draft = HOID_EDITORIAL_DRAFTS.find(item => item.id === draftId);
-  if (!draft) return null;
+function evidenceForChapter(bookId: string, chapter: number): HoidEditorialClaimEvidence | null {
+  const manifestResult = getHoidReadingManifest(bookId);
+  if (manifestResult.status !== "ready") return null;
+  const unit = manifestResult.manifest.units.find(item => item.chapterNumber === chapter);
+  const documentSha256 = getVerifiedChapterDocumentSha256(
+    bookId,
+    manifestResult.manifest.editionId,
+    manifestResult.manifest.navigationSha256,
+    chapter,
+  );
+  if (!unit?.locatorId || !documentSha256) return null;
   return Object.freeze({
-    source: draft.evidenceSource,
-    unlock: draft.evidenceUnlock,
-    sourceIntegrity: draft.sourceIntegrity,
+    source: Object.freeze({ bookId, chapter, locatorId: unit.locatorId }),
+    unlock: Object.freeze({ bookId, chapter: chapter + 1 }),
+    sourceIntegrity: Object.freeze({
+      editionId: manifestResult.manifest.editionId,
+      navigationSha256: manifestResult.manifest.navigationSha256,
+      documentSha256,
+    }),
   });
 }
 
@@ -686,7 +699,7 @@ const RAW_RELATIONSHIP_DRAFTS: readonly unknown[] = Object.freeze([
     object: Object.freeze({ id: "twok.jasnah", kind: "character", evidenceIndices: Object.freeze([0]) }),
     intent: "context",
     statement: "Shallan llega a Kharbranth con el propósito de encontrar a Jasnah Kholin y solicitar que la acepte como pupila; la búsqueda forma parte de un plan para proteger a su familia.",
-    evidence: Object.freeze([evidenceFromDraft("twok.chapter-003.shallan-kharbranth")]),
+    evidence: Object.freeze([evidenceForChapter("twok", 3)]),
     relationEvidenceIndices: Object.freeze([0]),
   }),
   Object.freeze({
@@ -696,7 +709,7 @@ const RAW_RELATIONSHIP_DRAFTS: readonly unknown[] = Object.freeze([
     object: Object.freeze({ id: "edgedancer.unnamed-girl", kind: "character", evidenceIndices: Object.freeze([0]) }),
     intent: "context",
     statement: "Hauka intenta detener a una niña oculta en un carro durante una inspección de inmigración; la persecución termina con la carga dispersa sobre el barrio de inmigrantes.",
-    evidence: Object.freeze([evidenceFromDraft("edgedancer.chapter-003.hauka-grain-cart")]),
+    evidence: Object.freeze([evidenceForChapter("edgedancer", 3)]),
     relationEvidenceIndices: Object.freeze([0]),
   }),
   Object.freeze({
@@ -706,7 +719,7 @@ const RAW_RELATIONSHIP_DRAFTS: readonly unknown[] = Object.freeze([
     object: Object.freeze({ id: "dawnshard.talik", kind: "character", evidenceIndices: Object.freeze([0]) }),
     intent: "context",
     statement: "Lopen y Talik conversan sobre la participación reshi en la coalición; Talik acepta trasladar al rey la recomendación de escuchar la propuesta de los alezi.",
-    evidence: Object.freeze([evidenceFromDraft("dawnshard.chapter-003.lopen-talik-delegation")]),
+    evidence: Object.freeze([evidenceForChapter("dawnshard", 3)]),
     relationEvidenceIndices: Object.freeze([0]),
   }),
 ]);

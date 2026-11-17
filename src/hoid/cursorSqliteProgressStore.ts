@@ -263,12 +263,9 @@ export class ExpoSqliteHoidCursorProgressStore implements HoidCursorProgressStor
   async load(): Promise<HoidCursorStoreLoadResult> {
     try {
       await this.ensureInitialized();
-      const existingV1 = await this.database.getFirstAsync<LedgerRow>(SELECT_V1_SQL);
-      const existingV2 = await this.database.getFirstAsync<LedgerRow>(SELECT_V2_SQL);
-      const existingMarker = await this.database.getFirstAsync<MigrationRow>(SELECT_MIGRATION_SQL);
-      const existing = readUnavailableReason(existingV1, existingV2, existingMarker);
-      if (existing) return existing;
-
+      // Read v1, v2 and the receipt inside one exclusive transaction. This
+      // prevents a still-running v1 writer from racing the source-divergence
+      // check between separate SELECT statements.
       return await this.migrateAtomically();
     } catch (error) {
       return Object.freeze({

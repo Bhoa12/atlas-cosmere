@@ -304,6 +304,25 @@ describe("ExpoSqliteHoidCursorProgressStore", () => {
     expect(result).toEqual({ status: "unavailable", reason: "migration-marker-orphaned" });
   });
 
+  it("detects legacy payload changes even when the v1 revision is unchanged", async () => {
+    const database = new MemoryDatabase();
+    seedLegacy(database, legacySnapshot([{ bookId: "tfe", chapter: 5 }], 1));
+    const store = createStore(database);
+    await store.load();
+
+    const changed = legacySnapshot([{ bookId: "tfe", chapter: 6 }], 1);
+    database.state.v1 = {
+      schema_version: 1,
+      revision: 1,
+      payload: JSON.stringify(changed),
+    };
+
+    expect(await store.load()).toEqual({
+      status: "unavailable",
+      reason: "migration-source-changed",
+    });
+  });
+
   it("rejects accessor-backed snapshots without invoking their getters", async () => {
     const database = new MemoryDatabase();
     const store = createStore(database);

@@ -209,10 +209,12 @@ function readUnavailableReason(
     if (!snapshot || snapshot.revision < marker.source_revision) {
       return Object.freeze({ status: "unavailable", reason: "corrupt-v2" });
     }
+    const retainedSource = decodeV1Row(v1Row);
     if (
       !v1Row ||
+      !retainedSource ||
       v1Row.schema_version !== marker.source_schema_version ||
-      v1Row.revision !== marker.source_revision ||
+      retainedSource.revision !== marker.source_revision ||
       v1Row.payload !== marker.source_payload
     ) {
       return Object.freeze({ status: "unavailable", reason: "migration-source-changed" });

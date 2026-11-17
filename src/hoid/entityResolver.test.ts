@@ -667,7 +667,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     expect(resolveEntityMentions(
       [entry],
       progress([{ bookId: "twok", chapter: 2 }]),
-      "¿Qué sabes de\\nSynthetic Entity?",
+      "¿Qué sabes de\nSynthetic Entity?",
     )).toEqual({ status: "unavailable", reason: "invalid-question" });
     expect(resolveEntityMentions([entry], {}, "Synthetic Entity")).toEqual({
       status: "unavailable",

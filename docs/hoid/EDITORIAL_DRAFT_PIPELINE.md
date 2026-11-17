@@ -16,7 +16,7 @@ Three unique EPUB assets were available and inspected at chapter-one scope:
 | `edgedancer` — Danzante del Filo | `4 Danzante del Filo Brandon Sanderson.epub` | `edgedancer-epub-v1` | `OEBPS/Text/001.xhtml` | `8a85e1ccb126c5915f3948351266030b0966abb822403ddd0415791c671ce7dc` |
 | `dawnshard` — Esquirla del amanecer | `6 Esquirla del amanecer Brandon Sanderson.epub` | `dawnshard-epub-v1` | `OEBPS/Text/1.xhtml` | `eac1f947b3303414b0b8a69ff19eabcd396c1fdd32caa1c1349c931eb8d8d2ae` |
 
-The navigation documents are EPUB 3 XHTML for the omnibus and NCX for the two standalone novellas. Their SHA-256 values match the edition manifests already stored in `verifiedChapterLocators.ts`:
+The navigation documents are EPUB 3 XHTML for the omnibus and NCX for the two standalone novellas. Their SHA-256 values match the edition manifests already stored in `verifiedChapterLocators.ts`. The three chapter-document hashes are independently allowlisted in `verifiedChapterDocuments.ts`:
 
 - `roshar-omnibus-v1`: `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025`
 - `edgedancer-epub-v1`: `5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517`
@@ -43,7 +43,7 @@ A draft must pass all of the following before it can be considered for productio
 1. Its bibliography work and first-appearance unit exist in the current edition manifest.
 2. Its source locator matches the exact chapter unit in that edition.
 3. Its navigation digest matches the edition manifest.
-4. Its source-document digest is a valid SHA-256 fingerprint recorded by the offline ingestion step.
+4. Its source-document digest exactly matches the sparse SHA-256 allowlist in `verifiedChapterDocuments.ts`, recorded by the offline ingestion step; a merely well-formed but unknown digest is rejected.
 5. Its first appearance, source and unlock are all in the same work for draft schema v1; the first-appearance unit must have an exact locator, and the appearance cannot follow the unlock threshold. Cross-work chronology requires a future separately reviewed schema.
 6. Its unlock threshold is a real unit in the same work and does not precede the source chapter.
 7. Its summary is original editorial prose and contains no copied source passage.

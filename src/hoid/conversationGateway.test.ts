@@ -331,4 +331,128 @@ describe("HoidConversationGateway", () => {
     expect(result.items.some(item => item.sourceId === "twok")).toBe(false);
   });
 
+
+  it("forwards a validated context intent to the strict runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Hasta dónde he leído?",
+      progress: current,
+      intent: "context",
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Hasta dónde he leído?",
+      progress: current,
+      intent: "context",
+    });
+  });
+
+  it("defaults an omitted intent to explain for backward compatibility", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    await gateway.answer({ question: "¿Qué significa este concepto?", progress: current });
+
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Qué significa este concepto?",
+      progress: current,
+      intent: "explain",
+    });
+  });
+
+  it("rejects unsupported intents before invoking the runtime", async () => {
+    const { gateway, runtime } = setup();
+    const result = await gateway.answer({
+      question: "Pregunta sintética",
+      progress: snapshot(3),
+      intent: "spoiler-dump",
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("rejects Unicode format characters at the conversation boundary", async () => {
+    const { gateway, runtime } = setup();
+    const result = await gateway.answer({
+      question: "¿Quién es" + String.fromCharCode(0x200B) + "?",
+      progress: snapshot(3),
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+
+  it("returns a metadata-only reading position through the freshness-checked gateway", async () => {
+    const current = snapshot(7);
+    const { gateway } = setup(current);
+    const result = await gateway.readingContext({ progress: current });
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.context.positions).toEqual([{
+      bookId: "twok",
+      title: "El Camino de los Reyes",
+      status: "in-progress",
+      currentChapter: 7,
+      completedThroughChapter: 6,
+    }]);
+    expect(result.progressRevision).toBe(1);
+    expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("does not return a reading context for an already stale snapshot", async () => {
+    const { gateway } = setup(snapshot(8));
+    expect(await gateway.readingContext({ progress: snapshot(7) })).toEqual({
+      status: "unavailable",
+      reason: "progress-changed",
+    });
+  });
+
+  it("discards a reading context if the authoritative snapshot changes during construction", async () => {
+    const initial = snapshot(7);
+    let calls = 0;
+    const gateway = createHoidConversationGateway({
+      runtime: { answer: vi.fn(async () => answer) },
+      getCurrentProgress: () => {
+        calls += 1;
+        return calls === 1 ? initial : snapshot(8);
+      },
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.readingContext({ progress: initial })).toEqual({
+      status: "unavailable",
+      reason: "progress-changed",
+    });
+  });
+
+  it("rejects malformed reading-context requests before reading progress", async () => {
+    const { gateway } = setup();
+    expect(await gateway.readingContext({ progress: snapshot(3), extra: true })).toEqual({
+      status: "unavailable",
+      reason: "invalid-request",
+    });
+  });
+
+  it("reports explicit completion without exposing a fabricated chapter count", async () => {
+    const current = {
+      schemaVersion: 2,
+      revision: 1,
+      positions: [{ bookId: "twok", completed: true }],
+      updatedAt: UPDATED_AT,
+    };
+    const { gateway } = setup(current);
+    const result = await gateway.readingContext({ progress: current });
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.context.positions[0]).toMatchObject({
+      status: "completed",
+      completedThrough: "entire-work",
+    });
+    expect(result.context.positions[0]).not.toHaveProperty("currentChapter");
+  });
+
 });

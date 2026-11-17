@@ -52,3 +52,8 @@ La función trabaja con metadatos de bibliografía y progreso. No lee ni copia t
 ## Verificación
 
 Las pruebas de conversationGateway.test.ts cubren progreso obsoleto, cambio durante la operación, límites, IDs desconocidos, títulos manipulados, duplicados, exclusión de obras empezadas, capacidad de recomendación ausente y abstención por progreso inválido.
+
+
+## Conversational routing
+
+Spanish recommendation requests are classified deterministically by `classifyHoidConversationIntent()` and routed to `HoidConversationGateway.recommend()`. They do not enter the narrative claim selector. The UI presents only catalogue-backed works not yet started in the v2 snapshot and states that catalogue order is not a canonical reading route. Mixed recommendation/context phrasing follows the documented recommendation-first precedence. See `CONVERSATION_INTENT_ROUTING.md`.

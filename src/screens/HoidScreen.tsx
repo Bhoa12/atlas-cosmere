@@ -5,6 +5,7 @@ import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../h
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from '../hoid/cursorEvidenceRuntime';
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
+import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidRecommendation } from '../hoid/recommendations';
 
 const editorialRuntime = createHoidEditorialRuntime();
@@ -62,16 +63,60 @@ export const HoidScreen: React.FC = () => {
     setCargando(true);
 
     try {
-      const result = conversationGateway
-        ? await conversationGateway.answer({ question: textoUsuario, progress: currentProgress })
-        : null;
-      const respuesta = result?.status === 'ready'
-        ? result.answer.text
-        : result?.reason === 'progress-changed'
-          ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
-          : result?.reason === 'invalid-progress'
-            ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
-            : 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
+      const intentPlan = classifyHoidConversationIntent(textoUsuario);
+      let respuesta: string;
+
+      if (intentPlan.status !== 'ready') {
+        respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
+      } else if (!conversationGateway) {
+        respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
+      } else if (intentPlan.mode === 'reading-progress') {
+        const result = await conversationGateway.readingContext({ progress: currentProgress });
+        if (result.status === 'ready') {
+          const positions = result.context.positions;
+          respuesta = positions.length === 0
+            ? 'No hay obras iniciadas en el progreso guardado.'
+            : 'Este es tu progreso de lectura registrado:\\n\\n'
+              + positions.map(position => position.status === 'completed'
+                ? `• ${position.title}: obra marcada como terminada.`
+                : `• ${position.title}: estás en el capítulo ${position.currentChapter}; completado hasta ${position.completedThroughChapter ?? 'ningún capítulo'}.`
+              ).join('\\n')
+              + `\n\nTienes ${result.context.startedCount} obras con progreso registrado de ${result.context.catalogSize}. Hay ${result.context.trackableUnstartedCount} obras sin empezar con estructura verificada y ${result.context.untrackedWorkCount} obras cuya segmentación todavía no está verificada. Esto describe únicamente tu posición registrada, no es un resumen narrativo.`;
+        } else {
+          respuesta = result.reason === 'progress-changed'
+            ? 'Tu progreso ha cambiado mientras consultaba tu posición. He descartado el resultado; vuelve a preguntarme.'
+            : 'No puedo verificar el progreso actual. No mostraré una posición de lectura estimada.';
+        }
+      } else if (intentPlan.mode === 'catalogue-recommendation') {
+        const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
+        if (result.status === 'ready') {
+          respuesta = result.items.length === 0
+            ? 'No quedan obras sin empezar en el catálogo actual.'
+            : 'Estas obras figuran en tu catálogo y todavía no has empezado:\\n\\n'
+              + result.items.map((item, index) => `${index + 1}. ${item.title}`).join('\\n')
+              + '\\n\\nEl orden es únicamente el del catálogo: no representa una ruta canónica ni una recomendación narrativa. Todavía no hay suficientes afirmaciones editoriales aprobadas para justificar una prioridad argumental.';
+        } else {
+          respuesta = result.reason === 'progress-changed'
+            ? 'Tu progreso de lectura ha cambiado mientras preparaba la lista. He descartado el resultado; vuelve a solicitarla.'
+            : result.reason === 'invalid-progress'
+              ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
+              : 'No puedo verificar el catálogo o el runtime de recomendaciones. No mostraré una lista alternativa.';
+        }
+      } else {
+        const result = await conversationGateway.answer({
+          question: textoUsuario,
+          progress: currentProgress,
+          intent: intentPlan.intent,
+        });
+        respuesta = result.status === 'ready'
+          ? result.answer.text
+          : result.reason === 'progress-changed'
+            ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
+            : result.reason === 'invalid-progress'
+              ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
+              : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
+      }
+
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',

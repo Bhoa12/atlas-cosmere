@@ -70,7 +70,7 @@ function canonicalRequest(value: unknown): Readonly<{
     question.length < 1 ||
     question.length > MAX_QUESTION_LENGTH ||
     question !== question.trim() ||
-    /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(question) ||
+    /[\u0000-\u001F\u007F\p{Cf}]/u.test(question) ||
     (intent !== "explain" && intent !== "recommend" && intent !== "context")
   ) {
     return null;

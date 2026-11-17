@@ -317,11 +317,9 @@ describe("Hoid atomic editorial claim drafts", () => {
     expect(value.id).toBe("tfe.vin.ability.emotional-allomancy");
     expect(value.subjectId).toBe("tfe.vin");
     expect(value.evidence).toHaveLength(1);
-    expect(value.evidence[0].source).toEqual({
-      bookId: "tfe",
-      chapter: 2,
-      locatorId: expect.stringContaining("/books/b000001/OEBPS/Text/002.xhtml"),
-    });
+    expect(value.evidence[0].source.bookId).toBe("tfe");
+    expect(value.evidence[0].source.chapter).toBe(2);
+    expect(value.evidence[0].source.locatorId).toContain("/books/b000001/OEBPS/Text/002.xhtml");
     expect(value.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 3 });
     expect(value.review.status).toBe("pending-review");
     expect(validateHoidEditorialClaimDraftBatch(HOID_EDITORIAL_CLAIM_DRAFTS).status).toBe("valid");

@@ -285,3 +285,12 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - Entity-scoped claims must explicitly list every resolved entity ID. Legacy unscoped claims are not eligible for entity-scoped questions. Every claim still requires all evidence IDs to be authorized.
 - The selector receives only the already-filtered candidate set; it cannot add claims or author response text.
 - Production registries remain empty. Tests use synthetic entities and claims only. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md.
+
+## Run 115 — entity-scoped retrieval and first Cosmere narrative drafts
+
+- Entity mention preflight may resolve several distinct, individually authorized aliases in one question. Shared spellings, locked aliases and truncated results remain withheld.
+- The gateway binds canonical entity IDs to the request's progress revision/fingerprint. The cursor evidence facade preserves the scope; the evidence runtime validates it against the knowledge catalog and filters approved claims before provider selection.
+- Entity-scoped claims must list every resolved entity ID, and each ID must also occur in the claim's evidence ID set. Legacy unscoped claims cannot answer entity-scoped questions. All evidence remains AND-authorized.
+- The accessible private cosmere.epub was materialized locally and its already-registered navigation digest was rechecked. The XHTML bodies for El Imperio Final chapters 1 and 2 were individually inspected; only their SHA-256 document digests and original summaries were added to staging.
+- Two new character drafts (Vin and Kelsier) are pending editorial review. They are not production knowledge and do not populate the approved entity or alias registries.
+- No EPUB bytes or source passages were committed. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md and docs/hoid/COSMERE_TFE_CHAPTERS_1_2_INGESTION.md.

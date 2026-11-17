@@ -140,6 +140,7 @@ function canonicalChecklist(value: unknown): HoidEditorialReviewChecklist | null
 function canonicalNoteCodes(value: unknown): readonly HoidEditorialReviewNoteCode[] | null {
   try {
     if (!Array.isArray(value) || value.length < 1 || value.length > 6) return null;
+    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
     const keys = Reflect.ownKeys(value);
     if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
     const allowed = new Set<HoidEditorialReviewNoteCode>([
@@ -224,7 +225,12 @@ function canonicalPacket(value: unknown): HoidEditorialReviewPacket | null {
   if (!strings.every(value => typeof value === "string" && value.length > 0)) return null;
   if (
     typeof raw.summary !== "string" ||
+    raw.summary.trim().length < 80 ||
     raw.summary.length > 4_000 ||
+    /[\u0000-\u001f\u007f]/u.test(raw.summary) ||
+    typeof raw.draftId !== "string" ||
+    raw.draftId.length > 128 ||
+    !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(raw.draftId) ||
     typeof raw.summarySha256 !== "string" ||
     !/^[a-f0-9]{64}$/.test(raw.summarySha256) ||
     raw.summarySha256 !== sha256Hex(raw.summary) ||
@@ -234,7 +240,7 @@ function canonicalPacket(value: unknown): HoidEditorialReviewPacket | null {
     typeof unlock.chapter !== "number" || !Number.isSafeInteger(unlock.chapter) || unlock.chapter < 1 ||
     source.bookId !== unlock.bookId || unlock.chapter < source.chapter ||
     typeof source.locatorId !== "string" || source.locatorId.length > 256 ||
-    /[\\u0000-\\u001f\\u007f]/u.test(source.locatorId) ||
+    /[\u0000-\u001f\u007f]/u.test(source.locatorId) ||
     typeof source.editionId !== "string" || source.editionId.length > 128 ||
     typeof source.navigationSha256 !== "string" || !/^[a-f0-9]{64}$/.test(source.navigationSha256) ||
     Object.values(checklist).some(Boolean)

@@ -128,6 +128,21 @@ describe("Hoid editorial review packets", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
+  it("rejects note-code arrays with custom prototypes", () => {
+    const codes = ["no-issues"];
+    Object.setPrototypeOf(codes, { custom: true });
+    expect(validateHoidEditorialReviewReceipt(packet, receipt({
+      checklist: {
+        factualAccuracy: true,
+        completeness: true,
+        originality: true,
+        spoilerCeiling: true,
+        provenance: true,
+      },
+      noteCodes: codes,
+    }))).toEqual({ status: "invalid", reason: "invalid-checklist" });
+  });
+
   it("rejects free-form reviewer notes so source passages cannot enter receipts", () => {
     expect(validateHoidEditorialReviewReceipt(packet, receipt({
       notes: "No copiar texto de la fuente",

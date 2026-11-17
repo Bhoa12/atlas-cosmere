@@ -204,3 +204,12 @@ The private `cosmere.epub` was not available in the current Library listing. Its
 The v2 cursor denotes the chapter currently open/in progress, not a completed chapter. The evidence facade therefore authorizes only through chapter N-1 while chapter N is open. Chapter one authorizes no chapter-scoped narrative evidence; explicit reader-declared completion is the only state that unlocks the entire work.
 
 The projection preserves started work IDs separately so recommendations do not label a chapter-one work as unread. See `readingBoundary.ts`, `readingBoundary.test.ts`, and `docs/hoid/READING_BOUNDARY_POLICY.md`.
+
+
+## Editorial draft staging
+
+`editorialDrafts.ts` is a staging-only source ingestion boundary. The first original Spanish summary is based on chapter 1 of the accessible `El camino de los reyes` EPUB and is bound to the exact edition, navigation locator and chapter-document SHA-256. Its complete summary unlocks at chapter 2, not while chapter 1 is open.
+
+The draft remains `pending-review`. `editorialRegistry.ts` does not import it, so the production evidence runtime still abstains. A separate editorial review must check accuracy, originality and spoiler scope before a source-controlled change promotes any item into the approved registry.
+
+See `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md` and `src/hoid/editorialDrafts.test.ts`. No EPUB, XHTML or source passage is committed.

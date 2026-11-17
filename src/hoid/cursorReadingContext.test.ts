@@ -30,8 +30,9 @@ describe("buildHoidCursorReadingContext", () => {
     if (result.status !== "ready") return;
     expect(result.context.positions).toEqual([]);
     expect(result.context.startedCount).toBe(0);
-    expect(result.context.unstartedCount).toBe(24);
     expect(result.context.catalogSize).toBe(24);
+    expect(result.context.trackableUnstartedCount).toBe(result.context.trackableWorkCount);
+    expect(result.context.trackableWorkCount + result.context.untrackedWorkCount).toBe(24);
     expect(result.context.unitScope).toBe("verified-numbered-chapters-only");
   });
 

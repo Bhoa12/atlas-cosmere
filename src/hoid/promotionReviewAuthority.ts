@@ -492,7 +492,12 @@ export function verifyHoidProtectedReviewSnapshot(
       typeof review.reviewerId !== "string" ||
       !review.reviewerId.trim() ||
       review.reviewerId.length > 128 ||
-      !["APPROVED", "CHANGES_REQUESTED", "COMMENTED", "DISMISSED"].includes(String(review.state)) ||
+      !(
+        review.state === "APPROVED" ||
+        review.state === "CHANGES_REQUESTED" ||
+        review.state === "COMMENTED" ||
+        review.state === "DISMISSED"
+      ) ||
       typeof review.commitSha !== "string" ||
       !SHA_PATTERN.test(review.commitSha) ||
       !canonicalTimestamp(review.submittedAt) ||

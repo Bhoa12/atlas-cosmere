@@ -72,3 +72,14 @@ The test suite creates synthetic receipts only to verify that a fully consistent
 Evidence validation reuses the atomic claim validator and checks exact edition, navigation, chapter locator and chapter-document digest. All evidence items are mandatory (AND semantics).
 
 No EPUB or XHTML content is included in entity dossiers, review packets or promotion plans. Only IDs, labels for review, metadata, locators and digests are used.
+
+
+## Protected source-control authorization (Run 118)
+
+The pure promotion planner proves only internal consistency. Its synthetic test receipts are not proof of authenticated reviews. Run 118 adds a separate `HoidSourceControlReviewPort` contract and `authorizeHoidPromotionCommit()` gate.
+
+The adapter must fetch the real pull request, effective reviews, branch/ruleset protection and the promotion manifest at the exact head commit. The core validates repository, PR, base/head refs, head SHA, manifest fingerprint, review quorum, author exclusion, stale/dismissed state and optional Code Owner requirements.
+
+The core has no GitHub SDK or network dependency. The adapter is a trusted read-only boundary; its returned snapshot is still treated as untrusted data and structurally revalidated. The adapter must return one effective latest review per reviewer.
+
+A successful authority result is still non-writing: `promotionAllowed=false` and `productionWritePerformed=false`. A maintainer-controlled source change and GitHub protected-branch enforcement remain mandatory. See `PROTECTED_SOURCE_CONTROL_REVIEW_AUTHORITY.md`.

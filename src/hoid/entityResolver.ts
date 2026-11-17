@@ -604,7 +604,7 @@ function canonicalEntityMentionQuestion(value: unknown): string | null {
     value.length < 1 ||
     value.length > MAX_ENTITY_MENTION_QUESTION_LENGTH ||
     value !== value.trim() ||
-    /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(value)
+    /[\u0000-\u001F\u007F\p{Cf}]/u.test(value)
   ) return null;
   const normalized = normalizeAlias(value);
   return normalized.length > 0 ? normalized : null;

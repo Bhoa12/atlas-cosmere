@@ -204,16 +204,23 @@ describe("ExpoSqliteHoidCursorProgressStore", () => {
     expect(database.state.v1?.payload).toBe(sourceBefore);
   });
 
-  it("rejects the complete migration when a legacy position is ambiguous", async () => {
+  it("rejects a legacy chapter beyond the edition's verified numeric prefix", async () => {
     const database = new MemoryDatabase();
     seedLegacy(database, legacySnapshot([{ bookId: "elantris", chapter: 50 }]));
 
     const result = await createStore(database).load();
-    expect(result).toEqual({
-      status: "unavailable",
-      reason: "ambiguous-v1",
-      bookId: "elantris",
-    });
+    expect(result).toEqual({ status: "unavailable", reason: "corrupt-v1" });
+    expect(database.state.v2).toBeNull();
+    expect(database.state.marker).toBeNull();
+    expect(database.state.v1).not.toBeNull();
+  });
+
+  it("rejects numeric progress for an unsegmented collection without writing v2", async () => {
+    const database = new MemoryDatabase();
+    seedLegacy(database, legacySnapshot([{ bookId: "white-sand-1", chapter: 5 }]));
+
+    const result = await createStore(database).load();
+    expect(result).toEqual({ status: "unavailable", reason: "corrupt-v1" });
     expect(database.state.v2).toBeNull();
     expect(database.state.marker).toBeNull();
     expect(database.state.v1).not.toBeNull();

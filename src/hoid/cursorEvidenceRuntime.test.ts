@@ -1,0 +1,241 @@
+import { describe, expect, it, vi } from "vitest";
+import { createHoidEvidenceRuntime, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
+import {
+  createHoidCursorEvidenceRuntime,
+  projectHoidCursorProgressSnapshot,
+} from "./cursorEvidenceRuntime";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import type { HoidKnowledgeEntry } from "./catalog";
+
+const updatedAt = "2026-11-17T00:00:00.000Z";
+
+const knowledge: HoidKnowledgeEntry[] = [
+  {
+    id: "e-sazed",
+    aliases: ["Sazed"],
+    kind: "character",
+    firstSafeAppearance: { bookId: "tfe", chapter: 2 },
+    evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "tfe-chapter-2" },
+    evidenceUnlock: { bookId: "tfe", chapter: 2 },
+    provenance: "verified",
+    summary: "Resumen editorial sintético de prueba sobre Sazed.",
+  },
+  {
+    id: "e-kaladin",
+    aliases: ["Kaladin"],
+    kind: "character",
+    firstSafeAppearance: { bookId: "wor", chapter: 3 },
+    evidenceSource: { bookId: "wor", chapter: 3, locatorId: "wor-chapter-3" },
+    evidenceUnlock: { bookId: "wor", chapter: 3 },
+    provenance: "verified",
+    summary: "Resumen editorial sintético de prueba sobre Kaladin.",
+  },
+];
+
+const review: HoidApprovedClaim["review"] = {
+  status: "approved",
+  origin: "original-editorial",
+  reviewerId: "cursor-runtime-test",
+  reviewedAt: "2026-11-17T00:00:00.000Z",
+};
+
+const claims: HoidApprovedClaim[] = [
+  {
+    id: "claim-sazed",
+    text: "Afirmación editorial sintética sobre Sazed.",
+    intent: "explain",
+    evidenceIds: ["e-sazed"],
+    review,
+  },
+  {
+    id: "claim-cross-book",
+    text: "Relación sintética que requiere las dos evidencias.",
+    intent: "explain",
+    evidenceIds: ["e-sazed", "e-kaladin"],
+    review,
+  },
+];
+
+function cursor(bookId: string, chapter: number) {
+  const result = createHoidReadingCursor(bookId, chapter);
+  if (result.status !== "ready") throw new Error("Cursor de prueba no disponible");
+  return result.cursor;
+}
+
+function snapshot(
+  positions: readonly Record<string, unknown>[],
+  revision = positions.length === 0 ? 0 : 1,
+) {
+  return {
+    schemaVersion: 2,
+    revision,
+    positions,
+    updatedAt: revision === 0 ? null : updatedAt,
+  };
+}
+
+function createFacade(selector = vi.fn(async (_request: HoidClaimSelectionRequest) => ["claim-sazed"])) {
+  const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: { selectClaims: selector } });
+  if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
+  return { facade: createHoidCursorEvidenceRuntime(runtime), selector };
+}
+
+describe("HoidCursorEvidenceRuntime", () => {
+  it("projects only validated edition-bound cursors and explicit completion", () => {
+    const result = projectHoidCursorProgressSnapshot(snapshot([
+      { bookId: "tfe", cursor: cursor("tfe", 2), order: 4 },
+      { bookId: "woa", completed: true, order: 5 },
+    ], 2));
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.revision).toBe(2);
+    expect(result.reading).toEqual([
+      { bookId: "tfe", chapter: 2, order: 4 },
+      { bookId: "woa", completed: true, order: 5 },
+    ]);
+  });
+
+  it("authorizes an explanation only after validating the cursor manifest", async () => {
+    const { facade, selector } = createFacade();
+    const result = await facade.answer({
+      question: "¿Quién es Sazed?",
+      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-sazed"]);
+    expect(result.text).toBe("Afirmación editorial sintética sobre Sazed.");
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires every cross-work cursor before invoking the selector", async () => {
+    const selector = vi.fn(async () => ["claim-cross-book"]);
+    const runtime = createHoidEvidenceRuntime({ knowledge, claims: [claims[1]], selector: { selectClaims: selector } });
+    if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
+    const facade = createHoidCursorEvidenceRuntime(runtime);
+
+    const locked = await facade.answer({
+      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+    });
+    expect(locked.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
+
+    const unlocked = await facade.answer({
+      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      progress: snapshot([
+        { bookId: "tfe", cursor: cursor("tfe", 2) },
+        { bookId: "wor", cursor: cursor("wor", 3) },
+      ], 2),
+    });
+    expect(unlocked.status).toBe("authorized");
+    expect(unlocked.claimIds).toEqual(["claim-cross-book"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an obsolete edition digest before provider invocation", async () => {
+    const selector = vi.fn(async () => ["claim-sazed"]);
+    const { facade } = createFacade(selector);
+    const stale = { ...cursor("tfe", 2), manifestId: "hoid:obsolete-edition" };
+    const result = await facade.answer({
+      question: "¿Quién es Sazed?",
+      progress: snapshot([{ bookId: "tfe", cursor: stale }]),
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects a forged cursor beyond the verified prefix of an ambiguous edition", async () => {
+    const manifest = getHoidReadingManifest("elantris");
+    if (manifest.status !== "ready") throw new Error("Manifiesto de prueba no disponible");
+    const forged = {
+      schemaVersion: 1,
+      manifestId: manifest.manifest.manifestId,
+      bookId: "elantris",
+      unitId: "chapter:048",
+      ordinal: 48,
+      chapterNumber: 48,
+    };
+    const { facade, selector } = createFacade();
+    const result = await facade.answer({
+      question: "¿Quién es Sazed?",
+      progress: snapshot([{ bookId: "elantris", cursor: forged }]),
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed snapshots and does not call the selector", async () => {
+    const selector = vi.fn(async () => ["claim-sazed"]);
+    const { facade } = createFacade(selector);
+    const invalid = snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]);
+    (invalid as Record<string, unknown>).extra = true;
+
+    const result = await facade.answer({
+      question: "¿Quién es Sazed?",
+      progress: invalid,
+    });
+    expect(result.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects accessor-bearing requests without executing the accessor", async () => {
+    const { facade, selector } = createFacade();
+    let invoked = false;
+    const input = {
+      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+    };
+    Object.defineProperty(input, "question", {
+      enumerable: true,
+      get: () => {
+        invoked = true;
+        return "¿Quién es Sazed?";
+      },
+    });
+
+    const result = await facade.answer(input);
+    expect(result.status).toBe("blocked");
+    expect(invoked).toBe(false);
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("keeps recommendations metadata-only and rejects invalid cursor progress", () => {
+    const { facade } = createFacade();
+    const recommendations = facade.recommend(snapshot([
+      { bookId: "tfe", cursor: cursor("tfe", 1) },
+    ]), 3);
+
+    expect(recommendations.status).toBe("ready");
+    if (recommendations.status === "ready") {
+      expect(recommendations.items.some(item => item.sourceId === "tfe")).toBe(false);
+      expect(recommendations.items.every(item => item.reason === "unread-source")).toBe(true);
+    }
+
+    const invalid = facade.recommend(null);
+    expect(invalid.status).toBe("abstain");
+    if (invalid.status === "abstain") expect(invalid.reason).toBe("invalid-progress");
+  });
+
+  it("rejects invalid recommendation limits", () => {
+    const { facade } = createFacade();
+    const progress = snapshot([{ bookId: "tfe", cursor: cursor("tfe", 1) }]);
+    expect(facade.recommend(progress, -1).status).toBe("abstain");
+    expect(facade.recommend(progress, 1.5).status).toBe("abstain");
+    expect(facade.recommend(progress, 21).status).toBe("abstain");
+  });
+
+  it("rejects unknown request fields rather than forwarding hidden context", async () => {
+    const { facade, selector } = createFacade();
+    const result = await facade.answer({
+      question: "¿Quién es Sazed?",
+      progress: snapshot([{ bookId: "tfe", cursor: cursor("tfe", 2) }]),
+      knowledgeContext: [{ id: "injected", text: "spoiler" }],
+    });
+    expect(result.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
+  });
+});

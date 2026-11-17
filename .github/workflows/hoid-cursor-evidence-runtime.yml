@@ -1,0 +1,55 @@
+name: Hoid cursor evidence runtime
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/readingValidation.ts"
+      - "src/hoid/recommendations.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/CURSOR_EVIDENCE_RUNTIME.md"
+      - ".github/workflows/hoid-cursor-evidence-runtime.yml"
+  pull_request:
+    paths:
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/readingValidation.ts"
+      - "src/hoid/recommendations.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/CURSOR_EVIDENCE_RUNTIME.md"
+      - ".github/workflows/hoid-cursor-evidence-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cursor-evidence-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run cursor and evidence authorization tests
+        run: npx vitest run src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/readingManifest.test.ts
+      - name: Type-check cursor evidence boundary
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/cursorEvidenceRuntime.ts src/hoid/cursorProgressLedger.ts src/hoid/evidenceRuntime.ts src/hoid/readingManifest.ts src/hoid/editionProgressValidation.ts src/hoid/editionStructure.ts src/hoid/readingValidation.ts src/hoid/recommendations.ts src/hoid/catalog.ts src/hoid/bibliography.ts src/hoid/types.ts

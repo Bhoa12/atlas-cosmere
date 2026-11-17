@@ -89,6 +89,25 @@ describe("Hoid editorial draft staging", () => {
     });
   });
 
+  it("requires first appearance to be in the same work as this v1 draft", () => {
+    expect(validateHoidEditorialDraft(cloneDraft({
+      firstSafeAppearance: { bookId: "wor", chapter: 1 },
+    }))).toEqual({
+      status: "invalid",
+      reason: "invalid-appearance",
+    });
+  });
+
+  it("rejects a first appearance later than the summary unlock threshold", () => {
+    expect(validateHoidEditorialDraft(cloneDraft({
+      firstSafeAppearance: { bookId: "twok", chapter: 3 },
+    }))).toEqual({
+      status: "invalid",
+      reason: "invalid-appearance",
+    });
+  });
+
+
   it("rejects an unlock threshold that does not exist in the manifest", () => {
     expect(validateHoidEditorialDraft(cloneDraft({
       evidenceUnlock: { bookId: "twok", chapter: 76 },

@@ -2,7 +2,7 @@
 
 ## Alcance de la inspección
 
-Se inspeccionaron únicamente los metadatos EPUB necesarios para identificar el paquete OPF, el documento de navegación y sus entradas estructurales. No se extrajo texto de capítulos ni se incorporaron títulos de capítulos al repositorio.
+Run 101 inspeccionó los metadatos OPF y los documentos de navegación de tres EPUBs únicos de Roshar disponibles en la Library: el recopilatorio de las cinco novelas, Danzante del Filo y Esquirla del amanecer. Los recuentos históricos de `cosmere.epub` se conservan, pero ese archivo no estaba presente en la Library de esta ejecución y no se volvió a inspeccionar. No se extrajo texto de capítulos ni se incorporaron títulos de capítulos al repositorio.
 
 Cada `navigationSha256` de `src/hoid/editionStructure.ts` es la huella SHA-256 del documento de navegación de esa edición. Sirve para detectar cambios de edición o de índice; no es una huella del texto narrativo.
 
@@ -70,4 +70,4 @@ La omisión significa que Hoid no puede usar esa posición parcial para desbloqu
 4. Arcanum ilimitado requiere modelar obras internas como unidades de lectura independientes.
 5. El progreso de Atlas aún usa enteros por libro. La migración a cursores de unidad debe ser explícita y compatible con datos antiguos.
 
-La estructura se usa solo para validar posiciones de lectura. No contiene pasajes, resúmenes, títulos de capítulos ni afirmaciones narrativas.
+La estructura se usa para validar posiciones de lectura. `verifiedChapterLocators.ts` añade hrefs relativos del TOC, namespaced por edición y digest, solo para las tres fuentes Roshar inspeccionadas. No contiene pasajes, resúmenes, títulos de capítulos ni afirmaciones narrativas. `cosmere.epub` no recibe localizadores hasta que el archivo esté disponible para inspeccionar su navegación.

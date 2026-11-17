@@ -152,10 +152,25 @@ describe("edition-bound reading manifests", () => {
     });
   });
 
-  it("stores no chapter titles, locators or narrative text in manifests", () => {
-    const result = getHoidReadingManifest("tfe");
+  it("attaches exact navigation locators only for inspected source editions", () => {
+    const inspected = getHoidReadingManifest("twok");
+    expect(inspected.status).toBe("ready");
+    if (inspected.status !== "ready") return;
+    expect(inspected.manifest.units[0].locatorId).toBe(
+      "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-012.xhtml",
+    );
+
+    const unavailableSource = getHoidReadingManifest("tfe");
+    expect(unavailableSource.status).toBe("ready");
+    if (unavailableSource.status !== "ready") return;
+    expect(unavailableSource.manifest.units[0].locatorId).toBeUndefined();
+  });
+
+  it("stores no chapter titles or narrative text in manifests", () => {
+    const result = getHoidReadingManifest("twok");
     expect(result.status).toBe("ready");
     const serialized = JSON.stringify(result);
-    expect(serialized).not.toMatch(/\.xhtml|\.ncx|Prólogo|Epílogo|Capítulo\s+\d/i);
+    expect(serialized).not.toMatch(/Prólogo|Epílogo|Capítulo\\s+\\d/i);
+    expect(serialized).not.toContain("Bendito por la Tormenta");
   });
 });

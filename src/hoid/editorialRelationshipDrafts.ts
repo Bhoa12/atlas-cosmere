@@ -724,6 +724,24 @@ const RAW_RELATIONSHIP_DRAFTS: readonly unknown[] = Object.freeze([
   }),
 ]);
 
+export function getHoidEditorialRelationshipDraftDiagnostics(): readonly Readonly<{
+  index: number;
+  id: string | null;
+  status: "valid" | "invalid";
+  reason?: string;
+}>[] {
+  return Object.freeze(RAW_RELATIONSHIP_DRAFTS.map((item, index) => {
+    const raw = canonicalRecord(item, CORE_KEYS);
+    const result = createHoidEditorialRelationshipDraft(item);
+    return Object.freeze({
+      index,
+      id: typeof raw?.id === "string" ? raw.id : null,
+      status: result.status,
+      ...(result.status === "invalid" ? { reason: result.reason } : {}),
+    });
+  }));
+}
+
 const VALIDATED_RELATIONSHIP_BATCH = validateHoidEditorialRelationshipDraftBatch(
   RAW_RELATIONSHIP_DRAFTS,
 );

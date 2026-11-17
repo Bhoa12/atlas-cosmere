@@ -511,4 +511,53 @@ describe("HoidConversationGateway", () => {
     expect(JSON.stringify(result)).not.toContain("synthetic resolver failure");
   });
 
+  it("forwards all unambiguous matched entity IDs to the strict runtime", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const resolver = (() => ({
+      status: "ready",
+      resolution: "matched",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [{ id: "e-alpha" }, { id: "e-beta" }],
+      truncated: false,
+    })) as unknown as NonNullable<HoidConversationGatewayConfig["resolveEntities"]>;
+    const { gateway, runtime } = setup(current, resolver);
+
+    const result = await gateway.answer({
+      question: "Compara Personaje Alfa con Personaje Beta",
+      progress: current,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "Compara Personaje Alfa con Personaje Beta",
+      progress: current,
+      intent: "explain",
+      entityIds: ["e-alpha", "e-beta"],
+    });
+  });
+
+  it("rejects malformed matched entity IDs before invoking the strict runtime", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const resolver = (() => ({
+      status: "ready",
+      resolution: "matched",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [{ id: "e-alpha" }, { id: "e-alpha" }],
+      truncated: false,
+    })) as unknown as NonNullable<HoidConversationGatewayConfig["resolveEntities"]>;
+    const { gateway, runtime } = setup(current, resolver);
+
+    expect(await gateway.answer({ question: "Pregunta", progress: current })).toEqual({
+      status: "unavailable",
+      reason: "entity-unavailable",
+    });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
 });

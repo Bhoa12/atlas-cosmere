@@ -3,6 +3,8 @@ import { getHoidEditorialRegistryStatus } from "./editorialRegistry";
 import {
   createHoidEditorialClaimDraft,
   evaluateHoidEditorialClaimDrafts,
+  getHoidEditorialClaimDraftStatus,
+  HOID_EDITORIAL_CLAIM_DRAFTS,
   validateHoidEditorialClaimDraft,
   validateHoidEditorialClaimDraftBatch,
 } from "./editorialClaimDrafts";
@@ -306,5 +308,37 @@ describe("Hoid atomic editorial claim drafts", () => {
       statement: "Afirmación sintética con un array de evidencias disperso.",
       evidence: sparse,
     }).status).toBe("invalid");
+  });
+
+  it("stages the first source-backed Cosmere atomic claim without promoting it", () => {
+    expect(getHoidEditorialClaimDraftStatus()).toBe("pending-review");
+    expect(HOID_EDITORIAL_CLAIM_DRAFTS).toHaveLength(1);
+    const value = HOID_EDITORIAL_CLAIM_DRAFTS[0];
+    expect(value.id).toBe("tfe.vin.ability.emotional-allomancy");
+    expect(value.subjectId).toBe("tfe.vin");
+    expect(value.evidence).toHaveLength(1);
+    expect(value.evidence[0].source.bookId).toBe("tfe");
+    expect(value.evidence[0].source.chapter).toBe(2);
+    expect(value.evidence[0].source.locatorId).toBe("nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/002.xhtml");
+    expect(value.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 3 });
+    expect(value.review.status).toBe("pending-review");
+    expect(validateHoidEditorialClaimDraftBatch(HOID_EDITORIAL_CLAIM_DRAFTS).status).toBe("valid");
+    expect(getHoidEditorialRegistryStatus()).toBe("empty");
+  });
+
+  it("does not make the Cosmere claim eligible while chapter three is open", () => {
+    const value = HOID_EDITORIAL_CLAIM_DRAFTS[0];
+    const before = evaluateHoidEditorialClaimDrafts([value], progress([
+      { bookId: "tfe", chapter: 3 },
+    ]));
+    const reached = evaluateHoidEditorialClaimDrafts([value], progress([
+      { bookId: "tfe", chapter: 4 },
+    ]));
+
+    expect(before.status).toBe("ready");
+    if (before.status === "ready") expect(before.evaluations[0].status).toBe("withheld");
+    expect(reached.status).toBe("ready");
+    if (reached.status === "ready") expect(reached.evaluations[0].status).toBe("eligible-for-review");
+    expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 });

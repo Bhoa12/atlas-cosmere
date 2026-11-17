@@ -18,6 +18,8 @@ export type HoidApprovedClaim = Readonly<{
   text: string;
   intent: HoidClaimIntent;
   evidenceIds: readonly string[];
+  /** Optional reviewed entity scope; every requested entity must be represented. */
+  entityIds?: readonly string[];
   review: Readonly<{
     status: "approved";
     origin: "original-editorial";
@@ -78,6 +80,8 @@ const MAX_CLAIM_ID_LENGTH = 128;
 const MAX_CLAIM_TEXT_LENGTH = 4_000;
 const MAX_EVIDENCE_IDS_PER_CLAIM = 16;
 const MAX_EVIDENCE_ID_LENGTH = 128;
+const MAX_ENTITY_IDS = 8;
+const ENTITY_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const MAX_CANDIDATES = 32;
 const MAX_SELECTED_CLAIMS = 12;
 const DEFAULT_SELECTION_TIMEOUT_MS = 10_000;
@@ -175,6 +179,19 @@ function canonicalClaims(
       canonicalEvidence.push(evidenceId);
     }
 
+    const entityIdsDescriptor = Object.getOwnPropertyDescriptor(raw, "entityIds");
+    if (entityIdsDescriptor && (
+      !Object.prototype.hasOwnProperty.call(entityIdsDescriptor, "value") ||
+      entityIdsDescriptor.enumerable !== true
+    )) return null;
+    const entityIds = entityIdsDescriptor
+      ? canonicalEntityIds(entityIdsDescriptor.value, knowledgeIds)
+      : undefined;
+    if (
+      entityIdsDescriptor &&
+      (!entityIds || !entityIds.every(entityId => canonicalEvidence.includes(entityId)))
+    ) return null;
+
     if (review.status !== "approved" || review.origin !== "original-editorial") return null;
     if (typeof review.reviewerId !== "string" || !review.reviewerId.trim() || review.reviewerId.length > 128) return null;
     if (typeof review.reviewedAt !== "string" || !Number.isFinite(Date.parse(review.reviewedAt))) return null;
@@ -185,6 +202,7 @@ function canonicalClaims(
       text,
       intent,
       evidenceIds: Object.freeze(canonicalEvidence),
+      ...(entityIds ? { entityIds } : {}),
       review: Object.freeze({
         status: "approved",
         origin: "original-editorial",
@@ -195,6 +213,48 @@ function canonicalClaims(
   }
 
   return Object.freeze(claims);
+}
+
+function canonicalEntityIds(
+  value: unknown,
+  knownIds: ReadonlySet<string>,
+): readonly string[] | null {
+  try {
+    if (!Array.isArray(value) || value.length < 1 || value.length > MAX_ENTITY_IDS) return null;
+    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true ||
+        typeof descriptor.value !== "string"
+      ) return null;
+      const id = descriptor.value;
+      if (
+        id !== id.trim() ||
+        !ENTITY_ID_PATTERN.test(id) ||
+        seen.has(id) ||
+        !knownIds.has(id)
+      ) return null;
+      seen.add(id);
+      ids.push(id);
+    }
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (typeof key !== "string" || !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length) {
+        return null;
+      }
+    }
+    return Object.freeze(ids);
+  } catch {
+    return null;
+  }
 }
 
 function blocked(
@@ -274,6 +334,25 @@ export class HoidEvidenceRuntime {
       return blocked("invalid-input", "La pregunta, la intención o el progreso no pueden validarse. Hoid no ampliará el contexto.");
     }
 
+    let entityIds: readonly string[] | undefined;
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(input, "entityIds");
+      if (descriptor) {
+        if (
+          !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+          descriptor.enumerable !== true
+        ) return blocked("invalid-input", "El ámbito de entidades no puede validarse. Hoid no ampliará el contexto.");
+        const knownIds = new Set(this.knowledge.map(entry => entry.id));
+        const canonicalIds = canonicalEntityIds(descriptor.value, knownIds);
+        if (!canonicalIds) {
+          return blocked("invalid-input", "El ámbito de entidades no puede validarse. Hoid no ampliará el contexto.");
+        }
+        entityIds = canonicalIds;
+      }
+    } catch {
+      return blocked("invalid-input", "El ámbito de entidades no puede validarse. Hoid no ampliará el contexto.");
+    }
+
     const request: HoidAnswerRequest = { question, reading };
     const explicitGuard = guardQuestion(request);
     if (explicitGuard) return blocked("reading-position", explicitGuard.text);
@@ -289,7 +368,11 @@ export class HoidEvidenceRuntime {
       .filter(entry => isEvidenceUnlocked(entry, reading));
     const authorizedEvidenceIds = new Set(authorizedContext.map(entry => entry.id));
     const candidates = this.claims
-      .filter(claim => claim.intent === intent && claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)))
+      .filter(claim =>
+        claim.intent === intent &&
+        claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)) &&
+        (entityIds === undefined || entityIds.every(id => claim.entityIds?.includes(id) === true))
+      )
       .slice(0, MAX_CANDIDATES);
 
     if (candidates.length === 0) {

@@ -53,6 +53,7 @@ const claims: HoidApprovedClaim[] = [
     text: "Afirmación editorial sintética sobre Personaje Alfa.",
     intent: "explain",
     evidenceIds: ["e-alpha"],
+    entityIds: ["e-alpha"],
     review,
   },
   {
@@ -60,6 +61,7 @@ const claims: HoidApprovedClaim[] = [
     text: "Relación sintética que requiere las dos evidencias.",
     intent: "explain",
     evidenceIds: ["e-alpha", "e-beta"],
+    entityIds: ["e-alpha", "e-beta"],
     review,
   },
 ];
@@ -276,4 +278,29 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(result.status).toBe("blocked");
     expect(selector).not.toHaveBeenCalled();
   });
+
+  it("forwards the validated entity scope through the cursor-native facade", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-cross-book"]);
+      return ["claim-cross-book"];
+    });
+    const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: { selectClaims: selector } });
+    if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
+    const facade = createHoidCursorEvidenceRuntime(runtime);
+    const progress = snapshot([
+      { bookId: "twok", cursor: cursor("twok", 3), order: 1 },
+      { bookId: "wor", cursor: cursor("wor", 4), order: 2 },
+    ], 2);
+
+    const result = await facade.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      progress,
+      entityIds: ["e-alpha", "e-beta"],
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-cross-book"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
 });

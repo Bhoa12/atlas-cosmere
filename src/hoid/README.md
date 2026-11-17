@@ -276,3 +276,22 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - Three additional original chapter-two summaries are staged for `twok`, `edgedancer` and `dawnshard`. Their XHTML digests are registered independently and their unlock threshold is chapter three. All remain pending review and are not production knowledge.
 - The chapter-two ingestion record is documented in `docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md`. No EPUB or protected passage is committed.
 - `cosmere.epub` was not accessible in the Library during this run; no new Cosmere chapter bodies were inspected.
+
+## Run 115 — entity-scoped claim retrieval
+
+- Natural-language mention preflight now permits several distinct, individually authorized aliases in one question; a shared spelling, blocked alias or truncated match set remains ambiguous/withheld.
+- The gateway binds the resolved entity IDs to the same v2 progress revision and fingerprint as the request, then forwards only those IDs to the cursor evidence facade.
+- HoidCursorEvidenceRuntime preserves the entity scope. HoidEvidenceRuntime validates IDs against its local knowledge catalog and filters approved claims before provider selection.
+- Entity-scoped claims must explicitly list every resolved entity ID. Legacy unscoped claims are not eligible for entity-scoped questions. Every claim still requires all evidence IDs to be authorized.
+- The selector receives only the already-filtered candidate set; it cannot add claims or author response text.
+- Production registries remain empty. Tests use synthetic entities and claims only. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md.
+
+## Run 115 — entity-scoped retrieval and first Cosmere narrative drafts
+
+- Entity mention preflight may resolve several distinct, individually authorized aliases in one question. Shared spellings, locked aliases and truncated results remain withheld.
+- The gateway binds canonical entity IDs to the request's progress revision/fingerprint. The cursor evidence facade preserves the scope; the evidence runtime validates it against the knowledge catalog and filters approved claims before provider selection.
+- Entity-scoped claims must list every resolved entity ID, and each ID must also occur in the claim's evidence ID set. Legacy unscoped claims cannot answer entity-scoped questions. All evidence remains AND-authorized.
+- The accessible private cosmere.epub was materialized locally and its already-registered navigation digest was rechecked. The XHTML bodies for El Imperio Final chapters 1 and 2 were individually inspected; only their SHA-256 document digests and original summaries were added to staging.
+- Two new character drafts (Vin and Kelsier) are pending editorial review. They are not production knowledge and do not populate the approved entity or alias registries.
+- One atomic claim draft is staged for the chapter-2 Vin material, with its own SHA-256 integrity and chapter-3 completion threshold. It remains pending review and is not available to the answer runtime.
+- No EPUB bytes or source passages were committed. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md and docs/hoid/COSMERE_TFE_CHAPTERS_1_2_INGESTION.md.

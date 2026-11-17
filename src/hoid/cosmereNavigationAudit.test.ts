@@ -68,10 +68,11 @@ describe("cosmere.epub navigation audit", () => {
     }
   });
 
-  it("does not confuse TOC locators with inspected chapter-body evidence", () => {
+  it("keeps TOC locators distinct from sparse chapter-body evidence", () => {
     for (const [bookId] of EXPECTED_COSMERE_LOCATORS) {
-      expect(getVerifiedChapterDocumentCount(bookId)).toBe(0);
+      expect(getVerifiedChapterDocumentCount(bookId)).toBe(bookId === "tfe" ? 2 : 0);
     }
+    expect(getVerifiedChapterDocumentCount("tfe")).toBe(2);
   });
 
   it("preserves the existing Roshar locator inventory", () => {

@@ -686,4 +686,53 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
       expect(result.matches).toHaveLength(0);
     }
   });
+
+  it("resolves several distinct authorized mentions without confusing them with alias collisions", () => {
+    const alpha = knowledge("synthetic.entity-alpha", ["Synthetic Alpha"], "twok");
+    const beta = knowledge("synthetic.entity-beta", ["Synthetic Beta"], "edgedancer");
+    const reading = progress([
+      { bookId: "twok", chapter: 2 },
+      { bookId: "edgedancer", chapter: 2 },
+    ]);
+    const entries = [alpha, beta];
+    const result = resolveMentionsWithAliasEvidence(
+      entries,
+      defaultAliasEvidence(entries),
+      reading,
+      "Compara Synthetic Alpha con Synthetic Beta",
+    );
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.resolution).toBe("matched");
+    expect(result.matches.map(item => item.id)).toEqual([
+      "synthetic.entity-alpha",
+      "synthetic.entity-beta",
+    ]);
+    expect(result.truncated).toBe(false);
+  });
+
+  it("keeps a shared spelling ambiguous even when several distinct mentions are supported", () => {
+    const alpha = knowledge("synthetic.entity-alpha", ["Shared Synthetic Alias"], "twok");
+    const beta = knowledge("synthetic.entity-beta", ["Shared Synthetic Alias"], "edgedancer");
+    const entries = [alpha, beta];
+    const result = resolveMentionsWithAliasEvidence(
+      entries,
+      defaultAliasEvidence(entries),
+      progress([
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
+      ]),
+      "Shared Synthetic Alias",
+    );
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.resolution).toBe("ambiguous");
+    expect(result.matches.map(item => item.id)).toEqual([
+      "synthetic.entity-alpha",
+      "synthetic.entity-beta",
+    ]);
+  });
+
 });

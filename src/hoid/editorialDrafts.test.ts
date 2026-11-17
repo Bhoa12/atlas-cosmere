@@ -29,6 +29,8 @@ describe("Hoid editorial draft staging", () => {
       "bba8b74d05b28d3167bc0c0e82a8c66a53d2174b9a00249764158db5d7fc2abc",
       "71a11f952189f079a9acfdeaf46b35f4a973c499699dbcc8f943c63a5bb000f6",
       "9fa0072f28c0e8e98087e78c2663f664889cd4bcc4dca0eee963f081370f82bd",
+      "fe550c8880d21a183cdd690039f6ef9b828837282558c75b0924f2311fdee36a",
+      "2832f63706c3dcead79763a97373e9f218d437b0185553f0d9b784ad849f98f2",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -49,13 +51,13 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(6);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(8);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one and chapter-two drafts for each accessible Roshar EPUB", () => {
+  it("stages independently sourced chapter-one and chapter-two drafts for the accessible Roshar and Cosmere EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -63,6 +65,8 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-002.kaladin-slave-caravan",
       "edgedancer.chapter-002.lift-yeddaw-arrival",
       "dawnshard.chapter-002.rysn-navani-akinah-mission",
+      "tfe.chapter-001.vin",
+      "tfe.chapter-002.kelsier",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2]).toContain(draft.evidenceSource.chapter);
@@ -276,7 +280,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps all chapter-two summaries unavailable until chapter three is completed", () => {
     const chapterTwoDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 2);
-    expect(chapterTwoDrafts).toHaveLength(3);
+    expect(chapterTwoDrafts).toHaveLength(4);
     for (const draft of chapterTwoDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 3 });
       expect(draft.review.status).toBe("pending-review");

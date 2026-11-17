@@ -652,6 +652,7 @@ function resolveEntityMentions(
     aliasRecords.map(record => [record.entityId + "\\n" + record.normalizedAlias, record]),
   );
   const matchesByEntity = new Map<string, HoidResolvedEntity>();
+  const aliasOwners = new Map<string, Set<string>>();
   let blockedMention = false;
 
   // Scan every catalogued alias, not only approved alias records. If a known
@@ -689,6 +690,10 @@ function resolveEntityMentions(
           source: item.source,
         }))),
       });
+      const owners = aliasOwners.get(normalizedAlias) ?? new Set<string>();
+      owners.add(candidate.id);
+      aliasOwners.set(normalizedAlias, owners);
+
       const existing = matchesByEntity.get(candidate.id);
       if (!existing || candidate.matchedAlias < existing.matchedAlias) {
         matchesByEntity.set(candidate.id, candidate);
@@ -702,13 +707,18 @@ function resolveEntityMentions(
 
   const matches = [...matchesByEntity.values()]
     .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
-  const truncated = matches.length > MAX_RESULTS;
-  const visibleMatches = Object.freeze(matches.slice(0, MAX_RESULTS));
+  const maxEntityScope = 8;
+  const truncated = matches.length > maxEntityScope;
+  const visibleMatches = Object.freeze(matches.slice(0, maxEntityScope));
+  // Multiple distinct, unambiguous aliases may identify several entities in
+  // one question. Ambiguity is reserved for one spelling shared by multiple
+  // entities, or for a truncated result set.
+  const aliasCollision = [...aliasOwners.values()].some(owners => owners.size > 1);
   const resolution = visibleMatches.length === 0
     ? "not-found"
-    : visibleMatches.length === 1 && !truncated
-      ? "matched"
-      : "ambiguous";
+    : aliasCollision || truncated
+      ? "ambiguous"
+      : "matched";
 
   return Object.freeze({
     status: "ready",

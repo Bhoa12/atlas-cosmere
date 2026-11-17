@@ -26,6 +26,27 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       1,
     )).toBe("eac1f947b3303414b0b8a69ff19eabcd396c1fdd32caa1c1349c931eb8d8d2ae");
+
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      2,
+    )).toBe("5f76bd1de8106ebcba964f730368426fc22df1c2a7862e4f01dcf57ec0f63877");
+
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      2,
+    )).toBe("397c116112ca87b77cdd2c324156349594f47660d332a104fcba7128bca8075");
+
+    expect(getVerifiedChapterDocumentSha256(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      2,
+    )).toBe("511dd868f3feb65f3cc28566bbac167762ad70dddccffcae863be31e64f144dc");
   });
 
   it("rejects a digest lookup from another edition or navigation document", () => {
@@ -42,9 +63,11 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      2,
+      3,
     )).toBeNull();
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(1);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(2);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(2);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(2);
     expect(getVerifiedChapterDocumentCount("unknown-work")).toBe(0);
   });
 

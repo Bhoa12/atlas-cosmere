@@ -10,9 +10,9 @@ Only edition metadata, relative locators, individual document SHA-256 digests an
 
 | Work ID | EPUB | Relative XHTML path | Navigation SHA-256 | Chapter SHA-256 |
 |---|---|---|---|---|
-| \`twok\` | El Archivo de las Tormentas | \`OEBPS/Text/L1-015.xhtml\` | \`08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025\` | \`aad893dde20e24a5444100d260f4d466f6ef553a13d676457d6f42015d774a0e\` |
-| \`edgedancer\` | Danzante del Filo | \`OEBPS/Text/003.xhtml\` | \`5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517\` | \`2a82686dd7fa7908d4b175f9b03f165309e08ccbb2294c6bcd32443b6d0d3905\` |
-| \`dawnshard\` | Esquirla del amanecer | \`OEBPS/Text/3.xhtml\` | \`8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075\` | \`709bca2ea215db4e90fc654b4b503a7c71d96bb40a508d5347ec83006b8cc286\` |
+| `twok` | El Archivo de las Tormentas | `OEBPS/Text/L1-015.xhtml` | `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025` | `aad893dde20e24a5444100d260f4d466f6ef553a13d676457d6f42015d774a0e` |
+| `edgedancer` | Danzante del Filo | `OEBPS/Text/003.xhtml` | `5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517` | `2a82686dd7fa7908d4b175f9b03f165309e08ccbb2294c6bcd32443b6d0d3905` |
+| `dawnshard` | Esquirla del amanecer | `OEBPS/Text/3.xhtml` | `8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075` | `709bca2ea215db4e90fc654b4b503a7c71d96bb40a508d5347ec83006b8cc286` |
 
 The navigation identities match the edition allowlist. The chapter document digests were calculated over the exact bytes extracted from each EPUB ZIP entry.
 
@@ -20,9 +20,9 @@ The navigation identities match the edition allowlist. The chapter document dige
 
 Three original Spanish summaries were added:
 
-- \`twok.chapter-003.shallan-kharbranth\`
-- \`edgedancer.chapter-003.hauka-grain-cart\`
-- \`dawnshard.chapter-003.lopen-talik-delegation\`
+- `twok.chapter-003.shallan-kharbranth`
+- `edgedancer.chapter-003.hauka-grain-cart`
+- `dawnshard.chapter-003.lopen-talik-delegation`
 
 Each summary has its own UTF-8 SHA-256 digest, exact edition-bound chapter locator, source-document digest and pending-review state.
 
@@ -48,11 +48,11 @@ These are staging identifiers, not approved entity records. No aliases, first-ap
 - Production editorial registry: empty.
 - Production entity/alias registry: unchanged.
 
-The relationship packet receipt can record an editorial decision, but an approval returns \`approved-awaiting-source-promotion\` and never promotes knowledge automatically.
+The relationship packet receipt can record an editorial decision, but an approval returns `approved-awaiting-source-promotion` and never promotes knowledge automatically.
 
 ## Source availability
 
-The three Roshar EPUBs were accessible in the Library for this run. The Library's EPUB-filtered listing did not contain \`cosmere.epub\`; therefore no new Cosmere chapter body was inspected. Existing Cosmere navigation metadata and the two previously verified El Imperio Final chapter documents remain unchanged.
+The three Roshar EPUBs were accessible in the Library for this run. The Library's EPUB-filtered listing did not contain `cosmere.epub`; therefore no new Cosmere chapter body was inspected. Existing Cosmere navigation metadata and the two previously verified El Imperio Final chapter documents remain unchanged.
 
 ## Copyright and integrity
 

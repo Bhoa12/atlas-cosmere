@@ -6,25 +6,35 @@ The production evidence runtime may expose only original editorial claims that h
 
 This run introduces the first source-backed draft from the accessible EPUB edition of **El camino de los reyes**. It is a draft, not approved production knowledge.
 
-## Source inspected
+## Sources inspected
 
-- Library asset: `El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub`
-- Bibliography work ID: `twok`
-- Edition ID: `roshar-omnibus-v1`
-- Navigation document: `OEBPS/Text/nav.xhtml`
-- Navigation SHA-256: `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025`
-- Chapter-one navigation href: `OEBPS/Text/L1-012.xhtml`
-- Chapter-one document SHA-256: `0853a9469afe233d415645208f04bafb7f5dd5d603af9706c8924bcf14d27a70`
+Three unique EPUB assets were available and inspected at chapter-one scope:
 
-Only metadata, relative locators and SHA-256 digests are committed. The EPUB, chapter XHTML and source passages are not copied into the repository.
+| Work | EPUB asset | Edition | Chapter locator | Chapter-document SHA-256 |
+|---|---|---|---|---|
+| `twok` — El camino de los reyes | `El_Archivo_de_las_Tormentas_15_Brandon_Sanderson.epub` | `roshar-omnibus-v1` | `OEBPS/Text/L1-012.xhtml` | `0853a9469afe233d415645208f04bafb7f5dd5d603af9706c8924bcf14d27a70` |
+| `edgedancer` — Danzante del Filo | `4 Danzante del Filo Brandon Sanderson.epub` | `edgedancer-epub-v1` | `OEBPS/Text/001.xhtml` | `8a85e1ccb126c5915f3948351266030b0966abb822403ddd0415791c671ce7dc` |
+| `dawnshard` — Esquirla del amanecer | `6 Esquirla del amanecer Brandon Sanderson.epub` | `dawnshard-epub-v1` | `OEBPS/Text/1.xhtml` | `eac1f947b3303414b0b8a69ff19eabcd396c1fdd32caa1c1349c931eb8d8d2ae` |
 
-## First draft
+The navigation documents are EPUB 3 XHTML for the omnibus and NCX for the two standalone novellas. Their SHA-256 values match the edition manifests already stored in `verifiedChapterLocators.ts`:
 
-`src/hoid/editorialDrafts.ts` contains one original Spanish summary for the chapter-one battle sequence, identified as `twok.chapter-001.cenn-battle`.
+- `roshar-omnibus-v1`: `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025`
+- `edgedancer-epub-v1`: `5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517`
+- `dawnshard-epub-v1`: `8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075`
 
-Its provenance points to chapter 1, but the full summary unlocks at chapter 2. This matches the reader-boundary policy: when chapter 1 is open, chapter 1 is not yet considered completed.
+Only metadata, relative locators and SHA-256 digests are committed. The EPUBs, chapter XHTML and source passages are not copied into the repository.
 
-The summary is original editorial prose, not a transcription or a stored source excerpt. It is marked `pending-review`.
+## First editorial batch
+
+`src/hoid/editorialDrafts.ts` contains three original Spanish chapter-one summaries:
+
+- `twok.chapter-001.cenn-battle` — the opening battle as seen by a young recruit;
+- `edgedancer.chapter-001.lift-departure` — Lift's decision to leave the court and continue on her own path;
+- `dawnshard.chapter-001.akinah-expedition` — Rysn's work, concern for Chiri-Chiri and the information that leads her to consider an expedition.
+
+Each summary cites chapter 1 but unlocks at chapter 2. This matches the reader-boundary policy: while chapter 1 is open, chapter 1 is not yet considered completed.
+
+The summaries are original editorial prose, not transcriptions or stored source excerpts. All three are marked `pending-review`.
 
 ## Review and promotion rules
 
@@ -54,7 +64,7 @@ The tests assert that the pending summary is not returned by the production answ
 
 ## Current source coverage and limitations
 
-The three unique Roshar EPUBs are available in the Library and their navigation metadata is already recorded in `verifiedChapterLocators.ts`. This run inspected chapter 1 of the omnibus edition only.
+The three unique Roshar EPUBs are available in the Library and their navigation metadata is recorded in `verifiedChapterLocators.ts`. This run inspected chapter 1 of the omnibus and both standalone novellas only; it does not claim coverage of later chapters or of all five main Roshar novels.
 
 The private `cosmere.epub` was not present in the current Library listing. Its bibliography entries and previously recorded structural metadata remain catalogue information; no new passage-level claim is created for those works in this run.
 

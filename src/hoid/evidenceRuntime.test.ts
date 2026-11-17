@@ -5,15 +5,24 @@ import {
   type HoidClaimSelectionRequest,
 } from "./evidenceRuntime";
 import type { HoidKnowledgeEntry } from "./catalog";
+import { getHoidReadingManifest } from "./readingManifest";
+
+function locator(bookId: string, chapter: number): string {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") throw new Error("Manifest de prueba no disponible");
+  const unit = result.manifest.units.find(candidate => candidate.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Localizador de prueba no disponible");
+  return unit.locatorId;
+}
 
 const knowledge: HoidKnowledgeEntry[] = [
   {
     id: "e-sazed",
     aliases: ["Sazed"],
     kind: "character",
-    firstSafeAppearance: { bookId: "tfe", chapter: 2 },
-    evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "tfe-chapter-2" },
-    evidenceUnlock: { bookId: "tfe", chapter: 2 },
+    firstSafeAppearance: { bookId: "twok", chapter: 2 },
+    evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
+    evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Sazed.",
   },
@@ -22,7 +31,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     aliases: ["Kaladin"],
     kind: "character",
     firstSafeAppearance: { bookId: "wor", chapter: 3 },
-    evidenceSource: { bookId: "wor", chapter: 3, locatorId: "wor-chapter-3" },
+    evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
     evidenceUnlock: { bookId: "wor", chapter: 3 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Kaladin.",
@@ -31,9 +40,9 @@ const knowledge: HoidKnowledgeEntry[] = [
     id: "e-limited",
     aliases: ["Concepto limitado"],
     kind: "concept",
-    firstSafeAppearance: { bookId: "tfe", chapter: 1 },
-    evidenceSource: { bookId: "tfe", chapter: 1, locatorId: "tfe-chapter-1" },
-    evidenceUnlock: { bookId: "tfe", chapter: 1 },
+    firstSafeAppearance: { bookId: "twok", chapter: 1 },
+    evidenceSource: { bookId: "twok", chapter: 1, locatorId: locator("twok", 1) },
+    evidenceUnlock: { bookId: "twok", chapter: 1 },
     provenance: "limited",
     summary: "Resumen que todavía no puede utilizarse como evidencia.",
   },
@@ -93,7 +102,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("authorized");
@@ -102,10 +111,10 @@ describe("HoidEvidenceRuntime", () => {
     expect(result.evidenceIds).toEqual(["e-sazed"]);
     expect(result.sources).toEqual([{
       evidenceId: "e-sazed",
-      sourceBookId: "tfe",
+      sourceBookId: "twok",
       sourceChapter: 2,
-      locatorId: "tfe-chapter-2",
-      unlockBookId: "tfe",
+      locatorId: locator("twok", 2),
+      unlockBookId: "twok",
       unlockChapter: 2,
     }]);
     expect(selector).toHaveBeenCalledTimes(1);
@@ -118,7 +127,7 @@ describe("HoidEvidenceRuntime", () => {
     const locked = await runtime!.answer({
       question: "¿Qué relación hay entre Sazed y Kaladin?",
       reading: [
-        { bookId: "tfe", chapter: 2 },
+        { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 2 },
       ],
     });
@@ -130,7 +139,7 @@ describe("HoidEvidenceRuntime", () => {
     const unlocked = await runtime!.answer({
       question: "¿Qué relación hay entre Sazed y Kaladin?",
       reading: [
-        { bookId: "tfe", chapter: 2 },
+        { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 3 },
       ],
     });
@@ -156,7 +165,7 @@ describe("HoidEvidenceRuntime", () => {
     const oneChapterShort = await runtime!.answer({
       question: "¿Qué relación hay entre Sazed y Kaladin?",
       reading: [
-        { bookId: "tfe", chapter: 2 },
+        { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 3 },
       ],
     });
@@ -167,7 +176,7 @@ describe("HoidEvidenceRuntime", () => {
     const bothUnlocked = await runtime!.answer({
       question: "¿Qué relación hay entre Sazed y Kaladin?",
       reading: [
-        { bookId: "tfe", chapter: 2 },
+        { bookId: "twok", chapter: 2 },
         { bookId: "wor", chapter: 4 },
       ],
     });
@@ -183,7 +192,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("blocked");
@@ -196,7 +205,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("blocked");
@@ -224,7 +233,7 @@ describe("HoidEvidenceRuntime", () => {
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
       reading: [
-        { bookId: "tfe", chapter: 2 },
+        { bookId: "twok", chapter: 2 },
         { bookId: "tfe", chapter: 99 },
       ],
     });
@@ -240,7 +249,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Qué es Concepto limitado?",
-      reading: [{ bookId: "tfe", chapter: 1 }],
+      reading: [{ bookId: "twok", chapter: 1 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -255,7 +264,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -302,7 +311,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -315,7 +324,7 @@ describe("HoidEvidenceRuntime", () => {
     const delayedKnowledge = knowledge.map(entry => entry.id === "e-sazed"
       ? {
           ...entry,
-          evidenceUnlock: { bookId: "tfe", chapter: 5 },
+          evidenceUnlock: { bookId: "twok", chapter: 5 },
         }
       : entry);
     const selector = vi.fn(async () => ["claim-sazed"]);
@@ -327,7 +336,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const beforeUnlock = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 4 }],
+      reading: [{ bookId: "twok", chapter: 4 }],
     });
     expect(beforeUnlock.status).toBe("abstain");
     expect(beforeUnlock.reason).toBe("no-authorized-evidence");
@@ -335,7 +344,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const atUnlock = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 5 }],
+      reading: [{ bookId: "twok", chapter: 5 }],
     });
     expect(atUnlock.status).toBe("authorized");
     expect(atUnlock.sources[0].unlockChapter).toBe(5);
@@ -353,7 +362,7 @@ describe("HoidEvidenceRuntime", () => {
 
   it("rejects evidence whose unlock precedes its source chapter", () => {
     const invalidScope = knowledge.map(entry => entry.id === "e-sazed"
-      ? { ...entry, evidenceUnlock: { bookId: "tfe", chapter: 1 } }
+      ? { ...entry, evidenceUnlock: { bookId: "twok", chapter: 1 } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: invalidScope, claims, selector: null })).toBeNull();
   });
@@ -375,7 +384,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
 
     expect(result.status).toBe("abstain");

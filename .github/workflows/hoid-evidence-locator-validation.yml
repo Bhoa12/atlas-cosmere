@@ -1,0 +1,51 @@
+name: Hoid evidence locator validation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/verifiedChapterLocators.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/readingManifest.test.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/evidenceScope.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "docs/hoid/VERIFIED_CHAPTER_LOCATORS.md"
+      - ".github/workflows/hoid-evidence-locator-validation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/verifiedChapterLocators.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/readingManifest.test.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/evidenceScope.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "docs/hoid/VERIFIED_CHAPTER_LOCATORS.md"
+      - ".github/workflows/hoid-evidence-locator-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-locators:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test verified chapter locators and evidence authorization
+        run: npx vitest run src/hoid/verifiedChapterLocators.test.ts src/hoid/readingManifest.test.ts src/hoid/evidenceScope.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Type-check locator and strict runtime boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck src/hoid/verifiedChapterLocators.ts src/hoid/readingManifest.ts src/hoid/evidenceScope.ts src/hoid/evidenceRuntime.ts src/hoid/cursorEvidenceRuntime.ts

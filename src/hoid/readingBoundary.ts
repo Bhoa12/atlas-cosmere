@@ -143,12 +143,17 @@ export function projectHoidCursorPositionToBoundary(
 export function isChapterBeyondCompletedReadingBoundary(
   commentChapter: unknown,
   currentChapter: unknown,
+  workCompleted = false,
 ): boolean {
   if (
     typeof commentChapter !== "number" ||
     !Number.isSafeInteger(commentChapter) ||
     commentChapter < 1 ||
-    commentChapter > 100_000_000 ||
+    commentChapter > 100_000_000
+  ) return true;
+  if (workCompleted === true) return false;
+  if (
+    typeof workCompleted !== "boolean" ||
     typeof currentChapter !== "number" ||
     !Number.isSafeInteger(currentChapter) ||
     currentChapter < 0 ||

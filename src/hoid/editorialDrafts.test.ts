@@ -37,6 +37,9 @@ describe("Hoid editorial draft staging", () => {
       "8e0158b020211d36b279ca8bdb9c0cc338e3117f4f47b4de6a2352a5a6a3e80d",
       "48b7f0e60d6d462a7a6c45f6c211d4ff81638da9e15f76210d2c71d1413ae313",
       "22acb4f51b8c3f421da85d7bd1b85e1889b8ab22f9db882cef43c9040a583bf9",
+      "50994fd820c5f81246f12544412891810836c50e49c709fe0c8df51f03cfd1d5",
+      "dcad662155a8d6e87c79eef48b4d7e55e591a434fae4131b6d23be7214e84111",
+      "65d8e0cb15f2109e5bf2b95ef52e59be8185176eb1b5724ce0866df5dea9ea6f",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -57,13 +60,13 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(14);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(17);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one through chapter-four drafts for the accessible EPUBs", () => {
+  it("stages independently sourced chapter-one through chapter-five drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -79,9 +82,12 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-004.kaladin-highstorm-camp",
       "edgedancer.chapter-004.lift-immigrant-district",
       "dawnshard.chapter-004.rysn-crew-trust",
+      "twok.chapter-005.shallan-jasnah-assessment",
+      "edgedancer.chapter-005.lift-remembering-forgotten",
+      "dawnshard.chapter-005.rysn-lopen-fabrial-demonstration",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect([1, 2, 3, 4]).toContain(draft.evidenceSource.chapter);
+      expect([1, 2, 3, 4, 5]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
         chapter: draft.evidenceSource.chapter + 1,

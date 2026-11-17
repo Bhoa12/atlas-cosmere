@@ -20,9 +20,9 @@ The v2 snapshot and migration receipt are written in the same exclusive SQLite t
 
 1. Create the v1, v2 and migration tables if they do not exist.
 2. Insert an empty v1 snapshot only when no v1 row exists.
-3. If both v2 and a valid migration receipt exist, validate and return v2.
-4. Acquire one exclusive transaction and read v1, v2 and the migration receipt together. The source-divergence check therefore cannot race a still-running legacy writer.
-5. If only one of v2 or the receipt exists, fail closed. The current v1 row must also match the exact source revision and payload recorded in the receipt.
+3. Acquire one exclusive transaction and read v1, v2 and the migration receipt together. The source-divergence check therefore cannot race a still-running legacy writer.
+4. If both v2 and a valid migration receipt exist, validate v2 and verify that the retained v1 row still matches the exact source revision and payload recorded in the receipt.
+5. If only one of v2 or the receipt exists, fail closed.
 6. If neither v2 nor the receipt exists, decode and validate the complete v1 source through `migrateHoidProgressV1ToV2()`.
 7. Refuse the entire migration if any work or chapter has no unambiguous edition-bound cursor.
 8. Re-read the v1 row inside the same transaction and compare schema, revision and payload.

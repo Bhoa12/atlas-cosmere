@@ -38,18 +38,20 @@ describe("Hoid editorial review packets", () => {
   it("builds a deterministic packet for each pending source-backed draft", () => {
     expect(built.status).toBe("ready");
     if (built.status !== "ready") return;
-    expect(built.packets).toHaveLength(17);
+    expect(built.packets).toHaveLength(20);
     expect(built.packets.map(item => item.draftId)).toEqual([
       "dawnshard.chapter-001.akinah-expedition",
       "dawnshard.chapter-002.rysn-navani-akinah-mission",
       "dawnshard.chapter-003.lopen-talik-delegation",
       "dawnshard.chapter-004.rysn-crew-trust",
       "dawnshard.chapter-005.rysn-lopen-fabrial-demonstration",
+      "dawnshard.chapter-006.rysn-worm-grain-trade",
       "edgedancer.chapter-001.lift-departure",
       "edgedancer.chapter-002.lift-yeddaw-arrival",
       "edgedancer.chapter-003.hauka-grain-cart",
       "edgedancer.chapter-004.lift-immigrant-district",
       "edgedancer.chapter-005.lift-remembering-forgotten",
+      "edgedancer.chapter-006.lift-tashikk-orphanage",
       "tfe.chapter-001.vin",
       "tfe.chapter-002.kelsier",
       "twok.chapter-001.cenn-battle",
@@ -57,6 +59,7 @@ describe("Hoid editorial review packets", () => {
       "twok.chapter-003.shallan-kharbranth",
       "twok.chapter-004.kaladin-highstorm-camp",
       "twok.chapter-005.shallan-jasnah-assessment",
+      "twok.chapter-006.kaladin-bridge-four",
     ]);
     expect(built.packets.every(item => item.status === "pending-review")).toBe(true);
   });

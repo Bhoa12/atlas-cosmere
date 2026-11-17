@@ -297,6 +297,23 @@ describe("ExpoSqliteHoidCursorProgressStore", () => {
     expect(result).toEqual({ status: "unavailable", reason: "migration-marker-orphaned" });
   });
 
+  it("rejects accessor-backed snapshots without invoking their getters", async () => {
+    const database = new MemoryDatabase();
+    const store = createStore(database);
+    await store.load();
+    let invoked = false;
+    const hostile = Object.defineProperty({}, "schemaVersion", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        throw new Error("getter must not execute");
+      },
+    });
+
+    expect(await store.compareAndSwap(0, hostile as unknown as HoidCursorProgressSnapshot)).toBe(false);
+    expect(invoked).toBe(false);
+  });
+
   it("blocks v2 reads and writes if the legacy v1 source changes after migration", async () => {
     const database = new MemoryDatabase();
     const store = createStore(database);

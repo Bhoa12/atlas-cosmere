@@ -331,4 +331,57 @@ describe("HoidConversationGateway", () => {
     expect(result.items.some(item => item.sourceId === "twok")).toBe(false);
   });
 
+
+  it("forwards a validated context intent to the strict runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Hasta dónde he leído?",
+      progress: current,
+      intent: "context",
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Hasta dónde he leído?",
+      progress: current,
+      intent: "context",
+    });
+  });
+
+  it("defaults an omitted intent to explain for backward compatibility", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    await gateway.answer({ question: "¿Qué significa este concepto?", progress: current });
+
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Qué significa este concepto?",
+      progress: current,
+      intent: "explain",
+    });
+  });
+
+  it("rejects unsupported intents before invoking the runtime", async () => {
+    const { gateway, runtime } = setup();
+    const result = await gateway.answer({
+      question: "Pregunta sintética",
+      progress: snapshot(3),
+      intent: "spoiler-dump",
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("rejects Unicode format characters at the conversation boundary", async () => {
+    const { gateway, runtime } = setup();
+    const result = await gateway.answer({
+      question: "¿Quién es\\u200B?",
+      progress: snapshot(3),
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
 });

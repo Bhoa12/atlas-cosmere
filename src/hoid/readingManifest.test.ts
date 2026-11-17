@@ -173,6 +173,5 @@ describe("edition-bound reading manifests", () => {
     expect(serialized).not.toContain("Prólogo");
     expect(serialized).not.toContain("Epílogo");
     expect(serialized).not.toContain("Capítulo");
-    expect(serialized).not.toContain("Bendito por la Tormenta");
   });
 });

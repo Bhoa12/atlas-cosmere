@@ -5,6 +5,8 @@ import {
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
 import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
+import { createHoidEditorialRuntime } from "./editorialRegistry";
 
 const UPDATED_AT = "2026-11-17T14:00:00.000Z";
 
@@ -305,4 +307,28 @@ describe("HoidConversationGateway", () => {
     expect(await gateway.recommend({ progress: current }))
       .toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
+
+
+  it("serves catalogue-only recommendations from the empty production registry without a provider", async () => {
+    const editorialRuntime = createHoidEditorialRuntime();
+    if (!editorialRuntime) throw new Error("No se pudo crear el runtime editorial de producción");
+    const cursorRuntime = createHoidCursorEvidenceRuntime(editorialRuntime);
+    const current = snapshot(1);
+    const gateway = createHoidConversationGateway({
+      runtime: cursorRuntime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway de producción");
+
+    const result = await gateway.recommend({ progress: current, limit: 3 });
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.items).toEqual([
+      { sourceId: "tfe", title: "El Imperio Final", reason: "unread-source" },
+      { sourceId: "woa", title: "El Pozo de la Ascensión", reason: "unread-source" },
+      { sourceId: "hoa", title: "El Héroe de las Eras", reason: "unread-source" },
+    ]);
+    expect(result.items.some(item => item.sourceId === "twok")).toBe(false);
+  });
+
 });

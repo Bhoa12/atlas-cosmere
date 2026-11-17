@@ -2,6 +2,7 @@ import { isKnownHoidSource } from "./bibliography";
 import type { HoidKnowledgeEntry } from "./catalog";
 import type { ReadingPosition } from "./types";
 import { validEditionBoundReadingPositions } from "./editionProgressValidation";
+import { getHoidReadingManifest } from "./readingManifest";
 
 export type HoidEvidenceCitation = Readonly<{
   evidenceId: string;
@@ -31,7 +32,7 @@ function validChapter(value: unknown): value is number {
   return typeof value === "number"
     && Number.isInteger(value)
     && Number.isFinite(value)
-    && value >= 0
+    && value >= 1
     && value <= MAX_CHAPTER;
 }
 

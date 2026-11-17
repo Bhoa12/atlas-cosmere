@@ -75,7 +75,7 @@ The two standalone Roshar novellas were not re-inspected for narrative summaries
 Run:
 
 ```sh
-npx vitest run src/hoid/editorialDrafts.test.ts src/hoid/editorialRegistry.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingManifest.test.ts
+npx vitest run src/hoid/editorialDrafts.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/editorialRegistry.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingManifest.test.ts
 ```
 
 The dedicated workflow also runs strict TypeScript checks over the draft validator and its provenance dependencies.

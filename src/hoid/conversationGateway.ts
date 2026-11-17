@@ -1,6 +1,7 @@
 import type { HoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
 import type { HoidClaimIntent, HoidEvidenceAnswer } from "./evidenceRuntime";
 import type { HoidRecommendation } from "./recommendations";
+import { buildHoidCursorReadingContext, type HoidCursorReadingContext } from "./cursorReadingContext";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
@@ -43,6 +44,18 @@ export type HoidConversationRecommendationResult =
         | "invalid-recommendations";
     }>;
 
+export type HoidConversationReadingContextResult =
+  | Readonly<{
+      status: "ready";
+      context: HoidCursorReadingContext;
+      progressRevision: number;
+      progressFingerprint: string;
+    }>
+  | Readonly<{
+      status: "unavailable";
+      reason: "invalid-request" | "invalid-progress" | "progress-changed";
+    }>;
+
 export type HoidConversationGatewayConfig = Readonly<{
   runtime: HoidConversationRuntime;
   /** Must return the coordinator's latest authoritative v2 snapshot. */
@@ -51,6 +64,7 @@ export type HoidConversationGatewayConfig = Readonly<{
 
 const REQUEST_KEYS = ["question", "progress", "intent"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
+const CONTEXT_KEYS = ["progress"] as const;
 const MAX_QUESTION_LENGTH = 4_000;
 const DEFAULT_RECOMMENDATION_LIMIT = 3;
 const MAX_RECOMMENDATION_LIMIT = 20;
@@ -144,6 +158,12 @@ function canonicalDenseArray(value: unknown, maximum: number): readonly unknown[
   }
 }
 
+function canonicalContextRequest(value: unknown): Readonly<{ progress: unknown }> | null {
+  const record = canonicalDataRecord(value, CONTEXT_KEYS, ["progress"]);
+  if (!record) return null;
+  return Object.freeze({ progress: record.progress });
+}
+
 type CanonicalRecommendationRequest = Readonly<{
   progress: unknown;
   limit: number;
@@ -180,6 +200,14 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
 function unavailable(
   reason: Extract<HoidConversationGatewayResult, { status: "unavailable" }>["reason"],
 ): HoidConversationGatewayResult {
+  return Object.freeze({ status: "unavailable", reason });
+}
+
+function unavailableReadingContext(
+  reason: HoidConversationReadingContextResult extends infer T
+    ? T extends { status: "unavailable"; reason: infer R } ? R : never
+    : never,
+): HoidConversationReadingContextResult {
   return Object.freeze({ status: "unavailable", reason });
 }
 
@@ -307,6 +335,50 @@ export class HoidConversationGateway {
     return Object.freeze({
       status: "ready",
       answer,
+      progressRevision: requestedProgress.revision,
+      progressFingerprint: requestedProgress.fingerprint,
+    });
+  }
+
+  async readingContext(input: unknown): Promise<HoidConversationReadingContextResult> {
+    const request = canonicalContextRequest(input);
+    if (!request) return unavailableReadingContext("invalid-request");
+
+    const requestedProgress = progressIdentity(request.progress);
+    if (!requestedProgress) return unavailableReadingContext("invalid-progress");
+
+    let currentBefore: unknown;
+    try {
+      currentBefore = this.config.getCurrentProgress();
+    } catch {
+      return unavailableReadingContext("invalid-progress");
+    }
+    const beforeIdentity = progressIdentity(currentBefore);
+    if (!beforeIdentity) return unavailableReadingContext("invalid-progress");
+    if (!sameProgress(requestedProgress, beforeIdentity)) {
+      return unavailableReadingContext("progress-changed");
+    }
+
+    const built = buildHoidCursorReadingContext(request.progress);
+    if (built.status !== "ready") {
+      return unavailableReadingContext("invalid-progress");
+    }
+
+    let currentAfter: unknown;
+    try {
+      currentAfter = this.config.getCurrentProgress();
+    } catch {
+      return unavailableReadingContext("invalid-progress");
+    }
+    const afterIdentity = progressIdentity(currentAfter);
+    if (!afterIdentity) return unavailableReadingContext("invalid-progress");
+    if (!sameProgress(requestedProgress, afterIdentity)) {
+      return unavailableReadingContext("progress-changed");
+    }
+
+    return Object.freeze({
+      status: "ready",
+      context: built.context,
       progressRevision: requestedProgress.revision,
       progressFingerprint: requestedProgress.fingerprint,
     });

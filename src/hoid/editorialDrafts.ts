@@ -577,7 +577,72 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
-
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-004.kaladin-highstorm-camp",
+    kind: "event",
+    aliases: Object.freeze(["llegada al campamento Kholin"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 4 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 4,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-016.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 5 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "1a5d55dd8eaa304b14a10526e50a98826de139abbc402013150dd795f44bef89",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "8e0158b020211d36b279ca8bdb9c0cc338e3117f4f47b4de6a2352a5a6a3e80d" }),
+    summary: "Kaladin continúa el viaje encerrado en la carreta de esclavos y mantiene con la vientospren una conversación sobre su aparente indiferencia ante el sufrimiento. Cuando Tvlakv pierde la orientación, Kaladin destruye el mapa y se niega a fingir que conoce la región. El intercambio deja al descubierto tanto la desconfianza entre ambos como el peso que todavía tiene para Kaladin el motivo de su esclavitud. Durante la alta tormenta, permanece atento a los riesgos que amenazan a los cautivos y al propio convoy. Tras el temporal, la caravana reanuda la marcha por un paisaje que recupera actividad. La spren señala una concentración de personas hacia el este; al acercarse a una elevación, Kaladin reconoce que se trata de un enorme campamento militar alezi y distingue un estandarte de la casa Kholin. El capítulo termina con su reacción ante ese destino inesperado.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-004.lift-immigrant-district",
+    kind: "event",
+    aliases: Object.freeze(["recorrido de Lift por el barrio de inmigrantes"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 4 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 4,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/004.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 5 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "4437c0e0ff5a617490a087d7c887117e63ff5f6f627d5e9f4515206fb77a3507",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "48b7f0e60d6d462a7a6c45f6c211d4ff81638da9e15f76210d2c71d1413ae313" }),
+    summary: "Después de escapar de los guardias, Lift recorre el barrio de inmigrantes de Tashikk junto a Wyndle. Observa la arquitectura elevada, las viviendas improvisadas y la mezcla de comunidades que ocupan la zona, mientras intenta encontrar algo que pueda cambiar por comida. Su conversación con Wyndle vuelve a mostrar la diferencia entre las prioridades prácticas de Lift y las expectativas que él tiene sobre su vínculo. Lift intenta vender un cuaderno que ha sustraído de un puesto de guardia, pero Wyndle descubre que solo contiene un registro de turnos y visitas administrativas. Frustrada por no poder obtener comida, Lift arroja el cuaderno sin mirar y golpea accidentalmente a una transeúnte. Un guardia la acusa y ambos vuelven a huir por las callejuelas.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-004.rysn-crew-trust",
+    kind: "event",
+    aliases: Object.freeze(["zarpe del Vela Errante"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 4 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 4,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/4.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 5 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "22acb4f51b8c3f421da85d7bd1b85e1889b8ab22f9db882cef43c9040a583bf9" }),
+    summary: "Rysn embarca en el Vela Errante para iniciar la expedición como propietaria, aunque pronto comprueba que la autoridad formal no equivale a la confianza de la tripulación. La capitana Dlrwan cuestiona que deba acompañar la misión y los marineros muestran reservas ante su nombramiento. Rysn investiga el origen del resentimiento y comprende que parte de la tripulación esperaba que Vstim entregara el barco a Dlrwan, que había preparado y entrenado a sus marineros para él. También descubre que la muerte de la mascota del barco y el destino de la expedición han alimentado supersticiones e inquietudes. En vez de imponer su presencia, permite que quien no quiera participar permanezca en puerto y busca formas de integrarse sin humillar a los demás. Tras algunas bajas limitadas, la tripulación se prepara y el barco zarpa.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 ]);
 
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);

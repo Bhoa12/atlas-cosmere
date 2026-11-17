@@ -247,32 +247,51 @@ export function validateHoidEditorialDraftBatch(
   values: unknown,
 ): Readonly<{ status: "valid"; drafts: readonly HoidEditorialDraft[] }> |
   Readonly<{ status: "invalid"; reason: "invalid-batch" | "duplicate-id" | "invalid-draft" }> {
-  if (!Array.isArray(values) || values.length > 512) {
-    return Object.freeze({ status: "invalid", reason: "invalid-batch" });
-  }
-
-  const drafts: HoidEditorialDraft[] = [];
-  const ids = new Set<string>();
-  for (let index = 0; index < values.length; index += 1) {
-    const descriptor = Object.getOwnPropertyDescriptor(values, String(index));
+  try {
+    if (!Array.isArray(values)) {
+      return Object.freeze({ status: "invalid", reason: "invalid-batch" });
+    }
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(values, "length");
     if (
-      !descriptor ||
-      !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
-      descriptor.enumerable !== true
+      !lengthDescriptor ||
+      !Object.prototype.hasOwnProperty.call(lengthDescriptor, "value") ||
+      typeof lengthDescriptor.value !== "number" ||
+      !Number.isSafeInteger(lengthDescriptor.value) ||
+      lengthDescriptor.value < 0 ||
+      lengthDescriptor.value > 512
     ) return Object.freeze({ status: "invalid", reason: "invalid-batch" });
 
-    const validation = validateHoidEditorialDraft(descriptor.value);
-    if (validation.status !== "valid") {
-      return Object.freeze({ status: "invalid", reason: "invalid-draft" });
+    const length = lengthDescriptor.value;
+    const keys = Reflect.ownKeys(values);
+    if (keys.length !== length + 1 || !keys.includes("length")) {
+      return Object.freeze({ status: "invalid", reason: "invalid-batch" });
     }
-    if (ids.has(validation.draft.id)) {
-      return Object.freeze({ status: "invalid", reason: "duplicate-id" });
-    }
-    ids.add(validation.draft.id);
-    drafts.push(validation.draft);
-  }
 
-  return Object.freeze({ status: "valid", drafts: Object.freeze(drafts) });
+    const drafts: HoidEditorialDraft[] = [];
+    const ids = new Set<string>();
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(values, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return Object.freeze({ status: "invalid", reason: "invalid-batch" });
+
+      const validation = validateHoidEditorialDraft(descriptor.value);
+      if (validation.status !== "valid") {
+        return Object.freeze({ status: "invalid", reason: "invalid-draft" });
+      }
+      if (ids.has(validation.draft.id)) {
+        return Object.freeze({ status: "invalid", reason: "duplicate-id" });
+      }
+      ids.add(validation.draft.id);
+      drafts.push(validation.draft);
+    }
+
+    return Object.freeze({ status: "valid", drafts: Object.freeze(drafts) });
+  } catch {
+    return Object.freeze({ status: "invalid", reason: "invalid-batch" });
+  }
 }
 
 /**

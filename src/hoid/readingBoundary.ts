@@ -1,5 +1,4 @@
 import { validateHoidReadingCursor } from "./readingManifest";
-import type { HoidCursorProgressPosition } from "./cursorProgressLedger";
 import type { ReadingPosition } from "./types";
 
 export type HoidReaderBoundary =
@@ -77,7 +76,7 @@ function canonicalPosition(value: unknown): Record<string, unknown> | null {
  * and rejects accessors, inherited values, unknown keys and hostile traps.
  */
 export function projectHoidCursorPositionToBoundary(
-  position: HoidCursorProgressPosition | unknown,
+  position: unknown,
 ): HoidCursorBoundaryProjection | null {
   const record = canonicalPosition(position);
   if (record === null) return null;

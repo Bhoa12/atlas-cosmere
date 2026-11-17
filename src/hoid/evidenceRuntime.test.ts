@@ -146,7 +146,7 @@ describe("HoidEvidenceRuntime", () => {
 
     expect(unlocked.status).toBe("authorized");
     expect(unlocked.claimIds).toEqual(["claim-cross-book"]);
-    expect(unlocked.evidenceIds).toEqual(["e-beta", "e-alpha"]);
+    expect(unlocked.evidenceIds).toEqual(["e-alpha", "e-beta"]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
@@ -181,7 +181,7 @@ describe("HoidEvidenceRuntime", () => {
       ],
     });
     expect(bothUnlocked.status).toBe("authorized");
-    expect(bothUnlocked.evidenceIds).toEqual(["e-beta", "e-alpha"]);
+    expect(bothUnlocked.evidenceIds).toEqual(["e-alpha", "e-beta"]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
 

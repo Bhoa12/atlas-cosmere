@@ -9,6 +9,7 @@ on:
       - "src/hoid/knowledgeGraph.test.ts"
       - "src/hoid/knowledgeGraphQuery.ts"
       - "src/hoid/knowledgeGraphQuery.test.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceScope.ts"
@@ -27,6 +28,7 @@ on:
       - "src/hoid/catalogValidation.ts"
       - "src/hoid/types.ts"
       - "docs/hoid/KNOWLEDGE_GRAPH_AUTHORIZATION.md"
+      - "docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md"
       - ".github/workflows/hoid-knowledge-graph.yml"
   pull_request:
     paths:

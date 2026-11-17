@@ -493,6 +493,15 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
   });
 
+  it("rejects claim entity scopes that are not backed by the claim evidence set", () => {
+    const invalidRuntime = createHoidEvidenceRuntime({
+      knowledge,
+      claims: [{ ...claims[0], entityIds: ["e-beta"] }],
+      selector: null,
+    });
+    expect(invalidRuntime).toBeNull();
+  });
+
   it("rejects approved claims whose entity scope references an unknown knowledge ID", () => {
     const invalidRuntime = createHoidEvidenceRuntime({
       knowledge,

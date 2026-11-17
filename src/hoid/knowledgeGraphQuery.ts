@@ -1,7 +1,7 @@
 import {
   buildHoidAuthorizedKnowledgeGraph,
   buildProductionHoidAuthorizedKnowledgeGraph,
-  fingerprintHoidCursorProgressSnapshot,
+  fingerprintHoidCursorProgressProjection,
   type HoidKnowledgeGraphEdge,
   type HoidKnowledgeGraphResult,
   type HoidKnowledgeGraphSource,
@@ -545,13 +545,11 @@ export function renderHoidExplanationPlan(
   ) return Object.freeze({ status: "unavailable", reason: "untrusted-plan" });
 
   const plan = planInput as HoidExplanationPlan;
-  const fingerprint = fingerprintHoidCursorProgressSnapshot(progressInput);
   const projection = projectHoidCursorProgressSnapshot(progressInput);
   if (
-    fingerprint.status !== "ready" ||
     projection.status !== "ready" ||
-    fingerprint.revision !== plan.progressRevision ||
-    fingerprint.sha256 !== plan.progressFingerprint
+    projection.revision !== plan.progressRevision ||
+    fingerprintHoidCursorProgressProjection(projection) !== plan.progressFingerprint
   ) return Object.freeze({ status: "unavailable", reason: "stale-progress" });
 
   const claims = canonicalApprovedClaims(claimsInput);

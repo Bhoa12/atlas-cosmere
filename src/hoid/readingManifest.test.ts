@@ -170,7 +170,9 @@ describe("edition-bound reading manifests", () => {
     const result = getHoidReadingManifest("twok");
     expect(result.status).toBe("ready");
     const serialized = JSON.stringify(result);
-    expect(serialized).not.toMatch(/Prólogo|Epílogo|Capítulo\\s+\\d/i);
+    expect(serialized).not.toContain("Prólogo");
+    expect(serialized).not.toContain("Epílogo");
+    expect(serialized).not.toContain("Capítulo");
     expect(serialized).not.toContain("Bendito por la Tormenta");
   });
 });

@@ -1,3 +1,4 @@
+import { isKnownHoidSource } from "./bibliography";
 import { validateHoidReadingCursor } from "./readingManifest";
 import type { ReadingPosition } from "./types";
 
@@ -85,7 +86,8 @@ export function projectHoidCursorPositionToBoundary(
   if (
     typeof bookId !== "string" ||
     bookId.length === 0 ||
-    bookId !== bookId.trim()
+    bookId !== bookId.trim() ||
+    !isKnownHoidSource(bookId)
   ) return null;
 
   const order = record.order as number | undefined;

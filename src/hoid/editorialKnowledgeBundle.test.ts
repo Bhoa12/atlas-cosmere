@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { HOID_EDITORIAL_CLAIM_DRAFTS } from "./editorialClaimDrafts";
-import { HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
-import { HOID_EDITORIAL_RELATIONSHIP_DRAFTS } from "./editorialRelationshipDrafts";
+import { createHoidEditorialEntityDraft, HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
+import { createHoidEditorialRelationshipDraft, HOID_EDITORIAL_RELATIONSHIP_DRAFTS } from "./editorialRelationshipDrafts";
 import {
   buildHoidEditorialKnowledgeBundle,
   validateHoidEditorialKnowledgeBundleManifest,
@@ -54,6 +54,63 @@ describe("Hoid complete editorial knowledge bundle", () => {
     if (result.status !== "blocked") return;
 
     expect(result.blockers.some(item => item.code.startsWith("relationship-"))).toBe(false);
+  });
+
+  it("becomes ready for editorial review when the missing claim subject has an exact identity dossier", () => {
+    const vinSummary = HOID_EDITORIAL_DRAFTS.find(draft => draft.id === "tfe.chapter-001.vin");
+    expect(vinSummary).toBeDefined();
+    if (!vinSummary) return;
+
+    const dossier = createHoidEditorialEntityDraft({
+      id: "tfe.vin",
+      kind: "character",
+      identity: { status: "resolved", canonicalLabel: "Vin" },
+      evidence: [{
+        source: vinSummary.evidenceSource,
+        unlock: vinSummary.evidenceUnlock,
+        sourceIntegrity: vinSummary.sourceIntegrity,
+      }],
+    });
+    expect(dossier.status).toBe("valid");
+    if (dossier.status !== "valid") return;
+
+    const result = buildHoidEditorialKnowledgeBundle({
+      ...sourceInput,
+      entities: [...sourceInput.entities, dossier.draft],
+    });
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
+    expect(result.manifest.blockers).toEqual([]);
+    expect(result.promotionAllowed).toBe(false);
+    expect(result.productionWritePerformed).toBe(false);
+  });
+
+  it("blocks a relationship whose participant has no matching entity dossier", () => {
+    const original = HOID_EDITORIAL_RELATIONSHIP_DRAFTS[0];
+    const altered = createHoidEditorialRelationshipDraft({
+      id: original.id,
+      predicate: original.predicate,
+      subject: { ...original.subject, id: "twok.unknown-character" },
+      object: original.object,
+      intent: original.intent,
+      statement: original.statement,
+      evidence: original.evidence,
+      relationEvidenceIndices: original.relationEvidenceIndices,
+    });
+    expect(altered.status).toBe("valid");
+    if (altered.status !== "valid") return;
+
+    const result = buildHoidEditorialKnowledgeBundle({
+      ...sourceInput,
+      relationships: [altered.draft, ...sourceInput.relationships.slice(1)],
+    });
+    expect(result.status).toBe("blocked");
+    if (result.status !== "blocked") return;
+    expect(result.blockers).toContainEqual({
+      code: "relationship-participant-missing",
+      recordId: original.id,
+      relatedId: "twok.unknown-character",
+    });
   });
 
   it("revalidates the manifest against the exact four source batches", () => {

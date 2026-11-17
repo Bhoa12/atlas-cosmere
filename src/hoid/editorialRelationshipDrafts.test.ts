@@ -5,6 +5,7 @@ import { getHoidEditorialRegistryStatus } from "./editorialRegistry";
 import {
   buildHoidEditorialRelationshipReviewPackets,
   createHoidEditorialRelationshipDraft,
+  createHoidEditorialRelationshipDraftBatch,
   evaluateHoidEditorialRelationshipDrafts,
   getHoidEditorialRelationshipDraftStatus,
   getHoidEditorialRelationshipDraftDiagnostics,
@@ -299,6 +300,29 @@ describe("Hoid multi-entity relationship staging", () => {
       evidence: valid.evidence,
       relationEvidenceIndices: valid.relationEvidenceIndices,
     }).status).toBe("invalid");
+  });
+
+  it("separates core-input creation from strict integrity-bearing batch validation", () => {
+    const valid = HOID_EDITORIAL_RELATIONSHIP_DRAFTS[0];
+    const core = {
+      id: valid.id,
+      predicate: valid.predicate,
+      subject: valid.subject,
+      object: valid.object,
+      intent: valid.intent,
+      statement: valid.statement,
+      evidence: valid.evidence,
+      relationEvidenceIndices: valid.relationEvidenceIndices,
+    };
+    expect(validateHoidEditorialRelationshipDraftBatch([core])).toEqual({
+      status: "invalid",
+      reason: "invalid-draft",
+    });
+    const created = createHoidEditorialRelationshipDraftBatch([core]);
+    expect(created.status).toBe("valid");
+    if (created.status === "valid") {
+      expect(created.drafts[0].integrity.claimSha256).toMatch(/^[a-f0-9]{64}$/);
+    }
   });
 
   it("rejects duplicate relationship IDs as a batch", () => {

@@ -400,8 +400,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summary: "Rysn revisa informes comerciales para encontrar una nueva oportunidad de viaje mientras intenta atender a Chiri-Chiri, cuya salud ha empeorado. La relación con Nikli muestra que procura conservar su autonomía pese a necesitar ayuda en algunas tareas. La información que recibe sobre Akinah como posible hogar de Chiri-Chiri coincide con una solicitud de Navani para investigar la zona de una expedición marítima anterior. Rysn conecta ambas pistas y decide acudir a Urithiru para estudiar el encargo.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
-  }),,
-
+  }),
   Object.freeze({
     schemaVersion: 1,
     id: "twok.chapter-002.kaladin-slave-caravan",

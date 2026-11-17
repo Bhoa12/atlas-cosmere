@@ -5,10 +5,15 @@ import {
   HOID_KNOWLEDGE_GRAPH_DEFINITION,
   type HoidKnowledgeGraphDefinition,
   type HoidKnowledgeGraphEdge,
-  type HoidKnowledgeGraphPath,
   type HoidKnowledgeGraphResult,
   type HoidKnowledgeGraphSource,
 } from "./knowledgeGraph";
+export type { HoidKnowledgeGraphRelation } from "./knowledgeGraph";
+
+export type HoidKnowledgeGraphPath = Readonly<{
+  nodeIds: readonly string[];
+  edges: readonly HoidKnowledgeGraphEdge[];
+}>;
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import type { HoidApprovedClaim } from "./evidenceRuntime";

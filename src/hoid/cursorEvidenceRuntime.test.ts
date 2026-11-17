@@ -99,7 +99,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     if (result.status !== "ready") return;
     expect(result.revision).toBe(2);
     expect(result.reading).toEqual([
-      { bookId: "twok", chapter: 2, order: 4 },
+      { bookId: "twok", chapter: 1, order: 4 },
       { bookId: "woa", completed: true, order: 5 },
     ]);
   });
@@ -108,7 +108,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     const { facade, selector } = createFacade();
     const result = await facade.answer({
       question: "¿Quién es Personaje Alfa?",
-      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
     });
 
     expect(result.status).toBe("authorized");
@@ -125,7 +125,7 @@ describe("HoidCursorEvidenceRuntime", () => {
 
     const locked = await facade.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
-      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
     });
     expect(locked.status).toBe("blocked");
     expect(selector).not.toHaveBeenCalled();
@@ -133,8 +133,8 @@ describe("HoidCursorEvidenceRuntime", () => {
     const unlocked = await facade.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       progress: snapshot([
-        { bookId: "twok", cursor: cursor("twok", 2) },
-        { bookId: "wor", cursor: cursor("wor", 3) },
+        { bookId: "twok", cursor: cursor("twok", 3) },
+        { bookId: "wor", cursor: cursor("wor", 4) },
       ], 2),
     });
     expect(unlocked.status).toBe("authorized");

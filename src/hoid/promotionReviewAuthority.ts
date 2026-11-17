@@ -357,6 +357,12 @@ function promotionPlanFingerprint(plan: HoidEditorialPromotionPlanInput): string
   ]));
 }
 
+/** Fingerprint a canonical promotion manifest using the same fields as the planner. */
+export function fingerprintHoidEditorialPromotionPlan(value: unknown): string | null {
+  const plan = canonicalPromotionPlan(value);
+  return plan ? promotionPlanFingerprint(plan) : null;
+}
+
 function invalidVerification(
   reason: Extract<HoidProtectedReviewVerification, { status: "invalid" }>["reason"],
 ): HoidProtectedReviewVerification {
@@ -476,14 +482,20 @@ export function verifyHoidProtectedReviewSnapshot(
 
 function sourceControlMethod(value: unknown): ((request: HoidProtectedReviewFetchRequest) => Promise<unknown>) | null {
   try {
-    if (!isPlainRecord(value)) return null;
-    const descriptor = Object.getOwnPropertyDescriptor(value, "fetchProtectedReviewSnapshot");
-    if (
-      !descriptor ||
-      !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
-      typeof descriptor.value !== "function"
-    ) return null;
-    return (descriptor.value as (request: HoidProtectedReviewFetchRequest) => Promise<unknown>).bind(value);
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    let current: object | null = value;
+    for (let depth = 0; current !== null && current !== Object.prototype && depth < 4; depth += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(current, "fetchProtectedReviewSnapshot");
+      if (descriptor) {
+        if (
+          !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+          typeof descriptor.value !== "function"
+        ) return null;
+        return (descriptor.value as (request: HoidProtectedReviewFetchRequest) => Promise<unknown>).bind(value);
+      }
+      current = Object.getPrototypeOf(current) as object | null;
+    }
+    return null;
   } catch {
     return null;
   }

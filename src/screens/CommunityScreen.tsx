@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
+import { isChapterBeyondCompletedReadingBoundary } from '../hoid/readingBoundary';
 
 export const CommunityScreen: React.FC = () => {
   const { comentarios, agregarComentario, darLuzTormentosa, capituloActualPorLibro } = useCosmere();
@@ -106,7 +107,7 @@ export const CommunityScreen: React.FC = () => {
         }
         renderItem={({ item }) => {
           const capUsuarioEnEseLibro = capituloActualPorLibro[item.libroId] || 0;
-          const esSpoiler = item.capituloMaximo > capUsuarioEnEseLibro;
+          const esSpoiler = isChapterBeyondCompletedReadingBoundary(item.capituloMaximo, capUsuarioEnEseLibro);
           const estaRevelado = reveladosManualmente[item.id];
 
           return (

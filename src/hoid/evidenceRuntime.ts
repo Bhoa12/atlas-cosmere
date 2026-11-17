@@ -187,7 +187,10 @@ function canonicalClaims(
     const entityIds = entityIdsDescriptor
       ? canonicalEntityIds(entityIdsDescriptor.value, knowledgeIds)
       : undefined;
-    if (entityIdsDescriptor && !entityIds) return null;
+    if (
+      entityIdsDescriptor &&
+      (!entityIds || !entityIds.every(entityId => canonicalEvidence.includes(entityId)))
+    ) return null;
 
     if (review.status !== "approved" || review.origin !== "original-editorial") return null;
     if (typeof review.reviewerId !== "string" || !review.reviewerId.trim() || review.reviewerId.length > 128) return null;

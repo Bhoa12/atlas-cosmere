@@ -8,7 +8,6 @@ import {
   type HoidProgressLedgerSnapshot,
 } from "./progressLedger";
 import {
-  type HoidSqliteBindValue,
   type HoidSqliteDatabasePort,
   type HoidSqliteTransactionPort,
 } from "./sqliteProgressStore";

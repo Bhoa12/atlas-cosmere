@@ -289,4 +289,41 @@ describe("Hoid spoiler-aware entity resolution", () => {
       expect(result.matches).toEqual([]);
     }
   });
+
+  it("rejects knowledge accessors without executing them", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]) as Record<string, unknown>;
+    let invoked = false;
+    Object.defineProperty(entry, "aliases", {
+      enumerable: true,
+      get: () => {
+        invoked = true;
+        return ["Synthetic Entity"];
+      },
+    });
+    const result = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }]), { text: "Synthetic Entity" },
+    );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects query filters outside the bounded contract", () => {
+    const invalidLimit = resolveHoidAuthorizedEntities(
+      [], progress([]), { text: "Synthetic Entity", maxResults: 0 },
+    );
+    const invalidKind = resolveHoidAuthorizedEntities(
+      [], progress([]), { text: "Synthetic Entity", kind: "unknown-kind" },
+    );
+    expect(invalidLimit).toEqual({ status: "unavailable", reason: "invalid-query" });
+    expect(invalidKind).toEqual({ status: "unavailable", reason: "invalid-query" });
+  });
+
+  it("rejects stored aliases containing invisible format characters", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic\\u200b Entity"]);
+    const result = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }]), { text: "Synthetic Entity" },
+    );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+  });
+
 });

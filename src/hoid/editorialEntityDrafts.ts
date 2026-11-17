@@ -960,6 +960,28 @@ const RAW_ENTITY_DRAFTS: readonly unknown[] = Object.freeze([
   entityInput("dawnshard.dlrwan", "character", "dawnshard", 4, "Dlrwan"),
 ]);
 
+
+export function getHoidEditorialEntityDraftDiagnostics(): readonly Readonly<{
+  index: number;
+  id: string | null;
+  evidenceAvailable: boolean;
+  status: "valid" | "invalid";
+  reason?: string;
+}>[] {
+  return Object.freeze(RAW_ENTITY_DRAFTS.map((item, index) => {
+    const raw = canonicalRecord(item, CORE_KEYS);
+    const evidence = canonicalDenseArray(raw?.evidence, 1, MAX_EVIDENCE);
+    const result = createHoidEditorialEntityDraft(item);
+    return Object.freeze({
+      index,
+      id: typeof raw?.id === "string" ? raw.id : null,
+      evidenceAvailable: Boolean(evidence?.length && evidence.every(Boolean)),
+      status: result.status,
+      ...(result.status === "invalid" ? { reason: result.reason } : {}),
+    });
+  }));
+}
+
 const VALIDATED_ENTITY_BATCH = createHoidEditorialEntityDraftBatch(RAW_ENTITY_DRAFTS);
 
 /** Identity dossiers remain staging-only and never populate production entity or alias registries. */

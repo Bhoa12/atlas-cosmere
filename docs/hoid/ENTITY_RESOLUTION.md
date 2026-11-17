@@ -72,3 +72,5 @@ The scan is deliberately conservative:
 `HoidConversationGateway.answer()` runs this preflight after validating the request's progress identity and before calling the evidence runtime. It also verifies that the resolver returned the same progress revision and fingerprint as the request. Resolver errors, blocked aliases and ambiguous authorized matches fail closed.
 
 The preflight is not a substitute for claim authorization. A matched entity only permits the question to proceed to the existing evidence runtime; every answer still requires approved claims and chapter-scoped evidence. The production registries remain empty until original editorial records and alias disclosures have been reviewed.
+
+The UI maps blocked, ambiguous and unavailable mention preflights to the same generic no-authorized-evidence response used for an unknown mention. It does not tell the reader whether a spelling exists, is locked, is ambiguous or lacks a review record.

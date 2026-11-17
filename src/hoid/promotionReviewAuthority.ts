@@ -96,6 +96,8 @@ export type HoidProtectedReviewVerification =
         | "code-owner-approval-missing";
     }>;
 
+type HoidProtectedReviewFailureReason = Extract<HoidProtectedReviewVerification, { status: "invalid" }>["reason"];
+
 export type HoidPromotionCommitAuthorization =
   | Readonly<{
       status: "ready-for-maintainer-commit";
@@ -119,7 +121,7 @@ export type HoidPromotionCommitAuthorization =
         | "review-source-unavailable"
         | "review-timeout"
         | "review-not-satisfied";
-      verificationReason?: HoidProtectedReviewVerification extends { status: "invalid"; reason: infer R } ? R : never;
+      verificationReason?: HoidProtectedReviewFailureReason;
       promotionAllowed: false;
       productionWritePerformed: false;
     }>;
@@ -514,9 +516,14 @@ export async function authorizeHoidPromotionCommit(
 ): Promise<HoidPromotionCommitAuthorization> {
   const plan = canonicalPromotionPlan(promotionPlanInput);
   if (!plan) {
-    const status = isPlainRecord(promotionPlanInput)
-      ? Object.getOwnPropertyDescriptor(promotionPlanInput, "status")?.value
-      : undefined;
+    let status: unknown;
+    try {
+      status = isPlainRecord(promotionPlanInput)
+        ? Object.getOwnPropertyDescriptor(promotionPlanInput, "status")?.value
+        : undefined;
+    } catch {
+      status = undefined;
+    }
     return blocked(status === "blocked" ? "promotion-plan-blocked" : "invalid-plan");
   }
 
@@ -539,7 +546,7 @@ export async function authorizeHoidPromotionCommit(
   let timer: ReturnType<typeof setTimeout> | undefined;
   const call = Promise.resolve()
     .then(() => fetchSnapshot(fetchRequest))
-    .then<Outcome>(
+    .then<Outcome, Outcome>(
       value => Object.freeze({ kind: "value", value }),
       () => Object.freeze({ kind: "error" }),
     );

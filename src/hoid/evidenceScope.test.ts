@@ -42,7 +42,7 @@ describe("isEvidenceUnlocked public boundary", () => {
   it("does not let a completed duplicate override an earlier ambiguous position", () => {
     expect(isEvidenceUnlocked(entry, [
       { bookId: "twok", chapter: 1 },
-      { bookId: "tfe", completed: true },
+      { bookId: "twok", completed: true },
     ])).toBe(false);
   });
 

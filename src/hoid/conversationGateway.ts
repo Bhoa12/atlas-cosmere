@@ -203,6 +203,55 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
+const MAX_ENTITY_SCOPE_IDS = 8;
+const ENTITY_SCOPE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+
+/** Canonicalize only the IDs of an unambiguous, progress-bound mention result. */
+function canonicalMatchedEntityIds(
+  result: HoidEntityMentionResolutionResult,
+): readonly string[] | null {
+  try {
+    if (result.resolution === "not-found") {
+      return Array.isArray(result.matches) && result.matches.length === 0 && result.truncated === false
+        ? Object.freeze([])
+        : null;
+    }
+    if (result.resolution !== "matched" || result.truncated !== false) return null;
+    const matches = result.matches;
+    if (!Array.isArray(matches) || matches.length < 1 || matches.length > MAX_ENTITY_SCOPE_IDS) return null;
+    if (Object.getPrototypeOf(matches) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(matches);
+    if (keys.length !== matches.length + 1 || !keys.includes("length")) return null;
+
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; index < matches.length; index += 1) {
+      const itemDescriptor = Object.getOwnPropertyDescriptor(matches, String(index));
+      if (!itemDescriptor || !Object.prototype.hasOwnProperty.call(itemDescriptor, "value") || itemDescriptor.enumerable !== true) return null;
+      const item = itemDescriptor.value;
+      if (item === null || typeof item !== "object" || Array.isArray(item)) return null;
+      const idDescriptor = Object.getOwnPropertyDescriptor(item, "id");
+      if (
+        !idDescriptor ||
+        !Object.prototype.hasOwnProperty.call(idDescriptor, "value") ||
+        idDescriptor.enumerable !== true ||
+        typeof idDescriptor.value !== "string"
+      ) return null;
+      const id = idDescriptor.value;
+      if (!ENTITY_SCOPE_ID_PATTERN.test(id) || seen.has(id)) return null;
+      seen.add(id);
+      ids.push(id);
+    }
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (typeof key !== "string" || !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= matches.length) return null;
+    }
+    return Object.freeze(ids.sort());
+  } catch {
+    return null;
+  }
+}
+
 function unavailable(
   reason: Extract<HoidConversationGatewayResult, { status: "unavailable" }>["reason"],
 ): HoidConversationGatewayResult {
@@ -341,6 +390,9 @@ export class HoidConversationGateway {
     ) {
       return unavailable("invalid-progress");
     }
+    const resolvedEntityIds = canonicalMatchedEntityIds(entityResolution);
+    if (!resolvedEntityIds) return unavailable("entity-unavailable");
+    const entityIds = resolvedEntityIds.length > 0 ? resolvedEntityIds : undefined;
 
     let answer: HoidEvidenceAnswer;
     try {
@@ -348,6 +400,7 @@ export class HoidConversationGateway {
         question: request.question,
         progress: request.progress,
         intent: request.intent,
+        ...(entityIds === undefined ? {} : { entityIds }),
       });
     } catch {
       return unavailable("runtime-failed");

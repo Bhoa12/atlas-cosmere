@@ -1,5 +1,5 @@
 import type { HoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
-import type { HoidEvidenceAnswer } from "./evidenceRuntime";
+import type { HoidClaimIntent, HoidEvidenceAnswer } from "./evidenceRuntime";
 import type { HoidRecommendation } from "./recommendations";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
@@ -49,45 +49,38 @@ export type HoidConversationGatewayConfig = Readonly<{
   getCurrentProgress: () => unknown;
 }>;
 
-const REQUEST_KEYS = ["question", "progress"] as const;
+const REQUEST_KEYS = ["question", "progress", "intent"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
 const MAX_QUESTION_LENGTH = 4_000;
 const DEFAULT_RECOMMENDATION_LIMIT = 3;
 const MAX_RECOMMENDATION_LIMIT = 20;
 
-function canonicalRequest(value: unknown): Readonly<{ question: string; progress: unknown }> | null {
-  try {
-    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) return null;
-    const keys = Reflect.ownKeys(value);
-    if (keys.length !== REQUEST_KEYS.length) return null;
+function canonicalRequest(value: unknown): Readonly<{
+  question: string;
+  progress: unknown;
+  intent: HoidClaimIntent;
+}> | null {
+  const record = canonicalDataRecord(value, REQUEST_KEYS, ["question", "progress"]);
+  if (!record) return null;
 
-    const result = Object.create(null) as Record<string, unknown>;
-    for (const key of keys) {
-      if (typeof key !== "string" || !REQUEST_KEYS.includes(key as typeof REQUEST_KEYS[number])) return null;
-      const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (
-        !descriptor ||
-        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
-        descriptor.enumerable !== true
-      ) return null;
-      result[key] = descriptor.value;
-    }
-
-    if (
-      typeof result.question !== "string" ||
-      result.question.length < 1 ||
-      result.question.length > MAX_QUESTION_LENGTH ||
-      result.question !== result.question.trim() ||
-      /[\u0000-\u001F\u007F]/u.test(result.question) ||
-      !Object.prototype.hasOwnProperty.call(result, "progress")
-    ) return null;
-
-    return Object.freeze({ question: result.question, progress: result.progress });
-  } catch {
+  const question = record.question;
+  const intent = record.intent === undefined ? "explain" : record.intent;
+  if (
+    typeof question !== "string" ||
+    question.length < 1 ||
+    question.length > MAX_QUESTION_LENGTH ||
+    question !== question.trim() ||
+    /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(question) ||
+    (intent !== "explain" && intent !== "recommend" && intent !== "context")
+  ) {
     return null;
   }
+
+  return Object.freeze({
+    question,
+    progress: record.progress,
+    intent,
+  });
 }
 
 function canonicalDataRecord(
@@ -292,6 +285,7 @@ export class HoidConversationGateway {
       answer = await this.config.runtime.answer({
         question: request.question,
         progress: request.progress,
+        intent: request.intent,
       });
     } catch {
       return unavailable("runtime-failed");

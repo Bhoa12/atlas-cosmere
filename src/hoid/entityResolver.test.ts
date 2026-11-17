@@ -500,4 +500,44 @@ describe("Hoid spoiler-aware entity resolution", () => {
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
   });
 
+
+  it("rejects alias disclosure records without an independent editorial approval", () => {
+    const entry = knowledge("synthetic.entity-a", ["Unreviewed Alias"]);
+    const unreviewed = [{
+      id: "synthetic.alias-unreviewed",
+      entityId: entry.id,
+      alias: "Unreviewed Alias",
+      evidence: [aliasEvidenceItem("synthetic.alias-source-unreviewed", "twok", 1, 1)],
+    }];
+    const result = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }]),
+      { text: "Unreviewed Alias" }, unreviewed,
+    );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+  });
+
+  it("rejects alias accessors without executing them", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
+    const record = reviewedAliasRecord(
+      "synthetic.alias-accessor",
+      entry.id,
+      "Synthetic Entity",
+      [aliasEvidenceItem("synthetic.alias-source-accessor", "twok", 1, 1)],
+    ) as unknown as Record<string, unknown>;
+    let invoked = false;
+    Object.defineProperty(record, "alias", {
+      enumerable: true,
+      get: () => {
+        invoked = true;
+        return "Synthetic Entity";
+      },
+    });
+    const result = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }),
+      { text: "Synthetic Entity" }, [record],
+    );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+    expect(invoked).toBe(false);
+  });
+
 });

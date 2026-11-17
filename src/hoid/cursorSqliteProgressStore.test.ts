@@ -17,6 +17,7 @@ type Marker = {
   source_schema_version: number;
   target_schema_version: number;
   source_revision: number;
+  source_payload: string;
   migrated_at: string;
 };
 type State = { v1: Row | null; v2: Row | null; marker: Marker | null };
@@ -67,7 +68,8 @@ class MemoryTransaction implements HoidSqliteTransactionPort {
         source_schema_version: Number(params[0]),
         target_schema_version: Number(params[1]),
         source_revision: Number(params[2]),
-        migrated_at: String(params[3]),
+        source_payload: String(params[3]),
+        migrated_at: String(params[4]),
       };
       return { changes: 1 };
     }
@@ -273,6 +275,7 @@ describe("ExpoSqliteHoidCursorProgressStore", () => {
       source_schema_version: 1,
       target_schema_version: 2,
       source_revision: 1,
+      source_payload: database.state.v1!.payload,
       migrated_at: "2026-11-17T00:00:00.000Z",
     };
 
@@ -286,11 +289,31 @@ describe("ExpoSqliteHoidCursorProgressStore", () => {
       source_schema_version: 1,
       target_schema_version: 2,
       source_revision: 0,
+      source_payload: "{}",
       migrated_at: "2026-11-17T00:00:00.000Z",
     };
 
     const result = await createStore(database).load();
     expect(result).toEqual({ status: "unavailable", reason: "migration-marker-orphaned" });
+  });
+
+  it("blocks v2 reads and writes if the legacy v1 source changes after migration", async () => {
+    const database = new MemoryDatabase();
+    const store = createStore(database);
+    await store.load();
+    const original = database.state.v1;
+    if (!original) throw new Error("Legacy source was not initialized");
+
+    const changed = legacySnapshot([{ bookId: "tfe", chapter: 2 }], 1);
+    database.state.v1 = {
+      schema_version: 1,
+      revision: 1,
+      payload: JSON.stringify(changed),
+    };
+
+    const result = await store.load();
+    expect(result).toEqual({ status: "unavailable", reason: "migration-source-changed" });
+    expect(await store.compareAndSwap(0, createNextSnapshot(0))).toBe(false);
   });
 
   it("rolls back both v2 writes when the migration marker insert fails", async () => {

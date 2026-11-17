@@ -13,6 +13,8 @@ on:
       - "src/hoid/readingManifest.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterDocuments.test.ts"
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - ".github/workflows/hoid-editorial-draft-validation.yml"
   pull_request:
@@ -44,6 +46,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Validate editorial draft staging and production isolation
-        run: npx vitest run src/hoid/editorialDrafts.test.ts src/hoid/editorialRegistry.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingManifest.test.ts
+        run: npx vitest run src/hoid/editorialDrafts.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/editorialRegistry.test.ts src/hoid/evidenceScope.test.ts src/hoid/readingManifest.test.ts
       - name: Type-check editorial draft provenance boundary
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialDrafts.ts src/hoid/editorialRegistry.ts src/hoid/evidenceRuntime.ts src/hoid/evidenceScope.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/verifiedChapterLocators.ts src/hoid/bibliography.ts src/hoid/catalog.ts src/hoid/catalogValidation.ts src/hoid/editionProgressValidation.ts src/hoid/retrieval.ts src/hoid/readingContext.ts src/hoid/recommendations.ts src/hoid/requestValidation.ts src/hoid/spoilerGuard.ts src/hoid/providerTimeout.ts src/hoid/types.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialDrafts.ts src/hoid/editorialRegistry.ts src/hoid/evidenceRuntime.ts src/hoid/evidenceScope.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/verifiedChapterLocators.ts src/hoid/verifiedChapterDocuments.ts src/hoid/bibliography.ts src/hoid/catalog.ts src/hoid/catalogValidation.ts src/hoid/editionProgressValidation.ts src/hoid/retrieval.ts src/hoid/readingContext.ts src/hoid/recommendations.ts src/hoid/requestValidation.ts src/hoid/spoilerGuard.ts src/hoid/providerTimeout.ts src/hoid/types.ts

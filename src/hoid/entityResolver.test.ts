@@ -481,7 +481,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
       [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 6, 6)],
     )];
     const result = resolveHoidAuthorizedEntities(
-      [entry], progress([{ bookId: "twok", chapter: 5 }]),
+      [entry], progress([{ bookId: "twok", chapter: 6 }]),
       { text: "Uninspected Alias" }, aliases,
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });

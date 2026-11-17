@@ -291,13 +291,13 @@ describe("Hoid spoiler-aware entity resolution", () => {
   it("rejects an entity whose source document was not individually inspected", () => {
     const manifest = getHoidReadingManifest("twok");
     if (manifest.status !== "ready") throw new Error("Manifiesto de fixture no disponible");
-    const unit = manifest.manifest.units.find(item => item.chapterNumber === 3);
+    const unit = manifest.manifest.units.find(item => item.chapterNumber === 4);
     if (!unit?.locatorId) throw new Error("Localizador de fixture no disponible");
     const entry = {
       ...knowledge("synthetic.uninspected", ["Uninspected Synthetic Entity"]),
-      firstSafeAppearance: { bookId: "twok", chapter: 3 },
-      evidenceSource: { bookId: "twok", chapter: 3, locatorId: unit.locatorId },
-      evidenceUnlock: { bookId: "twok", chapter: 3 },
+      firstSafeAppearance: { bookId: "twok", chapter: 4 },
+      evidenceSource: { bookId: "twok", chapter: 4, locatorId: unit.locatorId },
+      evidenceUnlock: { bookId: "twok", chapter: 4 },
     };
     const result = resolveHoidAuthorizedEntities(
       [entry],

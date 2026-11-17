@@ -49,21 +49,41 @@ function knowledge(
 }
 
 
+function reviewedAliasRecord(
+  id: string,
+  entityId: string,
+  alias: string,
+  evidence: readonly unknown[],
+) {
+  return {
+    id,
+    entityId,
+    alias,
+    evidence,
+    review: {
+      status: "approved" as const,
+      origin: "original-editorial" as const,
+      reviewerId: "synthetic-alias-reviewer",
+      reviewedAt: NOW,
+    },
+  };
+}
+
 function defaultAliasEvidence(entries: readonly HoidKnowledgeEntry[]) {
   return entries.flatMap(entry => {
     if (!entry.evidenceSource || !entry.evidenceUnlock) {
       throw new Error("La evidencia de fixture no está disponible");
     }
-    return entry.aliases.map((alias, index) => ({
-      id: `synthetic.alias.${entry.id}.${index}`,
-      entityId: entry.id,
+    return entry.aliases.map((alias, index) => reviewedAliasRecord(
+      `synthetic.alias.${entry.id}.${index}`,
+      entry.id,
       alias,
-      evidence: [{
+      [{
         id: `synthetic.alias-evidence.${entry.id}.${index}`,
         source: entry.evidenceSource!,
         unlock: entry.evidenceUnlock!,
       }],
-    }));
+    ));
   });
 }
 
@@ -391,12 +411,12 @@ describe("Hoid spoiler-aware entity resolution", () => {
 
   it("keeps an alias hidden until its own later disclosure threshold", () => {
     const entry = knowledge("synthetic.entity-a", ["Later Synthetic Alias"], "twok", 1);
-    const aliases = [{
-      id: "synthetic.alias-later",
-      entityId: entry.id,
-      alias: "Later Synthetic Alias",
-      evidence: [aliasEvidenceItem("synthetic.alias-source", "twok", 1, 2)],
-    }];
+    const aliases = [reviewedAliasRecord(
+      "synthetic.alias-later",
+      entry.id,
+      "Later Synthetic Alias",
+      [aliasEvidenceItem("synthetic.alias-source", "twok", 1, 2)],
+    )];
     const before = resolveHoidAuthorizedEntities(
       [entry], progress([{ bookId: "twok", chapter: 2 }]),
       { text: "Later Synthetic Alias" }, aliases,
@@ -414,15 +434,15 @@ describe("Hoid spoiler-aware entity resolution", () => {
   it("requires every cross-work alias disclosure source (AND semantics)", () => {
     const entity = knowledge("synthetic.entity-a", ["Cross-Work Synthetic Alias"], "twok", 1);
     const support = knowledge("synthetic.support", ["Support Entity"], "edgedancer", 1);
-    const aliases = [{
-      id: "synthetic.alias-cross-work",
-      entityId: entity.id,
-      alias: "Cross-Work Synthetic Alias",
-      evidence: [
+    const aliases = [reviewedAliasRecord(
+      "synthetic.alias-cross-work",
+      entity.id,
+      "Cross-Work Synthetic Alias",
+      [
         aliasEvidenceItem("synthetic.alias-source-a", "twok", 1, 1),
         aliasEvidenceItem("synthetic.alias-source-b", "edgedancer", 1, 2),
       ],
-    }];
+    )];
     const before = resolveHoidAuthorizedEntities(
       [entity, support],
       progress([
@@ -452,12 +472,12 @@ describe("Hoid spoiler-aware entity resolution", () => {
 
   it("rejects an alias disclosure that cites an uninspected chapter document", () => {
     const entry = knowledge("synthetic.entity-a", ["Uninspected Alias"], "twok", 1);
-    const aliases = [{
-      id: "synthetic.alias-uninspected",
-      entityId: entry.id,
-      alias: "Uninspected Alias",
-      evidence: [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 2, 2)],
-    }];
+    const aliases = [reviewedAliasRecord(
+      "synthetic.alias-uninspected",
+      entry.id,
+      "Uninspected Alias",
+      [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 2, 2)],
+    )];
     const result = resolveHoidAuthorizedEntities(
       [entry], progress([{ bookId: "twok", chapter: 3 }]),
       { text: "Uninspected Alias" }, aliases,
@@ -467,12 +487,12 @@ describe("Hoid spoiler-aware entity resolution", () => {
 
   it("rejects alias evidence that is not attached to the entity's declared aliases", () => {
     const entry = knowledge("synthetic.entity-a", ["Declared Alias"], "twok", 1);
-    const aliases = [{
-      id: "synthetic.alias-invented",
-      entityId: entry.id,
-      alias: "Invented Alias",
-      evidence: [aliasEvidenceItem("synthetic.alias-source-invented", "twok", 1, 1)],
-    }];
+    const aliases = [reviewedAliasRecord(
+      "synthetic.alias-invented",
+      entry.id,
+      "Invented Alias",
+      [aliasEvidenceItem("synthetic.alias-source-invented", "twok", 1, 1)],
+    )];
     const result = resolveHoidAuthorizedEntities(
       [entry], progress([{ bookId: "twok", chapter: 2 }]),
       { text: "Invented Alias" }, aliases,

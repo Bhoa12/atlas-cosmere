@@ -326,4 +326,21 @@ describe("Hoid spoiler-aware entity resolution", () => {
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
   });
 
+
+  it("changes the result fingerprint when reading moves even if a fixture reuses its revision", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
+    const first = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }]), { text: "Synthetic Entity" },
+    );
+    const second = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 3 }]), { text: "Synthetic Entity" },
+    );
+    expect(first.status).toBe("ready");
+    expect(second.status).toBe("ready");
+    if (first.status === "ready" && second.status === "ready") {
+      expect(first.progressRevision).toBe(second.progressRevision);
+      expect(first.progressFingerprint).not.toBe(second.progressFingerprint);
+    }
+  });
+
 });

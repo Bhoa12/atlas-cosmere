@@ -166,6 +166,17 @@ describe("edition-bound reading manifests", () => {
     expect(unavailableSource.manifest.units[0].locatorId).toBeUndefined();
   });
 
+
+  it("attaches locators to both individually inspected Roshar novellas", () => {
+    for (const [bookId, expectedCount] of [["edgedancer", 20], ["dawnshard", 19]] as const) {
+      const result = getHoidReadingManifest(bookId);
+      expect(result.status).toBe("ready");
+      if (result.status !== "ready") continue;
+      expect(result.manifest.units).toHaveLength(expectedCount);
+      expect(result.manifest.units.every(unit => typeof unit.locatorId === "string")).toBe(true);
+    }
+  });
+
   it("stores no chapter titles or narrative text in manifests", () => {
     const result = getHoidReadingManifest("twok");
     expect(result.status).toBe("ready");

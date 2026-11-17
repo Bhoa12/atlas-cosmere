@@ -48,7 +48,7 @@ function knowledge(
   if (!unit?.locatorId) throw new Error("Localizador de fixture no disponible");
   return {
     id,
-    aliases: [id],
+    aliases: ["alias-" + id],
     kind: "character" as const,
     firstSafeAppearance: { bookId, chapter: 1 },
     evidenceSource: { bookId, chapter: 1, locatorId: unit.locatorId },
@@ -294,7 +294,7 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([]),
     );
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-definition" });
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-claims" });
   });
 
   it("rejects unknown claims and duplicate relation identities", () => {

@@ -327,3 +327,6 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - The current staging bundle remains blocked: the unnamed Edgedancer participant is unresolved, and no independent review receipts exist. Production knowledge, alias and graph registries remain empty.
 - The current Library listing exposes the three Roshar EPUBs (with duplicate copies) but not cosmere.epub. No new Mistborn chapter was inspected in this run.
 - No EPUB bytes, XHTML bodies or protected passages were committed. Only source metadata, chapter locators, SHA-256 digests and original summaries are stored. See docs/hoid/ROSHAR_CHAPTER_FOUR_INGESTION.md and docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md.
+
+
+The protected promotion gate also requires a read-only `HoidPromotionProgressPort`. It checks the authoritative Atlas cursor snapshot both before and after the source-control review fetch; the revision and fingerprint must still match the plan. This closes the race where a reader changes or rewinds progress while approvals are being checked. Missing, invalid, stale or changed progress fails closed.

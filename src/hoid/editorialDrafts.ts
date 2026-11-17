@@ -2,6 +2,7 @@ import type { HoidKnowledgeKind } from "./catalog";
 import { canonicalEvidenceScope } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import { sha256Hex } from "./sha256";
 
 export type HoidEditorialDraft = Readonly<{
   schemaVersion: 1;
@@ -16,6 +17,7 @@ export type HoidEditorialDraft = Readonly<{
     navigationSha256: string;
     documentSha256: string;
   }>;
+  summaryIntegrity: Readonly<{ sha256: string }>;
   summary: string;
   summaryKind: "original-editorial-summary";
   review: Readonly<{ status: "pending-review" }>;
@@ -34,6 +36,7 @@ export type HoidEditorialDraftValidation =
         | "invalid-evidence"
         | "invalid-source-integrity"
         | "invalid-summary"
+        | "invalid-summary-integrity"
         | "invalid-review";
     }>;
 
@@ -46,6 +49,7 @@ const DRAFT_KEYS = new Set([
   "evidenceSource",
   "evidenceUnlock",
   "sourceIntegrity",
+  "summaryIntegrity",
   "summary",
   "summaryKind",
   "review",
@@ -227,6 +231,16 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
     raw.summaryKind !== "original-editorial-summary"
   ) return Object.freeze({ status: "invalid", reason: "invalid-summary" });
 
+  const summaryIntegrity = canonicalRecord(raw.summaryIntegrity, new Set(["sha256"]), true);
+  const summarySha256 = typeof summaryIntegrity?.sha256 === "string"
+    ? summaryIntegrity.sha256
+    : "";
+  if (
+    !summaryIntegrity ||
+    !/^[a-f0-9]{64}$/.test(summarySha256) ||
+    summarySha256 !== sha256Hex(raw.summary.trim())
+  ) return Object.freeze({ status: "invalid", reason: "invalid-summary-integrity" });
+
   const review = canonicalRecord(raw.review, new Set(["status"]), true);
   if (!review || review.status !== "pending-review") {
     return Object.freeze({ status: "invalid", reason: "invalid-review" });
@@ -255,6 +269,7 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
       navigationSha256: integrity.navigationSha256 as string,
       documentSha256: integrity.documentSha256,
     }),
+    summaryIntegrity: Object.freeze({ sha256: summarySha256 }),
     summary: raw.summary.trim(),
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
@@ -337,6 +352,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
       documentSha256: "0853a9469afe233d415645208f04bafb7f5dd5d603af9706c8924bcf14d27a70",
     }),
+    summaryIntegrity: Object.freeze({ sha256: "f6ff4d0c396ad06b3e4869585ddec96b16fbfe29cc0bc0692a3958581f1ec64f" }),
     summary: "El capítulo sigue a Cenn, un recluta de quince años que afronta una escaramuza con poca experiencia. Dallet lo orienta y lo integra en el pelotón de Kaladin, cuya disciplina y coordinación contrastan con el desorden de otras unidades. La formación protege a Cenn durante buena parte del combate, pero el caos termina separándolo del grupo y dejándolo herido; Kaladin interviene para salvarlo y organiza la atención a los heridos. La escena presenta el liderazgo táctico de Kaladin y su preocupación por los soldados jóvenes desde la perspectiva vulnerable de un recién llegado.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
@@ -358,6 +374,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
       documentSha256: "8a85e1ccb126c5915f3948351266030b0966abb822403ddd0415791c671ce7dc",
     }),
+    summaryIntegrity: Object.freeze({ sha256: "29b89159bdb622ccefa35d97c26e997683500eb572c6979e9e2829578d6fd8b2" }),
     summary: "El capítulo presenta a Lift mientras se aleja de Azir acompañada por Wyndle. Su carrera y el uso de sus capacidades para deslizarse reflejan su deseo de seguir moviéndose y evitar quedar atrapada por las expectativas ajenas. Al detenerse, contempla la ciudad que deja atrás y reconoce que su salida es una despedida deliberada, no un simple impulso pasajero. La escena establece el conflicto entre conservar su independencia y afrontar los cambios que intenta esquivar.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
@@ -379,6 +396,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       documentSha256: "eac1f947b3303414b0b8a69ff19eabcd396c1fdd32caa1c1349c931eb8d8d2ae",
     }),
+    summaryIntegrity: Object.freeze({ sha256: "dac6798cb130a17b714584d131204b7e4265748cdf464af8668f22f751cd7ad0" }),
     summary: "Rysn revisa informes comerciales para encontrar una nueva oportunidad de viaje mientras intenta atender a Chiri-Chiri, cuya salud ha empeorado. La relación con Nikli muestra que procura conservar su autonomía pese a necesitar ayuda en algunas tareas. La información que recibe sobre Akinah como posible hogar de Chiri-Chiri coincide con una solicitud de Navani para investigar la zona de una expedición marítima anterior. Rysn conecta ambas pistas y decide acudir a Urithiru para estudiar el encargo.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),

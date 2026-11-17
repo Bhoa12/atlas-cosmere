@@ -213,3 +213,8 @@ The projection preserves started work IDs separately so recommendations do not l
 The draft remains `pending-review`. `editorialRegistry.ts` does not import it, so the production evidence runtime still abstains. A separate editorial review must check accuracy, originality and spoiler scope before a source-controlled change promotes any item into the approved registry.
 
 See `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md` and `src/hoid/editorialDrafts.test.ts`. No EPUB, XHTML or source passage is committed.
+
+
+## Editorial summary integrity and review packets
+
+Pending original summaries are now bound to a recomputed UTF-8 SHA-256 digest. The deterministic review-packet builder includes only original editorial prose and metadata; a structurally valid approval receipt remains `approved-awaiting-source-promotion` and cannot modify the production registry. Human reviewer identity must be authenticated through protected GitHub review, not by trusting a local receipt. See `docs/hoid/EDITORIAL_REVIEW_PACKETS.md`.

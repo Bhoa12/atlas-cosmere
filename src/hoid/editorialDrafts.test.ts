@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { sha256Hex } from "./sha256";
 import {
   getHoidEditorialDraftStatus,
   HOID_EDITORIAL_DRAFTS,
@@ -20,6 +21,29 @@ function cloneDraft(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Hoid editorial draft staging", () => {
+  it("binds every editorial summary to its exact UTF-8 SHA-256 digest", () => {
+    expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.summaryIntegrity.sha256)).toEqual([
+      "f6ff4d0c396ad06b3e4869585ddec96b16fbfe29cc0bc0692a3958581f1ec64f",
+      "29b89159bdb622ccefa35d97c26e997683500eb572c6979e9e2829578d6fd8b2",
+      "dac6798cb130a17b714584d131204b7e4265748cdf464af8668f22f751cd7ad0",
+    ]);
+    for (const draft of HOID_EDITORIAL_DRAFTS) {
+      expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
+    }
+  });
+
+  it("rejects summary edits when the original digest is retained", () => {
+    expect(validateHoidEditorialDraft(cloneDraft({
+      summary: validDraft.summary + " Texto añadido después de la revisión.",
+    }))).toEqual({ status: "invalid", reason: "invalid-summary-integrity" });
+  });
+
+  it("rejects a forged but well-formed summary digest", () => {
+    expect(validateHoidEditorialDraft(cloneDraft({
+      summaryIntegrity: { sha256: "a".repeat(64) },
+    }))).toEqual({ status: "invalid", reason: "invalid-summary-integrity" });
+  });
+
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS).toHaveLength(3);

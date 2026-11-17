@@ -154,7 +154,7 @@ describe("Hoid atomic editorial claim drafts", () => {
       intent: "explain",
       statement: "Afirmación sintética que intenta citar un capítulo no inspeccionado.",
       evidence: [{
-        ...evidence("twok"),
+        ...evidence("twok", 1, 2),
         source: {
           bookId: "twok",
           chapter: 2,

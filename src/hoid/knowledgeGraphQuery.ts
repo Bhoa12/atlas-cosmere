@@ -2,19 +2,20 @@ import {
   buildHoidAuthorizedKnowledgeGraph,
   buildProductionHoidAuthorizedKnowledgeGraph,
   fingerprintHoidCursorProgressSnapshot,
-  HOID_KNOWLEDGE_GRAPH_DEFINITION,
-  type HoidKnowledgeGraphDefinition,
   type HoidKnowledgeGraphEdge,
   type HoidKnowledgeGraphResult,
   type HoidKnowledgeGraphSource,
 } from "./knowledgeGraph";
-export type { HoidKnowledgeGraphRelation } from "./knowledgeGraph";
+export type {
+  HoidKnowledgeGraphDefinition,
+  HoidKnowledgeGraphRelation,
+} from "./knowledgeGraph";
 
 export type HoidKnowledgeGraphPath = Readonly<{
   nodeIds: readonly string[];
   edges: readonly HoidKnowledgeGraphEdge[];
 }>;
-import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
+import { HOID_APPROVED_CLAIMS } from "./editorialRegistry";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import type { HoidApprovedClaim } from "./evidenceRuntime";
 import { sha256Hex } from "./sha256";
@@ -459,7 +460,7 @@ function canonicalApprovedClaims(value: unknown): readonly HoidApprovedClaim[] |
 
   for (const item of items) {
     const record = canonicalRecord(item, ["id", "text", "intent", "evidenceIds", "review"]);
-    if (!record || Reflect.ownKeys(item as object).length !== 5) return null;
+    if (!record || Object.keys(record).length !== 5) return null;
     const id = record.id;
     const text = record.text;
     const intent = record.intent;
@@ -483,7 +484,7 @@ function canonicalApprovedClaims(value: unknown): readonly HoidApprovedClaim[] |
     ) return null;
 
     const review = canonicalRecord(record.review, ["status", "origin", "reviewerId", "reviewedAt"]);
-    if (!review || Reflect.ownKeys(record.review as object).length !== 4) return null;
+    if (!review || Object.keys(review).length !== 4) return null;
     const reviewerId = review.reviewerId;
     const reviewedAt = review.reviewedAt;
     if (

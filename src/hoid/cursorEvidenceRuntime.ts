@@ -16,6 +16,8 @@ export type HoidCursorProgressProjection =
       status: "ready";
       revision: number;
       reading: readonly ReadingPosition[];
+      /** Works already started, including chapter one before any chapter is complete. */
+      startedBookIds: readonly string[];
     }>
   | Readonly<{
       status: "unavailable";
@@ -76,11 +78,13 @@ export function projectHoidCursorProgressSnapshot(
   }
 
   const reading: ReadingPosition[] = [];
+  const startedBookIds: string[] = [];
   for (const position of validation.snapshot.positions) {
     const projected = toReadingPosition(position);
     if (projected === undefined) {
       return Object.freeze({ status: "unavailable", reason: "cursor-unavailable" });
     }
+    startedBookIds.push(position.bookId);
     // A cursor on chapter one is valid, but no chapter has been completed yet.
     // Do not manufacture chapter zero or authorize any chapter-level evidence.
     if (projected !== null) reading.push(projected);
@@ -90,6 +94,7 @@ export function projectHoidCursorProgressSnapshot(
     status: "ready",
     revision: validation.snapshot.revision,
     reading: Object.freeze(reading),
+    startedBookIds: Object.freeze(startedBookIds),
   });
 }
 
@@ -168,7 +173,16 @@ export class HoidCursorEvidenceRuntime {
     const projection = projectHoidCursorProgressSnapshot(progress);
     if (projection.status !== "ready") return invalidRecommendation();
 
-    return this.runtime.recommend([...projection.reading], limit);
+    // Ask the metadata-only recommender for a bounded candidate set, then
+    // remove every work already present in the v2 snapshot. Chapter-one
+    // readers have no completed chapter yet, but their work is still started.
+    const candidates = this.runtime.recommend([...projection.reading], MAX_RECOMMENDATION_LIMIT);
+    if (candidates.status !== "ready") return candidates;
+    const started = new Set(projection.startedBookIds);
+    return Object.freeze({
+      status: "ready",
+      items: Object.freeze(candidates.items.filter(item => !started.has(item.sourceId)).slice(0, limit)),
+    });
   }
 }
 

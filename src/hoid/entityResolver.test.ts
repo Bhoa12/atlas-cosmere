@@ -107,8 +107,8 @@ describe("Hoid spoiler-aware entity resolution", () => {
     expect(result.matches).toHaveLength(1);
     expect(result.matches[0].id).toBe(entry.id);
     expect(result.matches[0].matchedAlias).toBe("Synthetic Entity");
-    expect(result.matches[0].source.sourceChapter).toBe(1);
-    expect(result.matches[0].source.documentSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.matches[0].entitySource.sourceChapter).toBe(1);
+    expect(result.matches[0].entitySource.documentSha256).toMatch(/^[a-f0-9]{64}$/);
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain(entry.summary);
     expect(serialized).not.toContain("evidenceUnlock");

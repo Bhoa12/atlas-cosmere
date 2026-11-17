@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Conectar el snapshot v2 de progreso por cursores con el runtime estricto de evidencias sin activar todavía una migración de SQLite ni cambiar la fuente autoritativa de progreso de Atlas.
+Conectar el snapshot v2 de progreso por cursores con el runtime estricto de evidencias. CosmereContext y HoidScreen utilizan ahora el mismo snapshot v2 que devuelve el coordinador persistente; los mapas numéricos quedan limitados a presentación heredada.
 
 HoidCursorEvidenceRuntime es una fachada de compatibilidad: valida primero el snapshot v2 completo, vuelve a validar cada cursor contra el manifiesto de la edición y solo entonces proyecta las posiciones a la forma numérica que consume el runtime de evidencias existente.
 
@@ -37,11 +37,11 @@ La solicitud de respuesta acepta únicamente question, progress e intent. Se rec
 - Las recomendaciones siguen siendo metadatos; no se infiere orden canónico ni dependencia argumental.
 - Ante cualquier discrepancia, la fachada se abstiene o bloquea.
 
-## Límite de esta iteración
+## Integración de producción
 
-Esta fachada no convierte SQLite v1 en v2, no realiza migración en disco y no se conecta todavía a HoidScreen. El coordinador y la interfaz existentes continúan usando el formato v1 hasta que se implemente y pruebe el adaptador SQLite v2, el marcador transaccional, la lectura dual y la recuperación ante interrupciones.
+HoidScreen llama a esta fachada con `hoidCursorProgressSnapshot` proporcionado por CosmereContext. No reconstruye el progreso de autorización a partir de `capituloActualPorLibro` ni `librosLeidos`. El adaptador SQLite v2 realiza la migración transaccional desde v1, conserva el payload de origen y bloquea el progreso si detecta divergencias.
 
-La fachada demuestra y prueba la frontera de autorización por cursor, lista para conectarse cuando la persistencia v2 sea autoritativa.
+El registro editorial continúa vacío hasta que existan afirmaciones originales revisadas contra pasajes accesibles. Por ello, el runtime se abstiene correctamente ante preguntas narrativas. La integración usa cursores en producción, pero todavía requiere pruebas de reinicio e interrupción sobre SQLite nativo en Android/iOS.
 
 ## Fuentes
 

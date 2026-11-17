@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  resolveHoidAuthorizedEntities,
+  resolveHoidAuthorizedEntities as resolveWithAliasEvidence,
   resolveProductionHoidEntities,
 } from "./entityResolver";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
@@ -45,6 +45,51 @@ function knowledge(
     evidenceUnlock: { bookId, chapter: unlockChapter },
     summary: "Resumen sintético de prueba; no representa hechos del Cosmere.",
     provenance: "verified",
+  };
+}
+
+
+function defaultAliasEvidence(entries: readonly HoidKnowledgeEntry[]) {
+  return entries.flatMap(entry => {
+    if (!entry.evidenceSource || !entry.evidenceUnlock) {
+      throw new Error("La evidencia de fixture no está disponible");
+    }
+    return entry.aliases.map((alias, index) => ({
+      id: `synthetic.alias.${entry.id}.${index}`,
+      entityId: entry.id,
+      alias,
+      evidence: [{
+        id: `synthetic.alias-evidence.${entry.id}.${index}`,
+        source: entry.evidenceSource!,
+        unlock: entry.evidenceUnlock!,
+      }],
+    }));
+  });
+}
+
+function resolveHoidAuthorizedEntities(
+  entries: readonly HoidKnowledgeEntry[],
+  reading: unknown,
+  query: unknown,
+  aliasEvidence = defaultAliasEvidence(entries),
+) {
+  return resolveWithAliasEvidence(entries, aliasEvidence, reading, query);
+}
+
+function aliasEvidenceItem(
+  id: string,
+  bookId: string,
+  sourceChapter: number,
+  unlockChapter: number,
+) {
+  const manifest = getHoidReadingManifest(bookId);
+  if (manifest.status !== "ready") throw new Error("Manifiesto de alias no disponible");
+  const unit = manifest.manifest.units.find(item => item.chapterNumber === sourceChapter);
+  if (!unit?.locatorId) throw new Error("Localizador de alias no disponible");
+  return {
+    id,
+    source: { bookId, chapter: sourceChapter, locatorId: unit.locatorId },
+    unlock: { bookId, chapter: unlockChapter },
   };
 }
 
@@ -341,6 +386,98 @@ describe("Hoid spoiler-aware entity resolution", () => {
       expect(first.progressRevision).toBe(second.progressRevision);
       expect(first.progressFingerprint).not.toBe(second.progressFingerprint);
     }
+  });
+
+
+  it("keeps an alias hidden until its own later disclosure threshold", () => {
+    const entry = knowledge("synthetic.entity-a", ["Later Synthetic Alias"], "twok", 1);
+    const aliases = [{
+      id: "synthetic.alias-later",
+      entityId: entry.id,
+      alias: "Later Synthetic Alias",
+      evidence: [aliasEvidenceItem("synthetic.alias-source", "twok", 1, 2)],
+    }];
+    const before = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }]),
+      { text: "Later Synthetic Alias" }, aliases,
+    );
+    const after = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 3 }]),
+      { text: "Later Synthetic Alias" }, aliases,
+    );
+    expect(before.status).toBe("ready");
+    if (before.status === "ready") expect(before.resolution).toBe("not-found");
+    expect(after.status).toBe("ready");
+    if (after.status === "ready") expect(after.resolution).toBe("matched");
+  });
+
+  it("requires every cross-work alias disclosure source (AND semantics)", () => {
+    const entity = knowledge("synthetic.entity-a", ["Cross-Work Synthetic Alias"], "twok", 1);
+    const support = knowledge("synthetic.support", ["Support Entity"], "edgedancer", 1);
+    const aliases = [{
+      id: "synthetic.alias-cross-work",
+      entityId: entity.id,
+      alias: "Cross-Work Synthetic Alias",
+      evidence: [
+        aliasEvidenceItem("synthetic.alias-source-a", "twok", 1, 1),
+        aliasEvidenceItem("synthetic.alias-source-b", "edgedancer", 1, 2),
+      ],
+    }];
+    const before = resolveHoidAuthorizedEntities(
+      [entity, support],
+      progress([
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
+      ]),
+      { text: "Cross-Work Synthetic Alias" },
+      aliases,
+    );
+    const after = resolveHoidAuthorizedEntities(
+      [entity, support],
+      progress([
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ]),
+      { text: "Cross-Work Synthetic Alias" },
+      aliases,
+    );
+    expect(before.status).toBe("ready");
+    if (before.status === "ready") expect(before.resolution).toBe("not-found");
+    expect(after.status).toBe("ready");
+    if (after.status === "ready") {
+      expect(after.resolution).toBe("matched");
+      expect(after.matches[0].aliasEvidence).toHaveLength(2);
+    }
+  });
+
+  it("rejects an alias disclosure that cites an uninspected chapter document", () => {
+    const entry = knowledge("synthetic.entity-a", ["Uninspected Alias"], "twok", 1);
+    const aliases = [{
+      id: "synthetic.alias-uninspected",
+      entityId: entry.id,
+      alias: "Uninspected Alias",
+      evidence: [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 2, 2)],
+    }];
+    const result = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 3 }]),
+      { text: "Uninspected Alias" }, aliases,
+    );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
+  });
+
+  it("rejects alias evidence that is not attached to the entity's declared aliases", () => {
+    const entry = knowledge("synthetic.entity-a", ["Declared Alias"], "twok", 1);
+    const aliases = [{
+      id: "synthetic.alias-invented",
+      entityId: entry.id,
+      alias: "Invented Alias",
+      evidence: [aliasEvidenceItem("synthetic.alias-source-invented", "twok", 1, 1)],
+    }];
+    const result = resolveHoidAuthorizedEntities(
+      [entry], progress([{ bookId: "twok", chapter: 2 }]),
+      { text: "Invented Alias" }, aliases,
+    );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
   });
 
 });

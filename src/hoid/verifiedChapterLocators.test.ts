@@ -57,14 +57,20 @@ describe("verified EPUB chapter locators", () => {
     )).toBeNull();
   });
 
-  it("does not invent locators for cosmere.epub works absent from the current runtime", () => {
-    expect(getVerifiedChapterLocatorCount("tfe")).toBe(0);
+  it("exposes inspected numeric Cosmere locators and keeps merged collections blocked", () => {
+    expect(getVerifiedChapterLocatorCount("tfe")).toBe(38);
     expect(getVerifiedChapterLocatorId(
       "tfe",
       "cosmere-epub-merged-v1",
       "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
       1,
-    )).toBeNull();
+    )).toBe(
+      "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/001.xhtml",
+    );
+    expect(getVerifiedChapterLocatorCount("white-sand-1")).toBe(0);
+    expect(getVerifiedChapterLocatorCount("white-sand-2")).toBe(0);
+    expect(getVerifiedChapterLocatorCount("white-sand-3")).toBe(0);
+    expect(getVerifiedChapterLocatorCount("arcanum")).toBe(0);
   });
 
   it("rejects unknown works and invalid chapter numbers", () => {

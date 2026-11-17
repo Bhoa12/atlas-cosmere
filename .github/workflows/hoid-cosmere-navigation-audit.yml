@@ -1,0 +1,49 @@
+name: Hoid Cosmere EPUB navigation audit
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/verifiedChapterLocators.test.ts"
+      - "src/hoid/cosmereNavigationAudit.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/EDITION_STRUCTURE.md"
+      - "docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md"
+      - ".github/workflows/hoid-cosmere-navigation-audit.yml"
+  pull_request:
+    paths:
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/verifiedChapterLocators.test.ts"
+      - "src/hoid/cosmereNavigationAudit.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/EDITION_STRUCTURE.md"
+      - "docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md"
+      - ".github/workflows/hoid-cosmere-navigation-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cosmere-navigation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test Cosmere and Roshar edition locators
+        run: npx vitest run src/hoid/cosmereNavigationAudit.test.ts src/hoid/verifiedChapterLocators.test.ts src/hoid/readingManifest.test.ts src/hoid/editionStructure.test.ts
+      - name: Type-check navigation and manifest boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/verifiedChapterLocators.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/verifiedChapterDocuments.ts src/hoid/bibliography.ts src/hoid/types.ts

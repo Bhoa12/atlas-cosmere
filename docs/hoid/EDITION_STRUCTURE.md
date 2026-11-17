@@ -2,7 +2,7 @@
 
 ## Alcance de la inspección
 
-Run 101 inspeccionó los metadatos OPF y los documentos de navegación de tres EPUBs únicos de Roshar disponibles en la Library: el recopilatorio de las cinco novelas, Danzante del Filo y Esquirla del amanecer. Los recuentos históricos de `cosmere.epub` se conservan, pero ese archivo no estaba presente en la Library de esta ejecución y no se volvió a inspeccionar. No se extrajo texto de capítulos ni se incorporaron títulos de capítulos al repositorio.
+Run 101 inspeccionó los metadatos OPF y la navegación de tres EPUBs de Roshar. Run 106 volvió a materializar `cosmere.epub` desde la Library e inspeccionó su OPF y `EPUB/nav.xhtml`. El digest de navegación coincide con el ya registrado en `editionStructure.ts`. Esta segunda inspección habilitó hrefs relativos de capítulos numerados, pero no incorporó títulos, texto de capítulos ni afirmaciones narrativas.
 
 Cada `navigationSha256` de `src/hoid/editionStructure.ts` es la huella SHA-256 del documento de navegación de esa edición. Sirve para detectar cambios de edición o de índice; no es una huella del texto narrativo.
 
@@ -22,7 +22,7 @@ Los recuentos son el número de valores de capítulo numerado encontrados en el 
 | Brazales de Duelo | 31 | Numérica |
 | El metal perdido | 74 | Numérica |
 | El aliento de los dioses | 58 | Numérica |
-| Elantris | 63 | Requiere localizador para los números repetidos 48, 51 y 57 |
+| Elantris | 63 | Solo se habilitan localizadores 1–47; 48, 51 y 57 permanecen ambiguos |
 | Arena blanca, volúmenes 1–3 | Sin recuento por volumen | El índice los presenta en un bloque combinado; requiere segmentación |
 | Trenza del mar Esmeralda | 64 | Numérica |
 | Yumi y el pintor de pesadillas | 41 | Numérica |
@@ -68,6 +68,6 @@ La omisión significa que Hoid no puede usar esa posición parcial para desbloqu
 2. Elantris y Viento y verdad necesitan un cursor basado en localizador, no solo un entero de capítulo.
 3. Arena blanca requiere identificar los límites exactos de los tres volúmenes dentro de la edición combinada.
 4. Arcanum ilimitado requiere modelar obras internas como unidades de lectura independientes.
-5. El progreso de Atlas aún usa enteros por libro. La migración a cursores de unidad debe ser explícita y compatible con datos antiguos.
+5. El esquema v2 de Atlas utiliza cursores vinculados a edición para capítulos numerados; prólogos, interludios, epílogos, relatos internos y otras secciones especiales aún necesitan unidades de lectura explícitas.
 
-La estructura se usa para validar posiciones de lectura. `verifiedChapterLocators.ts` añade hrefs relativos del TOC, namespaced por edición y digest, solo para las tres fuentes Roshar inspeccionadas. No contiene pasajes, resúmenes, títulos de capítulos ni afirmaciones narrativas. `cosmere.epub` no recibe localizadores hasta que el archivo esté disponible para inspeccionar su navegación.
+La estructura se usa para validar posiciones de lectura. `verifiedChapterLocators.ts` contiene hrefs relativos del TOC, namespaced por edición y digest, para Roshar y para 653 capítulos numerados de `cosmere.epub`. La cobertura de Elantris se limita a 1–47; Arena blanca y Arcanum permanecen bloqueados para progreso numérico. Los hrefs no son hashes de documentos narrativos ni demuestran que sus pasajes hayan sido inspeccionados. Consulta `docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md`.

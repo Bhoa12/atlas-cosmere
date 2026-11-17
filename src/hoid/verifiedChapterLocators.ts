@@ -1,13 +1,14 @@
 /**
- * Exact chapter-to-navigation locators derived from the TOC documents of the
- * three unique Roshar EPUB editions available to this runtime.
+ * Exact chapter-to-navigation locators derived from inspected private EPUB TOCs.
  *
  * Only relative navigation hrefs are stored. Chapter titles, body text and
- * extracted passages are deliberately excluded. The locator is bound to both
- * the edition ID and the SHA-256 of that edition's navigation document.
+ * extracted passages are deliberately excluded. Every locator is bound to the
+ * edition ID and SHA-256 of that edition's navigation document.
  *
- * The cosmere.epub source is not present in the current Library runtime, so
- * its catalogue entries intentionally have no verified per-chapter locator.
+ * The cosmere.epub navigation was inspected in Run 106. This verifies chapter
+ * structure and relative hrefs only; it does not claim that chapter bodies
+ * were read or that narrative evidence was reviewed. Ambiguous and collection
+ * works remain conservative.
  */
 type RawNavigationSource = Readonly<{
   editionId: string;
@@ -59,15 +60,126 @@ const RAW: Readonly<Record<string, RawNavigationSource>> = Object.freeze({
   },
 });
 
+
+const COSMERE_EDITION_ID = "cosmere-epub-merged-v1";
+const COSMERE_NAVIGATION_SHA256 = "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee";
+
+type ChapterHrefRange = Readonly<{
+  from: number;
+  to: number;
+  prefix: string;
+  padding: number;
+  suffix?: string;
+}>;
+
+function buildCosmereChapterHrefs(
+  bookNumber: number,
+  ranges: readonly ChapterHrefRange[],
+): readonly string[] {
+  const root = `books/b${String(bookNumber).padStart(6, "0")}/OEBPS/Text/`;
+  return Object.freeze(ranges.flatMap(range =>
+    Array.from({ length: range.to - range.from + 1 }, (_, index) => {
+      const chapterNumber = range.from + index;
+      return root +
+        range.prefix +
+        String(chapterNumber).padStart(range.padding, "0") +
+        (range.suffix ?? ".xhtml");
+    }),
+  ));
+}
+
+function buildCosmereSource(chapterHrefs: readonly string[]): RawNavigationSource {
+  return Object.freeze({
+    editionId: COSMERE_EDITION_ID,
+    navigationSha256: COSMERE_NAVIGATION_SHA256,
+    chapterHrefs: chapterHrefs.join(","),
+  });
+}
+
+/**
+ * Numbered chapter hrefs from EPUB/nav.xhtml, ordered by chapter number.
+ * Elantris is intentionally capped at chapter 47 before duplicate numbers.
+ * White Sand and Arcanum are not assigned synthetic global chapter sequences.
+ */
+const COSMERE_RAW: Readonly<Record<string, RawNavigationSource>> = Object.freeze({
+  tfe: buildCosmereSource(buildCosmereChapterHrefs(1, [
+    { from: 1, to: 38, prefix: "", padding: 3 },
+  ])),
+  woa: buildCosmereSource(buildCosmereChapterHrefs(2, [
+    { from: 1, to: 59, prefix: "", padding: 3 },
+  ])),
+  hoa: buildCosmereSource(buildCosmereChapterHrefs(3, [
+    { from: 1, to: 13, prefix: "P1-", padding: 2 },
+    { from: 14, to: 33, prefix: "P2-", padding: 2 },
+    { from: 34, to: 44, prefix: "P3-", padding: 2 },
+    { from: 45, to: 58, prefix: "P4-", padding: 2 },
+    { from: 59, to: 82, prefix: "P5-", padding: 2 },
+  ])),
+  aol: buildCosmereSource(buildCosmereChapterHrefs(4, [
+    { from: 1, to: 6, prefix: "P1-", padding: 2 },
+    { from: 7, to: 15, prefix: "P2-", padding: 2 },
+    { from: 16, to: 20, prefix: "P3-", padding: 2 },
+  ])),
+  sos: buildCosmereSource(buildCosmereChapterHrefs(5, [
+    { from: 1, to: 4, prefix: "P1-", padding: 2 },
+    { from: 5, to: 21, prefix: "P2-", padding: 2 },
+    { from: 22, to: 26, prefix: "P3-", padding: 2 },
+  ])),
+  bom: buildCosmereSource(buildCosmereChapterHrefs(6, [
+    { from: 1, to: 4, prefix: "P1-", padding: 2 },
+    { from: 5, to: 16, prefix: "P2-", padding: 2 },
+    { from: 17, to: 31, prefix: "P3-", padding: 2 },
+  ])),
+  tlm: buildCosmereSource(Object.freeze([
+    14, 15, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+    36, 37, 38, 39, 43, 44, 45, 46, 47, 48, 49, 50, 52, 55, 56,
+    57, 58, 59, 60, 62, 63, 64, 65, 66, 67, 71, 72, 73, 75, 76,
+    77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 92, 93,
+    94, 95, 96, 97, 98, 102, 103, 104, 105, 106, 107, 110, 111, 112,
+  ].map(partNumber =>
+    `books/b000007/OEBPS/Text/part${String(partNumber).padStart(4, "0")}.html`,
+  ))),
+  warbreaker: buildCosmereSource(buildCosmereChapterHrefs(8, [
+    { from: 1, to: 58, prefix: "", padding: 3 },
+  ])),
+  elantris: buildCosmereSource(buildCosmereChapterHrefs(9, [
+    { from: 1, to: 27, prefix: "001_", padding: 3 },
+    { from: 28, to: 47, prefix: "002_", padding: 3 },
+  ])),
+  tress: buildCosmereSource(buildCosmereChapterHrefs(11, [
+    { from: 1, to: 5, prefix: "P1-", padding: 2 },
+    { from: 6, to: 12, prefix: "P2-", padding: 2 },
+    { from: 13, to: 21, prefix: "P3-", padding: 2 },
+    { from: 22, to: 34, prefix: "P4-", padding: 2 },
+    { from: 35, to: 53, prefix: "P5-", padding: 2 },
+    { from: 54, to: 64, prefix: "P6-", padding: 2 },
+  ])),
+  yumi: buildCosmereSource(buildCosmereChapterHrefs(12, [
+    { from: 1, to: 7, prefix: "P1-", padding: 2 },
+    { from: 8, to: 17, prefix: "P2-", padding: 2 },
+    { from: 18, to: 30, prefix: "P3-", padding: 2 },
+    { from: 31, to: 41, prefix: "P4-", padding: 2 },
+  ])),
+  sunlit: buildCosmereSource(buildCosmereChapterHrefs(13, [
+    { from: 1, to: 52, prefix: "Capitulo-", padding: 2 },
+  ])),
+  isles: buildCosmereSource(buildCosmereChapterHrefs(14, [
+    { from: 1, to: 21, prefix: "Libro1-", padding: 2 },
+    { from: 22, to: 33, prefix: "Libro2-", padding: 2 },
+    { from: 34, to: 53, prefix: "Libro3-", padding: 2 },
+    { from: 54, to: 61, prefix: "Libro4-", padding: 2 },
+  ])),
+});
+
 const VERIFIED: Readonly<Record<string, VerifiedNavigationSource>> = Object.freeze(
-  Object.fromEntries(Object.entries(RAW).map(([bookId, source]) => {
+  Object.fromEntries(Object.entries({ ...RAW, ...COSMERE_RAW }).map(([bookId, source]) => {
     const hrefs = source.chapterHrefs.split(",");
     if (
       !/^[a-z0-9-]{3,96}$/.test(source.editionId) ||
       !/^[a-f0-9]{64}$/.test(source.navigationSha256) ||
       hrefs.length === 0 ||
       new Set(hrefs).size !== hrefs.length ||
-      !hrefs.every(href => /^(?:L[1-5]-[0-9]{3}|Text\/[0-9]{1,3})\.xhtml$/.test(href))
+      !hrefs.every(href => /^(?:(?:L[1-5]-[0-9]{3}|Text\\/[0-9]{1,3})\\.xhtml|books\\/b[0-9]{6}\\/OEBPS\\/Text\\/[A-Za-z0-9._-]+\\.(?:xhtml|html))$/.test(href) && !href.includes(".."))
     ) {
       throw new Error("Invalid verified Hoid chapter navigation metadata");
     }

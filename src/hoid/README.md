@@ -225,3 +225,8 @@ Pending original summaries are now bound to a recomputed UTF-8 SHA-256 digest. T
 `editorialClaimDrafts.ts` models one original assertion with one or more independently verified chapter sources. Each source has its own edition-bound locator, document digest and unlock threshold. Cross-work claims use AND semantics: every source threshold must be satisfied before the claim is marked eligible for independent review.
 
 The eligibility projection accepts the authoritative v2 cursor snapshot and internally applies the cursor-native chapter N to N-1 boundary. It returns claim IDs and unmet metadata requirements only; it never returns assertion text and is not a provider-context API. Drafts remain `pending-review` and cannot enter `editorialRegistry.ts`. SHA-256 is an integrity check, not an author or reviewer signature. See `docs/hoid/EDITORIAL_ATOMIC_CLAIMS.md`.
+
+
+## Navegación verificada de cosmere.epub
+
+Run 106 inspeccionó el OPF y `EPUB/nav.xhtml` del EPUB privado. Se incorporaron 653 localizadores relativos para capítulos numerados de 13 IDs bibliográficos, vinculados al digest de navegación de la edición. Elantris se limita a 1–47; Arena blanca y Arcanum siguen sin cursores numéricos hasta segmentar sus unidades especiales. Los localizadores no equivalen a documentos narrativos inspeccionados ni a afirmaciones aprobadas. Consulta `docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md`.

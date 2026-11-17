@@ -26,6 +26,9 @@ describe("Hoid editorial draft staging", () => {
       "f6ff4d0c396ad06b3e4869585ddec96b16fbfe29cc0bc0692a3958581f1ec64f",
       "29b89159bdb622ccefa35d97c26e997683500eb572c6979e9e2829578d6fd8b2",
       "dac6798cb130a17b714584d131204b7e4265748cdf464af8668f22f751cd7ad0",
+      "bba8b74d05b28d3167bc0c0e82a8c66a53d2174b9a00249764158db5d7fc2abc",
+      "71a11f952189f079a9acfdeaf46b35f4a973c499699dbcc8f943c63a5bb000f6",
+      "9fa0072f28c0e8e98087e78c2663f664889cd4bcc4dca0eee963f081370f82bd",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -46,21 +49,27 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(3);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(6);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages one independently sourced chapter-one draft for each accessible Roshar EPUB", () => {
+  it("stages independently sourced chapter-one and chapter-two drafts for each accessible Roshar EPUB", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
       "dawnshard.chapter-001.akinah-expedition",
+      "twok.chapter-002.kaladin-slave-caravan",
+      "edgedancer.chapter-002.lift-yeddaw-arrival",
+      "dawnshard.chapter-002.rysn-navani-akinah-mission",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect(draft.evidenceSource.chapter).toBe(1);
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 2 });
+      expect([1, 2]).toContain(draft.evidenceSource.chapter);
+      expect(draft.evidenceUnlock).toEqual({
+        bookId: draft.evidenceSource.bookId,
+        chapter: draft.evidenceSource.chapter + 1,
+      });
       expect(draft.review.status).toBe("pending-review");
       expect(draft.summary.length).toBeGreaterThan(80);
     }
@@ -264,4 +273,14 @@ describe("Hoid editorial draft staging", () => {
     expect(result.reason).toBe("no-authorized-evidence");
     expect(selectClaims).not.toHaveBeenCalled();
   });
+
+  it("keeps all chapter-two summaries unavailable until chapter three is completed", () => {
+    const chapterTwoDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 2);
+    expect(chapterTwoDrafts).toHaveLength(3);
+    for (const draft of chapterTwoDrafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 3 });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
 });

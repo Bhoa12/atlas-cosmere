@@ -60,7 +60,10 @@ describe("cosmere.epub navigation audit", () => {
   it("keeps White Sand volumes and Arcanum collection unavailable for numeric progress", () => {
     for (const bookId of ["white-sand-1", "white-sand-2", "white-sand-3", "arcanum"]) {
       const result = getHoidReadingManifest(bookId);
-      expect(result).toEqual({ status: "unavailable", reason: "segmentation-unverified" });
+      expect(result.status).toBe("unavailable");
+      if (result.status === "unavailable") {
+        expect(result.reason).toBe("segmentation-unverified");
+      }
       expect(getVerifiedChapterLocatorCount(bookId)).toBe(0);
     }
   });

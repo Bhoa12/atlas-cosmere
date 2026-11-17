@@ -92,6 +92,30 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(4);
   });
 
+  it("returns the three individually inspected Roshar chapter-five digests", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      5,
+    )).toBe("1cc47f030de9132acec9b6eaca0310e325f4eb34d49bac7294611d09080d68d8");
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      5,
+    )).toBe("89da9c44aceb5254d8b29d63f9db940f0d13f6de03dc682883670fefd03dc83e");
+    expect(getVerifiedChapterDocumentSha256(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      5,
+    )).toBe("3aefc41eadb2b580c80d738552b3d10e1f93fd7c8755cf98b824e6922a9df515");
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(5);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(5);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(5);
+  });
+
   it("returns only the two individually inspected Mistborn chapter digests", () => {
     expect(getVerifiedChapterDocumentSha256(
       "tfe",
@@ -128,11 +152,11 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      5,
+      6,
     )).toBeNull();
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(4);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(4);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(4);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(5);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(5);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(5);
     expect(getVerifiedChapterDocumentCount("unknown-work")).toBe(0);
   });
 

@@ -1,4 +1,5 @@
 import { HOID_EDITION_STRUCTURES } from "./editionStructure";
+import { getVerifiedChapterLocatorId } from "./verifiedChapterLocators";
 import type { ReadingPosition } from "./types";
 
 export type HoidReadingUnit = Readonly<{
@@ -6,6 +7,8 @@ export type HoidReadingUnit = Readonly<{
   kind: "chapter";
   ordinal: number;
   chapterNumber: number;
+  /** Exact edition-bound EPUB navigation locator when that source TOC is accessible. */
+  locatorId?: string;
 }>;
 
 export type HoidReadingManifest = Readonly<{
@@ -77,8 +80,9 @@ function chapterUnitId(chapterNumber: number): string {
 /**
  * Builds a metadata-only manifest from the inspected edition structure.
  *
- * No chapter titles, EPUB paths, prose, or inferred special sections are
- * created here. Duplicate-number editions expose only the unambiguous prefix.
+ * No chapter titles or prose are stored. Exact navigation locators are
+ * attached only for inspected source TOCs; duplicate-number editions expose
+ * only the unambiguous numeric prefix.
  * Merged volumes and collections remain unavailable until their TOCs have
  * been inspected and segmented independently.
  */
@@ -137,11 +141,18 @@ export function getHoidReadingManifest(bookId: unknown): HoidReadingManifestResu
 
     const units: HoidReadingUnit[] = [];
     for (let chapterNumber = 1; chapterNumber <= lastSafeChapter; chapterNumber += 1) {
+      const locatorId = getVerifiedChapterLocatorId(
+        bookId,
+        source.editionId,
+        source.navigationSha256,
+        chapterNumber,
+      );
       units.push(Object.freeze({
         id: chapterUnitId(chapterNumber),
         kind: "chapter" as const,
         ordinal: chapterNumber,
         chapterNumber,
+        ...(locatorId === null ? {} : { locatorId }),
       }));
     }
 

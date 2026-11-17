@@ -45,7 +45,7 @@ El registro editorial continúa vacío hasta que existan afirmaciones originales
 
 ## Fuentes
 
-El módulo utiliza únicamente los manifiestos de metadatos y los contratos existentes. No incorpora títulos de capítulos, localizadores, resúmenes narrativos ni texto de los EPUB privados.
+El módulo utiliza los manifiestos de metadatos y los contratos existentes. `canonicalEvidenceScope()` exige ahora que el `locatorId` coincida exactamente con el localizador del capítulo en el manifiesto de esa edición, y que tanto el capítulo de origen como el umbral de desbloqueo existan en la misma secuencia verificada. Los localizadores disponibles se derivan solo de los TOC de Roshar inspeccionados; no incorporan títulos ni prosa. Las obras de `cosmere.epub` no reciben localizadores de procedencia hasta que ese EPUB esté disponible en el entorno.
 
 ## Verificación de composición
 

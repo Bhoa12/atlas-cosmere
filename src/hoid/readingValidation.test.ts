@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MAX_READING_POSITION_BOOK_ID_LENGTH,
   DEFAULT_MAX_READING_POSITION_CHAPTER,

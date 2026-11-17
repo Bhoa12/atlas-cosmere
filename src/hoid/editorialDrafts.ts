@@ -709,14 +709,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
-]);
 
-// Chapter-six summaries remain staging-only and require chapter seven completion.
-const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
-
-/** Staging-only drafts; never passed to HoidEvidenceRuntime. */
-export const HOID_EDITORIAL_DRAFTS: readonly HoidEditorialDraft[] =
-  VALIDATED_BATCH.status === "valid" ? VALIDATED_BATCH.drafts : Object.freeze([
   Object.freeze({
     schemaVersion: 1,
     id: "twok.chapter-006.kaladin-bridge-four",
@@ -783,7 +776,15 @@ export const HOID_EDITORIAL_DRAFTS: readonly HoidEditorialDraft[] =
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+
 ]);
+
+// Chapter-six summaries remain staging-only and require chapter seven completion.
+const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
+
+/** Staging-only drafts; never passed to HoidEvidenceRuntime. */
+export const HOID_EDITORIAL_DRAFTS: readonly HoidEditorialDraft[] =
+  VALIDATED_BATCH.status === "valid" ? VALIDATED_BATCH.drafts : Object.freeze([]);
 
 export function getHoidEditorialDraftStatus(): "empty" | "pending-review" | "invalid" {
   if (VALIDATED_BATCH.status === "invalid") return "invalid";

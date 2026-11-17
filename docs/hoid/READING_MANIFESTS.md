@@ -19,11 +19,11 @@ type HoidReadingCursor = {
 
 El `manifestId` incorpora el identificador de edición, la obra y el SHA-256 del documento de navegación inspeccionado. Por tanto, un cursor no se puede reutilizar silenciosamente con otra edición.
 
-Los identificadores actuales son opacos y estructurales, por ejemplo `chapter:012`. No incluyen títulos de capítulo, rutas XHTML, localizadores internos ni texto narrativo.
+Los IDs de unidad siguen siendo estructurales, por ejemplo `chapter:012`. Los manifiestos adjuntan un `locatorId` únicamente cuando existe un TOC inspeccionado para esa obra y edición. El localizador se vincula al ID de edición y al SHA-256 del documento de navegación; no almacena títulos de capítulo ni texto narrativo.
 
 ## Cobertura disponible
 
-Los manifiestos se generan únicamente a partir de recuentos numéricos ya registrados en `editionStructure.ts`:
+Los manifiestos se generan a partir de `editionStructure.ts`. Los recuentos numéricos permiten representar progreso; los localizadores de procedencia se añaden por separado y solo para TOC accesibles e inspeccionados:
 
 - Obras con secuencia numérica verificada: se enumeran los capítulos numerados del 1 al recuento registrado.
 - Elantris: se publica únicamente el prefijo 1–47; los números 48, 51 y 57 permanecen ambiguos.
@@ -31,7 +31,7 @@ Los manifiestos se generan únicamente a partir de recuentos numéricos ya regis
 - Arena blanca, volúmenes 1–3: no se crean unidades hasta verificar los límites de cada volumen.
 - Arcanum ilimitado: no se crea una secuencia global; requiere unidades por obra interna.
 
-`unitScope: numbered-chapters-only` indica expresamente que estos manifiestos no representan prólogos, interludios, epílogos, apéndices ni otras secciones especiales. No se inventan esas unidades.
+`unitScope: numbered-chapters-only` indica expresamente que estos manifiestos no representan prólogos, interludios, epílogos, apéndices ni otras secciones especiales. No se inventan esas unidades. Los localizadores por capítulo actualmente disponibles cubren las cinco novelas del EPUB recopilatorio de Roshar, Danzante del Filo y Esquirla del amanecer. `cosmere.epub` no estaba presente en la Library durante Run 101: sus obras conservan el catálogo y los recuentos previos, pero no reciben localizadores nuevos en esta iteración.
 
 ## Validación
 
@@ -58,4 +58,4 @@ El cursor puede proyectarse al formato legado mediante `cursorToLegacyReadingPos
 
 `readingManifest.test.ts` y `readingCursorAdapter.test.ts` cubren generación, límites ambiguos, rechazo de obras no segmentadas, manipulación de cursores, propiedades no confiables y proyección del progreso de Atlas.
 
-No se inspeccionaron EPUBs nuevos en esta iteración. Los manifiestos se derivan exclusivamente de la estructura de edición previamente registrada; no contienen ni reproducen texto protegido.
+Run 101 inspeccionó únicamente metadatos OPF y documentos de navegación de tres EPUBs únicos de Roshar. No se inspeccionó prosa ni se incorporaron títulos de capítulo. Los localizadores se describen en `docs/hoid/VERIFIED_CHAPTER_LOCATORS.md`.

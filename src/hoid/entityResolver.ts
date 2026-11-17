@@ -232,7 +232,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
       summary.length < 1 ||
       summary.length > MAX_SUMMARY_LENGTH ||
       summary !== summary.trim() ||
-      /[\u0000-\u001F\u007F]/u.test(summary)
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(summary)
     ) return null;
 
     const aliases = canonicalDenseArray(record.aliases, 1, MAX_ALIASES);

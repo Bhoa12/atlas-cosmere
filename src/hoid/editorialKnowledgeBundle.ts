@@ -413,7 +413,7 @@ export function buildHoidEditorialKnowledgeBundle(
   const entities = entityBatch.drafts;
   const relationships = relationshipBatch.drafts;
   const records = collectRecords(summaries, claims, entities, relationships);
-  if (records.length > MAX_RECORDS) return invalid("invalid-input");
+  if (records.length === 0 || records.length > MAX_RECORDS) return invalid("invalid-input");
 
   const sources = collectSources(summaries, claims, entities, relationships);
   if (sources.length > MAX_SOURCES) return invalid("invalid-input");

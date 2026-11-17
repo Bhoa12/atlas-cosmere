@@ -95,9 +95,7 @@ export function buildHoidCursorReadingContext(
       .map(work => work.id),
   );
   const trackableStartedCount = [...startedIds].filter(id => trackableIds.has(id)).length;
-  const untrackedWorkCount = HOID_SOURCE_BIBLIOGRAPHY
-    .filter(work => !trackableIds.has(work.id) && !startedIds.has(work.id))
-    .length;
+  const untrackedWorkCount = HOID_SOURCE_BIBLIOGRAPHY.length - trackableIds.size;
 
   return Object.freeze({
     status: "ready",

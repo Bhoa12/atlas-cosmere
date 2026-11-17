@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveHoidAuthorizedEntities as resolveWithAliasEvidence,
+  resolveHoidAuthorizedEntityMentions as resolveMentionsWithAliasEvidence,
   resolveProductionHoidEntities,
+  resolveProductionHoidEntityMentions,
 } from "./entityResolver";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry, HoidKnowledgeKind } from "./catalog";
@@ -540,4 +542,148 @@ describe("Hoid spoiler-aware entity resolution", () => {
     expect(invoked).toBe(false);
   });
 
+});
+
+
+function resolveEntityMentions(
+  entries: readonly HoidKnowledgeEntry[],
+  reading: unknown,
+  question: unknown,
+  aliasEvidence = defaultAliasEvidence(entries),
+) {
+  return resolveMentionsWithAliasEvidence(entries, aliasEvidence, reading, question);
+}
+
+describe("Hoid spoiler-aware natural-language entity mentions", () => {
+  it("matches an exact authorized alias inside a Spanish question", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
+    const result = resolveEntityMentions(
+      [entry],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Puedes explicarme Synthetic Entity?",
+    );
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.resolution).toBe("matched");
+    expect(result.matches.map(item => item.id)).toEqual([entry.id]);
+    expect(JSON.stringify(result)).not.toContain(entry.summary);
+  });
+
+  it("returns an opaque blocked result for an entity beyond the reader's progress", () => {
+    const entry = knowledge("synthetic.locked", ["Locked Entity"], "twok", 3);
+    const result = resolveEntityMentions(
+      [entry],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Quién es Locked Entity?",
+    );
+
+    expect(result).toEqual({ status: "blocked" });
+    expect(JSON.stringify(result)).not.toContain("Locked Entity");
+    expect(JSON.stringify(result)).not.toContain(entry.id);
+  });
+
+  it("blocks an otherwise unlocked entity when its alias-specific disclosure is later", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
+    const aliasEvidence = [reviewedAliasRecord(
+      "synthetic.alias.late",
+      entry.id,
+      "Synthetic Entity",
+      [aliasEvidenceItem("synthetic.alias-evidence.late", "twok", 1, 3)],
+    )];
+    const result = resolveEntityMentions(
+      [entry],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "Explícame Synthetic Entity",
+      aliasEvidence,
+    );
+
+    expect(result).toEqual({ status: "blocked" });
+  });
+
+  it("blocks a catalogued alias that has no independent reviewed disclosure record", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
+    const result = resolveEntityMentions(
+      [entry],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Qué sabes de Synthetic Entity?",
+      [],
+    );
+
+    expect(result).toEqual({ status: "blocked" });
+  });
+
+  it("withholds the whole question when an authorized and a blocked entity are mixed", () => {
+    const safe = knowledge("synthetic.safe", ["Safe Entity"]);
+    const locked = knowledge("synthetic.locked", ["Locked Entity"], "twok", 3);
+    const result = resolveEntityMentions(
+      [safe, locked],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "Relaciona Safe Entity con Locked Entity",
+    );
+
+    expect(result).toEqual({ status: "blocked" });
+    expect(JSON.stringify(result)).not.toContain(safe.id);
+    expect(JSON.stringify(result)).not.toContain(locked.id);
+  });
+
+  it("reports ambiguity only when every matching entity and alias is authorized", () => {
+    const first = knowledge("synthetic.entity-a", ["Shared Name"]);
+    const second = knowledge("synthetic.entity-b", ["Shared Name"]);
+    const result = resolveEntityMentions(
+      [first, second],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Quién es Shared Name?",
+    );
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.resolution).toBe("ambiguous");
+    expect(result.matches.map(item => item.id)).toEqual([first.id, second.id]);
+  });
+
+  it("normalizes accents and compatibility characters but preserves word boundaries", () => {
+    const entry = knowledge("synthetic.entity-a", ["Ｓynthetíc Entity"]);
+    const matched = resolveEntityMentions(
+      [entry],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Qué sabes de SYNTHETIC ENTITY?",
+    );
+    expect(matched.status).toBe("ready");
+    if (matched.status === "ready") expect(matched.resolution).toBe("matched");
+
+    const short = knowledge("synthetic.short", ["Kal"]);
+    const partial = resolveEntityMentions(
+      [short],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Qué sabes de Kaladin?",
+    );
+    expect(partial.status).toBe("ready");
+    if (partial.status === "ready") expect(partial.resolution).toBe("not-found");
+  });
+
+  it("rejects control characters and malformed progress without returning candidates", () => {
+    const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
+    expect(resolveEntityMentions(
+      [entry],
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Qué sabes de\\nSynthetic Entity?",
+    )).toEqual({ status: "unavailable", reason: "invalid-question" });
+    expect(resolveEntityMentions([entry], {}, "Synthetic Entity")).toEqual({
+      status: "unavailable",
+      reason: "invalid-progress",
+    });
+  });
+
+  it("keeps the production resolver empty until editorial entities are approved", () => {
+    const result = resolveProductionHoidEntityMentions(
+      progress([{ bookId: "twok", chapter: 2 }]),
+      "¿Quién es Kaladin?",
+    );
+    expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.resolution).toBe("not-found");
+      expect(result.matches).toHaveLength(0);
+    }
+  });
 });

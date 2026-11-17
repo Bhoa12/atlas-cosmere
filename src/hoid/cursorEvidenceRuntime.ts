@@ -119,11 +119,11 @@ function invalidRecommendation(): HoidEvidenceRecommendationResult {
 }
 
 /**
- * Cursor-native façade over the strict evidence runtime.
+ * Cursor-native production boundary over the strict evidence runtime.
  *
- * This is a compatibility bridge, not a persistence cutover: callers must
- * supply a validated v2 snapshot. The façade projects it to the legacy
- * ReadingPosition contract only after the edition-bound cursor checks pass.
+ * Callers supply the authoritative v2 snapshot. The facade projects only the
+ * completed-through portion into the legacy ReadingPosition contract so the
+ * existing evidence core can be reused without weakening the cursor boundary.
  * Provider selection and final editorial rendering remain inside
  * HoidEvidenceRuntime.
  */

@@ -38,6 +38,14 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       2: "511dd868f3feb65f3cc28566bbac167762ad70dddccffcae863be31e64f144dc",
     }),
   }),
+  tfe: Object.freeze({
+    editionId: "cosmere-epub-merged-v1",
+    navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+    documents: Object.freeze({
+      1: "cfc6a6057a477cfba6e7795d30dca2324a97a5dbdefa86b6500aa437a625844a",
+      2: "13604dc85df709443e6cd215a3e1a9deabe8f69f118dcc9823127b82ad486fc1",
+    }),
+  }),
 });
 
 /**

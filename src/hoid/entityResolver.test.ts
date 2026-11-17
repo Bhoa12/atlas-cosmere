@@ -319,7 +319,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("rejects stored aliases containing invisible format characters", () => {
-    const entry = knowledge("synthetic.entity-a", ["Synthetic\\u200b Entity"]);
+    const entry = knowledge("synthetic.entity-a", ["Synthetic\u200b Entity"]);
     const result = resolveHoidAuthorizedEntities(
       [entry], progress([{ bookId: "twok", chapter: 2 }]), { text: "Synthetic Entity" },
     );

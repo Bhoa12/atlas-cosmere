@@ -337,6 +337,12 @@ export function queryProductionHoidKnowledgeGraph(
   return queryAuthorizedGraph(graph, query);
 }
 
+function planUnavailable(
+  reason: Extract<HoidExplanationPlanResult, { status: "unavailable" }>["reason"],
+): HoidExplanationPlanResult {
+  return Object.freeze({ status: "unavailable", reason });
+}
+
 function planFromQuery(
   query: CanonicalQuery,
   result: HoidKnowledgeGraphQueryResult,
@@ -360,7 +366,7 @@ function planFromQuery(
           existing.claimTextSha256 !== claim.claimTextSha256 ||
           existing.evidenceIds.join("\n") !== claim.evidenceIds.join("\n")
         )
-      ) return unavailable("invalid-claims");
+      ) return planUnavailable("invalid-claims");
       claimsById.set(claim.claimId, claim);
       for (const source of edge.sources) {
         const key = [
@@ -430,7 +436,7 @@ export function createHoidExplanationPlan(
   queryInput: unknown,
 ): HoidExplanationPlanResult {
   const query = canonicalQuery(queryInput);
-  if (!query) return unavailable("invalid-query");
+  if (!query) return planUnavailable("invalid-query");
   const result = queryHoidKnowledgeGraph(
     definitionInput,
     knowledgeInput,
@@ -447,7 +453,7 @@ export function createProductionHoidExplanationPlan(
   queryInput: unknown,
 ): HoidExplanationPlanResult {
   const query = canonicalQuery(queryInput);
-  if (!query) return unavailable("invalid-query");
+  if (!query) return planUnavailable("invalid-query");
   const result = queryProductionHoidKnowledgeGraph(progressInput, query);
   return planFromQuery(query, result);
 }
@@ -502,7 +508,7 @@ function canonicalApprovedClaims(value: unknown): readonly HoidApprovedClaim[] |
       id,
       text,
       intent,
-      evidenceIds: Object.freeze([...(evidenceIds as string[])].sort()),
+      evidenceIds: Object.freeze([...(evidenceIds as readonly string[])].sort()),
       review: Object.freeze({
         status: "approved",
         origin: "original-editorial",

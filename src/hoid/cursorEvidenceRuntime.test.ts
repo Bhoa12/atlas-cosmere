@@ -19,24 +19,24 @@ const updatedAt = "2026-11-17T00:00:00.000Z";
 
 const knowledge: HoidKnowledgeEntry[] = [
   {
-    id: "e-sazed",
-    aliases: ["Sazed"],
+    id: "e-alpha",
+    aliases: ["Personaje Alfa"],
     kind: "character",
     firstSafeAppearance: { bookId: "twok", chapter: 2 },
     evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
     evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "verified",
-    summary: "Resumen editorial sintético de prueba sobre Sazed.",
+    summary: "Resumen editorial sintético de prueba sobre Personaje Alfa.",
   },
   {
-    id: "e-kaladin",
-    aliases: ["Kaladin"],
+    id: "e-beta",
+    aliases: ["Personaje Beta"],
     kind: "character",
     firstSafeAppearance: { bookId: "wor", chapter: 3 },
     evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
     evidenceUnlock: { bookId: "wor", chapter: 3 },
     provenance: "verified",
-    summary: "Resumen editorial sintético de prueba sobre Kaladin.",
+    summary: "Resumen editorial sintético de prueba sobre Personaje Beta.",
   },
 ];
 
@@ -49,17 +49,17 @@ const review: HoidApprovedClaim["review"] = {
 
 const claims: HoidApprovedClaim[] = [
   {
-    id: "claim-sazed",
-    text: "Afirmación editorial sintética sobre Sazed.",
+    id: "claim-alpha",
+    text: "Afirmación editorial sintética sobre Personaje Alfa.",
     intent: "explain",
-    evidenceIds: ["e-sazed"],
+    evidenceIds: ["e-alpha"],
     review,
   },
   {
     id: "claim-cross-book",
     text: "Relación sintética que requiere las dos evidencias.",
     intent: "explain",
-    evidenceIds: ["e-sazed", "e-kaladin"],
+    evidenceIds: ["e-alpha", "e-beta"],
     review,
   },
 ];
@@ -82,7 +82,7 @@ function snapshot(
   };
 }
 
-function createFacade(selector = vi.fn(async (_request: HoidClaimSelectionRequest) => ["claim-sazed"])) {
+function createFacade(selector = vi.fn(async (_request: HoidClaimSelectionRequest) => ["claim-alpha"])) {
   const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: { selectClaims: selector } });
   if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
   return { facade: createHoidCursorEvidenceRuntime(runtime), selector };
@@ -107,13 +107,13 @@ describe("HoidCursorEvidenceRuntime", () => {
   it("authorizes an explanation only after validating the cursor manifest", async () => {
     const { facade, selector } = createFacade();
     const result = await facade.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
     });
 
     expect(result.status).toBe("authorized");
-    expect(result.claimIds).toEqual(["claim-sazed"]);
-    expect(result.text).toBe("Afirmación editorial sintética sobre Sazed.");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(result.text).toBe("Afirmación editorial sintética sobre Personaje Alfa.");
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
@@ -124,14 +124,14 @@ describe("HoidCursorEvidenceRuntime", () => {
     const facade = createHoidCursorEvidenceRuntime(runtime);
 
     const locked = await facade.answer({
-      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
     });
     expect(locked.status).toBe("blocked");
     expect(selector).not.toHaveBeenCalled();
 
     const unlocked = await facade.answer({
-      question: "¿Qué relación hay entre Sazed y Kaladin?",
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       progress: snapshot([
         { bookId: "twok", cursor: cursor("twok", 2) },
         { bookId: "wor", cursor: cursor("wor", 3) },
@@ -143,11 +143,11 @@ describe("HoidCursorEvidenceRuntime", () => {
   });
 
   it("rejects an obsolete edition digest before provider invocation", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const { facade } = createFacade(selector);
     const stale = { ...cursor("twok", 2), manifestId: "hoid:obsolete-edition" };
     const result = await facade.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       progress: snapshot([{ bookId: "twok", cursor: stale }]),
     });
 
@@ -169,7 +169,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     };
     const { facade, selector } = createFacade();
     const result = await facade.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       progress: snapshot([{ bookId: "elantris", cursor: forged }]),
     });
 
@@ -178,13 +178,13 @@ describe("HoidCursorEvidenceRuntime", () => {
   });
 
   it("rejects malformed snapshots and does not call the selector", async () => {
-    const selector = vi.fn(async () => ["claim-sazed"]);
+    const selector = vi.fn(async () => ["claim-alpha"]);
     const { facade } = createFacade(selector);
     const invalid = snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]);
     (invalid as Record<string, unknown>).extra = true;
 
     const result = await facade.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       progress: invalid,
     });
     expect(result.status).toBe("blocked");
@@ -201,7 +201,7 @@ describe("HoidCursorEvidenceRuntime", () => {
       enumerable: true,
       get: () => {
         invoked = true;
-        return "¿Quién es Sazed?";
+        return "¿Quién es Personaje Alfa?";
       },
     });
 
@@ -239,7 +239,7 @@ describe("HoidCursorEvidenceRuntime", () => {
   it("rejects unknown request fields rather than forwarding hidden context", async () => {
     const { facade, selector } = createFacade();
     const result = await facade.answer({
-      question: "¿Quién es Sazed?",
+      question: "¿Quién es Personaje Alfa?",
       progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 2) }]),
       knowledgeContext: [{ id: "injected", text: "spoiler" }],
     });

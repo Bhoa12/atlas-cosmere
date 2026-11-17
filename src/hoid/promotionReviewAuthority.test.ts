@@ -141,7 +141,7 @@ describe("Hoid protected source-control review authority", () => {
       enumerable: true,
       get: () => async () => snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) }),
     });
-    expect(await authorizeHoidPromotionCommit(plan, request, hostile)).toMatchObject({
+    expect(await authorizeHoidPromotionCommit(plan, request, hostile, progressPortWith())).toMatchObject({
       status: "blocked",
       reason: "invalid-source-control-port",
     });
@@ -189,7 +189,7 @@ describe("Hoid protected source-control review authority", () => {
     const result = await authorizeHoidPromotionCommit(plan, {
       ...request,
       promotionManifestPath: "docs/hoid/../../production.json",
-    }, port);
+    }, port, progressPortWith());
     expect(result).toMatchObject({ status: "blocked", reason: "invalid-request" });
     expect(port.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
   });

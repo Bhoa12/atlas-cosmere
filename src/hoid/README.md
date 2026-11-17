@@ -339,3 +339,11 @@ The protected promotion gate also requires a read-only `HoidPromotionProgressPor
 - Exact edition-bound locators and chapter-body SHA-256 values are recorded; the EPUBs and XHTML bodies are not committed.
 - The current Library listing exposed the three Roshar EPUBs but not `cosmere.epub`; no new Cosmere passages were inspected.
 - See `docs/hoid/ROSHAR_CHAPTER_SIX_INGESTION.md` and `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md`.
+
+## Run 120 — complete editorial knowledge bundle
+
+`editorialKnowledgeBundle.ts` builds one deterministic, metadata-only inventory across original summaries, atomic claims, entity identity dossiers and relationship claims. Every category is revalidated against its edition-bound source locators and SHA-256 integrity before inclusion.
+
+The bundle records typed IDs, per-record digests, exact source scopes, unlock thresholds and cross-reference blockers. It never embeds summary prose, claim statements, EPUB passages, XHTML bodies or images. Atomic claim subjects and both relationship participants must resolve to entity dossiers with matching knowledge kinds; missing identities block the bundle rather than being inferred.
+
+The manifest can be rebuilt and checked against the exact four source batches. A valid fingerprint proves only that the inventory is unchanged. `ready-for-review` does not mean approved or promotable: every record remains pending review and the builder always returns `promotionAllowed: false` and `productionWritePerformed: false`. The production registry and protected promotion authority remain separate. See `docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md`.

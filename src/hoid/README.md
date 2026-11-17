@@ -197,3 +197,10 @@ The v2 cursor contract is now the authoritative production progress representati
 The strict evidence boundary now requires an exact locator match for `evidenceSource`, validates both source and unlock chapters against the same edition manifest, and validates `firstSafeAppearance` against a real unit in its own work. Arbitrary locator strings and sources without an inspected TOC are rejected before provider selection.
 
 The private `cosmere.epub` was not available in the current Library listing. Its works remain in the bibliography, but this run deliberately adds no passage-level locators for them. A chapter-count record is not a substitute for a verified source locator. No chapter titles or prose are stored. See `docs/hoid/VERIFIED_CHAPTER_LOCATORS.md`.
+
+
+## Exclusive chapter reading boundary
+
+The v2 cursor denotes the chapter currently open/in progress, not a completed chapter. The evidence facade therefore authorizes only through chapter N-1 while chapter N is open. Chapter one authorizes no chapter-scoped narrative evidence; explicit reader-declared completion is the only state that unlocks the entire work.
+
+The projection preserves started work IDs separately so recommendations do not label a chapter-one work as unread. See `readingBoundary.ts`, `readingBoundary.test.ts`, and `docs/hoid/READING_BOUNDARY_POLICY.md`.

@@ -34,6 +34,14 @@ export type HoidEditorialReviewPacket = Readonly<{
   status: "pending-review";
 }>;
 
+export type HoidEditorialReviewNoteCode =
+  | "no-issues"
+  | "factual-issue"
+  | "completeness-issue"
+  | "originality-issue"
+  | "spoiler-scope-issue"
+  | "provenance-issue";
+
 export type HoidEditorialReviewReceipt = Readonly<{
   schemaVersion: 1;
   packetId: string;
@@ -44,7 +52,7 @@ export type HoidEditorialReviewReceipt = Readonly<{
   reviewerId: string;
   reviewedAt: string;
   checklist: HoidEditorialReviewChecklist;
-  notes: string;
+  noteCodes: readonly HoidEditorialReviewNoteCode[];
 }>;
 
 export type HoidReviewPacketBuildResult =
@@ -80,7 +88,7 @@ const CHECKLIST_KEYS = new Set([
 ]);
 const RECEIPT_KEYS = new Set([
   "schemaVersion", "packetId", "draftId", "summarySha256", "sourceDocumentSha256",
-  "decision", "reviewerId", "reviewedAt", "checklist", "notes",
+  "decision", "reviewerId", "reviewedAt", "checklist", "noteCodes",
 ]);
 
 function canonicalRecord(
@@ -127,6 +135,40 @@ function canonicalChecklist(value: unknown): HoidEditorialReviewChecklist | null
     spoilerCeiling: raw.spoilerCeiling as boolean,
     provenance: raw.provenance as boolean,
   });
+}
+
+function canonicalNoteCodes(value: unknown): readonly HoidEditorialReviewNoteCode[] | null {
+  try {
+    if (!Array.isArray(value) || value.length < 1 || value.length > 6) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+    const allowed = new Set<HoidEditorialReviewNoteCode>([
+      "no-issues",
+      "factual-issue",
+      "completeness-issue",
+      "originality-issue",
+      "spoiler-scope-issue",
+      "provenance-issue",
+    ]);
+    const seen = new Set<string>();
+    const result: HoidEditorialReviewNoteCode[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true ||
+        typeof descriptor.value !== "string" ||
+        !allowed.has(descriptor.value as HoidEditorialReviewNoteCode) ||
+        seen.has(descriptor.value)
+      ) return null;
+      seen.add(descriptor.value);
+      result.push(descriptor.value as HoidEditorialReviewNoteCode);
+    }
+    return Object.freeze(result);
+  } catch {
+    return null;
+  }
 }
 
 function allChecksPassed(value: HoidEditorialReviewChecklist): boolean {
@@ -354,12 +396,18 @@ export function validateHoidEditorialReviewReceipt(
   ) return Object.freeze({ status: "invalid", reason: "invalid-receipt-shape" });
 
   const checklist = canonicalChecklist(raw.checklist);
-  if (!checklist || typeof raw.notes !== "string" || raw.notes.length > 2_000) {
+  const noteCodes = canonicalNoteCodes(raw.noteCodes);
+  if (!checklist || !noteCodes) {
     return Object.freeze({ status: "invalid", reason: "invalid-checklist" });
   }
-  if (raw.decision === "approved" && !allChecksPassed(checklist)) {
-    return Object.freeze({ status: "invalid", reason: "incomplete-approval" });
-  }
+  if (
+    raw.decision === "approved" &&
+    (!allChecksPassed(checklist) || noteCodes.some(code => code !== "no-issues"))
+  ) return Object.freeze({ status: "invalid", reason: "incomplete-approval" });
+  if (
+    raw.decision !== "approved" &&
+    noteCodes.includes("no-issues")
+  ) return Object.freeze({ status: "invalid", reason: "invalid-checklist" });
 
   const receipt: HoidEditorialReviewReceipt = Object.freeze({
     schemaVersion: 1,
@@ -371,7 +419,7 @@ export function validateHoidEditorialReviewReceipt(
     reviewerId: raw.reviewerId.trim(),
     reviewedAt: raw.reviewedAt,
     checklist,
-    notes: raw.notes,
+    noteCodes,
   });
   const outcome = raw.decision === "approved"
     ? "approved-awaiting-source-promotion"

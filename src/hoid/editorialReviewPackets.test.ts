@@ -28,7 +28,7 @@ function receipt(overrides: Record<string, unknown> = {}) {
       spoilerCeiling: true,
       provenance: true,
     },
-    notes: "Revisión de prueba; no constituye una aprobación real.",
+    noteCodes: ["no-issues"],
     ...overrides,
   };
 }
@@ -120,11 +120,21 @@ describe("Hoid editorial review packets", () => {
         spoilerCeiling: true,
         provenance: true,
       },
+      noteCodes: ["completeness-issue"],
     }));
-    const rejected = validateHoidEditorialReviewReceipt(packet, receipt({ decision: "rejected" }));
+    const rejected = validateHoidEditorialReviewReceipt(packet, receipt({ decision: "rejected", noteCodes: ["factual-issue"] }));
     expect(revision.status === "valid" && revision.outcome).toBe("revision-required");
     expect(rejected.status === "valid" && rejected.outcome).toBe("rejected");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
+  });
+
+  it("rejects free-form reviewer notes so source passages cannot enter receipts", () => {
+    expect(validateHoidEditorialReviewReceipt(packet, receipt({
+      notes: "No copiar texto de la fuente",
+    }))).toEqual({ status: "invalid", reason: "invalid-receipt-shape" });
+    expect(validateHoidEditorialReviewReceipt(packet, receipt({
+      noteCodes: ["unrecognized-source-quote"],
+    }))).toEqual({ status: "invalid", reason: "invalid-checklist" });
   });
 
   it("rejects non-canonical timestamps and reviewer identities", () => {

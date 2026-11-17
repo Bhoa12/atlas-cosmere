@@ -22,6 +22,7 @@ on:
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - "docs/hoid/EDITORIAL_REVIEW_PACKETS.md"
       - "docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md"
+      - "docs/hoid/ROSHAR_CHAPTER_SIX_INGESTION.md"
       - "docs/hoid/COSMERE_TFE_CHAPTERS_1_2_INGESTION.md"
       - ".github/workflows/hoid-editorial-draft-validation.yml"
   pull_request:
@@ -43,6 +44,7 @@ on:
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - "docs/hoid/EDITORIAL_REVIEW_PACKETS.md"
       - "docs/hoid/ROSHAR_CHAPTER_TWO_INGESTION.md"
+      - "docs/hoid/ROSHAR_CHAPTER_SIX_INGESTION.md"
       - "docs/hoid/COSMERE_TFE_CHAPTERS_1_2_INGESTION.md"
       - ".github/workflows/hoid-editorial-draft-validation.yml"
 

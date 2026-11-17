@@ -330,3 +330,12 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 
 
 The protected promotion gate also requires a read-only `HoidPromotionProgressPort`. It checks the authoritative Atlas cursor snapshot both before and after the source-control review fetch; the revision and fingerprint must still match the plan. This closes the race where a reader changes or rewinds progress while approvals are being checked. Missing, invalid, stale or changed progress fails closed.
+
+
+## Run 119 — Roshar chapter-six ingestion
+
+- The sparse chapter-document allowlist now contains chapters one through six for `twok`, `edgedancer` and `dawnshard`, plus the two previously inspected `tfe` chapters.
+- Three new original Spanish summaries are staged with chapter-seven unlock thresholds. All 20 summaries remain pending editorial review and are excluded from the production registry.
+- Exact edition-bound locators and chapter-body SHA-256 values are recorded; the EPUBs and XHTML bodies are not committed.
+- The current Library listing exposed the three Roshar EPUBs but not `cosmere.epub`; no new Cosmere passages were inspected.
+- See `docs/hoid/ROSHAR_CHAPTER_SIX_INGESTION.md` and `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md`.

@@ -709,9 +709,77 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-006.kaladin-bridge-four",
+    kind: "event",
+    aliases: Object.freeze(["primera salida de Puente Cuatro"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 6 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 6,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-019.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 7 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "9af4c12b07013a211fa399d6b53061c9207cfd49c42c56d89ded8cdc68c9c1c2",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "3a702f5cf75e56b4765f9ae5983765a7a19c1d8fba68c9aaf4094db37d8eeac8" }),
+    summary: "Kaladin llega al campamento de Sadeas y espera que lo incorporen al ejército como lancero. Una noble inspecciona a los cautivos, pero la información que Tvlakv revela sobre la marca de Kaladin y su historial impide que lo acepte como soldado. Lo destinan a una cuadrilla de puentes. En su primera salida a las Llanuras Quebradas, el grupo debe transportar el puente bajo fuego parshendi, y Kaladin comprueba que los porteadores son tratados como sacrificables. Tras el combate, queda entre los supervivientes y recibe la orden de volver a cargar el puente, mientras la spren empieza a manifestar una identidad propia.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-006.lift-tashikk-orphanage",
+    kind: "event",
+    aliases: Object.freeze(["visita de Lift al orfanato Luz de Tashi"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 6 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 6,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/006.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 7 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "b911d60b2e2630d79e6659a441ce4210e228b11c47ad6f9f026a9ce6b3c48de2",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "970c0970240499bb55e047902cfb2889795277e3009adcaa0d2b46d1d1bb3372" }),
+    summary: "Lift busca comida en Tashikk y sigue las pistas de una niña de la calle hasta el orfanato Luz de Tashi. Allí presencia la llegada de un niño con una lesión grave y la reacción severa de la encargada, conocida como la Tocón. Lift se queda con el pequeño y discute con la mujer, que limita la ayuda que le ofrece a unas pocas comidas y un lugar incómodo para dormir. Un anciano le propone un intercambio de información: le explica cómo tratar con la encargada a cambio de que Lift responda a una pregunta filosófica sobre su lugar en la comunidad. Lift responde con su humor habitual y decide marcharse a una cita.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-006.rysn-worm-grain-trade",
+    kind: "event",
+    aliases: Object.freeze(["intercambio del grano con gusanos"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 6 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 6,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/6.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 7 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "4025cf190a6b7d6e17d66036705f6aa1f16f3194b3964a29ea4aa77249a3bc3b",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "e701f34a58137d705dbe4829682b29c2f424a88017bcd41751d8110ebc9a7bd5" }),
+    summary: "El hallazgo de larvas en los toneles de grano amenaza con desmoralizar a la tripulación del Vela Errante. Rysn descarta las interpretaciones supersticiosas y recurre a una lección comercial de Vstim: identifica a un grupo de compradores para quienes el grano sigue teniendo valor y negocia un intercambio que aporta provisiones y calma a la tripulación. Después, Rysn y Nikli hablan sobre confianza, traición y la posición de ambos dentro del barco. Nikli le advierte que ha oído conversaciones reservadas relacionadas con la misión. Cuando se retira, mantiene una comunicación mental con otros miembros de su pueblo, que debaten qué hacer con la expedición y le permiten intentar de nuevo disuadir a los viajeros.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]);
 
-// Chapter-five summaries remain staging-only and require chapter six completion.
+// Chapter-six summaries remain staging-only and require chapter seven completion.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

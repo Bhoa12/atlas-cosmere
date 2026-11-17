@@ -181,3 +181,10 @@ This is a v2 contract alongside the existing chapter-based ledger. The persisted
 `migrateHoidProgressV1ToV2()` is a pure, non-destructive migration preparation. It first validates the complete v1 snapshot with the legacy ledger, converts every partial position to an exact manifest cursor, preserves completion, revision, timestamp and editorial order, and rejects the entire migration if any position cannot be mapped unambiguously. It never silently drops a work and never writes to SQLite.
 
 **The v2 snapshot is not yet the production persistence format.** SQLite, the Atlas coordinator and EvidenceRuntime still use v1. Before cutover, implement a transactional v2 adapter, an atomic migration marker, deterministic dual-read, source-revision compare-and-swap and rollback/recovery tests. See `docs/hoid/CURSOR_PROGRESS_MIGRATION.md`.
+
+
+## Cursor-native strict evidence runtime bridge
+
+`cursorEvidenceRuntime.ts` accepts a complete v2 progress snapshot, validates its edition-bound cursors, and only then projects it into the compatibility position contract consumed by `HoidEvidenceRuntime`. It preserves explicit completion, rejects stale manifests and malformed request envelopes before selector invocation, and provides metadata-only recommendations from the same validated snapshot.
+
+This is an authorization bridge for the v2 contract, not a SQLite migration or production screen cutover. Atlas and HoidScreen continue using the v1 persisted ledger until the transactional v2 adapter, atomic migration marker, dual-read and rollback path are implemented and tested. See `docs/hoid/CURSOR_EVIDENCE_RUNTIME.md` and `src/hoid/cursorEvidenceRuntime.test.ts`.

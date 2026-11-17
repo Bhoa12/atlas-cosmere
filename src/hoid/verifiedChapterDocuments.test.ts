@@ -87,9 +87,9 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       4,
     )).toBe("a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb");
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(4);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(4);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(4);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(5);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(5);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(5);
   });
 
   it("returns the three individually inspected Roshar chapter-five digests", () => {

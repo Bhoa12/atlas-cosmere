@@ -1,22 +1,31 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHoidEvidenceRuntime } from "./evidenceRuntime";
+import { getHoidReadingManifest } from "./readingManifest";
+
+function locator(bookId: string, chapter: number): string {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") throw new Error("Manifest de prueba no disponible");
+  const unit = result.manifest.units.find(candidate => candidate.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Localizador de prueba no disponible");
+  return unit.locatorId;
+}
 
 const knowledge = [{
-  id: "e-tfe-character",
-  aliases: ["Sazed"],
+  id: "e-test-character",
+  aliases: ["Personaje de prueba"],
   kind: "character" as const,
-  firstSafeAppearance: { bookId: "tfe", chapter: 1 },
-  evidenceSource: { bookId: "tfe", chapter: 1, locatorId: "synthetic-tfe-unit-1" },
-  evidenceUnlock: { bookId: "tfe", chapter: 1 },
+  firstSafeAppearance: { bookId: "twok", chapter: 1 },
+  evidenceSource: { bookId: "twok", chapter: 1, locatorId: locator("twok", 1) },
+  evidenceUnlock: { bookId: "twok", chapter: 1 },
   provenance: "verified" as const,
   summary: "Resumen editorial sintético para una prueba de autorización.",
 }];
 
 const claims = [{
-  id: "claim-tfe-character",
+  id: "claim-test-character",
   text: "Afirmación editorial sintética.",
   intent: "explain" as const,
-  evidenceIds: ["e-tfe-character"],
+  evidenceIds: ["e-test-character"],
   review: {
     status: "approved" as const,
     origin: "original-editorial" as const,
@@ -27,7 +36,7 @@ const claims = [{
 
 describe("completion spoofing regression", () => {
   it("does not treat a chapter plus completed=true as permission to reveal the whole work", async () => {
-    const selector = vi.fn(async () => ["claim-tfe-character"]);
+    const selector = vi.fn(async () => ["claim-test-character"]);
     const runtime = createHoidEvidenceRuntime({
       knowledge,
       claims,
@@ -35,8 +44,8 @@ describe("completion spoofing regression", () => {
     });
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: 1, completed: true }],
+      question: "¿Quién es Personaje de prueba?",
+      reading: [{ bookId: "twok", chapter: 1, completed: true }],
     });
 
     expect(result.status).toBe("blocked");
@@ -46,7 +55,7 @@ describe("completion spoofing regression", () => {
   });
 
   it("does not treat an invalid chapter plus completed=true as completion", async () => {
-    const selector = vi.fn(async () => ["claim-tfe-character"]);
+    const selector = vi.fn(async () => ["claim-test-character"]);
     const runtime = createHoidEvidenceRuntime({
       knowledge,
       claims,
@@ -54,8 +63,8 @@ describe("completion spoofing regression", () => {
     });
 
     const result = await runtime!.answer({
-      question: "¿Quién es Sazed?",
-      reading: [{ bookId: "tfe", chapter: -1, completed: true }],
+      question: "¿Quién es Personaje de prueba?",
+      reading: [{ bookId: "twok", chapter: -1, completed: true }],
     });
 
     expect(result.status).toBe("blocked");
@@ -66,7 +75,7 @@ describe("completion spoofing regression", () => {
   it("abstains from recommendations when completion metadata is contradictory", () => {
     const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: null });
     const result = runtime!.recommend([
-      { bookId: "tfe", chapter: 1, completed: true },
+      { bookId: "twok", chapter: 1, completed: true },
     ]);
 
     expect(result.status).toBe("abstain");

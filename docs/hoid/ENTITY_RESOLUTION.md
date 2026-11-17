@@ -74,3 +74,13 @@ The scan is deliberately conservative:
 The preflight is not a substitute for claim authorization. A matched entity only permits the question to proceed to the existing evidence runtime; every answer still requires approved claims and chapter-scoped evidence. The production registries remain empty until original editorial records and alias disclosures have been reviewed.
 
 The UI maps blocked, ambiguous and unavailable mention preflights to the same generic no-authorized-evidence response used for an unknown mention. It does not tell the reader whether a spelling exists, is locked, is ambiguous or lacks a review record.
+
+## Multi-entity mentions and claim scoping
+
+Natural-language preflight now distinguishes multiple distinct, individually authorized aliases from a true alias collision. A question may resolve to several entities when each matched spelling identifies exactly one entity. If the same normalized spelling belongs to multiple authorized entities, the result remains ambiguous and the gateway abstains. Truncated mention sets also abstain.
+
+For an unambiguous result, the gateway forwards only the canonical entity IDs to the strict cursor evidence runtime. The IDs are bound to the same progress revision and fingerprint as the request. The cursor facade preserves the scope, and the evidence runtime filters approved claims locally before the selector is invoked.
+
+A claim may carry an optional entityIds array. For an entity-scoped question, every resolved entity ID must occur in the claim's reviewed scope; legacy claims without entity scope are excluded. Claim evidence must still be fully authorized with AND semantics. The provider sees only the already-filtered candidate set and cannot add entity IDs, claims, or prose. Unknown, duplicate, sparse, malformed, or unregistered entity IDs fail closed.
+
+The production editorial and alias registries remain empty. Synthetic fixtures exercise the mechanics only; no Cosmere fact is asserted or promoted.

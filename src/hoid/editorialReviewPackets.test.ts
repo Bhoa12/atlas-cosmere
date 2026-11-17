@@ -33,6 +33,7 @@ function receipt(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// The staging packet inventory is derived from the verified chapter-body allowlist.
 describe("Hoid editorial review packets", () => {
   it("builds a deterministic packet for each pending source-backed draft", () => {
     expect(built.status).toBe("ready");

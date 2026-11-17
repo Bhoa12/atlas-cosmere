@@ -1,0 +1,53 @@
+name: Hoid cursor progress coordinator
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/sqliteProgressStore.ts"
+      - "docs/hoid/CURSOR_PROGRESS_COORDINATOR.md"
+      - ".github/workflows/hoid-cursor-progress-coordinator.yml"
+  pull_request:
+    paths:
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/sqliteProgressStore.ts"
+      - "docs/hoid/CURSOR_PROGRESS_COORDINATOR.md"
+      - ".github/workflows/hoid-cursor-progress-coordinator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cursor-progress-coordinator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cursor coordinator and storage contracts
+        run: npx vitest run src/hoid/cursorProgressCoordinator.test.ts src/hoid/cursorSqliteProgressStore.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/readingManifest.test.ts src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Type-check cursor coordinator boundary
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/cursorProgressCoordinator.ts src/hoid/cursorSqliteProgressStore.ts src/hoid/cursorProgressLedger.ts src/hoid/progressLedger.ts src/hoid/sqliteProgressStore.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/editionProgressValidation.ts src/hoid/readingValidation.ts src/hoid/recommendations.ts src/hoid/catalog.ts src/hoid/bibliography.ts src/hoid/types.ts
+      - name: Type-check Expo composition adapter
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/expoCursorProgressCoordinator.ts src/hoid/cursorProgressCoordinator.ts src/hoid/cursorSqliteProgressStore.ts src/hoid/cursorProgressLedger.ts src/hoid/progressLedger.ts src/hoid/sqliteProgressStore.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/editionProgressValidation.ts src/hoid/readingValidation.ts src/hoid/recommendations.ts src/hoid/catalog.ts src/hoid/bibliography.ts src/hoid/types.ts

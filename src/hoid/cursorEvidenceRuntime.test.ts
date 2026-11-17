@@ -219,7 +219,7 @@ describe("HoidCursorEvidenceRuntime", () => {
 
     expect(recommendations.status).toBe("ready");
     if (recommendations.status === "ready") {
-      expect(recommendations.items.some(item => item.sourceId === "tfe")).toBe(false);
+      expect(recommendations.items.some(item => item.sourceId === "twok")).toBe(false);
       expect(recommendations.items.every(item => item.reason === "unread-source")).toBe(true);
     }
 

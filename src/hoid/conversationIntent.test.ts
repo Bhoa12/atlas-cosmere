@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { classifyHoidConversationIntent } from "./conversationIntent";
 
 describe("classifyHoidConversationIntent", () => {
-  it("routes explicit reading recommendations to the metadata-only recommendation path", () => {
+  it("routes explicit reading recommendations to the metadata-only catalogue path", () => {
     expect(classifyHoidConversationIntent("¿Qué libro debería leer después?")).toEqual({
       status: "ready",
       intent: "recommend",
+      mode: "catalogue-recommendation",
       signal: "recommendation-cue",
     });
   });
@@ -14,6 +15,7 @@ describe("classifyHoidConversationIntent", () => {
     expect(classifyHoidConversationIntent("¡Recomiéndame una próxima lectura!")).toMatchObject({
       status: "ready",
       intent: "recommend",
+      mode: "catalogue-recommendation",
       signal: "recommendation-cue",
     });
   });
@@ -22,35 +24,49 @@ describe("classifyHoidConversationIntent", () => {
     expect(classifyHoidConversationIntent("Me recomiendas otra obra")).toMatchObject({
       status: "ready",
       intent: "recommend",
+      mode: "catalogue-recommendation",
     });
   });
 
-  it("routes progress and recap questions to the context path", () => {
+  it("routes reading-position questions to metadata-only progress context", () => {
     expect(classifyHoidConversationIntent("¿Hasta dónde he leído?")).toEqual({
       status: "ready",
       intent: "context",
-      signal: "reading-context-cue",
+      mode: "reading-progress",
+      signal: "progress-position-cue",
     });
   });
 
-  it("recognizes a request to locate the current reading position", () => {
+  it("recognizes a request to locate the current chapter", () => {
+    expect(classifyHoidConversationIntent("¿En qué capítulo estoy?")).toMatchObject({
+      status: "ready",
+      intent: "context",
+      mode: "reading-progress",
+    });
+  });
+
+  it("recognizes a request to locate the last reading position", () => {
     expect(classifyHoidConversationIntent("¿Dónde me quedé?")).toMatchObject({
       status: "ready",
       intent: "context",
+      mode: "reading-progress",
     });
   });
 
-  it("recognizes a recap request", () => {
-    expect(classifyHoidConversationIntent("Hazme un resumen de lo leído")).toMatchObject({
+  it("routes plot recaps to the editorial evidence runtime, not metadata-only context", () => {
+    expect(classifyHoidConversationIntent("Hazme un resumen de lo leído")).toEqual({
       status: "ready",
       intent: "context",
+      mode: "narrative-context",
+      signal: "narrative-recap-cue",
     });
   });
 
-  it("gives recommendation requests precedence when cues are mixed", () => {
+  it("gives recommendations precedence when recommendation and context cues are mixed", () => {
     expect(classifyHoidConversationIntent("Recuerda lo que he leído y recomiéndame un libro")).toMatchObject({
       status: "ready",
       intent: "recommend",
+      mode: "catalogue-recommendation",
     });
   });
 
@@ -58,6 +74,7 @@ describe("classifyHoidConversationIntent", () => {
     expect(classifyHoidConversationIntent("¿Cómo funciona este sistema de magia?")).toEqual({
       status: "ready",
       intent: "explain",
+      mode: "explanation",
       signal: "default-explanation",
     });
   });
@@ -104,7 +121,7 @@ describe("classifyHoidConversationIntent", () => {
     });
   });
 
-  it("returns the same intent for the same normalized input", () => {
+  it("returns the same route for the same normalized input", () => {
     const first = classifyHoidConversationIntent("¿Qué libro leo después?");
     const second = classifyHoidConversationIntent("¿QUÉ LIBRO LEO DESPUÉS?");
     expect(first).toEqual(second);

@@ -50,3 +50,12 @@ El módulo utiliza los manifiestos de metadatos y los contratos existentes. `can
 ## Verificación de composición
 
 La suite específica debe ejecutarse en CI junto con el contrato de snapshots v2, el manifiesto de lectura y el runtime estricto existente. La prueba de integración usa únicamente afirmaciones y evidencias sintéticas; no representa contenido narrativo extraído de los EPUB privados.
+
+
+## Límite exclusivo del capítulo actual
+
+El cursor v2 identifica el capítulo actualmente abierto/en curso. No declara que ese capítulo haya terminado. La fachada proyecta el capítulo N a un progreso seguro hasta N-1; el capítulo 1 no aporta ninguna posición narrativa completada. Solo la finalización explícita desbloquea la obra completa.
+
+La proyección también conserva `startedBookIds`. Las recomendaciones eliminan obras presentes en el snapshot aunque el lector esté todavía en el capítulo 1 y aún no exista una unidad completada. Así no se recomienda una obra iniciada como si fuera inédita.
+
+Consulta `docs/hoid/READING_BOUNDARY_POLICY.md`. Esta semántica no altera los cursores almacenados ni la migración SQLite: cambia exclusivamente el límite de autorización entregado al motor editorial.

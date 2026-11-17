@@ -235,3 +235,12 @@ Run 106 inspeccionó el OPF y `EPUB/nav.xhtml` del EPUB privado. Se incorporaron
 ## Consultas al grafo y planes de explicación
 
 `knowledgeGraphQuery.ts` consulta únicamente el grafo autorizado, con recorrido dirigido y límites de profundidad, número de rutas y expansiones. `createHoidExplanationPlan()` genera un plan sin texto narrativo; `renderHoidExplanationPlan()` solo recupera declaraciones editoriales locales cuyos IDs, evidencias y SHA-256 coinciden y cuyo snapshot v2 conserva la misma huella. La ruta de producción está vinculada a los registros locales, actualmente vacíos. No se generan hechos ni prosa factual del proveedor. Consulta `docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md`.
+
+
+## Spoiler-aware entity resolution
+
+`entityResolver.ts` resolves exact Unicode-normalized names and aliases only after validating the source-backed entity and the authoritative v2 progress snapshot. Entity first appearance and full-summary unlock are not enough to disclose every alias: `entityAliasRegistry.ts` gives each alias its own source locators, document digests and unlock thresholds. Multiple alias sources use AND semantics.
+
+The resolver filters both locked entities and locked aliases before matching, so an unknown alias and a locked alias have the same `not-found` result. Ambiguous authorized aliases return bounded candidates rather than choosing one silently. Results contain IDs, kind, the matched authorized alias, entity and alias citations, and a progress fingerprint; they never return summaries or EPUB prose.
+
+Matching is exact after NFKD normalization, mark/format folding, case folding and whitespace normalization. No fuzzy, substring, embedding or provider-generated matching is used. The production function `resolveProductionHoidEntities()` is bound to the source-controlled editorial and alias registries, both currently empty. See `docs/hoid/ENTITY_RESOLUTION.md`.

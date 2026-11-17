@@ -39,7 +39,7 @@ Each draft is bound to the chapter-two document digest and has an unlock thresho
 - The chapter XHTML bytes were hashed locally after extraction from the private EPUBs.
 - Summary hashes are SHA-256 over the exact UTF-8 original-summary strings.
 - The source document hash is distinct from the EPUB navigation hash.
-- A chapter-two summary is not available while chapter two is open; it becomes eligible only after the cursor advances beyond chapter two.
+- Each chapter-two draft has an explicit completed-through threshold of chapter three. Because a cursor on chapter N only authorizes through N-1, the summary remains unavailable while chapter three is open and becomes eligible when the reader advances to chapter four (or explicitly completes the work). This deliberately conservative extra-chapter margin is retained from the existing editorial policy.
 - Staging does not imply editorial approval or production availability.
 - No raw chapter text, images, fonts or complete EPUB files were added to Git.
 

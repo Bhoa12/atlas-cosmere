@@ -293,4 +293,5 @@ Run 113 binds every ready assistant answer, reading-context result and catalogue
 - Entity-scoped claims must list every resolved entity ID, and each ID must also occur in the claim's evidence ID set. Legacy unscoped claims cannot answer entity-scoped questions. All evidence remains AND-authorized.
 - The accessible private cosmere.epub was materialized locally and its already-registered navigation digest was rechecked. The XHTML bodies for El Imperio Final chapters 1 and 2 were individually inspected; only their SHA-256 document digests and original summaries were added to staging.
 - Two new character drafts (Vin and Kelsier) are pending editorial review. They are not production knowledge and do not populate the approved entity or alias registries.
+- One atomic claim draft is staged for the chapter-2 Vin material, with its own SHA-256 integrity and chapter-3 completion threshold. It remains pending review and is not available to the answer runtime.
 - No EPUB bytes or source passages were committed. See docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md and docs/hoid/COSMERE_TFE_CHAPTERS_1_2_INGESTION.md.

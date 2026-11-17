@@ -135,9 +135,9 @@ describe("Hoid editorial draft staging", () => {
     });
   });
 
-  it("rejects an unlock threshold earlier than the source chapter", () => {
+  it("rejects an unlock threshold outside the verified chapter sequence", () => {
     expect(validateHoidEditorialDraft(cloneDraft({
-      evidenceUnlock: { bookId: "twok", chapter: 1 },
+      evidenceUnlock: { bookId: "twok", chapter: 0 },
     }))).toEqual({
       status: "invalid",
       reason: "invalid-evidence",

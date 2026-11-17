@@ -437,3 +437,54 @@ export function evaluateHoidEditorialClaimDrafts(
 
   return Object.freeze({ status: "ready", evaluations: Object.freeze(evaluations) });
 }
+
+/**
+ * First source-backed atomic Cosmere assertion. It remains staging-only:
+ * the approved production registry is not imported or modified here.
+ */
+const RAW_EDITORIAL_CLAIM_DRAFTS: readonly unknown[] = Object.freeze([
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.vin.ability.emotional-allomancy",
+    subjectId: "tfe.vin",
+    subjectKind: "character",
+    assertionKind: "ability",
+    intent: "explain",
+    statement: "Kelsier reconoce indicios de que Vin utiliza alomancia para alterar las emociones de otras personas y considera que ella quizá todavía no comprende conscientemente esa capacidad.",
+    evidence: Object.freeze([
+      Object.freeze({
+        source: Object.freeze({
+          bookId: "tfe",
+          chapter: 2,
+          locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/002.xhtml",
+        }),
+        unlock: Object.freeze({ bookId: "tfe", chapter: 3 }),
+        sourceIntegrity: Object.freeze({
+          editionId: "cosmere-epub-merged-v1",
+          navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+          documentSha256: "13604dc85df709443e6cd215a3e1a9deabe8f69f118dcc9823127b82ad486fc1",
+        }),
+      }),
+    ]),
+    integrity: Object.freeze({
+      statementSha256: "b2bb4bd4bb7a7d7fd5fbc8145d83d94d51426ba7e12fde779cb905c265767a31",
+      claimSha256: "0aaf446b5e38a4d6f4943bb188f4dedd00053219f6c418134d7988f8ee9af25d",
+    }),
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+]);
+
+const VALIDATED_EDITORIAL_CLAIM_DRAFTS = validateHoidEditorialClaimDraftBatch(
+  RAW_EDITORIAL_CLAIM_DRAFTS,
+);
+
+/** Source-backed atomic assertions remain separate from approved production claims. */
+export const HOID_EDITORIAL_CLAIM_DRAFTS: readonly HoidEditorialClaimDraft[] =
+  VALIDATED_EDITORIAL_CLAIM_DRAFTS.status === "valid"
+    ? VALIDATED_EDITORIAL_CLAIM_DRAFTS.drafts
+    : Object.freeze([]);
+
+export function getHoidEditorialClaimDraftStatus(): "empty" | "pending-review" | "invalid" {
+  if (VALIDATED_EDITORIAL_CLAIM_DRAFTS.status === "invalid") return "invalid";
+  return HOID_EDITORIAL_CLAIM_DRAFTS.length > 0 ? "pending-review" : "empty";
+}

@@ -299,4 +299,61 @@ describe("HoidCursorProgressCoordinator", () => {
       },
     });
   });
+
+  it("rejects inherited and accessor-backed confirmation objects without invoking getters", async () => {
+    const { coordinator, store } = createCoordinator();
+    await coordinator.complete("tfe");
+
+    let invoked = false;
+    const accessor = Object.defineProperty({}, "confirmed", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        return true;
+      },
+    });
+    const accessorResult = await coordinator.reopenCompletedWork(
+      "tfe",
+      accessor as { confirmed: true },
+    );
+    expect(accessorResult).toEqual({
+      status: "rejected",
+      reason: "reopen-requires-confirmation",
+    });
+    expect(invoked).toBe(false);
+
+    const inherited = Object.create({ confirmed: true }) as { confirmed: true };
+    const inheritedResult = await coordinator.reopenCompletedWork("tfe", inherited);
+    expect(inheritedResult).toEqual({
+      status: "rejected",
+      reason: "reopen-requires-confirmation",
+    });
+    expect(store.writes).toBe(1);
+  });
+
+  it("rejects accessor-backed correction flags without executing them", async () => {
+    const { coordinator } = createCoordinator();
+    await coordinator.complete("tfe");
+
+    let invoked = false;
+    const confirmation = Object.defineProperty({ confirmed: true }, "reopenCompleted", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        return true;
+      },
+    });
+    const result = await coordinator.correctCursor(
+      "tfe",
+      cursor("tfe", 3),
+      confirmation as { confirmed: true; reopenCompleted: true },
+    );
+
+    expect(result).toEqual({
+      status: "rejected",
+      reason: "regression-requires-confirmation",
+    });
+    expect(invoked).toBe(false);
+  });
+
 });

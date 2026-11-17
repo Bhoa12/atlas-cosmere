@@ -63,6 +63,49 @@ function canonicalTimestamp(value: unknown): value is string {
   return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
 }
 
+
+function canonicalConfirmation(
+  value: unknown,
+  allowReopen: boolean,
+): Readonly<{ confirmed: true; reopenCompleted: boolean }> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+
+    const allowed = allowReopen
+      ? new Set(["confirmed", "reopenCompleted"])
+      : new Set(["confirmed"]);
+    const keys = Reflect.ownKeys(value);
+    if (!keys.includes("confirmed") || keys.length > allowed.size) return null;
+
+    const record = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof key !== "string" || !allowed.has(key)) return null;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      record[key] = descriptor.value;
+    }
+
+    if (record.confirmed !== true) return null;
+    if (
+      Object.prototype.hasOwnProperty.call(record, "reopenCompleted") &&
+      record.reopenCompleted !== true
+    ) return null;
+
+    return Object.freeze({
+      confirmed: true as const,
+      reopenCompleted: record.reopenCompleted === true,
+    });
+  } catch {
+    return null;
+  }
+}
+
 function isKnownWork(bookId: unknown): bookId is string {
   return typeof bookId === "string" &&
     bookId.length > 0 &&
@@ -166,7 +209,7 @@ export class HoidCursorProgressCoordinator {
     confirmation: HoidReopenConfirmation,
   ): Promise<HoidCursorCoordinatorResult> {
     return this.serialize(async () => {
-      if (!confirmation || confirmation.confirmed !== true) {
+      if (canonicalConfirmation(confirmation, false) === null) {
         return this.rejected("reopen-requires-confirmation");
       }
       if (!isKnownWork(bookId)) return this.rejected("unknown-work");
@@ -193,7 +236,8 @@ export class HoidCursorProgressCoordinator {
     confirmation: HoidCursorCorrectionConfirmation,
   ): Promise<HoidCursorCoordinatorResult> {
     return this.serialize(async () => {
-      if (!confirmation || confirmation.confirmed !== true) {
+      const acceptedConfirmation = canonicalConfirmation(confirmation, true);
+      if (acceptedConfirmation === null) {
         return this.rejected("regression-requires-confirmation");
       }
       if (!isKnownWork(bookId)) return this.rejected("unknown-work");
@@ -206,7 +250,7 @@ export class HoidCursorProgressCoordinator {
       if (loaded.status !== "ready" || !this.snapshot) return loaded;
       const existing = this.snapshot.positions.find(position => position.bookId === bookId);
 
-      if (existing && "completed" in existing && confirmation.reopenCompleted !== true) {
+      if (existing && "completed" in existing && acceptedConfirmation.reopenCompleted !== true) {
         return this.rejected("reopen-requires-confirmation");
       }
       if (existing && "cursor" in existing &&

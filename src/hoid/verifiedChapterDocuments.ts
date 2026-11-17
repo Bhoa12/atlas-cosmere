@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 119 extends the sparse allowlist through chapter six for the three accessible Roshar works.
+ * Run 120 extends the sparse allowlist through chapter seven for the three accessible Roshar works.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -25,6 +25,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       4: "1a5d55dd8eaa304b14a10526e50a98826de139abbc402013150dd795f44bef89",
       5: "1cc47f030de9132acec9b6eaca0310e325f4eb34d49bac7294611d09080d68d8",
       6: "9af4c12b07013a211fa399d6b53061c9207cfd49c42c56d89ded8cdc68c9c1c2",
+      7: "30d9cecf9748261ad6e47fcea6064ac2f93ec523e8fe6a2d528d76306233bebb",
     }),
   }),
   edgedancer: Object.freeze({
@@ -37,6 +38,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       4: "4437c0e0ff5a617490a087d7c887117e63ff5f6f627d5e9f4515206fb77a3507",
       5: "89da9c44aceb5254d8b29d63f9db940f0d13f6de03dc682883670fefd03dc83e",
       6: "b911d60b2e2630d79e6659a441ce4210e228b11c47ad6f9f026a9ce6b3c48de2",
+      7: "c98233f98e7b5368a1e9e1d6db216ebbc4c22b43aa056624758a76ff67d7540f",
     }),
   }),
   dawnshard: Object.freeze({
@@ -49,6 +51,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       4: "a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb",
       5: "3aefc41eadb2b580c80d738552b3d10e1f93fd7c8755cf98b824e6922a9df515",
       6: "4025cf190a6b7d6e17d66036705f6aa1f16f3194b3964a29ea4aa77249a3bc3b",
+      7: "c2d2eb939495f883a1d507a42728ca3f39b561534e6984de56af574872066aaf",
     }),
   }),
   tfe: Object.freeze({

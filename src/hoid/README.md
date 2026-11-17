@@ -208,7 +208,7 @@ The projection preserves started work IDs separately so recommendations do not l
 
 ## Editorial draft staging
 
-`editorialDrafts.ts` is a staging-only source ingestion boundary. The first editorial batch contains three original Spanish chapter-one summaries from the accessible Roshar omnibus, `Danzante del Filo` and `Esquirla del amanecer` EPUBs. Each is bound to its exact edition, navigation locator and chapter-document SHA-256; each complete summary unlocks at chapter 2, not while chapter 1 is open.
+`editorialDrafts.ts` is a staging-only source ingestion boundary. The first editorial batch contains three original Spanish chapter-one summaries from the accessible Roshar omnibus, `Danzante del Filo` and `Esquirla del amanecer` EPUBs. Each is bound to its exact edition, navigation locator and chapter-document SHA-256 allowlist entry; each complete summary unlocks at chapter 2, not while chapter 1 is open. `verifiedChapterDocuments.ts` records only the three chapter files whose bytes were actually inspected.
 
 The draft remains `pending-review`. `editorialRegistry.ts` does not import it, so the production evidence runtime still abstains. A separate editorial review must check accuracy, originality and spoiler scope before a source-controlled change promotes any item into the approved registry.
 

@@ -53,6 +53,28 @@ describe("Hoid editorial review packets", () => {
     expect("epubBytes" in packet).toBe(false);
   });
 
+  it("rejects a packet whose chapter locator is changed without rebuilding its identity", () => {
+    const tampered = {
+      ...packet,
+      source: { ...packet.source, locatorId: packet.source.locatorId + "-forged" },
+    };
+    expect(validateHoidEditorialReviewReceipt(tampered, receipt())).toEqual({
+      status: "invalid",
+      reason: "invalid-receipt-shape",
+    });
+  });
+
+  it("rejects a packet whose unlock chapter is not a verified manifest unit", () => {
+    const tampered = {
+      ...packet,
+      unlock: { ...packet.unlock, chapter: 76 },
+    };
+    expect(validateHoidEditorialReviewReceipt(tampered, receipt())).toEqual({
+      status: "invalid",
+      reason: "invalid-receipt-shape",
+    });
+  });
+
   it("starts every checklist item unchecked", () => {
     expect(Object.values(packet.checklist).every(value => value === false)).toBe(true);
   });

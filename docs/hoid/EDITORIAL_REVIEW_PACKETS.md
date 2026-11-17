@@ -26,7 +26,7 @@ It never includes EPUB bytes, XHTML, copied passages or extracted source text.
 
 `validateHoidEditorialReviewReceipt()` binds a receipt to the packet ID, draft ID, summary digest and source-document digest. The checklist covers factual accuracy, completeness, originality, spoiler ceiling and provenance. An `approved` decision is rejected unless every criterion is true.
 
-A structurally valid approval returns `approved-awaiting-source-promotion`, with `promotionAllowed: false`. It does not modify `editorialRegistry.ts`, does not create an approved claim and does not make a draft visible to a provider.
+The packet ID is a SHA-256 fingerprint over the draft ID, summary digest, source-document digest, edition, navigation digest, exact chapter locator and unlock threshold. Receipt validation rechecks the chapter locator and source-document digest against the current verified manifest allowlist. A structurally valid approval returns `approved-awaiting-source-promotion`, with `promotionAllowed: false`. It does not modify `editorialRegistry.ts`, does not create an approved claim and does not make a draft visible to a provider.
 
 Reviewer identity is not authenticated by this TypeScript contract. The identity and independence of the reviewer must be established by the protected GitHub pull-request review and repository permissions. Do not treat a locally constructed receipt as proof of a human review.
 

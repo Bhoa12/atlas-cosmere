@@ -1,4 +1,7 @@
 import { sha256Hex } from "./sha256";
+import { canonicalEvidenceScope } from "./evidenceScope";
+import { getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import {
   validateHoidEditorialDraftBatch,
   type HoidEditorialDraft,
@@ -134,6 +137,35 @@ function allChecksPassed(value: HoidEditorialReviewChecklist): boolean {
     value.provenance;
 }
 
+function reviewPacketId(
+  draftId: string,
+  summarySha256: string,
+  sourceDocumentSha256: string,
+  source: Readonly<{
+    bookId: string;
+    chapter: number;
+    locatorId: string;
+    editionId: string;
+    navigationSha256: string;
+  }>,
+  unlock: Readonly<{ bookId: string; chapter: number }>,
+): string {
+  const canonical = [
+    "hoid-editorial-review-v1",
+    draftId,
+    summarySha256,
+    sourceDocumentSha256,
+    source.bookId,
+    String(source.chapter),
+    source.locatorId,
+    source.editionId,
+    source.navigationSha256,
+    unlock.bookId,
+    String(unlock.chapter),
+  ].join("\n");
+  return "review:" + sha256Hex(canonical);
+}
+
 function canonicalPacket(value: unknown): HoidEditorialReviewPacket | null {
   const raw = canonicalRecord(value, PACKET_KEYS);
   if (!raw || raw.schemaVersion !== 1 || raw.status !== "pending-review") return null;
@@ -156,11 +188,54 @@ function canonicalPacket(value: unknown): HoidEditorialReviewPacket | null {
     raw.summarySha256 !== sha256Hex(raw.summary) ||
     typeof raw.sourceDocumentSha256 !== "string" ||
     !/^[a-f0-9]{64}$/.test(raw.sourceDocumentSha256) ||
-    raw.packetId !== raw.draftId + "@" + raw.summarySha256 ||
     typeof source.chapter !== "number" || !Number.isSafeInteger(source.chapter) || source.chapter < 1 ||
     typeof unlock.chapter !== "number" || !Number.isSafeInteger(unlock.chapter) || unlock.chapter < 1 ||
     source.bookId !== unlock.bookId || unlock.chapter < source.chapter ||
+    typeof source.locatorId !== "string" || source.locatorId.length > 256 ||
+    /[\\u0000-\\u001f\\u007f]/u.test(source.locatorId) ||
+    typeof source.editionId !== "string" || source.editionId.length > 128 ||
+    typeof source.navigationSha256 !== "string" || !/^[a-f0-9]{64}$/.test(source.navigationSha256) ||
     Object.values(checklist).some(Boolean)
+  ) return null;
+
+  const manifestResult = getHoidReadingManifest(source.bookId as string);
+  if (manifestResult.status !== "ready") return null;
+  const scope = canonicalEvidenceScope(
+    {
+      bookId: source.bookId,
+      chapter: source.chapter,
+      locatorId: source.locatorId,
+    },
+    {
+      bookId: unlock.bookId,
+      chapter: unlock.chapter,
+    },
+  );
+  const expectedDocumentSha256 = getVerifiedChapterDocumentSha256(
+    source.bookId,
+    source.editionId,
+    source.navigationSha256,
+    source.chapter,
+  );
+  const expectedPacketId = reviewPacketId(
+    raw.draftId as string,
+    raw.summarySha256 as string,
+    raw.sourceDocumentSha256 as string,
+    {
+      bookId: source.bookId as string,
+      chapter: source.chapter,
+      locatorId: source.locatorId as string,
+      editionId: source.editionId as string,
+      navigationSha256: source.navigationSha256 as string,
+    },
+    { bookId: unlock.bookId as string, chapter: unlock.chapter },
+  );
+  if (
+    !scope ||
+    source.editionId !== manifestResult.manifest.editionId ||
+    source.navigationSha256 !== manifestResult.manifest.navigationSha256 ||
+    expectedDocumentSha256 !== raw.sourceDocumentSha256 ||
+    raw.packetId !== expectedPacketId
   ) return null;
 
   return Object.freeze({
@@ -193,7 +268,19 @@ export function buildHoidEditorialReviewPackets(values: unknown): HoidReviewPack
   if (batch.status !== "valid") return batch;
 
   const packets = batch.drafts.map((draft: HoidEditorialDraft) => {
-    const packetId = draft.id + "@" + draft.summaryIntegrity.sha256;
+    const packetId = reviewPacketId(
+      draft.id,
+      draft.summaryIntegrity.sha256,
+      draft.sourceIntegrity.documentSha256,
+      {
+        bookId: draft.evidenceSource.bookId,
+        chapter: draft.evidenceSource.chapter,
+        locatorId: draft.evidenceSource.locatorId,
+        editionId: draft.sourceIntegrity.editionId,
+        navigationSha256: draft.sourceIntegrity.navigationSha256,
+      },
+      draft.evidenceUnlock,
+    );
     return Object.freeze({
       schemaVersion: 1 as const,
       packetId,

@@ -98,6 +98,38 @@ function canonicalRecord(
   }
 }
 
+function canonicalOptionalRecord(
+  value: unknown,
+  allowedKeys: readonly string[],
+  requiredKeys: readonly string[],
+): Record<string, unknown> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length > allowedKeys.length) return null;
+
+    const result = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof key !== "string" || !allowedKeys.includes(key)) return null;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      result[key] = descriptor.value;
+    }
+    for (const key of requiredKeys) {
+      if (!Object.prototype.hasOwnProperty.call(result, key)) return null;
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 function canonicalDenseArray(value: unknown, min: number, max: number): readonly unknown[] | null {
   try {
     if (!Array.isArray(value) || value.length < min || value.length > max) return null;
@@ -142,7 +174,7 @@ function normalizeAlias(value: string): string {
 }
 
 function canonicalQuery(value: unknown): CanonicalQuery | null {
-  const record = canonicalRecord(value, ["text", "kind", "maxResults"]);
+  const record = canonicalOptionalRecord(value, ["text", "kind", "maxResults"], ["text"]);
   if (!record || typeof record.text !== "string") return null;
   const text = record.text;
   if (

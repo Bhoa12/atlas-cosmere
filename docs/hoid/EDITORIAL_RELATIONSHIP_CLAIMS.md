@@ -16,6 +16,8 @@ A relationship draft contains:
 
 ## Evidence rules
 
+Core-only staging inputs are converted with `createHoidEditorialRelationshipDraftBatch`. Persisted drafts and review packets use `validateHoidEditorialRelationshipDraftBatch`, which never re-hashes a record whose integrity fields are missing or invalid. This keeps creation and validation as separate trust boundaries.
+
 Every evidence item is validated by the existing version-1 claim validator against the current reading manifest, exact chapter locator, navigation digest and individually inspected chapter-document digest.
 
 All evidence unlock thresholds use logical AND. Every participant must be covered by at least one relation-evidence item. Evidence is required to be in canonical order so that index mappings cannot change silently when the validator normalizes the batch.

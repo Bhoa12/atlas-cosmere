@@ -69,6 +69,34 @@ describe("Hoid reader spoiler boundary", () => {
     expect(result).toBeNull();
   });
 
+  it("rejects accessors without executing them", () => {
+    let invoked = false;
+    const input = { cursor: cursor("twok", 7) } as Record<string, unknown>;
+    Object.defineProperty(input, "bookId", {
+      enumerable: true,
+      get: () => {
+        invoked = true;
+        return "twok";
+      },
+    });
+
+    expect(projectHoidCursorPositionToBoundary(input)).toBeNull();
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects unknown fields and contradictory completion/cursor states", () => {
+    expect(projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 7),
+      completed: true,
+    })).toBeNull();
+    expect(projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 7),
+      extra: "ignored?",
+    })).toBeNull();
+  });
+
   it("rejects an obsolete or forged cursor instead of projecting it", () => {
     const valid = cursor("twok", 7);
     const result = projectHoidCursorPositionToBoundary({

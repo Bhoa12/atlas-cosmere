@@ -556,6 +556,16 @@ export function validateHoidEditorialKnowledgeBundleManifest(
   const manifest = canonicalManifest(manifestInput);
   if (!manifest) return Object.freeze({ status: "invalid", reason: "invalid-manifest" });
 
+  const suppliedFingerprint = bundleFingerprint(
+    manifest.status,
+    manifest.records,
+    manifest.sources,
+    manifest.blockers,
+  );
+  if (suppliedFingerprint !== manifest.fingerprint) {
+    return Object.freeze({ status: "invalid", reason: "bundle-fingerprint-mismatch" });
+  }
+
   const rebuilt = buildHoidEditorialKnowledgeBundle(sourceInput);
   if (rebuilt.status === "invalid") {
     return Object.freeze({ status: "invalid", reason: "bundle-content-mismatch" });

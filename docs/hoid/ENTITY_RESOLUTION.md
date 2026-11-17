@@ -52,3 +52,23 @@ Malformed queries, non-canonical knowledge, malformed alias evidence, uninspecte
 Both production registries are currently empty, so production resolution returns `not-found` until source-backed entities and each of their aliases are independently reviewed and promoted. Synthetic tests validate mechanics only; they do not assert Cosmere facts.
 
 SHA-256 is an integrity check, not proof of author or reviewer identity. Editorial promotion remains a protected source-control operation.
+
+
+## Natural-language mention preflight
+
+`resolveProductionHoidEntityMentions()` scans exact, whole-word aliases inside a question before the answer runtime is invoked.
+
+The scan is deliberately conservative:
+
+- Every alias in the approved knowledge catalog is considered, including aliases that lack a disclosure record.
+- An alias must have its own independently reviewed disclosure record.
+- The entity's first-appearance and summary evidence must be unlocked.
+- Every alias evidence item must be unlocked (AND semantics).
+- A known alias without an approved disclosure record is blocked.
+- If a question combines an authorized alias with any blocked alias, the entire question is blocked.
+- A blocked result contains no alias, entity ID, source, or indication of which term caused the block.
+- Exact Unicode-normalized whole-word matching is used; fuzzy matching and provider-generated candidates are excluded.
+
+`HoidConversationGateway.answer()` runs this preflight after validating the request's progress identity and before calling the evidence runtime. It also verifies that the resolver returned the same progress revision and fingerprint as the request. Resolver errors, blocked aliases and ambiguous authorized matches fail closed.
+
+The preflight is not a substitute for claim authorization. A matched entity only permits the question to proceed to the existing evidence runtime; every answer still requires approved claims and chapter-scoped evidence. The production registries remain empty until original editorial records and alias disclosures have been reviewed.

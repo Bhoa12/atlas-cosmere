@@ -8,7 +8,7 @@ import type {
   HoidEvidenceRuntime,
   HoidClaimIntent,
 } from "./evidenceRuntime";
-import { cursorToLegacyReadingPosition } from "./readingManifest";
+import { projectHoidCursorPositionToBoundary } from "./readingBoundary";
 import type { ReadingPosition } from "./types";
 
 export type HoidCursorProgressProjection =
@@ -51,27 +51,21 @@ function canonicalDataRecord(
   }
 }
 
-function toReadingPosition(position: HoidCursorProgressPosition): ReadingPosition | null {
-  if ("completed" in position) {
-    return Object.freeze({
-      bookId: position.bookId,
-      completed: true,
-      ...(position.order === undefined ? {} : { order: position.order }),
-    });
-  }
-
-  const legacy = cursorToLegacyReadingPosition(position.cursor);
-  if (legacy === null || legacy.bookId !== position.bookId) return null;
-  return Object.freeze({
-    ...legacy,
-    ...(position.order === undefined ? {} : { order: position.order }),
-  });
+function toReadingPosition(
+  position: HoidCursorProgressPosition,
+): ReadingPosition | null | undefined {
+  const projection = projectHoidCursorPositionToBoundary(position);
+  if (projection === null) return undefined;
+  return projection.safeReadingPosition;
 }
 
 /**
  * Convert a fully validated v2 cursor snapshot into the compatibility reading
- * shape consumed by HoidEvidenceRuntime. Every partial cursor is revalidated
- * against its current edition manifest before its chapter can be projected.
+ * shape consumed by HoidEvidenceRuntime. A partial cursor identifies the
+ * chapter currently open in Atlas, so only currentChapter - 1 is considered
+ * completed and eligible for spoiler authorization. Chapter one therefore
+ * contributes no completed ReadingPosition. Explicit completion alone unlocks
+ * the entire work. Every cursor is revalidated against its edition manifest.
  */
 export function projectHoidCursorProgressSnapshot(
   value: unknown,
@@ -84,10 +78,12 @@ export function projectHoidCursorProgressSnapshot(
   const reading: ReadingPosition[] = [];
   for (const position of validation.snapshot.positions) {
     const projected = toReadingPosition(position);
-    if (projected === null) {
+    if (projected === undefined) {
       return Object.freeze({ status: "unavailable", reason: "cursor-unavailable" });
     }
-    reading.push(projected);
+    // A cursor on chapter one is valid, but no chapter has been completed yet.
+    // Do not manufacture chapter zero or authorize any chapter-level evidence.
+    if (projected !== null) reading.push(projected);
   }
 
   return Object.freeze({

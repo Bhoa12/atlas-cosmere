@@ -7,6 +7,12 @@ import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph'
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidRecommendation } from '../hoid/recommendations';
+import {
+  canCommitHoidProgressScopedResponse,
+  filterVisibleHoidMessages,
+  pruneStaleHoidMessages,
+  type HoidConversationProgressScope,
+} from '../hoid/conversationHistoryPolicy';
 
 const editorialRuntime = createHoidEditorialRuntime();
 const hoidRuntime = editorialRuntime ? createHoidCursorEvidenceRuntime(editorialRuntime) : null;
@@ -15,6 +21,7 @@ interface Mensaje {
   id: string;
   emisor: 'usuario' | 'hoid';
   texto: string;
+  progressScope?: HoidConversationProgressScope;
 }
 
 export const HoidScreen: React.FC = () => {
@@ -44,6 +51,15 @@ export const HoidScreen: React.FC = () => {
   const [recommendationFingerprint, setRecommendationFingerprint] = useState<string | null>(null);
   const [recommendationMessage, setRecommendationMessage] = useState('');
 
+  const liveProgress = progressReaderRef.current();
+  const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
+  const liveProgressScope: HoidConversationProgressScope | null = liveProjection?.status === 'ready'
+    ? {
+        revision: liveProjection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(liveProjection),
+      }
+    : null;
+
   useEffect(() => {
     setRecomendaciones([]);
     setRecommendationRevision(null);
@@ -51,10 +67,21 @@ export const HoidScreen: React.FC = () => {
     setRecommendationMessage('');
   }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado]);
 
+  // Filter immediately during render, then prune stale assistant text from state.
+  useEffect(() => {
+    setMensajes(previous => pruneStaleHoidMessages(previous, liveProgressScope));
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado]);
+
   const enviarMensaje = async () => {
     if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
     const currentProgress = progressReaderRef.current();
     if (!currentProgress) return;
+    const requestProjection = projectHoidCursorProgressSnapshot(currentProgress);
+    if (requestProjection.status !== 'ready') return;
+    const requestScope: HoidConversationProgressScope = {
+      revision: requestProjection.revision,
+      fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
+    };
 
     const textoUsuario = input.trim();
     const nuevoMsgUsuario: Mensaje = { id: Date.now().toString(), emisor: 'usuario', texto: textoUsuario };
@@ -65,6 +92,7 @@ export const HoidScreen: React.FC = () => {
     try {
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       let respuesta: string;
+      let responseScope: HoidConversationProgressScope | null = null;
 
       if (intentPlan.status !== 'ready') {
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
@@ -73,6 +101,10 @@ export const HoidScreen: React.FC = () => {
       } else if (intentPlan.mode === 'reading-progress') {
         const result = await conversationGateway.readingContext({ progress: currentProgress });
         if (result.status === 'ready') {
+          responseScope = {
+            revision: result.progressRevision,
+            fingerprint: result.progressFingerprint,
+          };
           const positions = result.context.positions;
           respuesta = positions.length === 0
             ? 'No hay obras iniciadas en el progreso guardado.'
@@ -90,6 +122,10 @@ export const HoidScreen: React.FC = () => {
       } else if (intentPlan.mode === 'catalogue-recommendation') {
         const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
         if (result.status === 'ready') {
+          responseScope = {
+            revision: result.progressRevision,
+            fingerprint: result.progressFingerprint,
+          };
           respuesta = result.items.length === 0
             ? 'No quedan obras sin empezar en el catálogo actual.'
             : 'Estas obras figuran en tu catálogo y todavía no has empezado:\\n\\n'
@@ -108,19 +144,43 @@ export const HoidScreen: React.FC = () => {
           progress: currentProgress,
           intent: intentPlan.intent,
         });
-        respuesta = result.status === 'ready'
-          ? result.answer.text
-          : result.reason === 'progress-changed'
+        if (result.status === 'ready') {
+          responseScope = {
+            revision: result.progressRevision,
+            fingerprint: result.progressFingerprint,
+          };
+          respuesta = result.answer.text;
+        } else {
+          respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
             : result.reason === 'invalid-progress'
               ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
               : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
+        }
+      }
+
+      // The gateway checks before and after its asynchronous work. This final
+      // comparison closes the remaining interval before React commits the text.
+      const latestProgress = progressReaderRef.current();
+      const latestProjection = latestProgress
+        ? projectHoidCursorProgressSnapshot(latestProgress)
+        : null;
+      const latestScope: HoidConversationProgressScope | null = latestProjection?.status === 'ready'
+        ? {
+            revision: latestProjection.revision,
+            fingerprint: fingerprintHoidCursorProgressProjection(latestProjection),
+          }
+        : null;
+      if (responseScope && !canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)) {
+        respuesta = 'Tu progreso ha cambiado mientras preparaba la respuesta. He descartado el resultado para proteger tu lectura.';
+        responseScope = null;
       }
 
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
         texto: respuesta,
+        ...(responseScope ? { progressScope: responseScope } : {}),
       }]);
     } catch {
       setMensajes(prev => [...prev, {
@@ -177,17 +237,13 @@ export const HoidScreen: React.FC = () => {
     }
   };
 
-  const liveProgress = progressReaderRef.current();
-  const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
-  const liveFingerprint = liveProjection?.status === 'ready'
-    ? fingerprintHoidCursorProgressProjection(liveProjection)
-    : null;
   const recommendationsAreCurrent =
     recommendationRevision !== null &&
     recommendationFingerprint !== null &&
-    liveProgress !== null &&
-    recommendationRevision === liveProgress.revision &&
-    recommendationFingerprint === liveFingerprint;
+    liveProgressScope !== null &&
+    recommendationRevision === liveProgressScope.revision &&
+    recommendationFingerprint === liveProgressScope.fingerprint;
+  const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -239,7 +295,7 @@ export const HoidScreen: React.FC = () => {
       </View>
 
       <FlatList
-        data={mensajes}
+        data={visibleMessages}
         keyExtractor={m => m.id}
         contentContainerStyle={styles.chatList}
         renderItem={({ item }) => (

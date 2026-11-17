@@ -1,12 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { createHoidReadingCursor } from "./readingManifest";
-import { projectHoidCursorPositionToBoundary } from "./readingBoundary";
+import {
+  isChapterBeyondCompletedReadingBoundary,
+  projectHoidCursorPositionToBoundary,
+} from "./readingBoundary";
 
 function cursor(bookId: string, chapter: number) {
   const result = createHoidReadingCursor(bookId, chapter);
   if (result.status !== "ready") throw new Error("Cursor de prueba no disponible");
   return result.cursor;
 }
+
+describe("community chapter spoiler boundary", () => {
+  it("shields a post that reaches the chapter currently open", () => {
+    expect(isChapterBeyondCompletedReadingBoundary(7, 7)).toBe(true);
+    expect(isChapterBeyondCompletedReadingBoundary(8, 7)).toBe(true);
+  });
+
+  it("allows posts ending before the current chapter", () => {
+    expect(isChapterBeyondCompletedReadingBoundary(6, 7)).toBe(false);
+    expect(isChapterBeyondCompletedReadingBoundary(1, 2)).toBe(false);
+  });
+
+  it("shields every chapter when no reading position is recorded", () => {
+    expect(isChapterBeyondCompletedReadingBoundary(1, 0)).toBe(true);
+  });
+
+  it("fails closed for malformed chapter metadata or progress", () => {
+    expect(isChapterBeyondCompletedReadingBoundary("7", 8)).toBe(true);
+    expect(isChapterBeyondCompletedReadingBoundary(7, -1)).toBe(true);
+    expect(isChapterBeyondCompletedReadingBoundary(0, 8)).toBe(true);
+  });
+});
 
 describe("Hoid reader spoiler boundary", () => {
   it("does not treat the currently open chapter as completed", () => {

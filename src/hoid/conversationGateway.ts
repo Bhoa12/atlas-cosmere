@@ -208,7 +208,7 @@ const ENTITY_SCOPE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 
 /** Canonicalize only the IDs of an unambiguous, progress-bound mention result. */
 function canonicalMatchedEntityIds(
-  result: HoidEntityMentionResolutionResult,
+  result: Extract<HoidEntityMentionResolutionResult, { status: "ready" }>,
 ): readonly string[] | null {
   try {
     if (result.resolution === "not-found") {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildHoidAuthorizedKnowledgeGraph,
   buildProductionHoidAuthorizedKnowledgeGraph,
+  fingerprintHoidCursorProgressSnapshot,
   HOID_KNOWLEDGE_GRAPH_DEFINITION,
   type HoidKnowledgeGraphDefinition,
   type HoidKnowledgeGraphRelation,
@@ -27,6 +28,12 @@ function progress(
     positions: canonical,
     updatedAt: canonical.length === 0 ? null : NOW,
   };
+}
+
+function progressFingerprint(snapshot: unknown): string {
+  const result = fingerprintHoidCursorProgressSnapshot(snapshot);
+  if (result.status !== "ready") throw new Error("Fingerprint de fixture no disponible");
+  return result.sha256;
 }
 
 function knowledge(
@@ -84,6 +91,7 @@ describe("Hoid authorized knowledge graph", () => {
     expect(buildProductionHoidAuthorizedKnowledgeGraph(progress([]))).toEqual({
       status: "ready",
       progressRevision: 0,
+      progressFingerprint: progressFingerprint(progress([])),
       nodes: [],
       edges: [],
     });
@@ -99,6 +107,7 @@ describe("Hoid authorized knowledge graph", () => {
     expect(result).toEqual({
       status: "ready",
       progressRevision: 0,
+      progressFingerprint: progressFingerprint(progress([])),
       nodes: [],
       edges: [],
     });

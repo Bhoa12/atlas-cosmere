@@ -61,6 +61,7 @@ const claims: HoidApprovedClaim[] = [
     text: "Afirmación editorial aprobada sobre Personaje Alfa.",
     intent: "explain",
     evidenceIds: ["e-alpha"],
+    entityIds: ["e-alpha"],
     review,
   },
   {
@@ -68,6 +69,7 @@ const claims: HoidApprovedClaim[] = [
     text: "Relación editorial aprobada que requiere ambas evidencias.",
     intent: "explain",
     evidenceIds: ["e-alpha", "e-beta"],
+    entityIds: ["e-alpha", "e-beta"],
     review,
   },
   {
@@ -75,6 +77,7 @@ const claims: HoidApprovedClaim[] = [
     text: "Esta afirmación no debe quedar disponible.",
     intent: "explain",
     evidenceIds: ["e-limited"],
+    entityIds: ["e-limited"],
     review,
   },
 ];
@@ -432,6 +435,71 @@ describe("HoidEvidenceRuntime", () => {
     expect(result.status).toBe("blocked");
     expect(result.reason).toBe("invalid-input");
     expect(selector).not.toHaveBeenCalled();
+  });
+
+
+  it("limits the selector to claims covering every resolved entity", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-cross-book"]);
+      return ["claim-cross-book"];
+    });
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "wor", chapter: 3 },
+      ],
+      entityIds: ["e-alpha", "e-beta"],
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-cross-book"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not expose legacy unscoped claims to an entity-scoped query", async () => {
+    const { entityIds: _ignored, ...unscopedClaim } = claims[0];
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createHoidEvidenceRuntime({
+      knowledge,
+      claims: [unscopedClaim],
+      selector: { selectClaims: selector },
+    });
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      entityIds: ["e-alpha"],
+    });
+
+    expect(result.status).toBe("abstain");
+    expect(result.reason).toBe("no-authorized-evidence");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown, duplicate and sparse entity scopes before selector invocation", async () => {
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createRuntime(selector);
+    const sparse = new Array(1);
+    for (const entityIds of [["missing-entity"], ["e-alpha", "e-alpha"], sparse]) {
+      const result = await runtime!.answer({
+        question: "¿Quién es Personaje Alfa?",
+        reading: [{ bookId: "twok", chapter: 2 }],
+        entityIds,
+      });
+      expect(result.status).toBe("blocked");
+      expect(result.reason).toBe("invalid-input");
+    }
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects approved claims whose entity scope references an unknown knowledge ID", () => {
+    const invalidRuntime = createHoidEvidenceRuntime({
+      knowledge,
+      claims: [{ ...claims[0], entityIds: ["unknown-entity"] }],
+      selector: null,
+    });
+    expect(invalidRuntime).toBeNull();
   });
 
 });

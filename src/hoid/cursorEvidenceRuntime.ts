@@ -25,7 +25,7 @@ export type HoidCursorProgressProjection =
       reason: "invalid-snapshot" | "cursor-unavailable";
     }>;
 
-const ANSWER_REQUEST_KEYS = new Set(["question", "progress", "intent"]);
+const ANSWER_REQUEST_KEYS = new Set(["question", "progress", "intent", "entityIds"]);
 const MAX_RECOMMENDATION_LIMIT = 20;
 
 function canonicalDataRecord(
@@ -155,6 +155,9 @@ export class HoidCursorEvidenceRuntime {
       question: request.question,
       intent: intent as HoidClaimIntent,
       reading: [...projection.reading],
+      ...(Object.prototype.hasOwnProperty.call(request, "entityIds")
+        ? { entityIds: request.entityIds }
+        : {}),
     });
   }
 

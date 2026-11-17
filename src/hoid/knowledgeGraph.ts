@@ -15,6 +15,7 @@ import {
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 
 export type HoidKnowledgeGraphPredicate =
   | "related-to"
@@ -447,3 +448,16 @@ export const HOID_KNOWLEDGE_GRAPH_DEFINITION: HoidKnowledgeGraphDefinition = Obj
   schemaVersion: 1,
   relations: Object.freeze([]),
 });
+
+
+/** Build the production graph exclusively from the source-controlled editorial registry. */
+export function buildProductionHoidAuthorizedKnowledgeGraph(
+  progressInput: unknown,
+): HoidKnowledgeGraphResult {
+  return buildHoidAuthorizedKnowledgeGraph(
+    HOID_KNOWLEDGE_GRAPH_DEFINITION,
+    HOID_EDITORIAL_KNOWLEDGE,
+    HOID_APPROVED_CLAIMS,
+    progressInput,
+  );
+}

@@ -415,7 +415,12 @@ export function validateHoidEditorialRelationshipDraftBatch(value: unknown): Hoi
   const drafts: HoidEditorialRelationshipDraft[] = [];
   const seen = new Set<string>();
   for (const item of raw) {
-    const result = validateHoidEditorialRelationshipDraft(item);
+    let result = validateHoidEditorialRelationshipDraft(item);
+    // Staging source records are core-only inputs; persisted or reviewed
+    // records must pass the full integrity-bearing validator above.
+    if (result.status === "invalid" && result.reason === "invalid-shape") {
+      result = createHoidEditorialRelationshipDraft(item);
+    }
     if (result.status !== "valid") {
       return Object.freeze({ status: "invalid", reason: "invalid-draft" });
     }

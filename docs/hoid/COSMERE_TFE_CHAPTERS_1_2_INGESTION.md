@@ -34,6 +34,12 @@ Kelsier returns to Luthadel and meets Dockson to assemble a team for an ambitiou
 
 Draft ID: tfe.chapter-002.kelsier
 
+## Atomic claim staging
+
+One atomic assertion derived from chapter 2 is also staged for the Vin entity. It is bound to the same chapter-2 XHTML digest and requires chapter 3 to be completed before it can become eligible for editorial review. The claim draft is not an approved claim, is not imported into the production registry, and cannot be selected by the answer runtime.
+
+Draft ID: tfe.vin.ability.emotional-allomancy
+
 ## Unlock thresholds
 
 Both drafts remain pending review and are not imported into the production registry.

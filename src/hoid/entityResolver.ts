@@ -2,8 +2,6 @@ import { HoidKnowledgeCatalog, type HoidKnowledgeEntry, type HoidKnowledgeKind }
 import { HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import {
   HOID_ENTITY_ALIAS_EVIDENCE,
-  type HoidEntityAliasEvidence,
-  type HoidEntityAliasRecord,
 } from "./entityAliasRegistry";
 import {
   canonicalEvidenceScope,

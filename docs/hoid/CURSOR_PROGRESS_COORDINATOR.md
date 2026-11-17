@@ -27,7 +27,7 @@ Every committed mutation increments the revision exactly once, preserves the ori
 
 expoCursorProgressCoordinator.ts opens the native Expo SQLite database and injects the existing SQLite cursor store into the coordinator. Web is rejected until a separately tested transactional store exists.
 
-This native factory is deliberately not wired into CosmereContext or HoidScreen yet. The production v1 coordinator remains authoritative until native migration, restart, rollback, downgrade and UI confirmation flows have been tested end to end.
+The native factory is now composed by CosmereContext. Its v2 snapshot is authoritative for Atlas progress and is passed directly to HoidScreen. The v1 row is retained only as the immutable migration source and divergence guard; there is no fallback to v1 after cutover. Reopen confirmation is presented by the Atlas UI before the coordinator is invoked. Device-level restart and interruption testing remains a release gate.
 
 ## Verification
 

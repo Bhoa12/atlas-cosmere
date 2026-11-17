@@ -21,6 +21,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       1: "0853a9469afe233d415645208f04bafb7f5dd5d603af9706c8924bcf14d27a70",
       2: "5f76bd1de8106ebcba964f730368426fc22df1c2a7862e4f01dcf57ec0f63877",
       3: "aad893dde20e24a5444100d260f4d466f6ef553a13d676457d6f42015d774a0e",
+      4: "1a5d55dd8eaa304b14a10526e50a98826de139abbc402013150dd795f44bef89",
     }),
   }),
   edgedancer: Object.freeze({
@@ -30,6 +31,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       1: "8a85e1ccb126c5915f3948351266030b0966abb822403ddd0415791c671ce7dc",
       2: "397c116112ca87b77cdd2c324156349594f47660d332a10417884119c8e7b0a0",
       3: "2a82686dd7fa7908d4b175f9b03f165309e08ccbb2294c6bcd32443b6d0d3905",
+      4: "4437c0e0ff5a617490a087d7c887117e63ff5f6f627d5e9f4515206fb77a3507",
     }),
   }),
   dawnshard: Object.freeze({
@@ -39,6 +41,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       1: "eac1f947b3303414b0b8a69ff19eabcd396c1fdd32caa1c1349c931eb8d8d2ae",
       2: "511dd868f3feb65f3cc28566bbac167762ad70dddccffcae863be31e64f144dc",
       3: "709bca2ea215db4e90fc654b4b503a7c71d96bb40a508d5347ec83006b8cc286",
+      4: "a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb",
     }),
   }),
   tfe: Object.freeze({

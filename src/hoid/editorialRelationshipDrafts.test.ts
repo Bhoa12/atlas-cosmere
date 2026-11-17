@@ -111,12 +111,12 @@ describe("Hoid multi-entity relationship staging", () => {
 
   it("withholds a relationship while chapter three is open and makes it eligible after chapter three is completed", () => {
     const draft = HOID_EDITORIAL_RELATIONSHIP_DRAFTS.find(item => item.id === "twok.relationship.shallan-seeks-jasnah")!;
-    const before = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 3));
+    const before = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 4));
     expect(before.status).toBe("ready");
     if (before.status !== "ready") return;
     expect(before.evaluations[0].status).toBe("withheld");
 
-    const after = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 4));
+    const after = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 5));
     expect(after.status).toBe("ready");
     if (after.status !== "ready") return;
     expect(after.evaluations[0].status).toBe("eligible-for-review");
@@ -138,7 +138,7 @@ describe("Hoid multi-entity relationship staging", () => {
 
     const partial = evaluateHoidEditorialRelationshipDrafts(
       [result.draft],
-      progress("twok", 4),
+      progress("twok", 5),
     );
     expect(partial.status).toBe("ready");
     if (partial.status !== "ready") return;

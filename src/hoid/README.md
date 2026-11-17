@@ -256,3 +256,8 @@ This is stale-response suppression, not provider cancellation. A selector alread
 ### Conversational intent routing
 
 `conversationIntent.ts` deterministically routes valid Spanish questions to `explain`, `context` or metadata-only `recommend`. The gateway validates the selected intent independently. Recommendation requests bypass the narrative selector and use the catalogue-only recommender; see `docs/hoid/CONVERSATION_INTENT_ROUTING.md`.
+
+
+### Cursor-native conversation context
+
+`cursorReadingContext.ts` projects the authoritative SQLite v2 snapshot into book titles, open chapter numbers and completed-through boundaries. It is metadata-only; narrative recaps still require approved editorial claims. The freshness-checked gateway exposes this as `readingContext()`. See `docs/hoid/CURSOR_READING_CONTEXT.md` and `docs/hoid/CONVERSATION_INTENT_ROUTING.md`.

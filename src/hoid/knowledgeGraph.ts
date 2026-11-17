@@ -166,8 +166,10 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
       "id", "aliases", "kind", "firstSafeAppearance",
       "evidenceSource", "evidenceUnlock", "summary", "provenance",
     ]);
-    if (!record || !validId(record.id) || seen.has(record.id)) return null;
-    if (typeof record.kind !== "string" || !NODE_KINDS.has(record.kind as HoidKnowledgeKind)) return null;
+    const id = record?.id;
+    if (!record || !validId(id) || seen.has(id)) return null;
+    const kind = record.kind;
+    if (typeof kind !== "string" || !NODE_KINDS.has(kind as HoidKnowledgeKind)) return null;
     if (record.provenance !== "verified") return null;
 
     const aliases = canonicalDenseArray(record.aliases, 1, 64);
@@ -182,24 +184,31 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
 
     const bookId = typeof source.bookId === "string" ? source.bookId : "";
     const sourceChapter = source.chapter;
+    const locatorId = typeof source.locatorId === "string" ? source.locatorId : "";
     const appearanceBookId = typeof appearance.bookId === "string" ? appearance.bookId : "";
     const appearanceChapter = appearance.chapter;
+    const unlockBookId = typeof unlock.bookId === "string" ? unlock.bookId : "";
+    const unlockChapter = unlock.chapter;
     const summary = typeof record.summary === "string" ? record.summary : "";
     if (
       !bookId || bookId !== bookId.trim() ||
+      !locatorId || locatorId !== locatorId.trim() || locatorId.length > 256 ||
       appearanceBookId !== bookId ||
       appearanceChapter !== sourceChapter ||
+      unlockBookId !== bookId ||
       typeof sourceChapter !== "number" || !Number.isSafeInteger(sourceChapter) || sourceChapter < 1 ||
       typeof appearanceChapter !== "number" || !Number.isSafeInteger(appearanceChapter) || appearanceChapter < 1 ||
+      typeof unlockChapter !== "number" || !Number.isSafeInteger(unlockChapter) || unlockChapter < sourceChapter ||
       summary !== summary.trim() || summary.length < 1 || summary.length > MAX_SUMMARY_LENGTH ||
-      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(summary)
+      /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(summary)
     ) return null;
 
     const manifestResult = getHoidReadingManifest(bookId);
     if (manifestResult.status !== "ready") return null;
     const manifest = manifestResult.manifest;
     const sourceUnit = manifest.units.find(unit => unit.chapterNumber === sourceChapter);
-    if (!sourceUnit || sourceUnit.locatorId !== source.locatorId) return null;
+    const unlockUnit = manifest.units.find(unit => unit.chapterNumber === unlockChapter);
+    if (!sourceUnit || sourceUnit.locatorId !== locatorId || !unlockUnit) return null;
 
     // A graph node is accepted only when its first-safe appearance and its
     // inspected summary point to the same individually verified chapter.
@@ -213,24 +222,17 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
     if (!documentSha256) return null;
 
     const entry: HoidKnowledgeEntry = Object.freeze({
-      id: record.id,
+      id,
       aliases: Object.freeze([...aliases]) as unknown as string[],
-      kind: record.kind as HoidKnowledgeKind,
+      kind: kind as HoidKnowledgeKind,
       firstSafeAppearance: Object.freeze({ bookId, chapter: sourceChapter }),
-      evidenceSource: Object.freeze({
-        bookId,
-        chapter: sourceChapter,
-        locatorId: sourceUnit.locatorId,
-      }),
-      evidenceUnlock: Object.freeze({
-        bookId,
-        chapter: unlock.chapter as number,
-      }),
+      evidenceSource: Object.freeze({ bookId, chapter: sourceChapter, locatorId }),
+      evidenceUnlock: Object.freeze({ bookId, chapter: unlockChapter }),
       summary,
       provenance: "verified",
     });
     entries.push(entry);
-    seen.add(record.id);
+    seen.add(id);
   }
 
   return Object.freeze(entries);
@@ -247,45 +249,54 @@ function canonicalClaims(
   const seen = new Set<string>();
   for (const raw of rawClaims) {
     const record = canonicalRecord(raw, ["id", "text", "intent", "evidenceIds", "review"]);
-    if (!record || !validId(record.id) || seen.has(record.id)) return null;
+    const id = record?.id;
+    if (!record || !validId(id) || seen.has(id)) return null;
     const text = typeof record.text === "string" ? record.text : "";
+    const intent = record.intent;
     if (
       !text || text !== text.trim() || text.length > MAX_CLAIM_TEXT_LENGTH ||
-      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text)
+      /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(text)
     ) return null;
-    if (record.intent !== "explain" && record.intent !== "context") return null;
+    if (intent !== "explain" && intent !== "context") return null;
 
     const evidenceIds = canonicalDenseArray(record.evidenceIds, 2, MAX_EVIDENCE_IDS);
-    if (!evidenceIds || !evidenceIds.every(id => validId(id) && knowledgeIds.has(id))) return null;
+    if (!evidenceIds || !evidenceIds.every(item =>
+      typeof item === "string" && validId(item) && knowledgeIds.has(item)
+    )) return null;
     const evidence = evidenceIds as readonly string[];
     if (new Set(evidence).size !== evidence.length) return null;
 
     const review = canonicalRecord(record.review, ["status", "origin", "reviewerId", "reviewedAt"]);
+    const reviewerId = review?.reviewerId;
+    const reviewedAt = review?.reviewedAt;
     if (
       !review ||
       review.status !== "approved" ||
       review.origin !== "original-editorial" ||
-      typeof review.reviewerId !== "string" ||
-      !review.reviewerId.trim() ||
-      review.reviewerId.length > 128 ||
-      typeof review.reviewedAt !== "string" ||
-      !Number.isFinite(Date.parse(review.reviewedAt)) ||
-      new Date(Date.parse(review.reviewedAt)).toISOString() !== review.reviewedAt
+      typeof reviewerId !== "string" ||
+      !reviewerId.trim() ||
+      reviewerId.length > 128 ||
+      typeof reviewedAt !== "string"
+    ) return null;
+    const reviewedAtMs = Date.parse(reviewedAt);
+    if (
+      !Number.isFinite(reviewedAtMs) ||
+      new Date(reviewedAtMs).toISOString() !== reviewedAt
     ) return null;
 
     claims.push(Object.freeze({
-      id: record.id,
+      id,
       text,
-      intent: record.intent,
+      intent,
       evidenceIds: Object.freeze([...evidence].sort()),
       review: Object.freeze({
         status: "approved",
         origin: "original-editorial",
-        reviewerId: review.reviewerId.trim(),
-        reviewedAt: review.reviewedAt,
+        reviewerId: reviewerId.trim(),
+        reviewedAt,
       }),
     }));
-    seen.add(record.id);
+    seen.add(id);
   }
   return Object.freeze(claims);
 }
@@ -301,28 +312,33 @@ function canonicalDefinition(value: unknown): readonly HoidKnowledgeGraphRelatio
   const triples = new Set<string>();
   for (const raw of rawRelations) {
     const relation = canonicalRecord(raw, ["id", "subjectId", "predicate", "objectId", "claimId"]);
+    const id = relation?.id;
+    const subjectId = relation?.subjectId;
+    const objectId = relation?.objectId;
+    const claimId = relation?.claimId;
+    const predicate = relation?.predicate;
     if (
       !relation ||
-      !validId(relation.id) ||
-      !validId(relation.subjectId) ||
-      !validId(relation.objectId) ||
-      !validId(relation.claimId) ||
-      relation.subjectId === relation.objectId ||
-      typeof relation.predicate !== "string" ||
-      !PREDICATES.has(relation.predicate as HoidKnowledgeGraphPredicate) ||
-      ids.has(relation.id)
+      !validId(id) ||
+      !validId(subjectId) ||
+      !validId(objectId) ||
+      !validId(claimId) ||
+      subjectId === objectId ||
+      typeof predicate !== "string" ||
+      !PREDICATES.has(predicate as HoidKnowledgeGraphPredicate) ||
+      ids.has(id)
     ) return null;
 
-    const triple = [relation.subjectId, relation.predicate, relation.objectId, relation.claimId].join("\n");
+    const triple = [subjectId, predicate, objectId, claimId].join("\\n");
     if (triples.has(triple)) return null;
-    ids.add(relation.id);
+    ids.add(id);
     triples.add(triple);
     relations.push(Object.freeze({
-      id: relation.id,
-      subjectId: relation.subjectId,
-      predicate: relation.predicate as HoidKnowledgeGraphPredicate,
-      objectId: relation.objectId,
-      claimId: relation.claimId,
+      id,
+      subjectId,
+      predicate: predicate as HoidKnowledgeGraphPredicate,
+      objectId,
+      claimId,
     }));
   }
   relations.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);

@@ -611,11 +611,8 @@ function canonicalEntityMentionQuestion(value: unknown): string | null {
 }
 
 function containsNormalizedAliasMention(question: string, alias: string): boolean {
-  const escaped = alias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
-  const pattern = new RegExp(
-    `(^|[^\\\\p{L}\\\\p{N}])${escaped}($|[^\\\\p{L}\\\\p{N}])`,
-    "u",
-  );
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp("(^|[^\\p{L}\\p{N}])" + escaped + "($|[^\\p{L}\\p{N}])", "u");
   return pattern.test(question);
 }
 

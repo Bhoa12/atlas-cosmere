@@ -314,6 +314,15 @@ describe("Hoid editorial draft staging", () => {
     }
   });
 
+  it("keeps all chapter-five summaries unavailable until chapter six is completed", () => {
+    const chapterFiveDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 5);
+    expect(chapterFiveDrafts).toHaveLength(3);
+    for (const draft of chapterFiveDrafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 6 });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
   it("keeps all chapter-two summaries unavailable until chapter three is completed", () => {
     const chapterTwoDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 2);
     expect(chapterTwoDrafts).toHaveLength(4);

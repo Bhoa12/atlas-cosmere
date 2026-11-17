@@ -230,6 +230,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
       ...knowledge("synthetic.uninspected", ["Uninspected Synthetic Entity"]),
       firstSafeAppearance: { bookId: "twok", chapter: 2 },
       evidenceSource: { bookId: "twok", chapter: 2, locatorId: unit.locatorId },
+      evidenceUnlock: { bookId: "twok", chapter: 2 },
     };
     const result = resolveHoidAuthorizedEntities(
       [entry],

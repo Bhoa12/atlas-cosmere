@@ -10,6 +10,7 @@
  * were read or that narrative evidence was reviewed. Ambiguous and collection
  * works remain conservative.
  * A TOC locator proves navigation structure only; it is not a chapter-body digest.
+ * Accepted hrefs are restricted to safe relative paths without traversal segments.
  */
 type RawNavigationSource = Readonly<{
   editionId: string;

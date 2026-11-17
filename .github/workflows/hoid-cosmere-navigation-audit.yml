@@ -16,6 +16,7 @@ on:
       - "docs/hoid/EDITION_STRUCTURE.md"
       - "docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md"
       - ".github/workflows/hoid-cosmere-navigation-audit.yml"
+      - "package.json"
   pull_request:
     paths:
       - "src/hoid/verifiedChapterLocators.ts"
@@ -29,6 +30,7 @@ on:
       - "docs/hoid/EDITION_STRUCTURE.md"
       - "docs/hoid/COSMERE_EPUB_NAVIGATION_AUDIT.md"
       - ".github/workflows/hoid-cosmere-navigation-audit.yml"
+      - "package.json"
 
 permissions:
   contents: read

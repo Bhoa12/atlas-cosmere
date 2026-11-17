@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
 import { createHoidCursorEvidenceRuntime } from '../hoid/cursorEvidenceRuntime';
+import { createHoidConversationGateway } from '../hoid/conversationGateway';
 
 const editorialRuntime = createHoidEditorialRuntime();
 const hoidRuntime = editorialRuntime ? createHoidCursorEvidenceRuntime(editorialRuntime) : null;
@@ -15,6 +16,11 @@ interface Mensaje {
 
 export const HoidScreen: React.FC = () => {
   const { hoidCursorProgressSnapshot, progresoPersistenciaEstado } = useCosmere();
+  const progressRef = useRef(hoidCursorProgressSnapshot);
+  progressRef.current = hoidCursorProgressSnapshot;
+  const conversationGateway = hoidRuntime
+    ? createHoidConversationGateway({ runtime: hoidRuntime, getCurrentProgress: () => progressRef.current })
+    : null;
   const [cargando, setCargando] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
@@ -35,13 +41,20 @@ export const HoidScreen: React.FC = () => {
     setCargando(true);
 
     try {
-      const result = hoidRuntime
-        ? await hoidRuntime.answer({ question: textoUsuario, progress: hoidCursorProgressSnapshot })
+      const result = conversationGateway
+        ? await conversationGateway.answer({ question: textoUsuario, progress: hoidCursorProgressSnapshot })
         : null;
+      const respuesta = result?.status === 'ready'
+        ? result.answer.text
+        : result?.reason === 'progress-changed'
+          ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
+          : result?.reason === 'invalid-progress'
+            ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
+            : 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
-        texto: result?.text ?? 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.',
+        texto: respuesta,
       }]);
     } catch {
       setMensajes(prev => [...prev, {

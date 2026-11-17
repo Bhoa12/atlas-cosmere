@@ -12,6 +12,9 @@ on:
       - "src/hoid/entityResolver.ts"
       - "src/hoid/entityResolver.test.ts"
       - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
       - "src/hoid/sha256.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
@@ -33,6 +36,7 @@ on:
       - "docs/hoid/KNOWLEDGE_GRAPH_AUTHORIZATION.md"
       - "docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md"
       - "docs/hoid/ENTITY_RESOLUTION.md"
+      - "docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md"
       - ".github/workflows/hoid-knowledge-graph.yml"
   pull_request:
     paths:
@@ -43,6 +47,9 @@ on:
       - "src/hoid/entityResolver.ts"
       - "src/hoid/entityResolver.test.ts"
       - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceScope.ts"
@@ -62,6 +69,7 @@ on:
       - "src/hoid/types.ts"
       - "docs/hoid/KNOWLEDGE_GRAPH_AUTHORIZATION.md"
       - "docs/hoid/ENTITY_RESOLUTION.md"
+      - "docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md"
       - ".github/workflows/hoid-knowledge-graph.yml"
 
 permissions:
@@ -80,6 +88,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test graph authorization and dependent spoiler boundaries
-        run: npx vitest run src/hoid/knowledgeGraph.test.ts src/hoid/knowledgeGraphQuery.test.ts src/hoid/editorialClaimDrafts.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/readingBoundary.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/readingManifest.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/editorialRegistry.test.ts src/hoid/entityResolver.test.ts
+        run: npx vitest run src/hoid/knowledgeGraph.test.ts src/hoid/knowledgeGraphQuery.test.ts src/hoid/editorialClaimDrafts.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/readingBoundary.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/readingManifest.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/editorialRegistry.test.ts src/hoid/entityResolver.test.ts src/hoid/conversationGateway.test.ts
       - name: Type-check graph and authorization dependencies
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/knowledgeGraph.ts src/hoid/knowledgeGraphQuery.ts src/hoid/entityResolver.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/knowledgeGraph.ts src/hoid/knowledgeGraphQuery.ts src/hoid/entityResolver.ts src/hoid/conversationGateway.ts

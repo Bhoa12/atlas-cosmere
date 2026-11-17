@@ -244,3 +244,10 @@ Run 106 inspeccionó el OPF y `EPUB/nav.xhtml` del EPUB privado. Se incorporaron
 The resolver filters both locked entities and locked aliases before matching, so an unknown alias and a locked alias have the same `not-found` result. Ambiguous authorized aliases return bounded candidates rather than choosing one silently. Results contain IDs, kind, the matched authorized alias, entity and alias citations, and a progress fingerprint; they never return summaries or EPUB prose.
 
 Matching is exact after NFKD normalization, mark/format folding, case folding and whitespace normalization. No fuzzy, substring, embedding or provider-generated matching is used. The production function `resolveProductionHoidEntities()` is bound to the source-controlled editorial and alias registries, both currently empty. See `docs/hoid/ENTITY_RESOLUTION.md`.
+
+
+## Conversation progress freshness
+
+`conversationGateway.ts` wraps the strict cursor evidence runtime and checks the canonical v2 progress fingerprint before and after each asynchronous answer. If the authoritative snapshot changes, the gateway discards the complete answer and returns only a neutral reason code. `HoidScreen` uses a ref-backed getter so the post-await check sees the latest rendered context snapshot.
+
+This is stale-response suppression, not provider cancellation. A selector already invoked may finish with its previously authorized candidate set, but its answer and citations are never rendered after a progress change. See `docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md` and `src/hoid/conversationGateway.test.ts`.

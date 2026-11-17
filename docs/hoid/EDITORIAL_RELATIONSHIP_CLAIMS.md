@@ -12,7 +12,7 @@ A relationship draft contains:
 - One or more edition-bound evidence records.
 - A subset of evidence indices that directly supports the relationship.
 - Statement and full-claim SHA-256 digests.
-- A fixed \`pending-review\` state.
+- A fixed `pending-review` state.
 
 ## Evidence rules
 
@@ -36,9 +36,9 @@ The checklist separately evaluates:
 6. Spoiler ceiling.
 7. Provenance.
 
-An approved receipt requires all seven checks and the closed note code \`no-issues\`. Revision and rejection use closed issue codes; free-form notes are rejected to prevent source passages from entering review metadata.
+An approved receipt requires all seven checks and the closed note code `no-issues`. Revision and rejection use closed issue codes; free-form notes are rejected to prevent source passages from entering review metadata.
 
-A valid approval returns \`approved-awaiting-source-promotion\` with \`promotionAllowed: false\`. The receipt does not authenticate reviewer identity by itself and does not modify the production registry. Reviewer identity and independence must be established by protected repository review and permissions.
+A valid approval returns `approved-awaiting-source-promotion` with `promotionAllowed: false`. The receipt does not authenticate reviewer identity by itself and does not modify the production registry. Reviewer identity and independence must be established by protected repository review and permissions.
 
 ## Current staged examples
 
@@ -50,10 +50,10 @@ All three require chapter 4 completion before becoming eligible for review. The 
 
 The relationship workflow runs:
 
-\`\`\`sh
+```sh
 npx vitest run src/hoid/editorialRelationshipDrafts.test.ts src/hoid/editorialClaimDrafts.test.ts src/hoid/editorialDrafts.test.ts src/hoid/editorialReviewPackets.test.ts src/hoid/verifiedChapterDocuments.test.ts
 npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialRelationshipDrafts.ts src/hoid/editorialClaimDrafts.ts src/hoid/editorialDrafts.ts src/hoid/evidenceRuntime.ts src/hoid/knowledgeGraph.ts src/hoid/verifiedChapterDocuments.ts
-\`\`\`
+```
 
 ## Promotion boundary
 

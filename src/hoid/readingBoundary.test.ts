@@ -22,6 +22,10 @@ describe("community chapter spoiler boundary", () => {
     expect(isChapterBeyondCompletedReadingBoundary(1, 2)).toBe(false);
   });
 
+  it("reveals valid chapter posts after explicit whole-work completion", () => {
+    expect(isChapterBeyondCompletedReadingBoundary(75, 0, true)).toBe(false);
+  });
+
   it("shields every chapter when no reading position is recorded", () => {
     expect(isChapterBeyondCompletedReadingBoundary(1, 0)).toBe(true);
   });

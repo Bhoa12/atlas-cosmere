@@ -1,4 +1,5 @@
 import { isKnownHoidSource } from "./bibliography";
+import { HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 
 const RAW_TOPIC_TAXONOMY = [
   {
@@ -118,6 +119,11 @@ const WORLD_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_ASSIGNMENTS = 512;
 const MAX_EVIDENCE_IDS = 16;
+const APPROVED_ENTITY_IDS = new Set(
+  HOID_EDITORIAL_KNOWLEDGE
+    .filter(entry => entry.provenance === "verified")
+    .map(entry => entry.id),
+);
 
 function canonicalRecord(
   value: unknown,
@@ -215,6 +221,7 @@ function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
     (subjectKind !== "entity" && subjectKind !== "work") ||
     typeof subjectId !== "string" || !ID_PATTERN.test(subjectId) ||
     (subjectKind === "work" && !isKnownHoidSource(subjectId)) ||
+    (subjectKind === "entity" && !APPROVED_ENTITY_IDS.has(subjectId)) ||
     typeof worldId !== "string" || !WORLD_ID_PATTERN.test(worldId) ||
     typeof worldLabel !== "string" ||
     worldLabel.length < 1 || worldLabel.length > 80 ||

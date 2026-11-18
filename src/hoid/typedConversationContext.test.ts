@@ -7,10 +7,10 @@ import {
 
 const progress = Object.freeze({ revision: 4, fingerprint: "a".repeat(64) });
 const entities = Object.freeze([
-  Object.freeze({ id: "entity.character-a", kind: "character" as const }),
-  Object.freeze({ id: "entity.organization-a", kind: "organization" as const }),
-  Object.freeze({ id: "entity.object-a", kind: "object" as const }),
-  Object.freeze({ id: "entity.magic-a", kind: "magic" as const }),
+  Object.freeze({ id: "e.a", kind: "character" as const }),
+  Object.freeze({ id: "e.b", kind: "organization" as const }),
+  Object.freeze({ id: "e.c", kind: "object" as const }),
+  Object.freeze({ id: "e.d", kind: "magic" as const }),
 ]);
 
 function context(items = entities) {
@@ -33,7 +33,7 @@ describe("Hoid typed conversation context", () => {
 
   it("preserves entity order for deterministic conversation semantics", () => {
     const result = context([entities[2], entities[0]]);
-    expect(result.entities.map(item => item.id)).toEqual(["entity.object-a", "entity.character-a"]);
+    expect(result.entities.map(item => item.id)).toEqual(["e.c", "e.a"]);
   });
 
   it("rejects duplicate canonical IDs even when kinds differ", () => {
@@ -116,7 +116,7 @@ describe("Hoid typed conversation context", () => {
   it("resolves a unique organization by its explicit noun category", () => {
     expect(resolveHoidTypedEntityFollowUp("¿Y esa organización?", context(), progress)).toMatchObject({
       status: "resolved",
-      entityId: "entity.organization-a",
+      entityId: "e.b",
       entityKind: "organization",
     });
   });
@@ -124,7 +124,7 @@ describe("Hoid typed conversation context", () => {
   it("resolves magic only from the explicit magic noun phrase", () => {
     expect(resolveHoidTypedEntityFollowUp("¿Y ese sistema de magia?", context(), progress)).toMatchObject({
       status: "resolved",
-      entityId: "entity.magic-a",
+      entityId: "e.d",
       entityKind: "magic",
     });
   });

@@ -170,6 +170,7 @@ export function createHoidGitHubTopicAssignmentMergeReviewPort(
       const baseRef = ownDataValue(base, "ref");
       const baseRepository = ownDataValue(ownDataValue(base, "repo"), "full_name");
       const headRef = ownDataValue(head, "ref");
+      const headRepository = ownDataValue(ownDataValue(head, "repo"), "full_name");
       const headSha = ownDataValue(head, "sha");
       const manifestCommitSha = ownDataValue(rawManifest, "commitSha");
       const manifestFingerprint = ownDataValue(rawManifest, "promotionPlanFingerprint");
@@ -182,6 +183,7 @@ export function createHoidGitHubTopicAssignmentMergeReviewPort(
         baseRef !== request.expectedBaseRef ||
         baseRepository !== request.repositoryFullName ||
         headRef !== request.expectedHeadRef ||
+        headRepository !== request.repositoryFullName ||
         headSha !== request.expectedHeadSha ||
         typeof mergeCommitSha !== "string" ||
         !SHA_PATTERN.test(mergeCommitSha) ||

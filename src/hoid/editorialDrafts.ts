@@ -885,7 +885,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summary: "Rysn y la tripulación del Vela Errante descubren el cadáver de un santhid flotando junto al barco. La superstición de los marineros amenaza con obligarlos a regresar, y Rysn sopesa si el hallazgo es un accidente o parte de la intimidación que rodea la misión. En lugar de ceder, reformula el hallazgo como una señal favorable y propone remolcar el cuerpo para darle un funeral digno, conservando el caparazón como testimonio. La capitana Dlrwan respalda la decisión y la tripulación empieza a preparar los garfios. Cuando intentan sujetar el cadáver, este se deshace de forma inesperada en una multitud de pequeños crustáceos, dejando a Rysn sin la explicación que esperaba.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
-  }),,
+  }),
   Object.freeze({
     schemaVersion: 1,
     id: "twok.chapter-008.shallan-jasnah-pupil",

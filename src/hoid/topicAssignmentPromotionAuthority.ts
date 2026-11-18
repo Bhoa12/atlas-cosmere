@@ -79,6 +79,8 @@ export type HoidTopicAssignmentPromotionAuthorization =
       status: "ready-for-maintainer-commit";
       repositoryFullName: string;
       pullRequestNumber: number;
+      baseRef: string;
+      headRef: string;
       headSha: string;
       promotionPlanFingerprint: string;
       assignmentFingerprint: string;
@@ -731,6 +733,8 @@ export async function authorizeHoidTopicAssignmentPromotion(
     status: "ready-for-maintainer-commit",
     repositoryFullName: request.repositoryFullName,
     pullRequestNumber: request.pullRequestNumber,
+    baseRef: request.expectedBaseRef,
+    headRef: request.expectedHeadRef,
     headSha: verification.headSha,
     promotionPlanFingerprint: verification.promotionPlanFingerprint,
     assignmentFingerprint: plan.assignmentFingerprint,

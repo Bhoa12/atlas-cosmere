@@ -35,6 +35,7 @@ function validate(records: readonly unknown[]) {
         if (typeof evidenceId !== "string") continue;
         knowledge.set(evidenceId, {
           id: evidenceId,
+          kind: "concept",
           provenance: "verified",
           summary: CLAIM_TEXT,
           evidenceSource: { bookId: "tfe", chapter: 1, locatorId: locator("tfe", 1) },
@@ -82,6 +83,21 @@ describe("Hoid reviewed topic taxonomy", () => {
       expect(empty.evidenceCitations).toEqual([]);
       expect(empty.entityFirstAppearances).toEqual([]);
     }
+  });
+
+  it("rejects evidence whose source chapter has no individually verified document digest", () => {
+    const record = assignment();
+    const claim = { id: "claim.alpha", text: CLAIM_TEXT, evidenceIds: ["evidence.alpha"] };
+    const uninspected = {
+      id: "evidence.alpha",
+      kind: "concept",
+      provenance: "verified",
+      summary: CLAIM_TEXT,
+      evidenceSource: { bookId: "tfe", chapter: 4, locatorId: locator("tfe", 4) },
+      evidenceUnlock: { bookId: "tfe", chapter: 4 },
+      firstSafeAppearance: { bookId: "tfe", chapter: 4 },
+    };
+    expect(validateHoidTopicAssignments([record], [claim], [uninspected]).status).toBe("invalid");
   });
 
   it("rejects assignments whose approved claim points to evidence absent from the verified source registry", () => {

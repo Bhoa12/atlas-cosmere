@@ -28,7 +28,7 @@ function progress(tfeChapter = 3, worChapter = 3) {
     revision: 8,
     positions: [
       { bookId: "tfe", cursor: cursor("tfe", tfeChapter) },
-      { bookId: "wor", cursor: cursor("wor", worChapter) },
+      { bookId: "twok", cursor: cursor("twok", worChapter) },
     ],
     updatedAt: UPDATED_AT,
   };
@@ -85,10 +85,10 @@ function assignment(
 
 function request(
   firstAnswer = answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha"),
-  secondAnswer = answer("claim.beta", "Dato sintético Beta.", "wor", "evidence.beta"),
+  secondAnswer = answer("claim.beta", "Dato sintético Beta.", "twok", "evidence.beta"),
   subjectKind = "work",
   firstSubjectId = "tfe",
-  secondSubjectId = "wor",
+  secondSubjectId = "twok",
 ) {
   return {
     topicId: "investiture-system",
@@ -114,6 +114,7 @@ function knowledgeEntry(
 ) {
   return {
     id,
+    kind: "concept",
     provenance: "verified",
     summary: "Resumen editorial sintético de prueba.",
     evidenceSource: {
@@ -129,11 +130,11 @@ function knowledgeEntry(
 function approvedKnowledge(includeEntities = false) {
   const entries = [
     knowledgeEntry("evidence.alpha", "tfe"),
-    knowledgeEntry("evidence.beta", "wor"),
+    knowledgeEntry("evidence.beta", "twok"),
   ];
   if (includeEntities) {
     entries.push(knowledgeEntry("entity.alpha", "tfe"));
-    entries.push(knowledgeEntry("entity.beta", "wor", 4));
+    entries.push(knowledgeEntry("entity.beta", "twok", 4));
   }
   return entries;
 }
@@ -141,7 +142,7 @@ function approvedKnowledge(includeEntities = false) {
 function assignments(subjectKind = "work") {
   return [
     assignment("tfe", "world-alpha", "Mundo Alfa", "claim.alpha", "Dato sintético Alfa.", "evidence.alpha", "assignment.alpha", subjectKind),
-    assignment("wor", "world-beta", "Mundo Beta", "claim.beta", "Dato sintético Beta.", "evidence.beta", "assignment.beta", subjectKind),
+    assignment("twok", "world-beta", "Mundo Beta", "claim.beta", "Dato sintético Beta.", "evidence.beta", "assignment.beta", subjectKind),
   ];
 }
 
@@ -202,7 +203,7 @@ describe("Hoid cross-world topic comparison", () => {
     ];
     const entityRequest = request(
       answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha"),
-      answer("claim.beta", "Dato sintético Beta.", "wor", "evidence.beta"),
+      answer("claim.beta", "Dato sintético Beta.", "twok", "evidence.beta"),
       "entity",
       "entity.alpha",
       "entity.beta",
@@ -225,7 +226,7 @@ describe("Hoid cross-world topic comparison", () => {
       ...request(),
       entries: [
         { subjectKind: "work", subjectId: "tfe", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
-        { subjectKind: "entity", subjectId: "entity.beta", answer: answer("claim.beta", "Dato sintético Beta.", "wor", "evidence.beta") },
+        { subjectKind: "entity", subjectId: "entity.beta", answer: answer("claim.beta", "Dato sintético Beta.", "twok", "evidence.beta") },
       ],
     };
     expect(compare(mixed).status).toBe("unavailable");
@@ -239,7 +240,7 @@ describe("Hoid cross-world topic comparison", () => {
       dimensionId: "mechanism",
       entries: Array.from({ length: 5 }, (_, index) => ({
         subjectKind: "work",
-        subjectId: index === 0 ? "tfe" : "wor",
+        subjectId: index === 0 ? "tfe" : "twok",
         answer: answer("claim." + index, "Dato sintético.", "tfe", "evidence." + index),
       })),
     };

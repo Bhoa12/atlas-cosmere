@@ -31,7 +31,7 @@ function progress(positions: readonly { bookId: string; chapter: number }[]) {
   };
 }
 
-function answer(claimId: string, text: string, sourceBookId = "wor") {
+function answer(claimId: string, text: string, sourceBookId = "twok") {
   const evidenceId = "evidence." + claimId;
   return {
     status: "authorized",
@@ -57,7 +57,7 @@ function assignment(
   dimensionId: string,
   claimId: string,
   text: string,
-  sourceBookId = "wor",
+  sourceBookId = "twok",
 ) {
   return {
     schemaVersion: 1,
@@ -97,6 +97,7 @@ function approvedKnowledge(pairs: readonly { claimId: string; answer: ReturnType
     for (const source of pair.answer.sources) {
       byId.set(source.evidenceId, {
         id: source.evidenceId,
+        kind: "concept",
         provenance: "verified",
         summary: pair.answer.text,
         evidenceSource: {
@@ -125,7 +126,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const pairs = [{ claimId, answer: answer(claimId, text) }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
@@ -136,7 +137,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     if (result.status !== "ready") return;
     expect(result.items[0].sourceId).toBe("tfe");
     expect(result.items[0].matches[0].reasonText).toBe(text);
-    expect(result.items[0].matches[0].citations[0].sourceBookId).toBe("wor");
+    expect(result.items[0].matches[0].citations[0].sourceBookId).toBe("twok");
   });
 
   it("withholds a recommendation when the supporting source has not reached its unlock boundary", () => {
@@ -145,7 +146,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const pairs = [{ claimId, answer: answer(claimId, text) }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 1 }]),
+      progress([{ bookId: "twok", chapter: 1 }]),
       pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
@@ -161,7 +162,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const pairs = [{ claimId, answer: answer(claimId, text, "tfe") }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text, "tfe")],
@@ -177,7 +178,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const pairs = [{ claimId, answer: answer(claimId, text) }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }, { bookId: "tfe", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }, { bookId: "tfe", chapter: 2 }]),
       pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
@@ -198,7 +199,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     ];
     const result = composeHoidTopicRecommendations(
       ["investiture-system", "organization"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       pairs,
       5,
       [
@@ -214,16 +215,16 @@ describe("Hoid topic-aware safe recommendations", () => {
   });
 
   it("returns a neutral empty result when the reader has not explicitly selected topics", () => {
-    expect(composeHoidTopicRecommendations([], progress([{ bookId: "wor", chapter: 3 }]), [], 5, []))
+    expect(composeHoidTopicRecommendations([], progress([{ bookId: "twok", chapter: 3 }]), [], 5, []))
       .toEqual({ status: "none", reason: "no-selected-topics" });
   });
 
   it("rejects unknown topic IDs, malformed progress and invalid limits", () => {
-    expect(composeHoidTopicRecommendations(["unknown-topic"], progress([{ bookId: "wor", chapter: 3 }]), [], 5, []).status)
+    expect(composeHoidTopicRecommendations(["unknown-topic"], progress([{ bookId: "twok", chapter: 3 }]), [], 5, []).status)
       .toBe("invalid");
     expect(composeHoidTopicRecommendations(["investiture-system"], { corrupt: true }, [], 5, []))
       .toEqual({ status: "invalid", reason: "invalid-progress" });
-    expect(composeHoidTopicRecommendations(["investiture-system"], progress([{ bookId: "wor", chapter: 3 }]), [], 0, []))
+    expect(composeHoidTopicRecommendations(["investiture-system"], progress([{ bookId: "twok", chapter: 3 }]), [], 0, []))
       .toEqual({ status: "invalid", reason: "invalid-input" });
   });
 
@@ -237,7 +238,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const assignmentRecord = assignment("tfe", "investiture-system", "mechanism", claimId, text);
     expect(composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       pairs,
       5,
       [assignmentRecord],
@@ -249,7 +250,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const singlePair = [{ claimId, answer: answer(claimId, text) }];
     expect(composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       singlePair,
       5,
       [mismatched],
@@ -265,7 +266,7 @@ describe("Hoid topic-aware safe recommendations", () => {
     const pairs = [{ claimId, answer: answer(claimId, alteredText) }];
     expect(composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, approvedText)],
@@ -277,11 +278,11 @@ describe("Hoid topic-aware safe recommendations", () => {
   it("rejects a forged unlocked source scope that differs from the approved evidence registry", () => {
     const text = "Asociación temática sintética.";
     const claimId = "claim.tfe.forged-source";
-    const approvedPair = { claimId, answer: answer(claimId, text, "wor") };
+    const approvedPair = { claimId, answer: answer(claimId, text, "twok") };
     const forgedPair = { claimId, answer: answer(claimId, text, "tfe") };
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }, { bookId: "tfe", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }, { bookId: "tfe", chapter: 3 }]),
       [forgedPair],
       5,
       [assignment("elantris", "investiture-system", "mechanism", claimId, text)],
@@ -294,7 +295,7 @@ describe("Hoid topic-aware safe recommendations", () => {
   it("uses the empty production registry until approved topic assignments are committed", () => {
     expect(composeProductionHoidTopicRecommendations(
       ["investiture-system"],
-      progress([{ bookId: "wor", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       [],
       5,
     )).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });

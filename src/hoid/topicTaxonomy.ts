@@ -1,4 +1,6 @@
 import { isKnownHoidSource } from "./bibliography";
+import type { HoidKnowledgeKind } from "./catalog";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
@@ -133,6 +135,9 @@ const WORLD_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_ASSIGNMENTS = 512;
 const MAX_EVIDENCE_IDS = 16;
+const KNOWLEDGE_KINDS = new Set<HoidKnowledgeKind>([
+  "character", "place", "event", "concept", "magic", "organization", "object",
+]);
 
 const PRODUCTION_APPROVED_CLAIMS = Object.freeze(
   HOID_APPROVED_CLAIMS.map(claim => Object.freeze({
@@ -147,6 +152,7 @@ const PRODUCTION_APPROVED_KNOWLEDGE = Object.freeze(
     .filter(entry => entry.provenance === "verified")
     .map(entry => Object.freeze({
       id: entry.id,
+      kind: entry.kind,
       provenance: entry.provenance,
       summary: entry.summary,
       evidenceSource: entry.evidenceSource,
@@ -293,16 +299,18 @@ function canonicalApprovedKnowledge(value: unknown): Readonly<{
         return null;
       }
       const raw = canonicalRecord(descriptor.value, [
-        "id", "provenance", "summary", "evidenceSource", "evidenceUnlock", "firstSafeAppearance",
+        "id", "kind", "provenance", "summary", "evidenceSource", "evidenceUnlock", "firstSafeAppearance",
       ]);
       if (!raw) return null;
 
       const id = raw.id;
+      const kind = raw.kind;
       const summary = raw.summary;
       const firstAppearance = canonicalRecord(raw.firstSafeAppearance, ["bookId", "chapter"]);
       const scope = canonicalEvidenceScope(raw.evidenceSource, raw.evidenceUnlock);
       if (
         typeof id !== "string" || !ID_PATTERN.test(id) || seen.has(id) ||
+        typeof kind !== "string" || !KNOWLEDGE_KINDS.has(kind as HoidKnowledgeKind) ||
         raw.provenance !== "verified" ||
         typeof summary !== "string" || summary.length < 1 || summary.length > 4_000 ||
         summary !== summary.trim() ||
@@ -317,10 +325,24 @@ function canonicalApprovedKnowledge(value: unknown): Readonly<{
         typeof firstChapter !== "number" || !Number.isSafeInteger(firstChapter) || firstChapter < 1
       ) return null;
       const firstManifest = getHoidReadingManifest(firstBookId);
-      if (
-        firstManifest.status !== "ready" ||
+      if (firstManifest.status !== "ready" ||
         !firstManifest.manifest.units.some(unit => unit.chapterNumber === firstChapter)
       ) return null;
+      const firstAppearanceSha256 = getVerifiedChapterDocumentSha256(
+        firstBookId,
+        firstManifest.manifest.editionId,
+        firstManifest.manifest.navigationSha256,
+        firstChapter,
+      );
+      const sourceManifest = getHoidReadingManifest(scope.sourceBookId);
+      if (sourceManifest.status !== "ready") return null;
+      const sourceDocumentSha256 = getVerifiedChapterDocumentSha256(
+        scope.sourceBookId,
+        sourceManifest.manifest.editionId,
+        sourceManifest.manifest.navigationSha256,
+        scope.sourceChapter,
+      );
+      if (!firstAppearanceSha256 || !sourceDocumentSha256) return null;
 
       seen.add(id);
       evidenceCitations.push(Object.freeze({ evidenceId: id, ...scope }));

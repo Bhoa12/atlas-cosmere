@@ -1,0 +1,140 @@
+name: Hoid topic assignment promotion authority
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicTaxonomy.test.ts"
+      - "src/hoid/topicComparison.ts"
+      - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/promotionReviewAuthority.test.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.test.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialKnowledgeBundle.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/TOPIC_ASSIGNMENT_PROMOTION_AUTHORITY.md"
+      - ".github/workflows/hoid-topic-assignment-promotion-authority.yml"
+  pull_request:
+    paths:
+      - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicTaxonomy.test.ts"
+      - "src/hoid/topicComparison.ts"
+      - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/promotionReviewAuthority.test.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.test.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialKnowledgeBundle.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/TOPIC_ASSIGNMENT_PROMOTION_AUTHORITY.md"
+      - ".github/workflows/hoid-topic-assignment-promotion-authority.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  topic-assignment-promotion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test topic assignment promotion and regressions
+        run: >-
+          npx vitest run
+          src/hoid/topicAssignmentPromotionAuthority.test.ts
+          src/hoid/topicTaxonomy.test.ts
+          src/hoid/topicComparison.test.ts
+          src/hoid/topicRecommendations.test.ts
+          src/hoid/promotionReviewAuthority.test.ts
+          src/hoid/githubSourceControlReviewAdapter.test.ts
+          src/hoid/editorialBundlePromotionAuthority.test.ts
+      - name: Type-check topic promotion and protected review boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/topicAssignmentPromotionAuthority.ts
+          src/hoid/topicTaxonomy.ts
+          src/hoid/topicComparison.ts
+          src/hoid/topicRecommendations.ts
+          src/hoid/promotionReviewAuthority.ts
+          src/hoid/githubSourceControlReviewAdapter.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingBoundary.ts
+          src/hoid/progressLedger.ts
+          src/hoid/sha256.ts
+          src/hoid/evidenceScope.ts
+          src/hoid/editionProgressValidation.ts
+          src/hoid/readingValidation.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/bibliography.ts
+          src/hoid/catalog.ts
+          src/hoid/catalogValidation.ts
+          src/hoid/readingContext.ts
+          src/hoid/types.ts

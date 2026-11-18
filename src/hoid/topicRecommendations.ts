@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { resolveProductionHoidTopicAssignments } from "./topicAssignmentActivation";
 import { presentHoidEvidenceAnswer, type HoidPresentedCitation } from "./answerPresentation";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
@@ -8,7 +9,6 @@ import {
   getHoidTopicDefinition,
   getHoidTopicDimensionDefinition,
   validateHoidTopicAssignments,
-  HOID_APPROVED_TOPIC_ASSIGNMENTS,
   type HoidTopicAssignment,
 } from "./topicTaxonomy";
 
@@ -266,7 +266,7 @@ export function composeHoidTopicRecommendations(
   progress: unknown,
   answersInput: unknown,
   limit = 5,
-  assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
+  assignmentsInput: unknown = [],
   approvedClaimsInput?: unknown,
   approvedKnowledgeInput?: unknown,
 ): HoidTopicRecommendationResult {
@@ -354,18 +354,25 @@ export function composeHoidTopicRecommendations(
     : Object.freeze({ status: "none", reason: "no-safe-reviewed-matches" });
 }
 
-/** Production entry point uses only the source-controlled approved registry. */
+/**
+ * Production entry point requires a registry fingerprinted by a post-merge
+ * activation receipt. An unactivated registry never reaches the composer.
+ */
 export function composeProductionHoidTopicRecommendations(
   selectedTopicIds: unknown,
   progress: unknown,
   answers: unknown,
   limit = 5,
 ): HoidTopicRecommendationResult {
+  const activation = resolveProductionHoidTopicAssignments();
+  if (activation.status !== "active") {
+    return Object.freeze({ status: "none", reason: "no-safe-reviewed-matches" });
+  }
   return composeHoidTopicRecommendations(
     selectedTopicIds,
     progress,
     answers,
     limit,
-    HOID_APPROVED_TOPIC_ASSIGNMENTS,
+    activation.assignments,
   );
 }

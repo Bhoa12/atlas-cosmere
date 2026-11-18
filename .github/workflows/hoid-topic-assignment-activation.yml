@@ -1,0 +1,92 @@
+name: Hoid reviewed topic assignment activation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicAssignmentActivationReceipt.ts"
+      - "src/hoid/githubTopicAssignmentMergeAdapter.ts"
+      - "src/hoid/githubTopicAssignmentMergeAdapter.test.ts"
+      - "src/hoid/topicAssignmentActivation.test.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "docs/hoid/TOPIC_ASSIGNMENT_ACTIVATION.md"
+      - ".github/workflows/hoid-topic-assignment-activation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicAssignmentActivation.test.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "docs/hoid/TOPIC_ASSIGNMENT_ACTIVATION.md"
+      - ".github/workflows/hoid-topic-assignment-activation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  topic-assignment-activation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test activation, recommendation and promotion boundaries
+        run: >-
+          npx vitest run
+          src/hoid/topicAssignmentActivation.test.ts
+          src/hoid/githubTopicAssignmentMergeAdapter.test.ts
+          src/hoid/topicAssignmentPromotionAuthority.test.ts
+          src/hoid/topicRecommendations.test.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
+      - name: Type-check activation and production recommendation boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/topicAssignmentActivation.ts
+          src/hoid/topicAssignmentActivationReceipt.ts
+          src/hoid/githubTopicAssignmentMergeAdapter.ts
+          src/hoid/topicAssignmentPromotionAuthority.ts
+          src/hoid/topicTaxonomy.ts
+          src/hoid/topicRecommendations.ts
+          src/hoid/topicInterestRecommendationsGateway.ts
+          src/hoid/topicApprovedClaimAnswerPort.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/answerPresentation.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingBoundary.ts
+          src/hoid/progressLedger.ts
+          src/hoid/sha256.ts
+          src/hoid/evidenceScope.ts
+          src/hoid/editionProgressValidation.ts
+          src/hoid/readingValidation.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/bibliography.ts
+          src/hoid/catalog.ts
+          src/hoid/catalogValidation.ts
+          src/hoid/readingContext.ts
+          src/hoid/types.ts
+          src/screens/HoidScreen.tsx

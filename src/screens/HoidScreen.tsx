@@ -144,7 +144,10 @@ export const HoidScreen: React.FC = () => {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
           };
-          const resumeItems = result.items.filter(item => item.reason === 'resume-current-work');
+          const resumeItems = result.items.filter(
+            (item): item is Extract<HoidRecommendation, { reason: 'resume-current-work' }> =>
+              item.reason === 'resume-current-work',
+          );
           const unreadItems = result.items.filter(item => item.reason === 'unread-source');
           const recommendationSections: string[] = [];
           if (resumeItems.length > 0) {

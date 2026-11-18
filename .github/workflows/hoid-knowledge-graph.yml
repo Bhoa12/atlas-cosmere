@@ -106,6 +106,8 @@ on:
       - "src/hoid/catalogValidation.ts"
       - "src/hoid/types.ts"
       - "docs/hoid/KNOWLEDGE_GRAPH_AUTHORIZATION.md"
+      - "docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md"
+      - "docs/hoid/EXPLANATION_GATEWAY.md"
       - "docs/hoid/ENTITY_RESOLUTION.md"
       - "docs/hoid/ENTITY_SCOPED_CLAIM_RETRIEVAL.md"
       - "docs/hoid/CONVERSATION_PROGRESS_FRESHNESS.md"

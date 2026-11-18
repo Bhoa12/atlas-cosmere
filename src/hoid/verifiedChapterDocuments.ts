@@ -108,3 +108,17 @@ export function getVerifiedChapterDocumentCount(bookId: unknown): number {
   if (typeof bookId !== "string" || !Object.prototype.hasOwnProperty.call(VERIFIED, bookId)) return 0;
   return Object.keys(VERIFIED[bookId].documents).length;
 }
+
+
+/** Sorted, immutable chapter numbers whose original XHTML bytes were individually inspected. */
+export function getVerifiedChapterDocumentNumbers(bookId: unknown): readonly number[] {
+  if (typeof bookId !== "string" || !Object.prototype.hasOwnProperty.call(VERIFIED, bookId)) {
+    return Object.freeze([]);
+  }
+  return Object.freeze(
+    Object.keys(VERIFIED[bookId].documents)
+      .map(Number)
+      .filter(number => Number.isSafeInteger(number) && number > 0)
+      .sort((left, right) => left - right),
+  );
+}

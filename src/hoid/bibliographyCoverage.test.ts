@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 
 describe("Hoid source catalog coverage", () => {

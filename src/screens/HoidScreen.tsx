@@ -81,7 +81,7 @@ export const HoidScreen: React.FC = () => {
 
   useEffect(() => {
     conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
+    typedConversationContextRef.current = null;
     setRecomendaciones([]);
     setRecommendationRevision(null);
     setRecommendationFingerprint(null);
@@ -216,11 +216,11 @@ export const HoidScreen: React.FC = () => {
           } else {
             respuesta = presentation.text;
             conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
+            typedConversationContextRef.current = null;
           }
         } else {
           conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
+          typedConversationContextRef.current = null;
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
             : result.reason === 'invalid-progress'
@@ -281,7 +281,7 @@ export const HoidScreen: React.FC = () => {
       }]);
     } catch {
       conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
+      typedConversationContextRef.current = null;
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
@@ -294,7 +294,7 @@ export const HoidScreen: React.FC = () => {
 
   const cargarRecomendaciones = async () => {
     conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
+    typedConversationContextRef.current = null;
     if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready' || !conversationGateway) return;
     const currentProgress = progressReaderRef.current();
     if (!currentProgress) {

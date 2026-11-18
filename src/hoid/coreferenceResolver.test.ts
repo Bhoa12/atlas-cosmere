@@ -6,6 +6,7 @@ import {
 } from "./coreferenceResolver";
 import { createHoidConversationContext } from "./conversationContext";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 
@@ -38,9 +39,22 @@ function evidence(
   if (manifest.status !== "ready") throw new Error("Manifiesto sintético no disponible");
   const unit = manifest.manifest.units.find(item => item.chapterNumber === sourceChapter);
   if (!unit?.locatorId) throw new Error("Localizador sintético no disponible");
+  const documentSha256 = getVerifiedChapterDocumentSha256(
+    bookId,
+    manifest.manifest.editionId,
+    manifest.manifest.navigationSha256,
+    sourceChapter,
+  ) ?? "0".repeat(64);
   return {
     id,
-    source: { bookId, chapter: sourceChapter, locatorId: unit.locatorId },
+    source: {
+      bookId,
+      chapter: sourceChapter,
+      locatorId: unit.locatorId,
+      editionId: manifest.manifest.editionId,
+      navigationSha256: manifest.manifest.navigationSha256,
+      documentSha256,
+    },
     unlock: { bookId, chapter: unlockChapter },
   };
 }
@@ -206,6 +220,32 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
     const reading = progress([{ bookId: "twok", chapter: 10 }]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.ella", "synthetic.entity-b", "ella", [uninspected]),
+    ]);
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-registry" });
+  });
+
+  it("rejects a coreference record whose stored document digest differs from the inspected EPUB document", () => {
+    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const item = evidence("synthetic.coref-digest", "twok", 1, 2);
+    const tampered = {
+      ...item,
+      source: { ...item.source, documentSha256: "f".repeat(64) },
+    };
+    const result = resolve("¿Y ella?", reading, [
+      record("synthetic.coref.ella", "synthetic.entity-b", "ella", [tampered]),
+    ]);
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-registry" });
+  });
+
+  it("rejects a coreference record bound to another edition or navigation digest", () => {
+    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const item = evidence("synthetic.coref-edition", "twok", 1, 2);
+    const tampered = {
+      ...item,
+      source: { ...item.source, editionId: "different-edition" },
+    };
+    const result = resolve("¿Y ella?", reading, [
+      record("synthetic.coref.ella", "synthetic.entity-b", "ella", [tampered]),
     ]);
     expect(result).toEqual({ status: "unavailable", reason: "invalid-registry" });
   });

@@ -275,6 +275,8 @@ export function createHoidEvidenceAnswerFromRelationshipResult(
       claimIds: Object.freeze(claimIds),
       evidenceIds: Object.freeze([...evidenceIds].sort()),
       sources: Object.freeze(citations),
+      segments: composition.segments,
+      layout: composition.layout,
     });
 
     return presentHoidEvidenceAnswer(answer, progress).status === "ready" ? answer : null;

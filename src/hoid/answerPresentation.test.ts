@@ -74,6 +74,112 @@ describe("Hoid answer presentation", () => {
     });
   });
 
+  it("preserves exact claim-to-source provenance for each displayed segment", () => {
+    const claimText = "Afirmación editorial original y revisada.";
+    const result = presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        text: "1. " + claimText,
+        layout: "numbered",
+        segments: [{
+          claimId: "claim-vin",
+          text: claimText,
+          evidenceIds: ["evidence-vin-ch1"],
+        }],
+      }),
+      progressAt(3),
+    );
+    expect(result).toMatchObject({
+      status: "ready",
+      layout: "numbered",
+      segments: [{
+        claimId: "claim-vin",
+        text: claimText,
+        evidenceIds: ["evidence-vin-ch1"],
+        citations: [{
+          evidenceId: "evidence-vin-ch1",
+          sourceBookId: "tfe",
+          title: "El Imperio Final",
+          chapter: 1,
+        }],
+      }],
+    });
+  });
+
+  it("rejects segment claim IDs that do not match the authorized claim order", () => {
+    expect(presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        text: "Afirmación editorial original y revisada.",
+        layout: "plain",
+        segments: [{
+          claimId: "claim-other",
+          text: "Afirmación editorial original y revisada.",
+          evidenceIds: ["evidence-vin-ch1"],
+        }],
+      }),
+      progressAt(3),
+    )).toMatchObject({ status: "withheld", reason: "invalid-answer" });
+  });
+
+  it("rejects a segment that cites evidence outside the answer manifest", () => {
+    expect(presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        text: "Afirmación editorial original y revisada.",
+        layout: "plain",
+        segments: [{
+          claimId: "claim-vin",
+          text: "Afirmación editorial original y revisada.",
+          evidenceIds: ["evidence-unlisted"],
+        }],
+      }),
+      progressAt(3),
+    )).toMatchObject({ status: "withheld", reason: "invalid-answer" });
+  });
+
+  it("rejects formatted text that cannot be reproduced from the exact segments", () => {
+    expect(presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        text: "Texto añadido por fuera de la afirmación.",
+        layout: "plain",
+        segments: [{
+          claimId: "claim-vin",
+          text: "Afirmación editorial original y revisada.",
+          evidenceIds: ["evidence-vin-ch1"],
+        }],
+      }),
+      progressAt(3),
+    )).toMatchObject({ status: "withheld", reason: "invalid-answer" });
+  });
+
+  it("requires layout and segment provenance to be supplied together", () => {
+    expect(presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        segments: [{
+          claimId: "claim-vin",
+          text: "Afirmación editorial original y revisada.",
+          evidenceIds: ["evidence-vin-ch1"],
+        }],
+      }),
+      progressAt(3),
+    )).toMatchObject({ status: "withheld", reason: "invalid-answer" });
+  });
+
+  it("does not disclose segment-level citations when any mapped evidence is locked", () => {
+    const locked = source({ evidenceId: "evidence-vin-ch1", unlockChapter: 4 });
+    expect(presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        text: "Afirmación editorial original y revisada.",
+        layout: "plain",
+        segments: [{
+          claimId: "claim-vin",
+          text: "Afirmación editorial original y revisada.",
+          evidenceIds: ["evidence-vin-ch1"],
+        }],
+        sources: [locked],
+      }),
+      progressAt(3),
+    )).toMatchObject({ status: "withheld", reason: "locked-evidence" });
+  });
+
   it("does not disclose an answer or citation while its unlock chapter is open", () => {
     const result = presentHoidEvidenceAnswer(authorizedAnswer(), progressAt(2));
     expect(result).toMatchObject({ status: "withheld", reason: "locked-evidence" });

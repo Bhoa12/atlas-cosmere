@@ -5,7 +5,12 @@ import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../h
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from '../hoid/cursorEvidenceRuntime';
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
-import { presentHoidEvidenceAnswer, type HoidPresentedCitation } from '../hoid/answerPresentation';
+import {
+  presentHoidEvidenceAnswer,
+  type HoidPresentedCitation,
+  type HoidPresentedSegment,
+} from '../hoid/answerPresentation';
+import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidRecommendation } from '../hoid/recommendations';
 import {
@@ -24,6 +29,8 @@ interface Mensaje {
   texto: string;
   progressScope?: HoidConversationProgressScope;
   citas?: readonly HoidPresentedCitation[];
+  segmentos?: readonly HoidPresentedSegment[];
+  formato?: HoidNarrativeLayout;
 }
 
 export const HoidScreen: React.FC = () => {
@@ -95,6 +102,8 @@ export const HoidScreen: React.FC = () => {
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       let respuesta: string;
       let citas: readonly HoidPresentedCitation[] | undefined;
+      let segmentos: readonly HoidPresentedSegment[] | undefined;
+      let formato: HoidNarrativeLayout | undefined;
       let responseScope: HoidConversationProgressScope | null = null;
 
       if (intentPlan.status !== 'ready') {
@@ -156,6 +165,8 @@ export const HoidScreen: React.FC = () => {
           if (presentation.status === 'ready') {
             respuesta = presentation.text;
             citas = presentation.citations;
+            segmentos = presentation.segments;
+            formato = presentation.layout;
           } else {
             respuesta = presentation.text;
           }
@@ -190,6 +201,11 @@ export const HoidScreen: React.FC = () => {
       if (responseScope && !canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)) {
         respuesta = 'Tu progreso ha cambiado mientras preparaba la respuesta. He descartado el resultado para proteger tu lectura.';
         responseScope = null;
+        // A stale response must lose every citation/provenance field before the
+        // neutral notice is committed as an unscoped chat message.
+        citas = undefined;
+        segmentos = undefined;
+        formato = undefined;
       }
 
       setMensajes(prev => [...prev, {
@@ -198,6 +214,7 @@ export const HoidScreen: React.FC = () => {
         texto: respuesta,
         ...(responseScope ? { progressScope: responseScope } : {}),
         ...(citas && citas.length > 0 ? { citas } : {}),
+        ...(segmentos && formato ? { segmentos, formato } : {}),
       }]);
     } catch {
       setMensajes(prev => [...prev, {
@@ -318,8 +335,32 @@ export const HoidScreen: React.FC = () => {
         renderItem={({ item }) => (
           <View style={[styles.bubble, item.emisor === 'usuario' ? styles.userBubble : styles.hoidBubble]}>
             <Text style={styles.bubbleAuthor}>{item.emisor === 'usuario' ? 'TÚ' : 'HOID'}</Text>
-            <Text style={styles.bubbleText}>{item.texto}</Text>
-            {item.citas && item.citas.length > 0 && (
+            {item.segmentos && item.formato ? (
+              <View>
+                {item.segmentos.map((segmento, index) => (
+                  <View key={segmento.claimId} style={styles.provenanceSegment}>
+                    {item.formato === 'grouped' && index % 3 === 0 && (
+                      <Text style={styles.provenanceHeading}>Bloque {Math.floor(index / 3) + 1}</Text>
+                    )}
+                    <Text style={styles.bubbleText}>
+                      {item.formato === 'numbered' ? `${index + 1}. ` : item.formato === 'grouped' ? '• ' : ''}
+                      {segmento.text}
+                    </Text>
+                    <View style={styles.segmentCitationBlock}>
+                      <Text style={styles.citationHeading}>FUENTES DE ESTE SEGMENTO</Text>
+                      {segmento.citations.map(cita => (
+                        <Text key={cita.evidenceId} style={styles.citationText}>
+                          {cita.title} · capítulo {cita.chapter}
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.bubbleText}>{item.texto}</Text>
+            )}
+            {(!item.segmentos || item.segmentos.length === 0) && item.citas && item.citas.length > 0 && (
               <View style={styles.citationBlock}>
                 <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
                 {item.citas.map(cita => (
@@ -374,6 +415,9 @@ const styles = StyleSheet.create({
   hoidBubble: { alignSelf: 'flex-start', backgroundColor: '#1e1b4b', borderWidth: 1, borderColor: '#4338ca' },
   bubbleAuthor: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', marginBottom: 4 },
   bubbleText: { color: '#ffffff', fontSize: 13, lineHeight: 19 },
+  provenanceSegment: { marginTop: 8 },
+  provenanceHeading: { color: '#a5b4fc', fontSize: 10, fontWeight: '800', marginBottom: 4 },
+  segmentCitationBlock: { marginTop: 6, paddingTop: 5, borderTopWidth: 1, borderTopColor: '#3730a3' },
   citationBlock: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#3730a3' },
   citationHeading: { color: '#a5b4fc', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   citationText: { color: '#c7d2fe', fontSize: 10, lineHeight: 15, marginTop: 3 },

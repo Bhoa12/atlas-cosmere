@@ -247,7 +247,7 @@ function progressIdentity(value: unknown): ProgressIdentity | null {
 }
 
 const ENTITY_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
+  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
 ]);
 
 function canonicalTypedEntityReauthorization(

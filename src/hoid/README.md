@@ -417,3 +417,11 @@ Every pair must produce a valid explanation. A missing path, stale progress, mal
 The aggregate remains the existing `HoidRenderedExplanation` contract, so the existing relationship presentation layer rechecks every source, edition, navigation digest, chapter locator, document digest and unlock threshold. The existing conversation gateway and HoidScreen route require no provider-specific changes.
 
 The maximum group size is four (six unordered pairs, up to twelve directed queries). Larger or ambiguous groups abstain. Production editorial, alias and approved-claim registries remain empty; synthetic tests do not add Cosmere facts or promote staging records. See `docs/hoid/MULTI_ENTITY_EXPLANATIONS.md`.
+
+## Run 129 — claim-preserving narrative composition
+
+narrativeComposition.ts adds deterministic presentation for already-validated editorial claims. One claim remains plain, two or three are numbered, and longer explanations are grouped into neutral blocks of at most three claims. Claim wording, order and evidence IDs are preserved; the composer adds no connective facts, interpretations or free-form prose.
+
+HoidNarrativeLayoutPort is an optional provider-neutral selector that receives only the locale, approved-claim count, resolved-entity count and a closed layout allow-list. It never receives the question, entity names, claim text, evidence IDs, source locators or EPUB content. It can select only plain, numbered or grouped. Invalid output, provider errors and timeouts fall back to the deterministic local layout.
+
+relationshipPresentation.ts invokes the local composer only after exact claim/segment text, evidence mappings, source hashes, edition metadata, chapter locators and progress unlocks have passed validation. The formatted answer continues through the existing source-aware presentation boundary. This is a layout port, not a configured remote language provider. See docs/hoid/NARRATIVE_COMPOSITION_AND_LANGUAGE_PORT.md.

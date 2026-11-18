@@ -171,4 +171,42 @@ describe("createHoidEvidenceAnswerFromRelationshipResult", () => {
     expect(createHoidEvidenceAnswerFromRelationshipResult({ ...valid, progressRevision: 2 }, progress)).toBeNull();
     expect(createHoidEvidenceAnswerFromRelationshipResult({ ...valid, progressFingerprint: "f".repeat(64) }, progress)).toBeNull();
   });
+
+  it("formats multiple approved claims deterministically without adding narrative facts", () => {
+    const evidence = source();
+    const texts = [
+      "Primera afirmación editorial.",
+      "Segunda afirmación editorial.",
+      "Tercera afirmación editorial.",
+    ];
+    const segments = texts.map((text, index) => ({
+      claimId: "claim." + String(index + 1),
+      text,
+      evidenceIds: [evidence.evidenceId],
+      sources: [evidence],
+    }));
+    const value = explanation({
+      text: texts.join("\n\n"),
+      segments,
+    });
+
+    const result = createHoidEvidenceAnswerFromRelationshipResult(
+      relationshipResult(value, snapshot()),
+      snapshot(),
+    );
+
+    expect(result).toMatchObject({
+      status: "authorized",
+      text: [
+        "1. Primera afirmación editorial.",
+        "",
+        "2. Segunda afirmación editorial.",
+        "",
+        "3. Tercera afirmación editorial.",
+      ].join("\n"),
+      claimIds: ["claim.1", "claim.2", "claim.3"],
+      evidenceIds: [evidence.evidenceId],
+    });
+  });
+
 });

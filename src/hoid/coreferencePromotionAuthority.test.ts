@@ -15,7 +15,7 @@ import {
 
 const NOW = "2026-11-18T14:00:00.000Z";
 
-function progress(revision = 8, chapter = 2) {
+function progress(revision = 8, chapter = 3) {
   const cursor = createHoidReadingCursor("tfe", chapter);
   if (cursor.status !== "ready") throw new Error("Cursor sintético no disponible");
   return {
@@ -149,6 +149,17 @@ describe("Hoid coreference promotion authority", () => {
       expect(first.plan.promotionAllowed).toBe(false);
       expect(first.plan.productionWritePerformed).toBe(false);
     }
+  });
+
+  it("does not prepare a review plan until every source-specific unlock threshold is completed", () => {
+    const beforeUnlock = buildHoidCoreferencePromotionPlan([record()], progress(8, 2));
+    expect(beforeUnlock).toEqual({
+      status: "blocked",
+      reason: "source-evidence-not-unlocked",
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(buildHoidCoreferencePromotionPlan([record()], progress(8, 3)).status).toBe("ready");
   });
 
   it("keeps the production plan blocked while the registry is empty", () => {

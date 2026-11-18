@@ -7,6 +7,7 @@ import {
 } from "./promotionReviewAuthority";
 import {
   auditHoidCoreferenceRegistry,
+  areHoidCoreferenceRecordsUnlocked,
   type HoidCoreferenceRegistryAuditResult,
 } from "./coreferenceResolver";
 import { HOID_COREFERENCE_REGISTRY } from "./coreferenceRegistry";
@@ -41,7 +42,7 @@ export type HoidCoreferencePromotionBuildResult =
     }>
   | Readonly<{
       status: "blocked";
-      reason: "no-coreference-records" | "invalid-progress";
+      reason: "no-coreference-records" | "invalid-progress" | "source-evidence-not-unlocked";
       promotionAllowed: false;
       productionWritePerformed: false;
     }>
@@ -265,6 +266,12 @@ export function buildHoidCoreferencePromotionPlan(
   if (projection.status !== "ready") return Object.freeze({
     status: "blocked",
     reason: "invalid-progress",
+    promotionAllowed: false,
+    productionWritePerformed: false,
+  });
+  if (!areHoidCoreferenceRecordsUnlocked(registryInput, progressInput)) return Object.freeze({
+    status: "blocked",
+    reason: "source-evidence-not-unlocked",
     promotionAllowed: false,
     productionWritePerformed: false,
   });

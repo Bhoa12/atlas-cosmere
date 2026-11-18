@@ -21,7 +21,7 @@ No source prose, chapter body, EPUB bytes, aliases or provider output are return
 
 ## Promotion plan and manifest
 
-The promotion plan fingerprints the complete registry and its source evidence together with the authoritative SQLite v2 progress revision and fingerprint. The manifest path is fixed to `docs/hoid/coreference-promotion.manifest.json`.
+The promotion plan fingerprints the complete registry and its source evidence together with the authoritative SQLite v2 progress revision and fingerprint. It also requires every evidence unlock threshold in the registry to be completed in the projected cursor state; a cursor currently open on chapter N only counts chapters through N-1 as completed. The manifest path is fixed to `docs/hoid/coreference-promotion.manifest.json`.
 
 Any change to a record, reviewer, source locator, edition, navigation digest, document digest, unlock threshold or progress invalidates the plan. Empty production registries return `no-coreference-records`.
 

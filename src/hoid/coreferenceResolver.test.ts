@@ -116,7 +116,7 @@ function resolve(
 
 describe("Hoid reviewed, spoiler-scoped coreference", () => {
   it("resolves a feminine singular follow-up only to the unique reviewed entity ID", () => {
-    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 3 }]);
     const result = resolve("¿Y ella?", reading, [record("synthetic.coref.ella", "synthetic.entity-b", "ella")]);
     expect(result.status).toBe("resolved");
     if (result.status === "resolved") {
@@ -128,14 +128,14 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("resolves a masculine singular follow-up using an explicit reviewed form, not a name heuristic", () => {
-    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 3 }]);
     const result = resolve("¿Y él?", reading, [record("synthetic.coref.el", "synthetic.entity-a", "él")]);
     expect(result.status).toBe("resolved");
     if (result.status === "resolved") expect(result.entityId).toBe("synthetic.entity-a");
   });
 
   it("recognizes only exact bounded follow-up cues and does not capture a new noun phrase", () => {
-    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 3 }]);
     expect(resolve("¿Y ella?", reading, [record("synthetic.coref.ella", "synthetic.entity-b", "ella")]).status)
       .toBe("resolved");
     expect(resolve("¿Y el sistema?", reading, []).status).toBe("not-follow-up");
@@ -143,7 +143,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("does not confuse the masculine article `el` with the pronoun `él`", () => {
-    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 3 }]);
     const records = [record("synthetic.coref.el", "synthetic.entity-a", "él")];
     expect(resolve("¿Y él?", reading, records).status).toBe("resolved");
     expect(resolve("¿Y el?", reading, records)).toEqual({
@@ -153,7 +153,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("withholds a pronoun when two context entities have the same reviewed form", () => {
-    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 3 }]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.ella-a", "synthetic.entity-a", "ella"),
       record("synthetic.coref.ella-b", "synthetic.entity-b", "ella"),
@@ -163,8 +163,8 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
 
   it("does not infer uniqueness by ignoring a matching but still-locked candidate", () => {
     const reading = progress([
-      { bookId: "tfe", chapter: 2 },
-      { bookId: "edgedancer", chapter: 2 },
+      { bookId: "tfe", chapter: 3 },
+      { bookId: "edgedancer", chapter: 3 },
     ]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.ella-a", "synthetic.entity-a", "ella"),
@@ -181,12 +181,12 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
       evidence("synthetic.coref-cross-b", "edgedancer", 1, 3),
     ])];
     const before = resolve("¿Y ella?", progress([
-      { bookId: "tfe", chapter: 2 },
-      { bookId: "edgedancer", chapter: 2 },
+      { bookId: "tfe", chapter: 3 },
+      { bookId: "edgedancer", chapter: 3 },
     ]), records);
     const after = resolve("¿Y ella?", progress([
-      { bookId: "tfe", chapter: 2 },
-      { bookId: "edgedancer", chapter: 3 },
+      { bookId: "tfe", chapter: 3 },
+      { bookId: "edgedancer", chapter: 4 },
     ]), records);
     expect(before).toEqual({ status: "unavailable", reason: "reference-unavailable" });
     expect(after.status).toBe("resolved");

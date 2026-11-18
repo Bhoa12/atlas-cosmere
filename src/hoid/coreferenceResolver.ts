@@ -374,6 +374,27 @@ export function auditHoidCoreferenceRegistry(
   });
 }
 
+
+/**
+ * Promotion must not let an editor approve a pronoun association before every
+ * source-specific unlock threshold in that registry has been reached by the
+ * authoritative reader cursor. Cursor projection uses completed-through
+ * semantics, so a cursor on chapter N only unlocks through chapter N-1.
+ */
+export function areHoidCoreferenceRecordsUnlocked(
+  registryInput: unknown,
+  progressInput: unknown,
+): boolean {
+  const records = canonicalRecords(registryInput);
+  if (!records || records.length === 0) return false;
+  const projection = projectHoidCursorProgressSnapshot(progressInput);
+  if (projection.status !== "ready") return false;
+  return records.every(record =>
+    record.evidence.every(item => evidenceIsUnlocked(item, projection.reading)),
+  );
+}
+
+
 function evidenceIsUnlocked(
   evidence: CanonicalCoreferenceEvidence,
   reading: readonly Readonly<{ bookId: string; chapter?: number; completed?: boolean }>[],

@@ -132,15 +132,9 @@ function assignmentMatchesAnswer(
     return "invalid";
   }
   if (presentation.status !== "ready") {
-    if (
-      answer !== null &&
-      typeof answer === "object" &&
-      !Array.isArray(answer) &&
-      ((answer as Record<string, unknown>).status === "blocked" ||
-        (answer as Record<string, unknown>).status === "abstain" ||
-        presentation.reason === "locked-evidence")
-    ) return null;
-    return "invalid";
+    // Treat every withheld answer as unavailable. Do not inspect raw fields
+    // after the presentation boundary, because they may contain accessors.
+    return null;
   }
   if (
     !presentation.segments ||

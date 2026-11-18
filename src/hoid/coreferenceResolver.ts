@@ -382,6 +382,12 @@ export function resolveHoidAuthorizedCoreference(
   if (matchingCue.length === 0) return Object.freeze({ status: "not-follow-up" });
   if (matchingCue.length !== 1) return unavailable("ambiguous-reference");
   const form = matchingCue[0];
+  // Spanish "el" (article) and "él" (pronoun) normalize to the same token.
+  // Require the explicit accent for the masculine pronoun rather than guessing.
+  if (
+    form === "él" &&
+    !/(^|[^\\p{L}\\p{N}])él($|[^\\p{L}\\p{N}])/iu.test(questionInput.normalize("NFC"))
+  ) return unavailable("ambiguous-reference");
 
   if (contextInput === null || contextInput === undefined) return unavailable("missing-context");
 

@@ -5,6 +5,7 @@ import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../h
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from '../hoid/cursorEvidenceRuntime';
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
+import { presentHoidEvidenceAnswer, type HoidPresentedCitation } from '../hoid/answerPresentation';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidRecommendation } from '../hoid/recommendations';
 import {
@@ -22,6 +23,7 @@ interface Mensaje {
   emisor: 'usuario' | 'hoid';
   texto: string;
   progressScope?: HoidConversationProgressScope;
+  citas?: readonly HoidPresentedCitation[];
 }
 
 export const HoidScreen: React.FC = () => {
@@ -92,6 +94,7 @@ export const HoidScreen: React.FC = () => {
     try {
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       let respuesta: string;
+      let citas: readonly HoidPresentedCitation[] | undefined;
       let responseScope: HoidConversationProgressScope | null = null;
 
       if (intentPlan.status !== 'ready') {
@@ -149,7 +152,13 @@ export const HoidScreen: React.FC = () => {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
           };
-          respuesta = result.answer.text;
+          const presentation = presentHoidEvidenceAnswer(result.answer, currentProgress);
+          if (presentation.status === 'ready') {
+            respuesta = presentation.text;
+            citas = presentation.citations;
+          } else {
+            respuesta = presentation.text;
+          }
         } else {
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
@@ -188,6 +197,7 @@ export const HoidScreen: React.FC = () => {
         emisor: 'hoid',
         texto: respuesta,
         ...(responseScope ? { progressScope: responseScope } : {}),
+        ...(citas && citas.length > 0 ? { citas } : {}),
       }]);
     } catch {
       setMensajes(prev => [...prev, {
@@ -309,6 +319,16 @@ export const HoidScreen: React.FC = () => {
           <View style={[styles.bubble, item.emisor === 'usuario' ? styles.userBubble : styles.hoidBubble]}>
             <Text style={styles.bubbleAuthor}>{item.emisor === 'usuario' ? 'TÚ' : 'HOID'}</Text>
             <Text style={styles.bubbleText}>{item.texto}</Text>
+            {item.citas && item.citas.length > 0 && (
+              <View style={styles.citationBlock}>
+                <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
+                {item.citas.map(cita => (
+                  <Text key={cita.evidenceId} style={styles.citationText}>
+                    {cita.title} · capítulo {cita.chapter}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         )}
       />
@@ -354,6 +374,9 @@ const styles = StyleSheet.create({
   hoidBubble: { alignSelf: 'flex-start', backgroundColor: '#1e1b4b', borderWidth: 1, borderColor: '#4338ca' },
   bubbleAuthor: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', marginBottom: 4 },
   bubbleText: { color: '#ffffff', fontSize: 13, lineHeight: 19 },
+  citationBlock: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#3730a3' },
+  citationHeading: { color: '#a5b4fc', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  citationText: { color: '#c7d2fe', fontSize: 10, lineHeight: 15, marginTop: 3 },
   inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#0f172a', borderTopWidth: 1, borderColor: '#1e293b' },
   input: { flex: 1, backgroundColor: '#090d16', color: '#ffffff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#334155', fontSize: 13 },
   sendButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center', marginLeft: 8 },

@@ -379,6 +379,13 @@ El staging editorial dispone ahora de un único inventario de revisión para res
 - Los recibos son evidencia estructural, no autenticación de revisores. La independencia y los permisos siguen dependiendo de la revisión protegida del control de versiones.
 - Una revisión completa continúa devolviendo `promotionAllowed: false` y `productionWritePerformed: false`. La revisión editorial no modifica el progreso del lector ni desbloquea spoilers.
 
+## Source-aware answer presentation
+
+`answerPresentation.ts` validates the strict evidence-runtime answer envelope before it reaches the chat UI. Authorized answers retain their exact local editorial wording and display metadata-only citations with the bibliography title and source chapter. Every citation is checked against the same cursor-native v2 progress snapshot; if any unlock threshold is not completed, the entire answer is withheld.
+
+Blocked and abstained runtime text is never echoed by the presentation boundary. Citation IDs must exactly match the answer evidence IDs, source works must exist in the private-source bibliography, and source/unlock scopes must refer to the same work. `HoidScreen` stores citations under the same progress revision/fingerprint as the answer, so the existing history invalidation policy removes both together after a reading-progress change. See `docs/hoid/RUN126_SOURCE_AWARE_ANSWER_PRESENTATION.md`.
+
+
 ## Progress-bound graph explanations
 
 `explanationGateway.ts` composes the authorized graph planner and exact-claim renderer into a progress-bound application service. Requests contain only two entity IDs, bounded path limits and the authoritative v2 snapshot. The gateway compares the request snapshot with the host's live progress before and after planning/rendering, validates the plan identity, and discards the complete result if progress changes.

@@ -1,11 +1,9 @@
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
+import { resolveProductionHoidTopicAssignments } from "./topicAssignmentActivation";
 import {
-  HOID_APPROVED_TOPIC_ASSIGNMENTS,
-} from "./topicTaxonomy";
-import {
-  composeProductionHoidTopicRecommendations,
+  composeHoidTopicRecommendations,
   type HoidTopicRecommendation,
 } from "./topicRecommendations";
 import {
@@ -42,6 +40,7 @@ export type HoidTopicInterestRecommendationResult =
         | "context-missing"
         | "context-invalid"
         | "context-stale"
+        | "assignments-not-activated"
         | "answers-unavailable"
         | "answers-failed"
         | "invalid-recommendations";
@@ -148,8 +147,23 @@ export class HoidTopicInterestRecommendationGateway {
     if (reading.status !== "ready") return unavailable("invalid-progress");
     const startedWorks = new Set(reading.context.positions.map(position => position.bookId));
     const selected = new Set(validation.context.topicIds);
+    const activation = resolveProductionHoidTopicAssignments();
+    if (activation.status === "inactive") {
+      if (activation.reason === "no-topic-assignments") {
+        return Object.freeze({
+          status: "none",
+          reason: "no-safe-reviewed-matches",
+          progressRevision: requestedProgress.revision,
+          progressFingerprint: requestedProgress.fingerprint,
+        });
+      }
+      return unavailable("assignments-not-activated");
+    }
+    if (activation.status !== "active") return unavailable("invalid-recommendations");
+
+    const assignments = activation.assignments;
     const claimIds = [...new Set(
-      HOID_APPROVED_TOPIC_ASSIGNMENTS
+      assignments
         .filter(assignment =>
           assignment.subjectKind === "work" &&
           selected.has(assignment.topicId) &&
@@ -187,11 +201,12 @@ export class HoidTopicInterestRecommendationGateway {
     if (!afterIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, afterIdentity)) return unavailable("progress-changed");
 
-    const composed = composeProductionHoidTopicRecommendations(
+    const composed = composeHoidTopicRecommendations(
       validation.context.topicIds,
       raw.progress,
       answers,
       limit,
+      assignments,
     );
     if (composed.status === "invalid") return unavailable("invalid-recommendations");
 

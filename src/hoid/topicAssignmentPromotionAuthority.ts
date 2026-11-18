@@ -219,8 +219,9 @@ function canonicalDenseStrings(value: unknown, maximum: number): readonly string
 
 function assignmentFingerprint(assignments: readonly HoidTopicAssignment[]): string {
   const records = [...assignments]
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
     .map(item => [
+      item.schemaVersion,
       item.id,
       item.subjectKind,
       item.subjectId,
@@ -231,6 +232,7 @@ function assignmentFingerprint(assignments: readonly HoidTopicAssignment[]): str
       item.claimId,
       item.claimTextSha256,
       [...item.evidenceIds],
+      item.review.status,
       item.review.reviewerId,
       item.review.reviewedAt,
     ]);
@@ -259,7 +261,7 @@ function evidenceFingerprint(
   firstAppearances: readonly HoidTopicEntityFirstAppearance[],
 ): string | null {
   const evidence = [...evidenceCitations]
-    .sort((left, right) => left.evidenceId.localeCompare(right.evidenceId))
+    .sort((left, right) => left.evidenceId < right.evidenceId ? -1 : left.evidenceId > right.evidenceId ? 1 : 0)
     .map(item => {
       const identity = verifiedDocumentIdentity(item.sourceBookId, item.sourceChapter);
       return identity ? [
@@ -275,7 +277,7 @@ function evidenceFingerprint(
   if (evidence.some(item => item === null)) return null;
 
   const appearances = [...firstAppearances]
-    .sort((left, right) => left.entityId.localeCompare(right.entityId))
+    .sort((left, right) => left.entityId < right.entityId ? -1 : left.entityId > right.entityId ? 1 : 0)
     .map(item => {
       const identity = verifiedDocumentIdentity(item.bookId, item.chapter);
       return identity ? [item.entityId, item.bookId, item.chapter, ...identity] : null;
@@ -475,19 +477,40 @@ export function validateHoidTopicAssignmentPromotionManifest(
   }
   const built = buildHoidTopicAssignmentPromotionManifest(plan);
   if (built.status !== "valid") return built;
-  const supplied = Object.freeze({
+  const assignmentIds = canonicalDenseStrings(raw.assignmentIds, 512);
+  const reviewerIds = canonicalDenseStrings(raw.assignmentReviewerIds, 512);
+  if (
+    !assignmentIds || !reviewerIds ||
+    !Number.isSafeInteger(raw.assignmentCount) ||
+    (raw.assignmentCount as number) < 1 ||
+    (raw.assignmentCount as number) > 512 ||
+    assignmentIds.length !== raw.assignmentCount ||
+    typeof raw.assignmentFingerprint !== "string" || !SHA_PATTERN.test(raw.assignmentFingerprint) ||
+    typeof raw.evidenceFingerprint !== "string" || !SHA_PATTERN.test(raw.evidenceFingerprint) ||
+    !Number.isSafeInteger(raw.progressRevision) || (raw.progressRevision as number) < 0 ||
+    typeof raw.progressFingerprint !== "string" || !SHA_PATTERN.test(raw.progressFingerprint) ||
+    typeof raw.planFingerprint !== "string" || !SHA_PATTERN.test(raw.planFingerprint) ||
+    typeof raw.manifestFingerprint !== "string" || !SHA_PATTERN.test(raw.manifestFingerprint)
+  ) return Object.freeze({ status: "invalid", reason: "invalid-manifest" });
+  const suppliedBase = Object.freeze({
     schemaVersion: 1 as const,
-    assignmentCount: raw.assignmentCount,
-    assignmentIds: raw.assignmentIds,
-    assignmentReviewerIds: raw.assignmentReviewerIds,
+    assignmentCount: raw.assignmentCount as number,
+    assignmentIds,
+    assignmentReviewerIds: reviewerIds,
     assignmentFingerprint: raw.assignmentFingerprint,
     evidenceFingerprint: raw.evidenceFingerprint,
-    progressRevision: raw.progressRevision,
+    progressRevision: raw.progressRevision as number,
     progressFingerprint: raw.progressFingerprint,
     planFingerprint: raw.planFingerprint,
-    manifestFingerprint: raw.manifestFingerprint,
   });
-  if (JSON.stringify(supplied) !== JSON.stringify(built.manifest)) {
+  const supplied = Object.freeze({
+    ...suppliedBase,
+    manifestFingerprint: manifestFingerprint(suppliedBase),
+  });
+  if (
+    supplied.manifestFingerprint !== raw.manifestFingerprint ||
+    JSON.stringify(supplied) !== JSON.stringify(built.manifest)
+  ) {
     return Object.freeze({ status: "invalid", reason: "manifest-mismatch" });
   }
   return built;

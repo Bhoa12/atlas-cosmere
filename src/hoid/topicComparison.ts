@@ -331,14 +331,17 @@ export function compareHoidTopicsAcrossWorlds(
       entry.subjectId,
       entry.worldId,
       entry.claimId,
-      entry.citations.map(citation => [
-        citation.evidenceId,
-        citation.sourceBookId,
-        citation.sourceChapter,
-        citation.locatorId,
-        citation.unlockBookId,
-        citation.unlockChapter,
-      ]),
+      entry.citations.map(citation => {
+        const source = validatedAssignments.evidenceCitations.find(item => item.evidenceId === citation.evidenceId)!;
+        return [
+          source.evidenceId,
+          source.sourceBookId,
+          source.sourceChapter,
+          source.locatorId,
+          source.unlockBookId,
+          source.unlockChapter,
+        ];
+      }),
     ]),
   ]));
 

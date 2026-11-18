@@ -141,6 +141,16 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
     expect(resolve("¿Cómo funciona este sistema?", reading, []).status).toBe("not-follow-up");
   });
 
+  it("does not confuse the masculine article `el` with the pronoun `él`", () => {
+    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const records = [record("synthetic.coref.el", "synthetic.entity-a", "él")];
+    expect(resolve("¿Y él?", reading, records).status).toBe("resolved");
+    expect(resolve("¿Y el?", reading, records)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-reference",
+    });
+  });
+
   it("withholds a pronoun when two context entities have the same reviewed form", () => {
     const reading = progress([{ bookId: "twok", chapter: 2 }]);
     const result = resolve("¿Y ella?", reading, [

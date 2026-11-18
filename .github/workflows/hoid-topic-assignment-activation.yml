@@ -7,6 +7,8 @@ on:
     paths:
       - "src/hoid/topicAssignmentActivation.ts"
       - "src/hoid/topicAssignmentActivationReceipt.ts"
+      - "src/hoid/githubTopicAssignmentMergeAdapter.ts"
+      - "src/hoid/githubTopicAssignmentMergeAdapter.test.ts"
       - "src/hoid/topicAssignmentActivation.test.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
@@ -51,6 +53,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/topicAssignmentActivation.test.ts
+          src/hoid/githubTopicAssignmentMergeAdapter.test.ts
           src/hoid/topicAssignmentPromotionAuthority.test.ts
           src/hoid/topicRecommendations.test.ts
           src/hoid/topicInterestRecommendationsGateway.test.ts
@@ -60,6 +63,7 @@ jobs:
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
           src/hoid/topicAssignmentActivation.ts
           src/hoid/topicAssignmentActivationReceipt.ts
+          src/hoid/githubTopicAssignmentMergeAdapter.ts
           src/hoid/topicAssignmentPromotionAuthority.ts
           src/hoid/topicTaxonomy.ts
           src/hoid/topicRecommendations.ts

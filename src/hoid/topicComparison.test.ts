@@ -94,6 +94,13 @@ function request(firstAnswer = answer("claim.alpha", "Dato sintético Alfa.", "t
   };
 }
 
+function approvedClaims() {
+  return [
+    { id: "claim.alpha", text: "Dato sintético Alfa.", evidenceIds: ["evidence.alpha"] },
+    { id: "claim.beta", text: "Dato sintético Beta.", evidenceIds: ["evidence.beta"] },
+  ];
+}
+
 function assignments() {
   return [
     assignment("tfe", "world-alpha", "Mundo Alfa", "claim.alpha", "Dato sintético Alfa.", "evidence.alpha"),
@@ -103,7 +110,7 @@ function assignments() {
 
 describe("Hoid cross-world topic comparison", () => {
   it("presents reviewed facts side by side without inferring similarity or equivalence", () => {
-    const result = compareHoidTopicsAcrossWorlds(request(), progress(), assignments());
+    const result = compareHoidTopicsAcrossWorlds(request(), progress(), assignments(), approvedClaims());
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.comparison.mode).toBe("side-by-side");
@@ -114,11 +121,11 @@ describe("Hoid cross-world topic comparison", () => {
 
   it("returns not-cross-world when all approved entries belong to the same world", () => {
     const sameWorld = assignments().map(item => ({ ...item, worldId: "world-alpha", worldLabel: "Mundo Alfa" }));
-    expect(compareHoidTopicsAcrossWorlds(request(), progress(), sameWorld)).toEqual({ status: "not-cross-world" });
+    expect(compareHoidTopicsAcrossWorlds(request(), progress(), sameWorld, approvedClaims())).toEqual({ status: "not-cross-world" });
   });
 
   it("withholds the complete comparison when one source has not reached its own unlock threshold", () => {
-    expect(compareHoidTopicsAcrossWorlds(request(), progress(3, 1), assignments()))
+    expect(compareHoidTopicsAcrossWorlds(request(), progress(3, 1), assignments(), approvedClaims()))
       .toEqual({ status: "unavailable", reason: "no-authorized-comparison" });
   });
 
@@ -126,12 +133,12 @@ describe("Hoid cross-world topic comparison", () => {
     const changed = assignments().map(item =>
       item.subjectId === "tfe" ? { ...item, claimTextSha256: sha256Hex("Texto distinto.") } : item
     );
-    expect(compareHoidTopicsAcrossWorlds(request(), progress(), changed))
+    expect(compareHoidTopicsAcrossWorlds(request(), progress(), changed, approvedClaims()))
       .toEqual({ status: "unavailable", reason: "no-authorized-comparison" });
   });
 
   it("does not disclose whether an individual subject has an assignment", () => {
-    expect(compareHoidTopicsAcrossWorlds(request(), progress(), assignments().slice(0, 1)))
+    expect(compareHoidTopicsAcrossWorlds(request(), progress(), assignments().slice(0, 1), approvedClaims()))
       .toEqual({ status: "unavailable", reason: "no-authorized-comparison" });
   });
 
@@ -144,7 +151,7 @@ describe("Hoid cross-world topic comparison", () => {
         { subjectKind: "work", subjectId: "tfe", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
       ],
     };
-    expect(compareHoidTopicsAcrossWorlds(duplicate, progress(), assignments()).status).toBe("unavailable");
+    expect(compareHoidTopicsAcrossWorlds(duplicate, progress(), assignments(), approvedClaims()).status).toBe("unavailable");
     const mixed = {
       ...request(),
       entries: [
@@ -152,11 +159,11 @@ describe("Hoid cross-world topic comparison", () => {
         { subjectKind: "entity", subjectId: "entity.beta", answer: answer("claim.beta", "Dato sintético Beta.", "wor", "evidence.beta") },
       ],
     };
-    expect(compareHoidTopicsAcrossWorlds(mixed, progress(), assignments()).status).toBe("unavailable");
+    expect(compareHoidTopicsAcrossWorlds(mixed, progress(), assignments(), approvedClaims()).status).toBe("unavailable");
   });
 
   it("rejects unknown dimensions and groups larger than the fixed comparison budget", () => {
-    expect(compareHoidTopicsAcrossWorlds({ ...request(), dimensionId: "unknown" }, progress(), assignments()).status)
+    expect(compareHoidTopicsAcrossWorlds({ ...request(), dimensionId: "unknown" }, progress(), assignments(), approvedClaims()).status)
       .toBe("unavailable");
     const tooMany = {
       topicId: "investiture-system",
@@ -167,7 +174,7 @@ describe("Hoid cross-world topic comparison", () => {
         answer: answer("claim." + index, "Dato sintético.", "tfe", "evidence." + index),
       })),
     };
-    expect(compareHoidTopicsAcrossWorlds(tooMany, progress(), assignments()).status).toBe("unavailable");
+    expect(compareHoidTopicsAcrossWorlds(tooMany, progress(), assignments(), approvedClaims()).status).toBe("unavailable");
   });
 
   it("uses the empty production registry and abstains until reviewed assignments are added", () => {
@@ -176,8 +183,8 @@ describe("Hoid cross-world topic comparison", () => {
   });
 
   it("rejects malformed assignment batches and provider-shaped extra request fields", () => {
-    expect(compareHoidTopicsAcrossWorlds(request(), progress(), [{ arbitrary: true }]).status).toBe("unavailable");
-    expect(compareHoidTopicsAcrossWorlds({ ...request(), providerText: "invented" }, progress(), assignments()).status)
+    expect(compareHoidTopicsAcrossWorlds(request(), progress(), [{ arbitrary: true }], approvedClaims()).status).toBe("unavailable");
+    expect(compareHoidTopicsAcrossWorlds({ ...request(), providerText: "invented" }, progress(), assignments(), approvedClaims()).status)
       .toBe("unavailable");
   });
 });

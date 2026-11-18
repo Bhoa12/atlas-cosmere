@@ -89,7 +89,7 @@ npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution n
 
 The existing editorial staging inventory still contains an unresolved identity. Its receipt must remain revision-required. The tests use a fully resolved synthetic subset to exercise the successful path; they do not approve or alter the real staging inventory.
 
-The current PR #15 has no submitted human reviews. No live source-control authorization or production promotion is claimed by this run.
+The current PR #16 has no submitted human reviews. No live source-control authorization or production promotion is claimed by this run.
 
 ## Copyright and source handling
 

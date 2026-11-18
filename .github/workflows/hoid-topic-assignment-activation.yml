@@ -9,7 +9,13 @@ on:
       - "src/hoid/topicAssignmentActivationReceipt.ts"
       - "src/hoid/githubTopicAssignmentMergeAdapter.ts"
       - "src/hoid/githubTopicAssignmentMergeAdapter.test.ts"
+      - "src/hoid/githubTopicAssignmentRestClient.ts"
+      - "src/hoid/githubTopicAssignmentRestClient.test.ts"
       - "src/hoid/topicAssignmentActivation.test.ts"
+      - "src/hoid/githubTopicAssignmentMergeAdapter.ts"
+      - "src/hoid/githubTopicAssignmentMergeAdapter.test.ts"
+      - "src/hoid/githubTopicAssignmentRestClient.ts"
+      - "src/hoid/githubTopicAssignmentRestClient.test.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
       - "src/hoid/topicTaxonomy.ts"
@@ -54,6 +60,7 @@ jobs:
           npx vitest run
           src/hoid/topicAssignmentActivation.test.ts
           src/hoid/githubTopicAssignmentMergeAdapter.test.ts
+          src/hoid/githubTopicAssignmentRestClient.test.ts
           src/hoid/topicAssignmentPromotionAuthority.test.ts
           src/hoid/topicRecommendations.test.ts
           src/hoid/topicInterestRecommendationsGateway.test.ts
@@ -64,6 +71,7 @@ jobs:
           src/hoid/topicAssignmentActivation.ts
           src/hoid/topicAssignmentActivationReceipt.ts
           src/hoid/githubTopicAssignmentMergeAdapter.ts
+          src/hoid/githubTopicAssignmentRestClient.ts
           src/hoid/topicAssignmentPromotionAuthority.ts
           src/hoid/topicTaxonomy.ts
           src/hoid/topicRecommendations.ts

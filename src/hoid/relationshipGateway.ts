@@ -6,11 +6,8 @@ import type {
   HoidExplanationGateway,
   HoidExplanationGatewayResult,
 } from "./explanationGateway";
-import type {
-  HoidKnowledgeGraphSource,
-  HoidRenderedExplanation,
-  HoidRenderedExplanationSegment,
-} from "./knowledgeGraphQuery";
+import type { HoidKnowledgeGraphSource } from "./knowledgeGraph";
+import type { HoidRenderedExplanation, HoidRenderedExplanationSegment } from "./knowledgeGraphQuery";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { sha256Hex } from "./sha256";

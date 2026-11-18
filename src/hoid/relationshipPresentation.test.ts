@@ -82,6 +82,12 @@ describe("createHoidEvidenceAnswerFromRelationshipResult", () => {
       text: "Afirmación editorial sintética.",
       claimIds: ["claim.one"],
       evidenceIds: ["evidence.claim-one"],
+      layout: "plain",
+      segments: [{
+        claimId: "claim.one",
+        text: "Afirmación editorial sintética.",
+        evidenceIds: ["evidence.claim-one"],
+      }],
     });
   });
 

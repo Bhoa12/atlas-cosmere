@@ -1,0 +1,56 @@
+name: Hoid segment-level provenance
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/relationshipPresentation.ts"
+      - "src/hoid/relationshipPresentation.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/SEGMENT_LEVEL_PROVENANCE.md"
+      - ".github/workflows/hoid-segment-provenance.yml"
+  pull_request:
+    paths:
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/relationshipPresentation.ts"
+      - "src/hoid/relationshipPresentation.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/SEGMENT_LEVEL_PROVENANCE.md"
+      - ".github/workflows/hoid-segment-provenance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  segment-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test segment provenance and conversation integration
+        run: >-
+          npx vitest run
+          src/hoid/answerPresentation.test.ts
+          src/hoid/relationshipPresentation.test.ts
+          src/hoid/relationshipGateway.test.ts
+          src/hoid/conversationGateway.test.ts
+      - name: Type-check runtime, presentation and screen
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/evidenceRuntime.ts
+          src/hoid/answerPresentation.ts
+          src/hoid/relationshipPresentation.ts
+          src/screens/HoidScreen.tsx

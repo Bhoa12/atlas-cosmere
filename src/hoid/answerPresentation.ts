@@ -1,6 +1,7 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
+import { composeHoidNarrative, type HoidNarrativeLayout } from "./narrativeComposition";
 
 export type HoidPresentedCitation = Readonly<{
   evidenceId: string;
@@ -10,6 +11,13 @@ export type HoidPresentedCitation = Readonly<{
   locatorId: string;
 }>;
 
+export type HoidPresentedSegment = Readonly<{
+  claimId: string;
+  text: string;
+  evidenceIds: readonly string[];
+  citations: readonly HoidPresentedCitation[];
+}>;
+
 export type HoidAnswerPresentation =
   | Readonly<{
       status: "ready";
@@ -17,6 +25,8 @@ export type HoidAnswerPresentation =
       claimIds: readonly string[];
       evidenceIds: readonly string[];
       citations: readonly HoidPresentedCitation[];
+      layout?: HoidNarrativeLayout;
+      segments?: readonly HoidPresentedSegment[];
     }>
   | Readonly<{
       status: "withheld";
@@ -174,6 +184,79 @@ function canonicalSources(value: unknown): readonly HoidEvidenceCitation[] | nul
   }
 }
 
+
+function canonicalPresentationSegments(
+  value: unknown,
+  claimIds: readonly string[],
+  evidenceIds: readonly string[],
+  citationsById: ReadonlyMap<string, HoidPresentedCitation>,
+  layout: unknown,
+  expectedText: string,
+): readonly HoidPresentedSegment[] | null {
+  try {
+    if (!Array.isArray(value) || value.length !== claimIds.length || value.length > MAX_CLAIMS) return null;
+    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+
+    const segments: HoidPresentedSegment[] = [];
+    const referencedEvidence = new Set<string>();
+    const narrativeSegments: { claimId: string; text: string; evidenceIds: readonly string[] }[] = [];
+
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+        return null;
+      }
+      const segment = canonicalRecord(descriptor.value, ["claimId", "text", "evidenceIds"], ["claimId", "text", "evidenceIds"]);
+      if (!segment || Object.keys(segment).length !== 3) return null;
+
+      const claimId = segment.claimId;
+      const text = segment.text;
+      const segmentEvidenceIds = canonicalIds(segment.evidenceIds, MAX_EVIDENCE);
+      if (
+        typeof claimId !== "string" || claimId !== claimIds[index] ||
+        typeof text !== "string" || text.length < 1 || text.length > 4_000 ||
+        text !== text.trim() || !segmentEvidenceIds
+      ) return null;
+
+      const segmentCitations: HoidPresentedCitation[] = [];
+      for (const evidenceId of segmentEvidenceIds) {
+        const citation = citationsById.get(evidenceId);
+        if (!citation) return null;
+        referencedEvidence.add(evidenceId);
+        segmentCitations.push(citation);
+      }
+      segmentCitations.sort((left, right) =>
+        left.sourceBookId < right.sourceBookId ? -1 :
+        left.sourceBookId > right.sourceBookId ? 1 :
+        left.chapter - right.chapter ||
+        (left.evidenceId < right.evidenceId ? -1 : left.evidenceId > right.evidenceId ? 1 : 0)
+      );
+
+      const frozenEvidenceIds = Object.freeze([...segmentEvidenceIds]);
+      segments.push(Object.freeze({
+        claimId,
+        text,
+        evidenceIds: frozenEvidenceIds,
+        citations: Object.freeze(segmentCitations),
+      }));
+      narrativeSegments.push(Object.freeze({ claimId, text, evidenceIds: frozenEvidenceIds }));
+    }
+
+    if (
+      referencedEvidence.size !== evidenceIds.length ||
+      [...referencedEvidence].sort().join("\n") !== [...evidenceIds].sort().join("\n")
+    ) return null;
+
+    const composition = composeHoidNarrative({ segments: narrativeSegments }, layout);
+    if (composition.status !== "ready" || composition.text !== expectedText) return null;
+    return Object.freeze(segments);
+  } catch {
+    return null;
+  }
+}
+
 function sourceIsUnlocked(
   source: HoidEvidenceCitation,
   reading: readonly Readonly<{ bookId: string; chapter?: number; completed?: boolean }>[],
@@ -198,7 +281,7 @@ export function presentHoidEvidenceAnswer(
 ): HoidAnswerPresentation {
   const answer = canonicalRecord(
     input,
-    ["status", "reason", "text", "claimIds", "evidenceIds", "sources"],
+    ["status", "reason", "text", "claimIds", "evidenceIds", "sources", "segments", "layout"],
     ["status"],
   );
   if (!answer) return withheld("invalid-answer");
@@ -210,10 +293,16 @@ export function presentHoidEvidenceAnswer(
 
   const authorized = canonicalRecord(
     input,
-    ["status", "text", "claimIds", "evidenceIds", "sources"],
+    ["status", "text", "claimIds", "evidenceIds", "sources", "segments", "layout"],
     ["status", "text", "claimIds", "evidenceIds", "sources"],
   );
-  if (!authorized || Object.keys(authorized).length !== 5) return withheld("invalid-answer");
+  const hasSegments = Boolean(authorized && Object.prototype.hasOwnProperty.call(authorized, "segments"));
+  const hasLayout = Boolean(authorized && Object.prototype.hasOwnProperty.call(authorized, "layout"));
+  if (
+    !authorized ||
+    hasSegments !== hasLayout ||
+    Object.keys(authorized).length !== (hasSegments ? 7 : 5)
+  ) return withheld("invalid-answer");
 
   const text = authorized.text;
   if (
@@ -257,11 +346,29 @@ export function presentHoidEvidenceAnswer(
       (left.evidenceId < right.evidenceId ? -1 : left.evidenceId > right.evidenceId ? 1 : 0)
     );
 
+  const frozenCitations = Object.freeze(citations);
+  let segments: readonly HoidPresentedSegment[] | undefined;
+  let layout: HoidNarrativeLayout | undefined;
+  if (hasSegments) {
+    const citationsById = new Map(frozenCitations.map(citation => [citation.evidenceId, citation]));
+    segments = canonicalPresentationSegments(
+      authorized.segments,
+      claimIds,
+      evidenceIds,
+      citationsById,
+      authorized.layout,
+      text,
+    ) ?? undefined;
+    if (!segments) return withheld("invalid-answer");
+    layout = authorized.layout as HoidNarrativeLayout;
+  }
+
   return Object.freeze({
     status: "ready",
     text,
     claimIds,
     evidenceIds,
-    citations: Object.freeze(citations),
+    citations: frozenCitations,
+    ...(segments && layout ? { segments, layout } : {}),
   });
 }

@@ -49,6 +49,12 @@ export interface HoidClaimSelector {
   selectClaims(request: HoidClaimSelectionRequest): Promise<unknown>;
 }
 
+export type HoidEvidenceAnswerSegment = Readonly<{
+  claimId: string;
+  text: string;
+  evidenceIds: readonly string[];
+}>;
+
 export type HoidEvidenceAnswer = Readonly<{
   status: "authorized" | "blocked" | "abstain";
   reason?:
@@ -61,6 +67,9 @@ export type HoidEvidenceAnswer = Readonly<{
   claimIds: readonly string[];
   evidenceIds: readonly string[];
   sources: readonly HoidEvidenceCitation[];
+  /** Present only when the answer preserves a validated claim-to-evidence map. */
+  segments?: readonly HoidEvidenceAnswerSegment[];
+  layout?: "plain" | "numbered" | "grouped";
 }>;
 
 export type HoidEvidenceRecommendationResult =

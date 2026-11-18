@@ -21,6 +21,11 @@ on:
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingBoundary.ts"
       - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/types.ts"
+      - "src/hoid/readingContext.ts"
+      - "package.json"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
       - ".github/workflows/hoid-topic-taxonomy-cross-world.yml"
   pull_request:
@@ -41,6 +46,11 @@ on:
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingBoundary.ts"
       - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/types.ts"
+      - "src/hoid/readingContext.ts"
+      - "package.json"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
       - ".github/workflows/hoid-topic-taxonomy-cross-world.yml"
 

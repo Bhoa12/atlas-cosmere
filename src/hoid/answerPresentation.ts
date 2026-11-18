@@ -1,6 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
-import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import type { HoidEvidenceCitation } from "./evidenceScope";
 
 export type HoidPresentedCitation = Readonly<{

@@ -6,6 +6,8 @@ on:
       - "feat/hoid-ia-core-run*"
     paths:
       - "src/hoid/catalog.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/typedConversationContext.ts"
       - "src/hoid/typedConversationContext.test.ts"
       - "src/hoid/typedConversationGateway.test.ts"
@@ -68,6 +70,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/typedConversationContext.test.ts
+          src/hoid/evidenceRuntime.test.ts
           src/hoid/typedConversationGateway.test.ts
           src/hoid/conversationGateway.test.ts
           src/hoid/entityResolver.test.ts
@@ -81,6 +84,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
           src/hoid/catalog.ts
+          src/hoid/evidenceRuntime.ts
           src/hoid/typedConversationContext.ts
           src/hoid/entityResolver.ts
           src/hoid/editorialEntityDrafts.ts

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "./sha256";
+import { getHoidReadingManifest } from "./readingManifest";
 import {
   HOID_APPROVED_TOPIC_ASSIGNMENTS,
   HOID_TOPIC_TAXONOMY,
@@ -8,8 +9,17 @@ import {
 
 const CLAIM_TEXT = "Dato sintético para probar una asignación editorial.";
 
+function locator(bookId: string, chapter: number) {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") throw new Error("Manifiesto sintético no disponible");
+  const unit = result.manifest.units.find(item => item.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Localizador sintético no disponible");
+  return unit.locatorId;
+}
+
 function validate(records: readonly unknown[]) {
   const claims = new Map<string, { id: string; text: string; evidenceIds: unknown }>();
+  const knowledge = new Map<string, Record<string, unknown>>();
   for (const record of records) {
     if (record === null || typeof record !== "object") continue;
     const raw = record as Record<string, unknown>;
@@ -20,8 +30,21 @@ function validate(records: readonly unknown[]) {
         evidenceIds: raw.evidenceIds,
       });
     }
+    if (Array.isArray(raw.evidenceIds)) {
+      for (const evidenceId of raw.evidenceIds) {
+        if (typeof evidenceId !== "string") continue;
+        knowledge.set(evidenceId, {
+          id: evidenceId,
+          provenance: "verified",
+          summary: CLAIM_TEXT,
+          evidenceSource: { bookId: "tfe", chapter: 1, locatorId: locator("tfe", 1) },
+          evidenceUnlock: { bookId: "tfe", chapter: 2 },
+          firstSafeAppearance: { bookId: "tfe", chapter: 1 },
+        });
+      }
+    }
   }
-  return validateHoidTopicAssignments(records, [...claims.values()]);
+  return validateHoidTopicAssignments(records, [...claims.values()], [...knowledge.values()]);
 }
 
 function assignment(overrides: Record<string, unknown> = {}) {
@@ -52,7 +75,13 @@ describe("Hoid reviewed topic taxonomy", () => {
     expect(HOID_TOPIC_TAXONOMY.map(topic => topic.id)).toContain("investiture-system");
     expect(HOID_TOPIC_TAXONOMY.find(topic => topic.id === "investiture-system")?.dimensions.map(item => item.id))
       .toEqual(["mechanism", "source", "access-condition", "manifestation", "limitation"]);
-    expect(validate([])).toEqual({ status: "valid", assignments: [] });
+    const empty = validate([]);
+    expect(empty.status).toBe("valid");
+    if (empty.status === "valid") {
+      expect(empty.assignments).toEqual([]);
+      expect(empty.evidenceCitations).toEqual([]);
+      expect(empty.entityFirstAppearances).toEqual([]);
+    }
   });
 
   it("keeps the production assignment registry empty until independently reviewed records exist", () => {

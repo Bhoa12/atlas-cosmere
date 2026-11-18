@@ -8,13 +8,21 @@ import { ReadingPosition } from "./types";
  * Recommendations are metadata-only: this module does not infer plot order,
  * canon dependencies, chapter counts, or facts from unavailable source text.
  */
-export type HoidRecommendationReason = "unread-source";
+export type HoidRecommendationReason = "unread-source" | "resume-current-work";
 
-export type HoidRecommendation = {
-  sourceId: string;
-  title: string;
-  reason: HoidRecommendationReason;
-};
+export type HoidRecommendation =
+  | Readonly<{
+      sourceId: string;
+      title: string;
+      reason: "unread-source";
+    }>
+  | Readonly<{
+      sourceId: string;
+      title: string;
+      reason: "resume-current-work";
+      currentChapter: number;
+      completedThroughChapter: number | null;
+    }>;
 
 function hasStarted(sourceId: string, reading: ReadingPosition[]): boolean {
   return reading.some(position =>

@@ -79,16 +79,30 @@ function assignment(
   };
 }
 
+function approvedClaims(pairs: readonly { claimId: string; answer: ReturnType<typeof answer> }[]) {
+  const byId = new Map<string, { id: string; text: string; evidenceIds: readonly string[] }>();
+  for (const pair of pairs) {
+    byId.set(pair.claimId, {
+      id: pair.claimId,
+      text: pair.answer.text,
+      evidenceIds: pair.answer.evidenceIds,
+    });
+  }
+  return [...byId.values()];
+}
+
 describe("Hoid topic-aware safe recommendations", () => {
   it("recommends an unstarted work only when its reviewed association is supported by unlocked evidence elsewhere", () => {
     const text = "Asociación temática sintética respaldada por una fuente ya leída.";
     const claimId = "claim.tfe.investiture";
+    const pairs = [{ claimId, answer: answer(claimId, text) }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
       progress([{ bookId: "wor", chapter: 3 }]),
-      [{ claimId, answer: answer(claimId, text) }],
+      pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
+      approvedClaims(pairs),
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -100,12 +114,14 @@ describe("Hoid topic-aware safe recommendations", () => {
   it("withholds a recommendation when the supporting source has not reached its unlock boundary", () => {
     const text = "Asociación temática sintética.";
     const claimId = "claim.tfe.locked";
+    const pairs = [{ claimId, answer: answer(claimId, text) }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
       progress([{ bookId: "wor", chapter: 1 }]),
-      [{ claimId, answer: answer(claimId, text) }],
+      pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
+      approvedClaims(pairs),
     );
     expect(result).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
   });
@@ -113,12 +129,14 @@ describe("Hoid topic-aware safe recommendations", () => {
   it("never uses an unread candidate's own locked chapter as a recommendation rationale", () => {
     const text = "Asociación sintética procedente de la propia obra.";
     const claimId = "claim.tfe.self";
+    const pairs = [{ claimId, answer: answer(claimId, text, "tfe") }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
       progress([{ bookId: "wor", chapter: 3 }]),
-      [{ claimId, answer: answer(claimId, text, "tfe") }],
+      pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text, "tfe")],
+      approvedClaims(pairs),
     );
     expect(result).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
   });
@@ -126,12 +144,14 @@ describe("Hoid topic-aware safe recommendations", () => {
   it("does not recommend a work that is already started or completed", () => {
     const text = "Asociación temática sintética.";
     const claimId = "claim.tfe.started";
+    const pairs = [{ claimId, answer: answer(claimId, text) }];
     const result = composeHoidTopicRecommendations(
       ["investiture-system"],
       progress([{ bookId: "wor", chapter: 3 }, { bookId: "tfe", chapter: 2 }]),
-      [{ claimId, answer: answer(claimId, text) }],
+      pairs,
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
+      approvedClaims(pairs),
     );
     expect(result).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
   });
@@ -141,18 +161,20 @@ describe("Hoid topic-aware safe recommendations", () => {
     const secondText = "Asociación de Investidura sintética.";
     const firstId = "claim.tfe.organization";
     const secondId = "claim.elantris.investiture";
+    const pairs = [
+      { claimId: firstId, answer: answer(firstId, firstText) },
+      { claimId: secondId, answer: answer(secondId, secondText) },
+    ];
     const result = composeHoidTopicRecommendations(
       ["investiture-system", "organization"],
       progress([{ bookId: "wor", chapter: 3 }]),
-      [
-        { claimId: firstId, answer: answer(firstId, firstText) },
-        { claimId: secondId, answer: answer(secondId, secondText) },
-      ],
+      pairs,
       5,
       [
         assignment("tfe", "organization", "membership", firstId, firstText),
         assignment("elantris", "investiture-system", "mechanism", secondId, secondText),
       ],
+      approvedClaims(pairs),
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -173,25 +195,47 @@ describe("Hoid topic-aware safe recommendations", () => {
       .toEqual({ status: "invalid", reason: "invalid-input" });
   });
 
-  it("rejects duplicate answer IDs and mismatched claim text digests", () => {
+  it("rejects duplicate answer IDs and assignment digests that differ from the approved claim", () => {
     const text = "Asociación sintética.";
     const claimId = "claim.tfe.bad";
+    const pairs = [
+      { claimId, answer: answer(claimId, text) },
+      { claimId, answer: answer(claimId, text) },
+    ];
     const assignmentRecord = assignment("tfe", "investiture-system", "mechanism", claimId, text);
     expect(composeHoidTopicRecommendations(
       ["investiture-system"],
       progress([{ bookId: "wor", chapter: 3 }]),
-      [{ claimId, answer: answer(claimId, text) }, { claimId, answer: answer(claimId, text) }],
+      pairs,
       5,
       [assignmentRecord],
+      approvedClaims(pairs),
     )).toEqual({ status: "invalid", reason: "invalid-answers" });
 
     const mismatched = { ...assignmentRecord, claimTextSha256: sha256Hex("Otro texto.") };
+    const singlePair = [{ claimId, answer: answer(claimId, text) }];
     expect(composeHoidTopicRecommendations(
       ["investiture-system"],
       progress([{ bookId: "wor", chapter: 3 }]),
-      [{ claimId, answer: answer(claimId, text) }],
+      singlePair,
       5,
       [mismatched],
+      approvedClaims(singlePair),
+    )).toEqual({ status: "invalid", reason: "invalid-assignments" });
+  });
+
+  it("rejects an answer whose wording does not match the approved claim even when its source is unlocked", () => {
+    const approvedText = "Texto aprobado.";
+    const alteredText = "Texto alterado.";
+    const claimId = "claim.tfe.altered";
+    const pairs = [{ claimId, answer: answer(claimId, alteredText) }];
+    expect(composeHoidTopicRecommendations(
+      ["investiture-system"],
+      progress([{ bookId: "wor", chapter: 3 }]),
+      pairs,
+      5,
+      [assignment("tfe", "investiture-system", "mechanism", claimId, approvedText)],
+      [{ id: claimId, text: approvedText, evidenceIds: ["evidence." + claimId] }],
     )).toEqual({ status: "invalid", reason: "invalid-answers" });
   });
 

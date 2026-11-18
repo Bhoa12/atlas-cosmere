@@ -45,8 +45,8 @@ const knowledge: HoidKnowledgeEntry[] = [
     id: "e-alpha",
     aliases: ["Synthetic Alpha"],
     kind: "concept",
-    firstSafeAppearance: { bookId: "twok", chapter: 2 },
-    evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
+    firstSafeAppearance: { bookId: "twok", chapter: 1 },
+    evidenceSource: { bookId: "twok", chapter: 1, locatorId: locator("twok", 1) },
     evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "verified",
     summary: "Original synthetic editorial summary for test coverage.",
@@ -55,9 +55,9 @@ const knowledge: HoidKnowledgeEntry[] = [
     id: "e-beta",
     aliases: ["Synthetic Beta"],
     kind: "phenomenon",
-    firstSafeAppearance: { bookId: "wor", chapter: 3 },
-    evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
-    evidenceUnlock: { bookId: "wor", chapter: 3 },
+    firstSafeAppearance: { bookId: "tfe", chapter: 1 },
+    evidenceSource: { bookId: "tfe", chapter: 1, locatorId: locator("tfe", 1) },
+    evidenceUnlock: { bookId: "tfe", chapter: 2 },
     provenance: "verified",
     summary: "Second original synthetic editorial summary for test coverage.",
   },
@@ -113,9 +113,9 @@ function assignment(
 ) {
   return {
     schemaVersion: 1,
-    id: "assignment.tfe.investiture." + claimId,
+    id: "assignment.elantris.investiture." + claimId,
     subjectKind: "work",
-    subjectId: "tfe",
+    subjectId: "elantris",
     worldId: "world-alpha",
     worldLabel: "Mundo Alfa",
     topicId: "investiture-system",
@@ -174,8 +174,8 @@ describe("Hoid local approved-claim answer port", () => {
     expect(result[0].answer.sources).toEqual([{
       evidenceId: "e-alpha",
       sourceBookId: "twok",
-      sourceChapter: 2,
-      locatorId: locator("twok", 2),
+      sourceChapter: 1,
+      locatorId: locator("twok", 1),
       unlockBookId: "twok",
       unlockChapter: 2,
     }]);
@@ -200,18 +200,18 @@ describe("Hoid local approved-claim answer port", () => {
     const { port } = createPort();
     const lockedSnapshot = progress([
       { bookId: "twok", chapter: 3 },
-      { bookId: "wor", chapter: 3 },
+      { bookId: "tfe", chapter: 2 },
     ]);
     expect(port(["claim-cross-book"], lockedSnapshot)).toEqual([]);
 
     const unlockedSnapshot = progress([
       { bookId: "twok", chapter: 3 },
-      { bookId: "wor", chapter: 4 },
+      { bookId: "tfe", chapter: 3 },
     ]);
     const authorized = port(["claim-cross-book"], unlockedSnapshot);
     expect(authorized).toHaveLength(1);
     expect(authorized[0].answer.evidenceIds).toEqual(["e-alpha", "e-beta"]);
-    expect(authorized[0].answer.sources.map(source => source.sourceBookId)).toEqual(["twok", "wor"]);
+    expect(authorized[0].answer.sources.map(source => source.sourceBookId)).toEqual(["tfe", "twok"]);
     expect(presentHoidEvidenceAnswer(authorized[0].answer, unlockedSnapshot).status).toBe("ready");
   });
 
@@ -266,7 +266,7 @@ describe("Hoid local approved-claim answer port", () => {
 
     const lockedSnapshot = progress([
       { bookId: "twok", chapter: 3 },
-      { bookId: "wor", chapter: 3 },
+      { bookId: "tfe", chapter: 2 },
     ]);
     const locked = composeHoidTopicRecommendations(
       ["investiture-system"],
@@ -281,7 +281,7 @@ describe("Hoid local approved-claim answer port", () => {
 
     const unlockedSnapshot = progress([
       { bookId: "twok", chapter: 3 },
-      { bookId: "wor", chapter: 4 },
+      { bookId: "tfe", chapter: 3 },
     ]);
     const unlocked = composeHoidTopicRecommendations(
       ["investiture-system"],
@@ -294,7 +294,7 @@ describe("Hoid local approved-claim answer port", () => {
     );
     expect(unlocked.status).toBe("ready");
     if (unlocked.status !== "ready") return;
-    expect(unlocked.items[0].matches[0].citations.map(citation => citation.sourceBookId)).toEqual(["twok", "wor"]);
+    expect(unlocked.items[0].matches[0].citations.map(citation => citation.sourceBookId)).toEqual(["tfe", "twok"]);
   });
 
   it("returns no port when the editorial runtime is unavailable", () => {

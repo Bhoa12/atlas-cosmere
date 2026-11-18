@@ -330,6 +330,70 @@ export class HoidEvidenceRuntime {
     return new HoidEvidenceRuntime(knowledge, claims, selector, Math.ceil(timeout));
   }
 
+  /**
+   * Render one exact, already-approved recommendation claim by ID. This path
+   * is intentionally selector-free: the assignment registry chooses the ID,
+   * while the runtime independently rechecks every evidence and unlock scope.
+   */
+  renderApprovedClaimById(claimIdInput: unknown, readingInput: unknown): HoidEvidenceAnswer {
+    if (
+      typeof claimIdInput !== "string" ||
+      claimIdInput !== claimIdInput.trim() ||
+      claimIdInput.length < 1 ||
+      claimIdInput.length > MAX_CLAIM_ID_LENGTH ||
+      !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u.test(claimIdInput)
+    ) {
+      return blocked("invalid-input", "El identificador de la afirmación no es válido.");
+    }
+
+    const reading = knownReadingPositions(readingInput);
+    if (reading === null) {
+      return blocked("invalid-input", "El progreso de lectura no puede verificarse.");
+    }
+
+    const claim = this.claims.find(item => item.id === claimIdInput && item.intent === "recommend");
+    if (!claim) {
+      return abstain("no-authorized-evidence", "No existe una afirmación de recomendación aprobada para ese identificador.");
+    }
+
+    const authorizedContextIds = new Set(this.catalog.entriesForContext(reading).map(entry => entry.id));
+    const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
+    const evidence = claim.evidenceIds.map(id => knowledgeById.get(id));
+    if (evidence.some((entry, index) =>
+      !entry ||
+      entry.id !== claim.evidenceIds[index] ||
+      !authorizedContextIds.has(entry.id) ||
+      !isEvidenceUnlocked(entry, reading)
+    )) {
+      return abstain("no-authorized-evidence", "No todas las evidencias de la afirmación están desbloqueadas.");
+    }
+
+    const evidenceIds = [...claim.evidenceIds].sort();
+    const sources = evidenceIds.map(id => {
+      const entry = knowledgeById.get(id);
+      return entry ? evidenceCitationFor(entry) : null;
+    });
+    if (sources.some(source => source === null)) {
+      return abstain("no-authorized-evidence", "No se puede reconstruir toda la procedencia documental.");
+    }
+
+    const frozenEvidenceIds = Object.freeze(evidenceIds);
+    const segment = Object.freeze({
+      claimId: claim.id,
+      text: claim.text,
+      evidenceIds: frozenEvidenceIds,
+    });
+    return Object.freeze({
+      status: "authorized",
+      text: claim.text,
+      claimIds: Object.freeze([claim.id]),
+      evidenceIds: frozenEvidenceIds,
+      sources: Object.freeze(sources as HoidEvidenceCitation[]),
+      segments: Object.freeze([segment]),
+      layout: "plain",
+    });
+  }
+
   async answer(input: unknown): Promise<HoidEvidenceAnswer> {
     if (!isRecord(input)) {
       return blocked("invalid-input", "La solicitud no tiene un formato válido. Hoid no enviará datos ambiguos a ningún proveedor.");

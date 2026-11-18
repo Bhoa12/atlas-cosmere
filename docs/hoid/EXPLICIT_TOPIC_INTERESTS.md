@@ -30,3 +30,10 @@ HoidScreen exposes the closed taxonomy as explicit selectable topics. It does no
 ## Production limitations
 
 The source-controlled production topic-assignment registry is still empty. Therefore the UI can collect explicit interests, but it will currently report that no reviewed, spoiler-safe topic matches are available. Synthetic tests do not create production assignments. No private EPUB/XHTML body or protected passage is committed.
+
+
+## Local approved-claim rendering
+
+Run 140 adds `topicApprovedClaimAnswerPort.ts` and a selector-free `HoidEvidenceRuntime.renderApprovedClaimById()` path. The assignment registry selects exact approved claim IDs; the runtime returns only the corresponding local recommendation claim when every evidence item is verified, in context and unlocked in its own source work. The result includes one immutable claim segment and exact citations. No language selector or external provider is invoked.
+
+HoidScreen injects this local port into the topic-interest gateway. The production assignment registry remains empty, so no topic recommendation is activated until an independently reviewed assignment and its approved claim/evidence records exist. See `LOCAL_APPROVED_CLAIM_RENDERING.md`.

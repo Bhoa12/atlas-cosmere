@@ -24,6 +24,7 @@ import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
   createHoidTopicInterestRecommendationGateway,
 } from '../hoid/topicInterestRecommendationsGateway';
+import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAnswerPort';
 import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
 import {
   canCommitHoidProgressScopedResponse,
@@ -34,6 +35,7 @@ import {
 
 const editorialRuntime = createHoidEditorialRuntime();
 const hoidRuntime = editorialRuntime ? createHoidCursorEvidenceRuntime(editorialRuntime) : null;
+const topicApprovedClaimAnswerPort = createHoidApprovedClaimAnswerPort(editorialRuntime);
 
 interface Mensaje {
   id: string;
@@ -62,6 +64,9 @@ export const HoidScreen: React.FC = () => {
     : null;
   const topicInterestGateway = createHoidTopicInterestRecommendationGateway({
     getCurrentProgress: () => progressReaderRef.current(),
+    ...(topicApprovedClaimAnswerPort
+      ? { answerApprovedClaims: topicApprovedClaimAnswerPort }
+      : {}),
   });
 
   const [cargando, setCargando] = useState(false);

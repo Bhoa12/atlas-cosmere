@@ -65,6 +65,10 @@ describe("Hoid topic-interest recommendation gateway", () => {
     });
     expect(await gateway.recommend({ progress: current, context: null })).toEqual({
       status: "unavailable",
+      reason: "context-missing",
+    });
+    expect(await gateway.recommend({ progress: current, context: {} })).toEqual({
+      status: "unavailable",
       reason: "context-invalid",
     });
   });

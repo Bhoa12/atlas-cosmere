@@ -96,3 +96,21 @@ Do not commit EPUBs, XHTML, copied paragraphs, chapter transcripts or extracted 
 - All 20 summaries remain pending review. Production registry and graph remain unchanged.
 - The current Library listing did not expose `cosmere.epub`; no new Cosmere chapter was inspected.
 - No EPUB bytes, XHTML bodies, copied passages or images were committed.
+
+
+## Run 124 — current Roshar source coverage
+
+The current Library copies of the Roshar omnibus, `Danzante del Filo` and `Esquirla del amanecer` were materialized for local read-only inspection. This run verified:
+- `twok` chapter 8 at `Text/L1-021.xhtml`;
+- `edgedancer` chapter 9 at `Text/009.xhtml`;
+- `dawnshard` chapter 9 at `Text/9.xhtml`.
+
+Each href was checked against the edition TOC, OPF manifest and spine. The original document bytes were SHA-256 hashed and added to the sparse allowlist. The navigation digests matched the previously recorded edition digests.
+
+Three original Spanish summaries were added to staging. The `twok` chapter-eight summary unlocks after chapter nine is completed; the `edgedancer` and `dawnshard` chapter-nine summaries unlock after chapter ten is completed. All three remain `pending-review`.
+
+The current staging inventory contains 29 original summaries backed by 29 individually inspected chapter documents: `twok` chapters 1–8, `edgedancer` and `dawnshard` chapters 1–9, and `tfe` chapters 1–3. No production registry entry was added.
+
+The Library listing also exposes the private `cosmere.epub`, but this iteration did not materialize or inspect its chapter bodies. Its previously verified navigation metadata remains catalogue/structure data only. No new Cosmere chapter summary is claimed.
+
+See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md` for the exact source metadata and document digests.

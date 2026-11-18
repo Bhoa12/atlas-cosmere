@@ -12,7 +12,7 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import {
   createHoidConversationContext,
-  resolveHoidConversationFollowUp,
+  validateHoidConversationContext,
   type HoidConversationContext,
   type HoidConversationProgressIdentity,
 } from "./conversationContext";
@@ -24,16 +24,22 @@ import {
   HOID_COREFERENCE_REGISTRY,
   type HoidCoreferenceForm,
 } from "./coreferenceRegistry";
+import { sha256Hex } from "./sha256";
 
 type CanonicalCoreferenceEvidence = Readonly<{
   id: string;
   scope: CanonicalHoidEvidenceScope;
+  editionId: string;
+  navigationSha256: string;
+  documentSha256: string;
 }>;
 
 type CanonicalCoreferenceRecord = Readonly<{
   id: string;
   entityId: string;
   form: HoidCoreferenceForm;
+  reviewerId: string;
+  reviewedAt: string;
   evidence: readonly CanonicalCoreferenceEvidence[];
 }>;
 
@@ -77,14 +83,14 @@ const PRONOUN_FOLLOW_UPS: readonly Readonly<{
   Object.freeze({
     form: "él" as const,
     cues: Object.freeze([
-      "y el",
-      "y con el",
-      "y de el",
-      "y que sabes de el",
-      "y que pasa con el",
-      "y como se relaciona con el",
-      "y que relacion tiene con el",
-      "y que vinculo tiene con el",
+      "y él",
+      "y con él",
+      "y de él",
+      "y qué sabes de él",
+      "y qué pasa con él",
+      "y cómo se relaciona con él",
+      "y qué relación tiene con él",
+      "y qué vínculo tiene con él",
     ]),
   }),
   Object.freeze({
@@ -93,11 +99,11 @@ const PRONOUN_FOLLOW_UPS: readonly Readonly<{
       "y ella",
       "y con ella",
       "y de ella",
-      "y que sabes de ella",
-      "y que pasa con ella",
-      "y como se relaciona con ella",
-      "y que relacion tiene con ella",
-      "y que vinculo tiene con ella",
+      "y qué sabes de ella",
+      "y qué pasa con ella",
+      "y cómo se relaciona con ella",
+      "y qué relación tiene con ella",
+      "y qué vínculo tiene con ella",
     ]),
   }),
 ]);
@@ -167,10 +173,12 @@ function canonicalDenseArray(
 }
 
 function normalizeQuestion(value: string): string {
+  // Preserve diacritics: Spanish "él" (pronoun) and "el" (article) must
+  // remain distinct tokens. NFC composes decomposed accents deterministically.
   return value
-    .normalize("NFKD")
-    .replace(/[\p{Mn}\p{Cf}]/gu, "")
+    .normalize("NFC")
     .toLowerCase()
+    .replace(/[\p{Cf}]/gu, "")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
@@ -274,14 +282,23 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
       );
       if (!documentSha256 || documentSha256 !== sourceRecord.documentSha256) return null;
 
-      evidence.push(Object.freeze({ id: item.id, scope }));
+      evidence.push(Object.freeze({
+        id: item.id,
+        scope,
+        editionId: sourceRecord.editionId,
+        navigationSha256: sourceRecord.navigationSha256,
+        documentSha256: sourceRecord.documentSha256,
+      }));
       evidenceIds.add(item.id);
     }
 
+    const review = record.review as Record<string, unknown>;
     records.push(Object.freeze({
       id: record.id,
       entityId: record.entityId,
       form: record.form,
+      reviewerId: review.reviewerId as string,
+      reviewedAt: review.reviewedAt as string,
       evidence: Object.freeze(evidence),
     }));
     recordIds.add(record.id);
@@ -290,6 +307,93 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
 
   return Object.freeze(records);
 }
+
+
+export type HoidCoreferenceRegistryAuditResult =
+  | Readonly<{
+      status: "valid";
+      recordCount: number;
+      recordIds: readonly string[];
+      entityIds: readonly string[];
+      reviewerIds: readonly string[];
+      registryFingerprint: string;
+      evidenceFingerprint: string;
+    }>
+  | Readonly<{ status: "invalid" }>;
+
+/**
+ * Validates and fingerprints the complete metadata-only production candidate
+ * registry. No source prose, EPUB bytes or provider output is returned.
+ */
+export function auditHoidCoreferenceRegistry(
+  registryInput: unknown,
+): HoidCoreferenceRegistryAuditResult {
+  const records = canonicalRecords(registryInput);
+  if (!records) return Object.freeze({ status: "invalid" });
+
+  const sortedRecords = [...records].sort((left, right) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  );
+  const recordIds = Object.freeze(sortedRecords.map(item => item.id));
+  const entityIds = Object.freeze([...new Set(sortedRecords.map(item => item.entityId))].sort());
+  const reviewerIds = Object.freeze([...new Set(sortedRecords.map(item => item.reviewerId))].sort());
+  const registryFields = sortedRecords.map(item => [
+    item.id,
+    item.entityId,
+    item.form,
+    item.reviewerId,
+    item.reviewedAt,
+    item.evidence.map(source => source.id).sort(),
+  ]);
+  const evidenceFields = sortedRecords.flatMap(item => item.evidence.map(source => [
+    item.id,
+    item.entityId,
+    source.id,
+    source.scope.sourceBookId,
+    source.scope.sourceChapter,
+    source.scope.locatorId,
+    source.editionId,
+    source.navigationSha256,
+    source.documentSha256,
+    source.scope.unlockBookId,
+    source.scope.unlockChapter,
+  ])).sort((left, right) => {
+    const leftId = String(left[2]);
+    const rightId = String(right[2]);
+    return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+  });
+
+  return Object.freeze({
+    status: "valid",
+    recordCount: sortedRecords.length,
+    recordIds,
+    entityIds,
+    reviewerIds,
+    registryFingerprint: sha256Hex(JSON.stringify(["hoid-coreference-registry-v1", registryFields])),
+    evidenceFingerprint: sha256Hex(JSON.stringify(["hoid-coreference-evidence-v1", evidenceFields])),
+  });
+}
+
+
+/**
+ * Promotion must not let an editor approve a pronoun association before every
+ * source-specific unlock threshold in that registry has been reached by the
+ * authoritative reader cursor. Cursor projection uses completed-through
+ * semantics, so a cursor on chapter N only unlocks through chapter N-1.
+ */
+export function areHoidCoreferenceRecordsUnlocked(
+  registryInput: unknown,
+  progressInput: unknown,
+): boolean {
+  const records = canonicalRecords(registryInput);
+  if (!records || records.length === 0) return false;
+  const projection = projectHoidCursorProgressSnapshot(progressInput);
+  if (projection.status !== "ready") return false;
+  return records.every(record =>
+    record.evidence.every(item => evidenceIsUnlocked(item, projection.reading)),
+  );
+}
+
 
 function evidenceIsUnlocked(
   evidence: CanonicalCoreferenceEvidence,
@@ -376,28 +480,20 @@ export function resolveHoidAuthorizedCoreference(
   }
   if (!normalized) return unavailable("invalid-question");
 
+  // An unaccented "el" is the article, not a reviewed masculine pronoun.
+  if (normalized === "y el") return unavailable("ambiguous-reference");
   const matchingCue = PRONOUN_FOLLOW_UPS.flatMap(item =>
     item.cues.filter(cue => cue === normalized).map(() => item.form),
   );
   if (matchingCue.length === 0) return Object.freeze({ status: "not-follow-up" });
   if (matchingCue.length !== 1) return unavailable("ambiguous-reference");
   const form = matchingCue[0];
-  // Spanish "el" (article) and "él" (pronoun) normalize to the same token.
-  // Require the explicit accent for the masculine pronoun rather than guessing.
-  if (
-    form === "él" &&
-    !/(^|[^\\p{L}\\p{N}])él($|[^\\p{L}\\p{N}])/iu.test(questionInput.normalize("NFC"))
-  ) return unavailable("ambiguous-reference");
 
   if (contextInput === null || contextInput === undefined) return unavailable("missing-context");
 
   const progress = progressIdentity(progressInput);
   if (!progress) return unavailable("invalid-progress");
-  const groupContext = resolveHoidConversationFollowUp(
-    "¿Y entre ellos?",
-    contextInput,
-    progress,
-  );
+  const groupContext = validateHoidConversationContext(contextInput, progress);
   if (groupContext.status !== "resolved") {
     if (groupContext.status === "unavailable" && groupContext.reason === "stale-context") {
       return unavailable("stale-context");

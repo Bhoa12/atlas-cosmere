@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createHoidConversationContext,
   resolveHoidConversationFollowUp,
+  validateHoidConversationContext,
 } from "./conversationContext";
 
 const scope = Object.freeze({ revision: 7, fingerprint: "a".repeat(64) });
@@ -114,4 +115,23 @@ describe("Hoid spoiler-safe conversation context", () => {
       null,
     )).toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
+  it("validates an ID-only context independently of a follow-up phrase", () => {
+    const context = createHoidConversationContext(ids, scope);
+    expect(validateHoidConversationContext(context, scope)).toEqual({
+      status: "resolved",
+      entityIds: ids,
+    });
+  });
+
+  it("rejects an ID-only context after the authoritative progress fingerprint changes", () => {
+    const context = createHoidConversationContext(ids, scope);
+    expect(validateHoidConversationContext(context, {
+      revision: 8,
+      fingerprint: "b".repeat(64),
+    })).toEqual({
+      status: "unavailable",
+      reason: "stale-context",
+    });
+  });
+
 });

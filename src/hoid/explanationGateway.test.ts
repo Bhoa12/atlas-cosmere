@@ -285,4 +285,46 @@ describe("Hoid progress-bound explanation gateway", () => {
     expect(throwing!.explain({ progress: f.completed, query: f.query }))
       .toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
+
+  it("rejects a plan whose endpoint IDs differ from the requested entities", () => {
+    const f = fixture();
+    const engine: HoidExplanationEnginePort = {
+      createPlan: (snapshot, query) => {
+        const result = f.engine.createPlan(snapshot, query);
+        if (result.status !== "ready") return result;
+        return { status: "ready", plan: { ...result.plan, fromId: "synthetic.other" } };
+      },
+      renderPlan: f.engine.renderPlan,
+    };
+    const gateway = createHoidExplanationGateway({
+      getCurrentProgress: () => f.completed,
+      engine,
+    });
+    expect(gateway!.explain({ progress: f.completed, query: f.query }))
+      .toEqual({ status: "unavailable", reason: "invalid-plan" });
+  });
+
+  it("rejects a segment whose citations do not exactly cover its evidence IDs", () => {
+    const f = fixture();
+    const engine: HoidExplanationEnginePort = {
+      createPlan: f.engine.createPlan,
+      renderPlan: (plan, snapshot) => {
+        const rendered = f.engine.renderPlan(plan, snapshot);
+        if (rendered.status !== "ready") return rendered;
+        return {
+          ...rendered,
+          segments: rendered.segments.map((segment, index) => index === 0
+            ? { ...segment, sources: segment.sources.slice(0, 1) }
+            : segment),
+        };
+      },
+    };
+    const gateway = createHoidExplanationGateway({
+      getCurrentProgress: () => f.completed,
+      engine,
+    });
+    expect(gateway!.explain({ progress: f.completed, query: f.query }))
+      .toEqual({ status: "unavailable", reason: "invalid-rendered-explanation" });
+  });
+
 });

@@ -195,6 +195,18 @@ function validatePromotionManifest(value: unknown, expectedPlanFingerprint: stri
   const reviewerIds = canonicalSortedStrings(raw.assignmentReviewerIds, REVIEWER_ID_PATTERN, 512);
   if (!assignmentIds || !reviewerIds || assignmentIds.length !== raw.assignmentCount) return false;
 
+  const expectedPlanFingerprint = sha256Hex(JSON.stringify([
+    "hoid-topic-assignment-promotion-v1",
+    raw.assignmentCount,
+    assignmentIds,
+    reviewerIds,
+    raw.assignmentFingerprint,
+    raw.evidenceFingerprint,
+    raw.progressRevision,
+    raw.progressFingerprint,
+  ]));
+  if (expectedPlanFingerprint !== raw.planFingerprint) return false;
+
   const expectedFingerprint = sha256Hex(JSON.stringify([
     "hoid-topic-assignment-promotion-manifest-v1",
     raw.assignmentCount,
@@ -287,7 +299,7 @@ export function createHoidGitHubRestTopicAssignmentMergeApiPort(
 
       const url = API_ORIGIN + "/repos/" +
         encodeURIComponent(repository.owner) + "/" +
-        encodeURIComponent(repository.repo) + "/pulls/" + pullRequestNumber;
+        encodeURIComponent(repository.repo) + "/pulls/" + (pullRequestNumber as number);
       return getJson(url);
     },
 

@@ -8,7 +8,16 @@ import {
 } from "./githubTopicAssignmentRestClient";
 
 const TOKEN = "github_pat_read_only_test_token_1234567890";
-const PLAN_FINGERPRINT = "d".repeat(64);
+const PLAN_FINGERPRINT = sha256Hex(JSON.stringify([
+  "hoid-topic-assignment-promotion-v1",
+  1,
+  ["assignment.alpha"],
+  ["reviewer-1"],
+  "a".repeat(64),
+  "b".repeat(64),
+  8,
+  "c".repeat(64),
+]));
 
 function manifest(overrides: Record<string, unknown> = {}) {
   const base = {
@@ -20,11 +29,21 @@ function manifest(overrides: Record<string, unknown> = {}) {
     evidenceFingerprint: "b".repeat(64),
     progressRevision: 8,
     progressFingerprint: "c".repeat(64),
-    planFingerprint: PLAN_FINGERPRINT,
     ...overrides,
   };
+  const planFingerprint = sha256Hex(JSON.stringify([
+    "hoid-topic-assignment-promotion-v1",
+    base.assignmentCount,
+    base.assignmentIds,
+    base.assignmentReviewerIds,
+    base.assignmentFingerprint,
+    base.evidenceFingerprint,
+    base.progressRevision,
+    base.progressFingerprint,
+  ]));
   return {
     ...base,
+    planFingerprint,
     manifestFingerprint: sha256Hex(JSON.stringify([
       "hoid-topic-assignment-promotion-manifest-v1",
       base.assignmentCount,
@@ -34,7 +53,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
       base.evidenceFingerprint,
       base.progressRevision,
       base.progressFingerprint,
-      base.planFingerprint,
+      planFingerprint,
     ])),
   };
 }
@@ -119,6 +138,25 @@ describe("read-only GitHub topic-assignment REST client", () => {
   it("rejects a manifest with a wrong fingerprint or non-canonical registry arrays", async () => {
     const invalid = [
       { ...manifest(), manifestFingerprint: "0".repeat(64) },
+      (() => {
+        const value = manifest();
+        const planFingerprint = "0".repeat(64);
+        return {
+          ...value,
+          planFingerprint,
+          manifestFingerprint: sha256Hex(JSON.stringify([
+            "hoid-topic-assignment-promotion-manifest-v1",
+            value.assignmentCount,
+            value.assignmentIds,
+            value.assignmentReviewerIds,
+            value.assignmentFingerprint,
+            value.evidenceFingerprint,
+            value.progressRevision,
+            value.progressFingerprint,
+            planFingerprint,
+          ])),
+        };
+      })(),
       manifest({ assignmentIds: ["assignment.zeta", "assignment.alpha"], assignmentCount: 2 }),
       manifest({ assignmentReviewerIds: ["reviewer-2", "reviewer-1"] }),
       manifest({ unexpected: true }),

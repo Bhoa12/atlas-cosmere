@@ -3,6 +3,7 @@ import {
   type HoidTopicAssignmentMergeReviewPort,
   type HoidTopicAssignmentMergedSnapshotRequest,
 } from "./topicAssignmentActivation";
+import { HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH } from "./topicAssignmentPromotionAuthority";
 
 export type HoidGitHubTopicAssignmentMergeApiPort = Readonly<{
   /** Return the raw GitHub REST pull-request object for the exact repository and PR. */
@@ -75,7 +76,7 @@ function canonicalRequest(value: unknown): HoidTopicAssignmentMergedSnapshotRequ
       typeof record.promotionPlanFingerprint !== "string" ||
       !FINGERPRINT_PATTERN.test(record.promotionPlanFingerprint) ||
       typeof record.promotionManifestPath !== "string" ||
-      !record.promotionManifestPath.startsWith("docs/hoid/") ||
+      record.promotionManifestPath !== HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH ||
       record.targetBranch !== HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH
     ) return null;
     return Object.freeze({
@@ -165,7 +166,9 @@ export function createHoidGitHubTopicAssignmentMergeReviewPort(
       const mergeCommitSha = ownDataValue(rawPullRequest, "merge_commit_sha");
       const base = ownDataValue(rawPullRequest, "base");
       const head = ownDataValue(rawPullRequest, "head");
+      const pullRequestNumber = ownDataValue(rawPullRequest, "number");
       const baseRef = ownDataValue(base, "ref");
+      const baseRepository = ownDataValue(ownDataValue(base, "repo"), "full_name");
       const headRef = ownDataValue(head, "ref");
       const headSha = ownDataValue(head, "sha");
       const manifestCommitSha = ownDataValue(rawManifest, "commitSha");
@@ -175,7 +178,9 @@ export function createHoidGitHubTopicAssignmentMergeReviewPort(
         state !== "closed" ||
         draft !== false ||
         merged !== true ||
+        pullRequestNumber !== request.pullRequestNumber ||
         baseRef !== request.expectedBaseRef ||
+        baseRepository !== request.repositoryFullName ||
         headRef !== request.expectedHeadRef ||
         headSha !== request.expectedHeadSha ||
         typeof mergeCommitSha !== "string" ||

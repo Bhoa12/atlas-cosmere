@@ -242,6 +242,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [assignmentRecord],
       approvedClaims(pairs),
+      approvedKnowledge(pairs),
     )).toEqual({ status: "invalid", reason: "invalid-answers" });
 
     const mismatched = { ...assignmentRecord, claimTextSha256: sha256Hex("Otro texto.") };

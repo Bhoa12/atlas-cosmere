@@ -82,6 +82,7 @@ export const HoidScreen: React.FC = () => {
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
   const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
   const [topicRecommendationFingerprint, setTopicRecommendationFingerprint] = useState<string | null>(null);
+  const [topicRecommendationSelectionKey, setTopicRecommendationSelectionKey] = useState<string | null>(null);
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
 
   const liveProgress = progressReaderRef.current();
@@ -103,6 +104,7 @@ export const HoidScreen: React.FC = () => {
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
     setTopicRecommendationMessage('');
   }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado]);
 
@@ -366,6 +368,7 @@ export const HoidScreen: React.FC = () => {
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
     setTopicRecommendationMessage('');
   };
 
@@ -375,6 +378,7 @@ export const HoidScreen: React.FC = () => {
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
     setTopicRecommendationMessage('');
 
     if (selectedTopicIds.length === 0) {
@@ -413,16 +417,19 @@ export const HoidScreen: React.FC = () => {
         setTopicRecommendations(result.items);
         setTopicRecommendationRevision(result.progressRevision);
         setTopicRecommendationFingerprint(result.progressFingerprint);
+        setTopicRecommendationSelectionKey(JSON.stringify(selectedTopicIds));
         setTopicRecommendationMessage(
           result.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'
             : 'Estas recomendaciones utilizan únicamente asociaciones editoriales aprobadas y evidencias ya desbloqueadas.',
         );
       } else if (result.status === 'none') {
+        setTopicRecommendationSelectionKey(null);
         setTopicRecommendationMessage(
           'Todavía no hay asociaciones temáticas aprobadas y seguras para estos intereses. No inferiré recomendaciones por semejanza.',
         );
       } else {
+        setTopicRecommendationSelectionKey(null);
         setTopicRecommendationMessage(
           result.reason === 'progress-changed' || result.reason === 'context-stale'
             ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
@@ -433,6 +440,7 @@ export const HoidScreen: React.FC = () => {
       setTopicRecommendations([]);
       setTopicRecommendationRevision(null);
       setTopicRecommendationFingerprint(null);
+      setTopicRecommendationSelectionKey(null);
       setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
     } finally {
       setCargandoRecomendaciones(false);
@@ -451,7 +459,8 @@ export const HoidScreen: React.FC = () => {
     topicRecommendationFingerprint !== null &&
     liveProgressScope !== null &&
     topicRecommendationRevision === liveProgressScope.revision &&
-    topicRecommendationFingerprint === liveProgressScope.fingerprint;
+    topicRecommendationFingerprint === liveProgressScope.fingerprint &&
+    topicRecommendationSelectionKey === JSON.stringify(selectedTopicIds);
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -519,9 +528,10 @@ export const HoidScreen: React.FC = () => {
               <TouchableOpacity
                 key={topic.id}
                 accessibilityRole="button"
-                accessibilityState={{ selected }}
+                accessibilityState={{ selected, disabled: cargandoRecomendaciones }}
+                disabled={cargandoRecomendaciones}
                 onPress={() => toggleTopicInterest(topic.id)}
-                style={[styles.topicChip, selected && styles.topicChipSelected]}
+                style={[styles.topicChip, selected && styles.topicChipSelected, cargandoRecomendaciones && styles.disabledButton]}
               >
                 <Text style={[styles.topicChipText, selected && styles.topicChipTextSelected]}>
                   {topic.label}

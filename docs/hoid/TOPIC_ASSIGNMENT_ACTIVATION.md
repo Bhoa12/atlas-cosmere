@@ -56,7 +56,7 @@ Possible outcomes:
 - invalid: the receipt is malformed, its fingerprint is wrong, or it no longer matches the assignment/evidence registry;
 - active: the receipt and exact registry match.
 
-composeProductionHoidTopicRecommendations() and HoidTopicInterestRecommendationGateway now consume only the active result. A non-empty but unactivated registry is not treated as a recommendation source. The gateway returns assignments-not-activated and does not invoke the local claim-answer port.
+The lower-level composeHoidTopicRecommendations() defaults to an empty assignment list and requires callers to supply an explicit validated set; it cannot silently fall back to the raw production registry. composeProductionHoidTopicRecommendations() and HoidTopicInterestRecommendationGateway now consume only the active result. A non-empty but unactivated registry is not treated as a recommendation source. The gateway returns assignments-not-activated and does not invoke the local claim-answer port.
 
 The production constant HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT is stored in src/hoid/topicAssignmentActivationReceipt.ts and is currently null. It must be updated only by a protected maintainer-controlled source change after the real post-merge verification. HOID_APPROVED_TOPIC_ASSIGNMENTS remains empty. Production recommendations therefore remain inactive.
 

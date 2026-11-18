@@ -17,7 +17,7 @@ The context does not store names, aliases, questions, claims, summaries, evidenc
 
 ## Resolution policy
 
-Only complete, exact, normalized cue phrases are accepted. The supported categories are character, organization, place, object, concept, magic and event. “Sistema de magia” maps only to the canonical `magic` kind. Generic phrases such as “¿Y ese sistema?” are ambiguous and abstain.
+Only complete, exact, normalized cue phrases are accepted. The supported categories are character, organization, place, object, concept, magic, event and phenomenon. The exact cue “¿Y ese fenómeno?” maps only to the `phenomenon` kind; it does not infer an event or a generic concept. “Sistema de magia” maps only to the canonical `magic` kind. Generic phrases such as “¿Y ese sistema?” are ambiguous and abstain.
 
 A category follow-up resolves only when exactly one entity of that kind exists in the prior context. Zero candidates are unavailable; multiple candidates are ambiguous. The resolver never chooses by recency, position or provider ranking.
 

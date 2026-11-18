@@ -50,6 +50,7 @@ const ENTITY_KINDS = new Set<HoidKnowledgeKind>([
   "character",
   "place",
   "event",
+  "phenomenon",
   "concept",
   "magic",
   "organization",

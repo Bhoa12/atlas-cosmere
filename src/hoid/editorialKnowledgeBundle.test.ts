@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { HOID_EDITORIAL_CLAIM_DRAFTS } from "./editorialClaimDrafts";
-import { createHoidEditorialEntityDraft, HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
+import { HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
 import { createHoidEditorialRelationshipDraft, HOID_EDITORIAL_RELATIONSHIP_DRAFTS } from "./editorialRelationshipDrafts";
 import {
   buildHoidEditorialKnowledgeBundle,
@@ -19,28 +19,29 @@ describe("Hoid complete editorial knowledge bundle", () => {
   it("creates one deterministic metadata-only manifest for every staging category", () => {
     const first = buildHoidEditorialKnowledgeBundle(sourceInput);
     const second = buildHoidEditorialKnowledgeBundle(sourceInput);
-
-    expect(first.status).toBe("blocked");
-    expect(second.status).toBe("blocked");
-    if (first.status !== "blocked" || second.status !== "blocked") return;
-
+    expect(first.status).toBe("ready-for-review");
+    expect(second.status).toBe("ready-for-review");
+    if (first.status !== "ready-for-review" || second.status !== "ready-for-review") return;
     expect(first.manifest).toEqual(second.manifest);
-    expect(first.manifest.records).toHaveLength(39);
-    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(23);
+    expect(first.manifest.records).toHaveLength(44);
+    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(26);
     expect(first.manifest.records.filter(item => item.kind === "atomic-claim")).toHaveLength(1);
-    expect(first.manifest.records.filter(item => item.kind === "entity")).toHaveLength(12);
+    expect(first.manifest.records.filter(item => item.kind === "entity")).toHaveLength(14);
     expect(first.manifest.records.filter(item => item.kind === "relationship")).toHaveLength(3);
-    expect(first.manifest.sources).toHaveLength(23);
+    expect(first.manifest.sources).toHaveLength(26);
+    expect(first.manifest.blockers).toEqual([]);
     expect(first.manifest.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(first.promotionAllowed).toBe(false);
     expect(first.productionWritePerformed).toBe(false);
   });
 
-  it("blocks an atomic claim whose subject has no identity dossier", () => {
-    const result = buildHoidEditorialKnowledgeBundle(sourceInput);
+  it("blocks an atomic claim when its source-backed subject dossier is removed", () => {
+    const result = buildHoidEditorialKnowledgeBundle({
+      ...sourceInput,
+      entities: sourceInput.entities.filter(item => item.id !== "tfe.vin"),
+    });
     expect(result.status).toBe("blocked");
     if (result.status !== "blocked") return;
-
     expect(result.blockers).toContainEqual({
       code: "claim-subject-missing",
       recordId: "tfe.vin.ability.emotional-allomancy",
@@ -50,33 +51,20 @@ describe("Hoid complete editorial knowledge bundle", () => {
 
   it("does not block relationships whose participants have matching identity dossiers", () => {
     const result = buildHoidEditorialKnowledgeBundle(sourceInput);
-    expect(result.status).toBe("blocked");
-    if (result.status !== "blocked") return;
-
-    expect(result.blockers.some(item => item.code.startsWith("relationship-"))).toBe(false);
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
+    expect(result.manifest.blockers).toEqual([]);
   });
 
-  it("becomes ready for editorial review when the missing claim subject has an exact identity dossier", () => {
-    const vinSummary = HOID_EDITORIAL_DRAFTS.find(draft => draft.id === "tfe.chapter-001.vin");
-    expect(vinSummary).toBeDefined();
-    if (!vinSummary) return;
-
-    const dossier = createHoidEditorialEntityDraft({
-      id: "tfe.vin",
-      kind: "character",
-      identity: { status: "resolved", canonicalLabel: "Vin" },
-      evidence: [{
-        source: vinSummary.evidenceSource,
-        unlock: vinSummary.evidenceUnlock,
-        sourceIntegrity: vinSummary.sourceIntegrity,
-      }],
-    });
-    expect(dossier.status).toBe("valid");
-    if (dossier.status !== "valid") return;
-
+  it("uses the exact previously verified TFE identity dossier to close the atomic-claim reference", () => {
+    const vinDossier = HOID_EDITORIAL_ENTITY_DRAFTS.find(item => item.id === "tfe.vin");
+    expect(vinDossier).toBeDefined();
+    if (!vinDossier) return;
+    expect(vinDossier.evidence[0].source).toMatchObject({ bookId: "tfe", chapter: 1 });
+    const withoutVin = sourceInput.entities.filter(item => item.id !== "tfe.vin");
     const result = buildHoidEditorialKnowledgeBundle({
       ...sourceInput,
-      entities: [...sourceInput.entities, dossier.draft],
+      entities: [...withoutVin, vinDossier],
     });
     expect(result.status).toBe("ready-for-review");
     if (result.status !== "ready-for-review") return;
@@ -99,7 +87,6 @@ describe("Hoid complete editorial knowledge bundle", () => {
     });
     expect(altered.status).toBe("valid");
     if (altered.status !== "valid") return;
-
     const result = buildHoidEditorialKnowledgeBundle({
       ...sourceInput,
       relationships: [altered.draft, ...sourceInput.relationships.slice(1)],
@@ -115,20 +102,18 @@ describe("Hoid complete editorial knowledge bundle", () => {
 
   it("revalidates the manifest against the exact four source batches", () => {
     const result = buildHoidEditorialKnowledgeBundle(sourceInput);
-    expect(result.status).toBe("blocked");
-    if (result.status !== "blocked") return;
-
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
     expect(validateHoidEditorialKnowledgeBundleManifest(result.manifest, sourceInput)).toMatchObject({
       status: "valid",
-      bundleStatus: "blocked",
+      bundleStatus: "ready-for-review",
     });
   });
 
   it("rejects a changed record digest even when the old bundle fingerprint is retained", () => {
     const result = buildHoidEditorialKnowledgeBundle(sourceInput);
-    expect(result.status).toBe("blocked");
-    if (result.status !== "blocked") return;
-
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
     const tampered = {
       ...result.manifest,
       records: result.manifest.records.map((record, index) =>
@@ -143,13 +128,9 @@ describe("Hoid complete editorial knowledge bundle", () => {
 
   it("rejects a manifest paired with a different source inventory", () => {
     const result = buildHoidEditorialKnowledgeBundle(sourceInput);
-    expect(result.status).toBe("blocked");
-    if (result.status !== "blocked") return;
-
-    const alteredInput = Object.freeze({
-      ...sourceInput,
-      relationships: Object.freeze([]),
-    });
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
+    const alteredInput = Object.freeze({ ...sourceInput, relationships: Object.freeze([]) });
     expect(validateHoidEditorialKnowledgeBundleManifest(result.manifest, alteredInput)).toEqual({
       status: "invalid",
       reason: "bundle-fingerprint-mismatch",
@@ -158,16 +139,10 @@ describe("Hoid complete editorial knowledge bundle", () => {
 
   it("rejects malformed and sparse input arrays before domain validation", () => {
     const sparse = new Array(1);
+    expect(buildHoidEditorialKnowledgeBundle({ ...sourceInput, summaries: sparse }))
+      .toMatchObject({ status: "invalid", reason: "invalid-input" });
     expect(buildHoidEditorialKnowledgeBundle({
-      ...sourceInput,
-      summaries: sparse,
-    })).toMatchObject({ status: "invalid", reason: "invalid-input" });
-
-    expect(buildHoidEditorialKnowledgeBundle({
-      summaries: [],
-      claims: [],
-      entities: [],
-      relationships: [],
+      summaries: [], claims: [], entities: [], relationships: [],
     })).toMatchObject({ status: "invalid", reason: "invalid-input" });
   });
 
@@ -176,29 +151,23 @@ describe("Hoid complete editorial knowledge bundle", () => {
     const hostile = Object.create(null) as Record<string, unknown>;
     Object.defineProperty(hostile, "summaries", {
       enumerable: true,
-      get() {
-        getterCalled = true;
-        return HOID_EDITORIAL_DRAFTS;
-      },
+      get() { getterCalled = true; return HOID_EDITORIAL_DRAFTS; },
     });
     Object.defineProperties(hostile, {
       claims: { enumerable: true, value: HOID_EDITORIAL_CLAIM_DRAFTS },
       entities: { enumerable: true, value: HOID_EDITORIAL_ENTITY_DRAFTS },
       relationships: { enumerable: true, value: HOID_EDITORIAL_RELATIONSHIP_DRAFTS },
     });
-
     expect(buildHoidEditorialKnowledgeBundle(hostile)).toMatchObject({
-      status: "invalid",
-      reason: "invalid-input",
+      status: "invalid", reason: "invalid-input",
     });
     expect(getterCalled).toBe(false);
   });
 
   it("keeps narrative prose out of the bundle manifest", () => {
     const result = buildHoidEditorialKnowledgeBundle(sourceInput);
-    expect(result.status).toBe("blocked");
-    if (result.status !== "blocked") return;
-
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
     const serialized = JSON.stringify(result.manifest);
     expect(serialized).not.toContain("statement");
     expect(serialized).not.toContain("summarySha256");
@@ -208,15 +177,10 @@ describe("Hoid complete editorial knowledge bundle", () => {
 
   it("rejects a manifest with unexpected fields", () => {
     const result = buildHoidEditorialKnowledgeBundle(sourceInput);
-    expect(result.status).toBe("blocked");
-    if (result.status !== "blocked") return;
-
+    expect(result.status).toBe("ready-for-review");
+    if (result.status !== "ready-for-review") return;
     expect(validateHoidEditorialKnowledgeBundleManifest({
-      ...result.manifest,
-      promotionAllowed: true,
-    }, sourceInput)).toEqual({
-      status: "invalid",
-      reason: "invalid-manifest",
-    });
+      ...result.manifest, promotionAllowed: true,
+    }, sourceInput)).toEqual({ status: "invalid", reason: "invalid-manifest" });
   });
 });

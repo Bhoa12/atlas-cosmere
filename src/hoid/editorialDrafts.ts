@@ -844,9 +844,51 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-003.vin-kelsier",
+    kind: "event",
+    aliases: Object.freeze(["encuentro de Vin con Kelsier"]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 3 }),
+    evidenceSource: Object.freeze({ bookId: "tfe", chapter: 3, locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/003.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 4 }),
+    sourceIntegrity: Object.freeze({ editionId: "cosmere-epub-merged-v1", navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee", documentSha256: "bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7" }),
+    summaryIntegrity: Object.freeze({ sha256: "99b6fd64ff0ed0397a19913b1eb69067584586ad291d92bef9db55ca66776ddb" }),
+    summary: "Tras advertir que el Ministerio puede actuar contra la banda, Vin decide marcharse y pide a Ulef que la acompañe. La petición llega a oídos de Camon, que interpreta la huida como una traición y la golpea cuando intenta escapar. Un noble desconocido irrumpe en la guarida y, junto a Dockson, neutraliza la amenaza y explica que la banda estaba a punto de ser descubierta por el Ministerio. El recién llegado se presenta como Kelsier y reconoce que la capacidad que Vin llama Suerte es alomancia. Más tarde, la somete a una prueba con metales: Vin demuestra que puede afectar las emociones en más de una forma y descubre que su potencial supera al de una brumosa corriente. Kelsier le explica que esa combinación la convierte en una nacida de la bruma y le propone comprender el alcance de sus habilidades.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-008.lift-follows-darkness",
+    kind: "event",
+    aliases: Object.freeze(["seguimiento de Oscuridad en la ciudad"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 8 }),
+    evidenceSource: Object.freeze({ bookId: "edgedancer", chapter: 8, locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/008.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 9 }),
+    sourceIntegrity: Object.freeze({ editionId: "edgedancer-epub-v1", navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517", documentSha256: "3b6e7ed84bcd4b08908f0f022edfc127b2dca223d834dc8841359fcb3ecbe095" }),
+    summaryIntegrity: Object.freeze({ sha256: "860d99d35585b70113785cd3bdfefa44061029cf936bbf67f391133dc7afe399" }),
+    summary: "Lift sigue a Oscuridad por la ciudad y presencia cómo detiene a una joven ladrona en el mercado. Cuando la chica, aterrorizada, intenta defenderse con una navaja, Oscuridad la mata y después formaliza el incidente como una ejecución conforme a la ley. Lift intenta devolverle la vida con su maravilla, pero Wyndle le explica que la herida de una hoja esquirlada y el tiempo transcurrido impiden salvarla. Indignada, Lift continúa siguiendo a Oscuridad hasta su alojamiento; usa su poder para ocultarse, entra por una ventana y termina encontrando y comiéndose su desayuno. Wyndle teme que se estén acercando demasiado a alguien peligroso, pero Lift decide que aún deben averiguar qué está haciendo.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-008.rysn-dead-santhid",
+    kind: "event",
+    aliases: Object.freeze(["hallazgo del santhid muerto"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 8 }),
+    evidenceSource: Object.freeze({ bookId: "dawnshard", chapter: 8, locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/8.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 9 }),
+    sourceIntegrity: Object.freeze({ editionId: "dawnshard-epub-v1", navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075", documentSha256: "04cf11bf2784a7cc8b01cc226cb403744860f72cf8715bc8c2724f1e2c860a25" }),
+    summaryIntegrity: Object.freeze({ sha256: "22e54d99273da4757ffa16c70408ecb3c0cce54f1b9ddf5d7dda8279f84be1a5" }),
+    summary: "Rysn y la tripulación del Vela Errante descubren el cadáver de un santhid flotando junto al barco. La superstición de los marineros amenaza con obligarlos a regresar, y Rysn sopesa si el hallazgo es un accidente o parte de la intimidación que rodea la misión. En lugar de ceder, reformula el hallazgo como una señal favorable y propone remolcar el cuerpo para darle un funeral digno, conservando el caparazón como testimonio. La capitana Dlrwan respalda la decisión y la tripulación empieza a preparar los garfios. Cuando intentan sujetar el cadáver, este se deshace de forma inesperada en una multitud de pequeños crustáceos, dejando a Rysn sin la explicación que esperaba.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 ]);
 
-// Chapter-seven summaries remain staging-only and require chapter eight completion.
+// Chapter-eight summaries remain staging-only and require chapter nine completion.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

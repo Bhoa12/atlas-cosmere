@@ -958,6 +958,8 @@ const RAW_ENTITY_DRAFTS: readonly unknown[] = Object.freeze([
   entityInput("dawnshard.rysn", "character", "dawnshard", 4, "Rysn"),
   entityInput("dawnshard.nikli", "character", "dawnshard", 4, "Nikli"),
   entityInput("dawnshard.dlrwan", "character", "dawnshard", 4, "Dlrwan"),
+  entityInput("tfe.kelsier", "character", "tfe", 2, "Kelsier"),
+  entityInput("tfe.vin", "character", "tfe", 1, "Vin"),
 ]);
 
 

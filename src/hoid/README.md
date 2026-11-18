@@ -353,3 +353,16 @@ The manifest can be rebuilt and checked against the exact four source batches. A
 The sparse chapter-body allowlist now includes chapter seven for `twok`, `edgedancer` and `dawnshard`. Their exact XHTML bytes were inspected from the currently available private EPUB editions, hashed independently and checked against the edition-bound navigation/NCX and spine. Three original Spanish summaries are staged with chapter-eight unlock thresholds; they remain pending review.
 
 The complete editorial bundle now inventories 23 summaries, one atomic claim, 12 identity dossiers and three relationship claims across 23 distinct edition-bound source documents. It remains blocked because the atomic claim subject `tfe.vin` has no matching identity dossier. The new bundle manifest stores only typed record IDs, integrity digests, source metadata, unlock thresholds and cross-reference blockers. It does not include summary prose or source passages, and it cannot approve or write production knowledge. See `docs/hoid/ROSHAR_CHAPTER_SEVEN_INGESTION.md` and `docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md`.
+
+
+## Run 121 — TFE identity closure and chapter-eight ingestion
+
+- Re-materialized the current Library copy of `cosmere.epub`. Its `EPUB/nav.xhtml` digest still matches the registered merged-edition digest. The existing chapter-one and chapter-two document digests were rechecked against the current file; chapter three was newly inspected and its exact NCX href, OPF manifest item and spine entry were verified before hashing.
+- The chapter-three TFE document digest is `bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7`. A new original Spanish summary is staged with chapter-four completion as its unlock threshold.
+- The current Library copies of Danzante del Filo and Esquirla del amanecer were inspected at chapter eight. Their exact TOC hrefs, OPF manifest entries and spine entries were checked before hashing. Two original Spanish summaries are staged with chapter-nine completion thresholds.
+- Two separate identity dossiers close the `tfe.vin` atomic-claim subject reference and record Kelsier's source-backed identity. They reuse the previously verified TFE chapter-one and chapter-two documents respectively. They do not add aliases or claim first appearance; both remain pending review.
+- The complete metadata-only editorial bundle now contains 26 summaries, one atomic claim, 14 entity dossiers and three relationship claims across 26 distinct source documents. Its cross-reference status is `ready-for-review`; this is not editorial approval or production authorization.
+- The separate promotion planner remains blocked by the unresolved Edgedancer participant and missing independent review receipts. Production registries, aliases and graph edges remain unchanged.
+- The current Library listing did not expose the El camino de los reyes EPUB, so chapter eight of `twok` was not inspected in this run. No claim is made about that passage.
+- No EPUB bytes, XHTML bodies or protected passages were committed. Only metadata, exact locators, SHA-256 digests and original summaries are stored.
+- See `docs/hoid/RUN121_SOURCE_INGESTION.md`, `docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md` and `docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md`.

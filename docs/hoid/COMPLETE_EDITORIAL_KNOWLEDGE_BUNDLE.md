@@ -1,26 +1,24 @@
 # Hoid complete editorial knowledge bundle
 
-Run 120 introduces a metadata-only bundle manifest that binds the four editorial staging categories into one deterministic inventory:
+Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate identity dossier backed by the previously verified chapter-one source document. It also adds three new chapter summaries and their individually verified source documents.
 
-- original chapter summaries;
-- atomic claims;
-- entity identity dossiers;
-- relationship claims.
+## Current staging inventory
 
-## Validation boundary
+The deterministic metadata-only manifest now contains:
 
-The builder re-runs the domain validators for all four categories. A record is included only when its existing edition-bound source locator, navigation digest, chapter-document digest, original-text digest and pending-review state validate.
+- 26 original chapter summaries;
+- 1 atomic claim;
+- 14 entity identity dossiers;
+- 3 relationship claims;
+- 26 distinct edition-bound source documents.
 
-The manifest contains only:
+All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
-- category and stable record ID;
-- a SHA-256 digest for each complete editorial record;
-- exact source metadata (work, chapter, opaque locator, edition, navigation digest, document digest);
-- the source's independent unlock work and chapter;
-- deterministic cross-reference blockers;
-- one SHA-256 fingerprint for the complete manifest.
+The manifest status is now `ready-for-review`, with no cross-reference blockers. This status means only that the inventory and its identity references are internally complete. It does not mean any record has been approved.
 
-It does not contain summary prose, claim statements, EPUB passages, XHTML bodies, extracted text or images.
+## Manifest contents and exclusions
+
+The manifest contains only category and stable record IDs, per-record SHA-256 digests, exact edition-bound source metadata, independent unlock thresholds, deterministic cross-reference blockers and one fingerprint for the complete manifest. It does not contain summary prose, claim statements, EPUB passages, XHTML bodies, extracted text or images.
 
 ## Cross-reference rules
 
@@ -29,18 +27,15 @@ It does not contain summary prose, claim statements, EPUB passages, XHTML bodies
 - A missing or mismatched identity blocks the bundle. It is never repaired by fuzzy matching or inferred from a summary title.
 - Source records are deduplicated by their complete edition-bound evidence scope, including unlock threshold.
 
-The current staging set is expected to remain blocked while the TFE atomic claim subject `tfe.vin` lacks a matching identity dossier. The existing Roshar relationship participants have matching identity dossiers.
+The TFE atomic claim subject now resolves to the `tfe.vin` dossier. The Roshar relationship participants continue to resolve to matching identity dossiers.
 
 ## Review and production
 
-`ready-for-review` means only that the inventory's cross-references are internally complete. It does not mean the records are approved, the source-control reviews are authenticated, or the bundle can be promoted.
+Every record remains pending editorial review. The bundle builder always returns `promotionAllowed: false` and `productionWritePerformed: false`.
 
-Every record remains pending editorial review. The result always contains:
+The entity/relationship promotion planner remains separately blocked by the unresolved Edgedancer participant and the absence of independent review receipts. The bundle's `ready-for-review` status must never be interpreted as approval or permission to write production knowledge.
 
-- `promotionAllowed: false`;
-- `productionWritePerformed: false`.
-
-This module has no production registry import, database write, GitHub SDK, network access or provider dependency. The protected promotion authority remains a separate gate and still requires a trusted source-control adapter, an authoritative live-progress adapter and a maintainer-controlled change.
+The protected promotion authority still requires a trusted source-control adapter, an authoritative live-progress adapter and a maintainer-controlled change. No production registry, alias registry or graph edge is modified by this module.
 
 ## Revalidation
 
@@ -48,4 +43,4 @@ This module has no production registry import, database write, GitHub SDK, netwo
 
 ## Tests
 
-`editorialKnowledgeBundle.test.ts` covers deterministic inventory, exact category counts, missing claim subjects, relationship participant links, manifest tampering, changed source inventories, sparse arrays, accessor-backed inputs, prose exclusion and unexpected fields.
+`editorialKnowledgeBundle.test.ts` covers deterministic inventory, exact category counts, missing claim subjects, relationship participant links, manifest tampering, changed source inventories, sparse/accessor-backed input, prose exclusion and unexpected fields.

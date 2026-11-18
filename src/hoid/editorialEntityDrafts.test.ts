@@ -87,9 +87,9 @@ describe("Hoid editorial entity identity staging", () => {
     expect(getHoidEditorialEntityDraftDiagnostics().filter(item => item.status === "invalid")).toEqual([]);
   });
 
-  it("stages twelve identity dossiers without populating production knowledge or aliases", () => {
+  it("stages fourteen identity dossiers without populating production knowledge or aliases", () => {
     expect(getHoidEditorialEntityDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_ENTITY_DRAFTS).toHaveLength(12);
+    expect(HOID_EDITORIAL_ENTITY_DRAFTS).toHaveLength(14);
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
     expect(HOID_EDITORIAL_ENTITY_DRAFTS.map(item => item.id)).toEqual([
       "dawnshard.dlrwan",
@@ -101,12 +101,29 @@ describe("Hoid editorial entity identity staging", () => {
       "edgedancer.lift",
       "edgedancer.unnamed-girl",
       "edgedancer.wyndle",
+      "tfe.kelsier",
+      "tfe.vin",
       "twok.jasnah",
       "twok.kaladin",
       "twok.shallan",
     ]);
     expect(HOID_EDITORIAL_ENTITY_DRAFTS.every(item => item.review.status === "pending-review")).toBe(true);
     expect(HOID_EDITORIAL_ENTITY_DRAFTS.every(item => !("aliases" in item))).toBe(true);
+  });
+
+  it("uses previously verified TFE chapter-one and chapter-two documents for Vin and Kelsier identities", () => {
+    const vin = HOID_EDITORIAL_ENTITY_DRAFTS.find(item => item.id === "tfe.vin");
+    const kelsier = HOID_EDITORIAL_ENTITY_DRAFTS.find(item => item.id === "tfe.kelsier");
+    expect(vin?.identity).toEqual({ status: "resolved", canonicalLabel: "Vin" });
+    expect(kelsier?.identity).toEqual({ status: "resolved", canonicalLabel: "Kelsier" });
+    expect(vin?.evidence[0].source).toMatchObject({ bookId: "tfe", chapter: 1 });
+    expect(vin?.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 2 });
+    expect(kelsier?.evidence[0].source).toMatchObject({ bookId: "tfe", chapter: 2 });
+    expect(kelsier?.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 3 });
+    expect(vin && "aliases" in vin).toBe(false);
+    expect(kelsier && "aliases" in kelsier).toBe(false);
+    expect(vin?.review.status).toBe("pending-review");
+    expect(kelsier?.review.status).toBe("pending-review");
   });
 
   it("keeps the unnamed Edgedancer participant explicitly unresolved", () => {

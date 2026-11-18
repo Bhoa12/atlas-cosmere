@@ -50,6 +50,7 @@ on:
       - "docs/hoid/PROTECTED_SOURCE_CONTROL_REVIEW_AUTHORITY.md"
       - "docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md"
       - "docs/hoid/ROSHAR_CHAPTER_SEVEN_INGESTION.md"
+      - "docs/hoid/RUN121_SOURCE_INGESTION.md"
       - ".github/workflows/hoid-editorial-atomic-claims.yml"
   pull_request:
     paths:
@@ -98,6 +99,7 @@ on:
       - "docs/hoid/PROTECTED_SOURCE_CONTROL_REVIEW_AUTHORITY.md"
       - "docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md"
       - "docs/hoid/ROSHAR_CHAPTER_SEVEN_INGESTION.md"
+      - "docs/hoid/RUN121_SOURCE_INGESTION.md"
       - ".github/workflows/hoid-editorial-atomic-claims.yml"
 
 permissions:

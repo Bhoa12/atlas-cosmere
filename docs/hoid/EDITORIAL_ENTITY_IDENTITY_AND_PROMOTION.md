@@ -23,12 +23,12 @@ An unresolved identity carries only the closed issue code identity-not-establish
 
 ## Current staging inventory
 
-Twelve dossiers are staged from inspected chapter-three and chapter-four documents:
+Fourteen dossiers are staged:
 
-- Eleven candidate named identities.
+- Thirteen resolved candidate identities, including Vin (using the already verified TFE chapter-one document) and Kelsier (using the already verified TFE chapter-two document).
 - One deliberately unresolved Edgedancer participant because the inspected source does not establish a name.
 
-All twelve remain pending review. The source document and unlock threshold are validated independently. The identity evidence chapter is not asserted to be the character's first appearance.
+All fourteen remain pending review. The source document and unlock threshold are validated independently. The identity evidence chapter is not asserted to be the character's first appearance. The two TFE dossiers contain no alias list; aliases remain a separate evidence and review concern.
 
 ## Review contract
 
@@ -63,7 +63,7 @@ A ready result is only a deterministic plan for a maintainer-controlled source c
 
 ## Current gate result
 
-The real staging bundle is blocked. The unnamed Edgedancer participant remains unresolved, and no independent review receipts have been supplied. Production registries remain empty.
+The complete editorial bundle is now `ready-for-review` because the atomic-claim subject `tfe.vin` has a matching source-backed dossier. The separate entity/relationship promotion planner remains blocked: the unnamed Edgedancer participant is unresolved and no independent review receipts have been supplied. Production registries remain empty.
 
 The test suite creates synthetic receipts only to verify that a fully consistent bundle can reach the maintainer-commit planning state. Those fixtures are not production approvals and are not committed as receipts.
 

@@ -4,7 +4,7 @@
 
 Run 135 adds a narrow, source-reviewed coreference boundary for Spanish third-person singular follow-ups. It extends the session-local ID-only relationship context from Run 134 without storing names, aliases, prior questions, prose, citations or provider output.
 
-The first supported forms are exactly `él` and `ella`, and only a closed set of short follow-up cues is recognized. This is not a general Spanish coreference engine.
+The first supported forms are exactly `él` and `ella`, and only a closed set of short follow-up cues is recognized. For masculine `él`, the written accent is required so the resolver never confuses the pronoun with the article `el`. This is not a general Spanish coreference engine.
 
 ## Record contract
 

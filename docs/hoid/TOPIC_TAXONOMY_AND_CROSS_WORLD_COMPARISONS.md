@@ -25,7 +25,9 @@ A source-controlled assignment binds:
 - the exact evidence IDs for the claim;
 - review audit metadata.
 
-Assignment validation rejects duplicate subject/topic/dimension records, inconsistent labels for a world ID, unknown bibliography works, unsupported topic/dimension pairs, malformed hashes, duplicate evidence IDs and non-canonical review timestamps.
+Assignment validation rejects duplicate subject/topic/dimension records, inconsistent or reused world labels, unknown bibliography works, entities absent from the verified entity registry, unsupported topic/dimension pairs, malformed hashes, duplicate evidence IDs and non-canonical review timestamps.
+
+Every assignment must point to an exact record in the approved-claim registry: the claim text SHA-256 and evidence-ID set must match. Every evidence ID must also resolve to a verified knowledge record with a canonical source edition, chapter locator, independent unlock boundary and first-safe-appearance metadata. The comparison and recommendation services compare the complete source scope, including the unlock work/chapter, rather than trusting a caller-supplied citation.
 
 The reviewer ID and timestamp are audit metadata only. They do not authenticate a human reviewer. Promotion still requires the existing protected source-control review authority and independent maintainer-controlled source changes.
 
@@ -35,11 +37,12 @@ compareHoidTopicsAcrossWorlds() accepts two to four subjects for the same topic 
 
 Before inclusion, the service calls presentHoidEvidenceAnswer() with the supplied authoritative v2 progress snapshot. It then checks:
 
-- exact claim ID;
-- SHA-256 of the original claim text;
+- exact claim ID and approved-claim registry membership;
+- SHA-256 of the original approved claim text;
 - exact evidence-ID set;
 - one-to-one segment mapping;
-- source edition, chapter locator, document digest and unlock boundary through the existing presentation boundary.
+- exact source work, source chapter, locator, unlock work and unlock chapter against the verified knowledge registry;
+- an entity's first-safe-appearance boundary in the current reading context.
 
 At least two distinct reviewed world IDs are required. The result is a side-by-side presentation only (inference: none). It does not infer similarity, equivalence, causality, chronology, hierarchy, influence or a relationship between worlds. Those conclusions require separate reviewed editorial claims and evidence.
 
@@ -55,14 +58,15 @@ A candidate work is returned only when:
 
 1. it belongs to the private-source bibliography;
 2. it has a reviewed work topic assignment for an explicitly selected topic;
-3. the work is not already started or completed in the authoritative cursor context;
-4. the assignment's exact claim answer passes presentHoidEvidenceAnswer() against the current progress snapshot;
-5. every supporting source has independently crossed its own chapter unlock boundary;
-6. no evidence from the unread candidate work itself is used to justify recommending that unread work.
+3. the assignment points to an exact approved claim and its exact text/evidence digest;
+4. the work is not already started or completed in the authoritative cursor context;
+5. the assignment's answer passes presentHoidEvidenceAnswer() against the current progress snapshot;
+6. every supporting source scope exactly matches the verified knowledge registry and has independently crossed its own chapter unlock boundary;
+7. no evidence from the unread candidate work itself is used to justify recommending that unread work.
 
 The recommendation reason is the exact already-approved claim text with its metadata-only citations. There is no semantic-similarity ranking or inferred reading order. Ranking follows the explicit topic-selection order, then the supplied bibliography order.
 
-If no safe reviewed association exists, the result is no-safe-reviewed-matches. The production entry point uses the empty registry and therefore currently returns no topic recommendations.
+If no safe reviewed association exists, the result is no-safe-reviewed-matches. The production entry point uses the empty registry and therefore currently returns no topic recommendations. The lower-level registry-injection parameters are trusted test/composition seams; application code must use the production entry points, which bind the checked-in approved claims, verified knowledge and assignment registries.
 
 ## Spoiler and intellectual-property boundaries
 

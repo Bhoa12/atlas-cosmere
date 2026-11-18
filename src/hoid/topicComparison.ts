@@ -1,4 +1,5 @@
 import { presentHoidEvidenceAnswer, type HoidPresentedCitation } from "./answerPresentation";
+import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import { sha256Hex } from "./sha256";
 import {
@@ -101,6 +102,27 @@ function sameIds(left: readonly string[], right: readonly string[]): boolean {
     [...left].sort().join("\n") === [...right].sort().join("\n");
 }
 
+function citationsMatch(
+  actual: readonly HoidPresentedCitation[],
+  evidenceIds: readonly string[],
+  expected: readonly HoidPresentedCitation[],
+): boolean {
+  if (actual.length !== evidenceIds.length) return false;
+  for (const evidenceId of evidenceIds) {
+    const actualCitation = actual.find(item => item.evidenceId === evidenceId);
+    const expectedCitation = expected.find(item => item.evidenceId === evidenceId);
+    if (
+      !actualCitation || !expectedCitation ||
+      actualCitation.sourceBookId !== expectedCitation.sourceBookId ||
+      actualCitation.sourceChapter !== expectedCitation.sourceChapter ||
+      actualCitation.locatorId !== expectedCitation.locatorId ||
+      actualCitation.unlockBookId !== expectedCitation.unlockBookId ||
+      actualCitation.unlockChapter !== expectedCitation.unlockChapter
+    ) return false;
+  }
+  return true;
+}
+
 function findAssignment(
   assignments: readonly HoidTopicAssignment[],
   subjectKind: HoidTopicSubjectKind,
@@ -127,6 +149,7 @@ export function compareHoidTopicsAcrossWorlds(
   progress: unknown,
   assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
   approvedClaimsInput?: unknown,
+  approvedKnowledgeInput?: unknown,
 ): HoidCrossWorldComparisonResult {
   const request = canonicalRecord(input, ["topicId", "dimensionId", "entries"]);
   if (!request) return Object.freeze({ status: "unavailable", reason: "invalid-input" });
@@ -149,11 +172,17 @@ export function compareHoidTopicsAcrossWorlds(
     seenSubjects.add(key);
   }
 
-  const validatedAssignments = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput);
+  const validatedAssignments = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput, approvedKnowledgeInput);
   if (validatedAssignments.status !== "valid") {
     return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
   }
+  const reading = buildHoidCursorReadingContext(progress);
+  if (reading.status !== "ready") {
+    return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
+  }
 
+  const evidenceById = new Map(validatedAssignments.evidenceCitations.map(citation => [citation.evidenceId, citation]));
+  const firstAppearanceByEntity = new Map(validatedAssignments.entityFirstAppearances.map(item => [item.entityId, item]));
   const presentedEntries: HoidCrossWorldComparisonEntry[] = [];
   for (const entry of entries) {
     const assignment = findAssignment(
@@ -165,6 +194,20 @@ export function compareHoidTopicsAcrossWorlds(
     );
     if (!assignment) {
       return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
+    }
+    if (subjectKind === "entity") {
+      const firstAppearance = firstAppearanceByEntity.get(assignment.subjectId);
+      const position = firstAppearance
+        ? reading.context.positions.find(item => item.bookId === firstAppearance.bookId)
+        : undefined;
+      const disclosed = Boolean(
+        position &&
+        (position.status === "completed" ||
+          (position.status === "in-progress" && position.currentChapter >= firstAppearance!.chapter)),
+      );
+      if (!disclosed) {
+        return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
+      }
     }
 
     let presentation;
@@ -186,7 +229,11 @@ export function compareHoidTopicsAcrossWorlds(
       segment.claimId !== assignment.claimId ||
       sha256Hex(segment.text) !== assignment.claimTextSha256 ||
       !sameIds(segment.evidenceIds, assignment.evidenceIds) ||
-      segment.citations.length !== assignment.evidenceIds.length
+      !citationsMatch(
+        segment.citations,
+        assignment.evidenceIds,
+        validatedAssignments.evidenceCitations,
+      )
     ) return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
 
     presentedEntries.push(Object.freeze({
@@ -213,7 +260,14 @@ export function compareHoidTopicsAcrossWorlds(
       entry.subjectId,
       entry.worldId,
       entry.claimId,
-      entry.citations.map(citation => citation.evidenceId),
+      entry.citations.map(citation => [
+        citation.evidenceId,
+        citation.sourceBookId,
+        citation.sourceChapter,
+        citation.locatorId,
+        citation.unlockBookId,
+        citation.unlockChapter,
+      ]),
     ]),
   ]));
 

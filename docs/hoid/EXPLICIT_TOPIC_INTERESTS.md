@@ -6,7 +6,7 @@ This run adds a user-selected topic-interest context and a provider-neutral reco
 
 ## Explicit interest context
 
-`topicInterestContext.ts` stores only:
+topicInterestContext.ts stores only:
 
 - schema version;
 - a closed set of selected topic IDs from the reviewed taxonomy;
@@ -17,9 +17,9 @@ It does not retain labels, free text, questions, reading history, claims, eviden
 
 ## Recommendation gateway
 
-`topicInterestRecommendationsGateway.ts` validates the exact interest context against the supplied and live progress identities before producing any result. After an asynchronous local answer-port call, it revalidates both the caller-owned request snapshot and the live progress snapshot to reject mutation races. It reads only `HOID_APPROVED_TOPIC_ASSIGNMENTS`, selects claim IDs only for explicitly selected topics whose target works are still unstarted, and passes those IDs plus the current progress to an optional trusted local answer port.
+topicInterestRecommendationsGateway.ts validates the exact interest context against the supplied and live progress identities before producing any result. After an asynchronous local answer-port call, it revalidates both the caller-owned request snapshot and the live progress snapshot to reject mutation races. It reads only HOID_APPROVED_TOPIC_ASSIGNMENTS, selects claim IDs only for explicitly selected topics whose target works are still unstarted, and passes those IDs plus the current progress to an optional trusted local answer port.
 
-The answer port is not a language-provider port. It must render only already-approved local claims through the existing evidence runtime. The gateway never passes topic labels, source prose, private EPUB content or prior conversation context to it. Returned answers are passed through `composeProductionHoidTopicRecommendations()`, which revalidates claim text, evidence IDs, source scopes, citations and per-work unlock boundaries.
+The answer port is not a language-provider port. It must render only already-approved local claims through the existing evidence runtime. The gateway never passes topic labels, source prose, private EPUB content or prior conversation context to it. Returned answers are passed through composeProductionHoidTopicRecommendations(), which revalidates claim text, evidence IDs, source scopes, citations and per-work unlock boundaries.
 
 If the production topic-assignment registry has no matching assignments, the gateway returns a neutral no-match result and does not call the answer port. If approved assignments exist but no local answer port is configured, it abstains rather than using an external provider.
 
@@ -31,9 +31,10 @@ HoidScreen exposes the closed taxonomy as explicit selectable topics. It does no
 
 The source-controlled production topic-assignment registry is still empty. Therefore the UI can collect explicit interests, but it will currently report that no reviewed, spoiler-safe topic matches are available. Synthetic tests do not create production assignments. No private EPUB/XHTML body or protected passage is committed.
 
-
 ## Local approved-claim rendering
 
-Run 140 adds `topicApprovedClaimAnswerPort.ts` and a selector-free `HoidEvidenceRuntime.renderApprovedClaimById()` path. The assignment registry selects exact approved claim IDs; the runtime returns only the corresponding local recommendation claim when every evidence item is verified, in context and unlocked in its own source work. The result includes one immutable claim segment and exact citations. No language selector or external provider is invoked.
+Run 140 adds topicApprovedClaimAnswerPort.ts and a selector-free HoidEvidenceRuntime.renderApprovedClaimById() path. The assignment registry chooses exact approved claim IDs; the runtime returns only the corresponding local recommendation claim when every evidence item is verified, in context and unlocked in its own source work. The result includes one immutable claim segment and exact citations. No language selector or external provider is invoked.
 
-HoidScreen injects this local port into the topic-interest gateway. The production assignment registry remains empty, so no topic recommendation is activated until an independently reviewed assignment and its approved claim/evidence records exist. See `LOCAL_APPROVED_CLAIM_RENDERING.md`.
+The public answer-port boundary receives the authoritative SQLite v2 cursor snapshot. The adapter validates it with projectHoidCursorProgressSnapshot() and passes only the completed-through ReadingPosition[] projection to the evidence runtime. The original v2 snapshot is retained for final source-aware presentation and recommendation composition. An open chapter is never treated as completed.
+
+HoidScreen injects this local port into the topic-interest gateway. The production assignment registry remains empty, so no topic recommendation is activated until an independently reviewed assignment and its approved claim/evidence records exist. See LOCAL_APPROVED_CLAIM_RENDERING.md and CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md.

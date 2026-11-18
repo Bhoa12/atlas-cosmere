@@ -106,6 +106,14 @@ describe("Hoid answer presentation", () => {
     expect(result).toMatchObject({ status: "withheld", reason: "invalid-answer" });
   });
 
+  it("rejects a plausible locator that belongs to a different chapter", () => {
+    const result = presentHoidEvidenceAnswer(
+      authorizedAnswer({ sources: [source({ locatorId: locator("tfe", 2) })] }),
+      progressAt(3),
+    );
+    expect(result).toMatchObject({ status: "withheld", reason: "invalid-answer" });
+  });
+
   it("rejects evidence IDs that do not exactly match source citations", () => {
     const result = presentHoidEvidenceAnswer(
       authorizedAnswer({ evidenceIds: ["different-evidence"] }),

@@ -57,3 +57,12 @@ Las pruebas de conversationGateway.test.ts cubren progreso obsoleto, cambio dura
 ## Conversational routing
 
 Spanish recommendation requests are classified deterministically by `classifyHoidConversationIntent()` and routed to `HoidConversationGateway.recommend()`. They do not enter the narrative claim selector. The UI presents only catalogue-backed works not yet started in the v2 snapshot and states that catalogue order is not a canonical reading route. Mixed recommendation/context phrasing follows the documented recommendation-first precedence. See `CONVERSATION_INTENT_ROUTING.md`.
+
+
+## Reading-aware ordering
+
+Active works are presented first so the reader can resume an existing book without having to search for it. The current chapter is the chapter open in Atlas; the completed-through boundary is exactly one chapter earlier, or null for chapter one. This metadata is copied from the validated v2 cursor context and is not a narrative summary.
+
+Unstarted sources follow in bibliography order. That order is explicitly not a canonical Cosmere reading route. The system has no reviewed dependency or chronology metadata sufficient to recommend a safe cross-series sequence, so it does not infer one. The UI labels the two categories separately.
+
+The conversation gateway rejects a resume entry if its current chapter or completed-through chapter differs from the authoritative snapshot. It rejects an unread entry if that work is already started, completed, unknown, duplicated or title-mismatched. The existing before/after progress revision and fingerprint checks remain mandatory.

@@ -84,6 +84,16 @@ describe("Hoid reviewed topic taxonomy", () => {
     }
   });
 
+  it("rejects assignments whose approved claim points to evidence absent from the verified source registry", () => {
+    const record = assignment();
+    const claim = {
+      id: "claim.alpha",
+      text: CLAIM_TEXT,
+      evidenceIds: ["evidence.alpha"],
+    };
+    expect(validateHoidTopicAssignments([record], [claim], []).status).toBe("invalid");
+  });
+
   it("keeps the production assignment registry empty until independently reviewed records exist", () => {
     expect(HOID_APPROVED_TOPIC_ASSIGNMENTS).toEqual([]);
   });

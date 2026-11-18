@@ -4,10 +4,12 @@ import {
   authorizeHoidTopicAssignmentPromotion,
   fingerprintHoidTopicAssignmentRegistry,
   HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
-  type HoidPromotionProgressPort,
-  type HoidPromotionReviewRequest,
-  type HoidSourceControlReviewPort,
 } from "./topicAssignmentPromotionAuthority";
+import type {
+  HoidPromotionProgressPort,
+  HoidPromotionReviewRequest,
+  HoidSourceControlReviewPort,
+} from "./promotionReviewAuthority";
 import { sha256Hex } from "./sha256";
 
 export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH = "main";

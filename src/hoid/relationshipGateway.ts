@@ -6,9 +6,14 @@ import type {
   HoidExplanationGateway,
   HoidExplanationGatewayResult,
 } from "./explanationGateway";
-import type { HoidRenderedExplanation } from "./knowledgeGraphQuery";
+import type {
+  HoidKnowledgeGraphSource,
+  HoidRenderedExplanation,
+  HoidRenderedExplanationSegment,
+} from "./knowledgeGraphQuery";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
+import { sha256Hex } from "./sha256";
 
 export type HoidRelationshipGatewayResult =
   | Readonly<{
@@ -43,6 +48,14 @@ export type HoidRelationshipGatewayConfig = Readonly<{
 
 type ProgressIdentity = Readonly<{ revision: number; fingerprint: string }>;
 type CanonicalEntityMention = Readonly<{ id: string; matchedAlias: string }>;
+type CanonicalPairExplanation = Extract<HoidRenderedExplanation, { status: "ready" }>;
+type PairResolution =
+  | Readonly<{ status: "ready"; explanation: CanonicalPairExplanation }>
+  | Readonly<{ status: "no-path" }>
+  | Readonly<{
+      status: "unavailable";
+      reason: "invalid-progress" | "progress-changed" | "explanation-unavailable";
+    }>;
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
@@ -51,6 +64,10 @@ const SOURCE_KEYS = [
   "evidenceId", "sourceBookId", "sourceChapter", "locatorId", "unlockBookId",
   "unlockChapter", "editionId", "navigationSha256", "documentSha256",
 ] as const;
+const MAX_RELATIONSHIP_ENTITIES = 4;
+const MAX_GROUP_SEGMENTS = 12;
+const MAX_GROUP_EVIDENCE = 16;
+const MAX_GROUP_TEXT_LENGTH = 32_000;
 
 function canonicalRecord(
   value: unknown,
@@ -201,8 +218,8 @@ function canonicalMentions(
 
   const matches = canonicalDenseArray(record.matches, 0, 8);
   if (!matches) return "unavailable";
-  if (record.resolution === "ambiguous" || record.truncated || matches.length > 2) return "ambiguous";
-  if (record.resolution === "not-found" || matches.length !== 2) return "unavailable";
+  if (record.resolution === "ambiguous" || record.truncated || matches.length > MAX_RELATIONSHIP_ENTITIES) return "ambiguous";
+  if (record.resolution === "not-found" || matches.length < 2) return "unavailable";
   if (record.resolution !== "matched") return "unavailable";
 
   const entities: CanonicalEntityMention[] = [];
@@ -220,7 +237,7 @@ function canonicalMentions(
     .sort((left, right) => left.position - right.position);
   if (
     ordered.some(entity => entity.position < 0) ||
-    ordered[0].position === ordered[1].position
+    ordered.some((entity, index) => index > 0 && entity.position === ordered[index - 1].position)
   ) return "ambiguous";
 
   return Object.freeze(ordered.map(entity => Object.freeze({
@@ -235,19 +252,247 @@ function unavailable(
   return Object.freeze({ status: "unavailable", reason });
 }
 
-function explanationFailure(
-  result: Extract<HoidExplanationGatewayResult, { status: "unavailable" }>,
-): Extract<HoidRelationshipGatewayResult, { status: "unavailable" }>["reason"] {
-  if (result.reason === "invalid-progress") return "invalid-progress";
-  if (result.reason === "progress-changed") return "progress-changed";
-  return "explanation-unavailable";
+function explanationFailure(reason: unknown): PairResolution {
+  if (reason === "invalid-progress") return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+  if (reason === "progress-changed") return Object.freeze({ status: "unavailable", reason: "progress-changed" });
+  return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+}
+
+function canonicalGraphSource(value: unknown): HoidKnowledgeGraphSource | null {
+  const source = canonicalRecord(value, SOURCE_KEYS);
+  if (!source || !validEntitySource(source)) return null;
+  return Object.freeze({
+    evidenceId: source.evidenceId as string,
+    sourceBookId: source.sourceBookId as string,
+    sourceChapter: source.sourceChapter as number,
+    locatorId: source.locatorId as string,
+    unlockBookId: source.unlockBookId as string,
+    unlockChapter: source.unlockChapter as number,
+    editionId: source.editionId as string,
+    navigationSha256: source.navigationSha256 as string,
+    documentSha256: source.documentSha256 as string,
+  });
+}
+
+function sourceFingerprint(source: HoidKnowledgeGraphSource): string {
+  return JSON.stringify(SOURCE_KEYS.map(key => source[key]));
+}
+
+function canonicalPairResult(value: unknown, expected: ProgressIdentity): PairResolution {
+  const wrapper = canonicalRecord(
+    value,
+    ["status", "explanation", "progressRevision", "progressFingerprint", "reason"],
+    ["status"],
+  );
+  if (!wrapper) return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+
+  if (wrapper.status === "unavailable") {
+    if (Object.keys(wrapper).length !== 2 || typeof wrapper.reason !== "string") {
+      return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+    }
+    return explanationFailure(wrapper.reason);
+  }
+
+  if (
+    wrapper.progressRevision !== expected.revision ||
+    wrapper.progressFingerprint !== expected.fingerprint
+  ) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+
+  if (wrapper.status === "no-path") {
+    if (Object.keys(wrapper).length !== 3) {
+      return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+    }
+    return Object.freeze({ status: "no-path" });
+  }
+
+  if (wrapper.status !== "ready" || Object.keys(wrapper).length !== 4) {
+    return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+  }
+
+  const rawExplanation = canonicalRecord(
+    wrapper.explanation,
+    ["status", "planId", "progressRevision", "text", "segments", "sources", "truncated"],
+  );
+  if (
+    !rawExplanation ||
+    Object.keys(rawExplanation).length !== 7 ||
+    rawExplanation.status !== "ready" ||
+    rawExplanation.progressRevision !== expected.revision ||
+    typeof rawExplanation.planId !== "string" || !HASH_PATTERN.test(rawExplanation.planId) ||
+    typeof rawExplanation.text !== "string" ||
+    rawExplanation.text.length < 1 || rawExplanation.text.length > MAX_GROUP_TEXT_LENGTH ||
+    rawExplanation.text !== rawExplanation.text.trim() ||
+    rawExplanation.truncated !== false
+  ) return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+
+  const rawSources = canonicalDenseArray(rawExplanation.sources, 1, MAX_GROUP_EVIDENCE);
+  const rawSegments = canonicalDenseArray(rawExplanation.segments, 1, MAX_GROUP_SEGMENTS);
+  if (!rawSources || !rawSegments) return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+
+  const sourcesById = new Map<string, HoidKnowledgeGraphSource>();
+  for (const rawSource of rawSources) {
+    const source = canonicalGraphSource(rawSource);
+    if (!source || sourcesById.has(source.evidenceId)) {
+      return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+    }
+    sourcesById.set(source.evidenceId, source);
+  }
+
+  const claimIds = new Set<string>();
+  const referencedSourceIds = new Set<string>();
+  const segments: HoidRenderedExplanationSegment[] = [];
+  const segmentTexts: string[] = [];
+
+  for (const rawSegment of rawSegments) {
+    const segment = canonicalRecord(rawSegment, ["claimId", "text", "evidenceIds", "sources"]);
+    if (
+      !segment ||
+      typeof segment.claimId !== "string" || !ID_PATTERN.test(segment.claimId) ||
+      claimIds.has(segment.claimId) ||
+      typeof segment.text !== "string" ||
+      segment.text.length < 1 || segment.text.length > 4_000 ||
+      segment.text !== segment.text.trim()
+    ) return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+
+    const evidenceIds = canonicalDenseArray(segment.evidenceIds, 1, MAX_GROUP_EVIDENCE);
+    const rawSegmentSources = canonicalDenseArray(segment.sources, 1, MAX_GROUP_EVIDENCE);
+    if (!evidenceIds || !rawSegmentSources || evidenceIds.length !== rawSegmentSources.length) {
+      return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+    }
+
+    const canonicalEvidenceIds: string[] = [];
+    const canonicalSegmentSources: HoidKnowledgeGraphSource[] = [];
+    const localIds = new Set<string>();
+    for (let index = 0; index < evidenceIds.length; index += 1) {
+      const evidenceId = evidenceIds[index];
+      const source = canonicalGraphSource(rawSegmentSources[index]);
+      if (
+        typeof evidenceId !== "string" || !ID_PATTERN.test(evidenceId) ||
+        localIds.has(evidenceId) || !source || source.evidenceId !== evidenceId
+      ) return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+      const globalSource = sourcesById.get(evidenceId);
+      if (!globalSource || sourceFingerprint(globalSource) !== sourceFingerprint(source)) {
+        return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+      }
+      localIds.add(evidenceId);
+      referencedSourceIds.add(evidenceId);
+      canonicalEvidenceIds.push(evidenceId);
+      canonicalSegmentSources.push(source);
+    }
+
+    claimIds.add(segment.claimId);
+    segmentTexts.push(segment.text);
+    segments.push(Object.freeze({
+      claimId: segment.claimId,
+      text: segment.text,
+      evidenceIds: Object.freeze(canonicalEvidenceIds),
+      sources: Object.freeze(canonicalSegmentSources),
+    }));
+  }
+
+  if (
+    referencedSourceIds.size !== sourcesById.size ||
+    segmentTexts.join("\n\n") !== rawExplanation.text
+  ) return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+
+  return Object.freeze({
+    status: "ready",
+    explanation: Object.freeze({
+      status: "ready",
+      planId: rawExplanation.planId as string,
+      progressRevision: expected.revision,
+      text: rawExplanation.text,
+      segments: Object.freeze(segments),
+      sources: Object.freeze([...sourcesById.values()]),
+      truncated: false,
+    }),
+  });
+}
+
+function combinePairExplanations(
+  explanations: readonly CanonicalPairExplanation[],
+  entities: readonly CanonicalEntityMention[],
+  progress: ProgressIdentity,
+): CanonicalPairExplanation | null {
+  if (explanations.length < 1 || explanations.length > 6) return null;
+
+  const segmentsByClaim = new Map<string, Readonly<{ segment: HoidRenderedExplanationSegment; fingerprint: string }>>();
+  const sourcesById = new Map<string, Readonly<{ source: HoidKnowledgeGraphSource; fingerprint: string }>>();
+  const pairPlanIds: string[] = [];
+
+  for (const explanation of explanations) {
+    pairPlanIds.push(explanation.planId);
+    for (const source of explanation.sources) {
+      const fingerprint = sourceFingerprint(source);
+      const existing = sourcesById.get(source.evidenceId);
+      if (existing && existing.fingerprint !== fingerprint) return null;
+      if (!existing) sourcesById.set(source.evidenceId, Object.freeze({ source, fingerprint }));
+    }
+    for (const segment of explanation.segments) {
+      const fingerprint = JSON.stringify({
+        claimId: segment.claimId,
+        text: segment.text,
+        evidenceIds: segment.evidenceIds,
+        sources: segment.sources.map(sourceFingerprint),
+      });
+      const existing = segmentsByClaim.get(segment.claimId);
+      if (existing && existing.fingerprint !== fingerprint) return null;
+      if (!existing) segmentsByClaim.set(segment.claimId, Object.freeze({ segment, fingerprint }));
+    }
+  }
+
+  const segments = [...segmentsByClaim.values()].map(item => item.segment);
+  const sources = [...sourcesById.values()].map(item => item.source);
+  if (
+    segments.length < 1 || segments.length > MAX_GROUP_SEGMENTS ||
+    sources.length < 1 || sources.length > MAX_GROUP_EVIDENCE
+  ) return null;
+
+  const text = segments.map(segment => segment.text).join("\n\n");
+  if (text.length < 1 || text.length > MAX_GROUP_TEXT_LENGTH) return null;
+
+  const planId = sha256Hex(JSON.stringify({
+    schemaVersion: 1,
+    entityIds: entities.map(entity => entity.id),
+    pairPlanIds,
+  }));
+  return Object.freeze({
+    status: "ready",
+    planId,
+    progressRevision: progress.revision,
+    text,
+    segments: Object.freeze(segments),
+    sources: Object.freeze(sources),
+    truncated: false,
+  });
+}
+
+function requestPair(
+  gateway: Pick<HoidExplanationGateway, "explain">,
+  progressInput: unknown,
+  progress: ProgressIdentity,
+  fromId: string,
+  toId: string,
+): PairResolution {
+  let raw: HoidExplanationGatewayResult;
+  try {
+    raw = gateway.explain({
+      progress: progressInput,
+      query: Object.freeze({ fromId, toId, maxDepth: 4, maxPaths: 1 }),
+    });
+  } catch {
+    return Object.freeze({ status: "unavailable", reason: "explanation-unavailable" });
+  }
+  return canonicalPairResult(raw, progress);
 }
 
 /**
- * Resolves exactly two reviewed, currently disclosed aliases and asks the
- * local graph gateway for a bounded directed path. The reverse direction is
- * attempted only when the first direction has no path. No fuzzy matching,
- * provider-generated entity IDs or provider-authored facts are accepted.
+ * Resolves two to four reviewed, currently disclosed aliases. Two entities
+ * produce the existing single-pair explanation; three or four entities produce
+ * a complete pairwise explanation matrix. Every pair must have a verified path:
+ * one missing/locked/invalid pair withholds the entire result. Pair count is
+ * bounded to six, each path to depth four and one path, and no provider can
+ * invent entities, edges or response text.
  */
 export class HoidRelationshipGateway {
   constructor(private readonly config: HoidRelationshipGatewayConfig) {}
@@ -291,54 +536,37 @@ export class HoidRelationshipGateway {
     if (mentions === "ambiguous") return unavailable("entity-ambiguous");
     if (mentions === "unavailable") return unavailable("entity-unavailable");
 
-    const firstQuery = Object.freeze({
-      fromId: mentions[0].id,
-      toId: mentions[1].id,
-      maxDepth: 4,
-      maxPaths: 1,
-    });
+    const pairExplanations: CanonicalPairExplanation[] = [];
+    let missingPath = false;
 
-    let firstResult: HoidExplanationGatewayResult;
-    try {
-      firstResult = this.config.explanationGateway.explain({
-        progress: request.progress,
-        query: firstQuery,
-      });
-    } catch {
-      return unavailable("explanation-unavailable");
-    }
+    for (let left = 0; left < mentions.length; left += 1) {
+      for (let right = left + 1; right < mentions.length; right += 1) {
+        let pair = requestPair(
+          this.config.explanationGateway,
+          request.progress,
+          requested,
+          mentions[left].id,
+          mentions[right].id,
+        );
 
-    let selected: Extract<HoidExplanationGatewayResult, { status: "ready" }> | null = null;
-    if (firstResult.status === "ready") {
-      selected = firstResult;
-    } else if (firstResult.status === "unavailable") {
-      return unavailable(explanationFailure(firstResult));
-    } else {
-      if (
-        firstResult.progressRevision !== requested.revision ||
-        firstResult.progressFingerprint !== requested.fingerprint
-      ) return unavailable("invalid-progress");
+        if (pair.status === "no-path") {
+          pair = requestPair(
+            this.config.explanationGateway,
+            request.progress,
+            requested,
+            mentions[right].id,
+            mentions[left].id,
+          );
+        }
 
-      let reverseResult: HoidExplanationGatewayResult;
-      try {
-        reverseResult = this.config.explanationGateway.explain({
-          progress: request.progress,
-          query: Object.freeze({
-            fromId: mentions[1].id,
-            toId: mentions[0].id,
-            maxDepth: 4,
-            maxPaths: 1,
-          }),
-        });
-      } catch {
-        return unavailable("explanation-unavailable");
+        if (pair.status === "unavailable") return unavailable(pair.reason);
+        if (pair.status === "no-path") {
+          missingPath = true;
+          break;
+        }
+        pairExplanations.push(pair.explanation);
       }
-      if (reverseResult.status === "unavailable") return unavailable(explanationFailure(reverseResult));
-      if (reverseResult.status === "ready") selected = reverseResult;
-      else if (
-        reverseResult.progressRevision !== requested.revision ||
-        reverseResult.progressFingerprint !== requested.fingerprint
-      ) return unavailable("invalid-progress");
+      if (missingPath) break;
     }
 
     let currentAfter: unknown;
@@ -351,21 +579,20 @@ export class HoidRelationshipGateway {
     if (!after) return unavailable("invalid-progress");
     if (!sameProgress(requested, after)) return unavailable("progress-changed");
 
-    if (!selected) {
+    if (missingPath) {
       return Object.freeze({
         status: "no-path",
         progressRevision: requested.revision,
         progressFingerprint: requested.fingerprint,
       });
     }
-    if (
-      selected.progressRevision !== requested.revision ||
-      selected.progressFingerprint !== requested.fingerprint
-    ) return unavailable("invalid-progress");
+
+    const explanation = combinePairExplanations(pairExplanations, mentions, requested);
+    if (!explanation) return unavailable("explanation-unavailable");
 
     return Object.freeze({
       status: "ready",
-      explanation: selected.explanation,
+      explanation,
       progressRevision: requested.revision,
       progressFingerprint: requested.fingerprint,
     });

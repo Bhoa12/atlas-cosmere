@@ -152,6 +152,7 @@ const REQUEST_KEYS = new Set([
   "requireEnforcedAdmins",
 ]);
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+const REVIEWER_ID_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/u;
 const SHA_PATTERN = /^[a-f0-9]{64}$/;
 const COMMIT_SHA_PATTERN = /^[a-f0-9]{40,64}$/;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -183,7 +184,7 @@ function canonicalRecord(value: unknown, allowedKeys: ReadonlySet<string>): Reco
   }
 }
 
-function canonicalDenseStrings(value: unknown, maximum: number): readonly string[] | null {
+function canonicalDenseStrings(value: unknown, maximum: number, pattern: RegExp = ID_PATTERN): readonly string[] | null {
   try {
     if (!Array.isArray(value) || value.length < 1 || value.length > maximum || Object.getPrototypeOf(value) !== Array.prototype) {
       return null;
@@ -199,7 +200,7 @@ function canonicalDenseStrings(value: unknown, maximum: number): readonly string
         !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
         descriptor.enumerable !== true ||
         typeof descriptor.value !== "string" ||
-        !ID_PATTERN.test(descriptor.value) ||
+        !pattern.test(descriptor.value) ||
         seen.has(descriptor.value)
       ) return null;
       seen.add(descriptor.value);
@@ -323,7 +324,7 @@ function canonicalPlan(value: unknown): HoidTopicAssignmentPromotionPlan | null 
     !SHA_PATTERN.test(raw.fingerprint)
   ) return null;
   const assignmentIds = canonicalDenseStrings(raw.assignmentIds, 512);
-  const reviewerIds = canonicalDenseStrings(raw.assignmentReviewerIds, 512);
+  const reviewerIds = canonicalDenseStrings(raw.assignmentReviewerIds, 512, REVIEWER_ID_PATTERN);
   if (!assignmentIds || !reviewerIds || assignmentIds.length !== raw.assignmentCount) return null;
   const plan = Object.freeze({
     schemaVersion: 1 as const,
@@ -478,7 +479,7 @@ export function validateHoidTopicAssignmentPromotionManifest(
   const built = buildHoidTopicAssignmentPromotionManifest(plan);
   if (built.status !== "valid") return built;
   const assignmentIds = canonicalDenseStrings(raw.assignmentIds, 512);
-  const reviewerIds = canonicalDenseStrings(raw.assignmentReviewerIds, 512);
+  const reviewerIds = canonicalDenseStrings(raw.assignmentReviewerIds, 512, REVIEWER_ID_PATTERN);
   if (
     !assignmentIds || !reviewerIds ||
     !Number.isSafeInteger(raw.assignmentCount) ||

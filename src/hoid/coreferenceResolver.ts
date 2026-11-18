@@ -214,9 +214,11 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
     if (
       !record ||
       typeof record.id !== "string" ||
+      record.id.length > 128 ||
       !ID_PATTERN.test(record.id) ||
       recordIds.has(record.id) ||
       typeof record.entityId !== "string" ||
+      record.entityId.length > 128 ||
       !ID_PATTERN.test(record.entityId) ||
       (record.form !== "él" && record.form !== "ella") ||
       !canonicalReview(record.review)
@@ -234,6 +236,7 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
       if (
         !item ||
         typeof item.id !== "string" ||
+        item.id.length > 128 ||
         !ID_PATTERN.test(item.id) ||
         evidenceIds.has(item.id)
       ) return null;

@@ -1,0 +1,75 @@
+name: Hoid reviewed coreference and pronoun safety
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/coreferenceRegistry.ts"
+      - "src/hoid/coreferenceResolver.ts"
+      - "src/hoid/coreferenceResolver.test.ts"
+      - "src/hoid/conversationContext.ts"
+      - "src/hoid/conversationContext.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/README.md"
+      - "docs/hoid/REVIEWED_COREFERENCE_AND_PRONOUN_SAFETY.md"
+      - ".github/workflows/hoid-reviewed-coreference.yml"
+  pull_request:
+    paths:
+      - "src/hoid/coreferenceRegistry.ts"
+      - "src/hoid/coreferenceResolver.ts"
+      - "src/hoid/coreferenceResolver.test.ts"
+      - "src/hoid/conversationContext.ts"
+      - "src/hoid/conversationContext.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/README.md"
+      - "docs/hoid/REVIEWED_COREFERENCE_AND_PRONOUN_SAFETY.md"
+      - ".github/workflows/hoid-reviewed-coreference.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reviewed-coreference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test reviewed coreference and conversation regressions
+        run: >-
+          npx vitest run
+          src/hoid/coreferenceResolver.test.ts
+          src/hoid/conversationContext.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/relationshipGateway.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/conversationHistoryPolicy.test.ts
+      - name: Type-check coreference, gateway and screen integration
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/coreferenceRegistry.ts
+          src/hoid/coreferenceResolver.ts
+          src/hoid/conversationContext.ts
+          src/hoid/entityResolver.ts
+          src/hoid/relationshipGateway.ts
+          src/hoid/conversationGateway.ts
+          src/screens/HoidScreen.tsx

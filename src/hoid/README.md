@@ -471,3 +471,14 @@ The follow-up resolver recognizes only a small allowlist of group-level relation
 For a recognized group follow-up, the relationship gateway receives the prior entity IDs. resolveProductionHoidEntityIds() revalidates every ID against the current source-controlled knowledge registry, its first-safe-appearance boundary and at least one currently disclosed reviewed alias record. The graph is queried again; prior explanations and text are never replayed.
 
 Any new non-follow-up question, progress/recommendation route, error, stale result or progress change clears the ephemeral context. A restart also clears it automatically. This is intentional: continuity is session-local and is not a second progress or memory store. See docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md.
+
+
+## Run 135 — reviewed coreference and pronoun follow-ups
+
+`coreferenceRegistry.ts` defines a metadata-only, source-reviewed mapping from a narrowly supported Spanish singular pronoun (`él` or `ella`) to one canonical entity ID. The production registry remains empty until each mapping has individually inspected chapter evidence and protected source-control review. Structural review fields are not authentication by themselves.
+
+`coreferenceResolver.ts` accepts only exact allow-listed follow-up phrases. It validates the Run 134 ID-only relationship context, checks the exact progress revision/fingerprint, reauthorizes every entity in the context against the current production entity/alias registries, and verifies every matching pronoun evidence item against an edition-bound locator, inspected document digest and same-work unlock threshold. Every evidence item is mandatory. A matching but locked candidate blocks uniqueness; the resolver never selects a visible candidate by ignoring a hidden one.
+
+The conversation gateway sends only the single reauthorized entity ID to the strict evidence runtime. It does not send prior context, aliases, pronoun mappings or source prose. An unresolved pronoun abstains before the runtime and relationship graph. The ordinary answer-presentation boundary still verifies every claim and source before display, and the live progress is checked again after asynchronous generation.
+
+Plural pronouns, possessives, demonstratives and unrestricted natural-language coreference remain unsupported. The production registry is empty, so production pronoun follow-ups continue to abstain until source-backed records are reviewed. Synthetic tests do not add Cosmere facts. See `docs/hoid/REVIEWED_COREFERENCE_AND_PRONOUN_SAFETY.md`.

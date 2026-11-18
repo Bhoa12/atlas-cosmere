@@ -284,7 +284,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       progress([{ bookId: "wor", chapter: 3 }, { bookId: "tfe", chapter: 3 }]),
       [forgedPair],
       5,
-      [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
+      [assignment("elantris", "investiture-system", "mechanism", claimId, text)],
       approvedClaims([approvedPair]),
       approvedKnowledge([approvedPair]),
     );

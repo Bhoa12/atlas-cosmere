@@ -1,4 +1,5 @@
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import {
   HOID_APPROVED_TOPIC_ASSIGNMENTS,
@@ -143,10 +144,17 @@ export class HoidTopicInterestRecommendationGateway {
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) return unavailable("progress-changed");
 
+    const reading = buildHoidCursorReadingContext(raw.progress);
+    if (reading.status !== "ready") return unavailable("invalid-progress");
+    const startedWorks = new Set(reading.context.positions.map(position => position.bookId));
     const selected = new Set(validation.context.topicIds);
     const claimIds = [...new Set(
       HOID_APPROVED_TOPIC_ASSIGNMENTS
-        .filter(assignment => assignment.subjectKind === "work" && selected.has(assignment.topicId))
+        .filter(assignment =>
+          assignment.subjectKind === "work" &&
+          selected.has(assignment.topicId) &&
+          !startedWorks.has(assignment.subjectId)
+        )
         .map(assignment => assignment.claimId),
     )].sort();
 

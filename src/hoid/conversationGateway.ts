@@ -461,7 +461,12 @@ export class HoidConversationGateway {
       ) return unavailable("invalid-progress");
 
       const relationshipAnswer = createHoidEvidenceAnswerFromRelationshipResult(
-        relationshipResult,
+        {
+          status: relationshipResult.status,
+          explanation: relationshipResult.explanation,
+          progressRevision: relationshipResult.progressRevision,
+          progressFingerprint: relationshipResult.progressFingerprint,
+        },
         request.progress,
       );
       if (!relationshipAnswer) return unavailable("entity-unavailable");

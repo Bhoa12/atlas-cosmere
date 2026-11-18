@@ -254,7 +254,7 @@ describe("Hoid local approved-claim answer port", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.items).toHaveLength(1);
-    expect(result.items[0].sourceId).toBe("tfe");
+    expect(result.items[0].sourceId).toBe("elantris");
     expect(result.items[0].matches[0].reasonText).toBe(text);
     expect(result.items[0].matches[0].citations.map(citation => citation.evidenceId)).toEqual(["e-alpha"]);
   });

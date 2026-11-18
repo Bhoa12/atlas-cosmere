@@ -220,7 +220,7 @@ function canonicalPacketReference(value: unknown): HoidEditorialReviewPacketRefe
     typeof raw.draftId !== "string" ||
     !ID_PATTERN.test(raw.draftId) ||
     typeof raw.packetId !== "string" ||
-    !SHA_PATTERN.test(raw.packetId) ||
+    !(raw.category === "summary" ? /^review:[a-f0-9]{64}$/.test(raw.packetId) : SHA_PATTERN.test(raw.packetId)) ||
     typeof raw.contentSha256 !== "string" ||
     !SHA_PATTERN.test(raw.contentSha256)
   ) return null;
@@ -276,7 +276,7 @@ function packetReferences(packets: HoidEditorialReviewBundlePackets): readonly H
     refs.push(Object.freeze({
       category: "summary",
       draftId: packet.draftId,
-      packetId: packet.packetId.replace(/^review:/, ""),
+      packetId: packet.packetId,
       contentSha256: packet.summarySha256,
     }));
   }

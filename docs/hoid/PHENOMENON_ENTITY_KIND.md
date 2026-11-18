@@ -17,7 +17,7 @@ The canonical kind union now includes:
 - `organization`
 - `object`
 
-All runtime allow-lists must agree: editorial entity drafts, atomic claim subjects, entity resolution, knowledge graph nodes, relationship gateway validation, topic evidence validation, typed conversation context and conversation gateway reauthorization.
+All runtime allow-lists must agree, including the strict evidence runtime: editorial entity drafts, atomic claim subjects, entity resolution, knowledge graph nodes, relationship gateway validation, topic evidence validation, typed conversation context and conversation gateway reauthorization.
 
 ## Conversation behavior
 

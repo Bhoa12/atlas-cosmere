@@ -32,6 +32,7 @@ function pullRequest(overrides: Record<string, unknown> = {}) {
     head: {
       ref: "feat/hoid-ia-core-run142",
       sha: "a".repeat(40),
+      repo: { full_name: "Bhoa12/atlas-cosmere" },
     },
     ...overrides,
   };
@@ -93,7 +94,8 @@ describe("GitHub topic-assignment merge adapter", () => {
       pullRequest({ base: { ref: "feat/other", repo: { full_name: "Bhoa12/atlas-cosmere" } } }),
       pullRequest({ base: { ref: "main", repo: { full_name: "another/repository" } } }),
       pullRequest({ head: { ref: "feat/other", sha: "a".repeat(40) } }),
-      pullRequest({ head: { ref: "feat/hoid-ia-core-run142", sha: "d".repeat(40) } }),
+      pullRequest({ head: { ref: "feat/hoid-ia-core-run142", sha: "d".repeat(40), repo: { full_name: "Bhoa12/atlas-cosmere" } } }),
+      pullRequest({ head: { ref: "feat/hoid-ia-core-run142", sha: "a".repeat(40), repo: { full_name: "fork/atlas-cosmere" } } }),
       pullRequest({ number: 143 }),
       pullRequest({ merge_commit_sha: "not-a-sha" }),
       pullRequest({ merged_at: "not-a-time" }),

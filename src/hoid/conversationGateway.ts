@@ -8,7 +8,11 @@ import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { resolveProductionHoidEntityMentions, type HoidEntityMentionResolutionResult } from "./entityResolver";
 import { isHoidRelationshipQuestion } from "./relationshipIntent";
 import { createProductionHoidExplanationGateway } from "./explanationGateway";
-import { createHoidRelationshipGateway, type HoidRelationshipGateway } from "./relationshipGateway";
+import {
+  createHoidRelationshipGateway,
+  type HoidRelationshipGateway,
+  type HoidRelationshipGatewayResult,
+} from "./relationshipGateway";
 import { createHoidEvidenceAnswerFromRelationshipResult } from "./relationshipPresentation";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
@@ -373,7 +377,7 @@ export class HoidConversationGateway {
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");
 
-      let relationshipResult;
+      let relationshipResult: HoidRelationshipGatewayResult;
       try {
         relationshipResult = relationshipGateway.answer({
           question: request.question,

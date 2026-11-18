@@ -256,6 +256,25 @@ describe("Hoid spoiler-aware entity resolution", () => {
     }
   });
 
+  it("resolves a phenomenon only when the exact kind filter is requested", () => {
+    const phenomenon = knowledge("synthetic.phenomenon", ["Synthetic Target"], "twok", 1, "phenomenon");
+    const character = knowledge("synthetic.character", ["Synthetic Target"], "edgedancer", 1, "character");
+    const result = resolveHoidAuthorizedEntities(
+      [phenomenon, character],
+      progress([
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
+      ]),
+      { text: "Synthetic Target", kind: "phenomenon" },
+    );
+    expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.resolution).toBe("matched");
+      expect(result.matches.map(item => item.id)).toEqual(["synthetic.phenomenon"]);
+      expect(result.matches[0].kind).toBe("phenomenon");
+    }
+  });
+
   it("marks bounded ambiguous results as truncated", () => {
     const entries = [
       knowledge("synthetic.entity-a", ["Shared Synthetic Alias"], "twok"),

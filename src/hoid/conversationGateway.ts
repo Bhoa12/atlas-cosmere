@@ -14,6 +14,11 @@ import {
   type HoidRelationshipGatewayResult,
 } from "./relationshipGateway";
 import { createHoidEvidenceAnswerFromRelationshipResult } from "./relationshipPresentation";
+import {
+  createHoidConversationContext,
+  resolveHoidConversationFollowUp,
+  type HoidConversationContext,
+} from "./conversationContext";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
   recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
@@ -23,6 +28,7 @@ export type HoidConversationGatewayResult =
   | Readonly<{
       status: "ready";
       answer: HoidEvidenceAnswer;
+      conversationContext?: HoidConversationContext;
       progressRevision: number;
       progressFingerprint: string;
     }>
@@ -35,7 +41,10 @@ export type HoidConversationGatewayResult =
         | "runtime-failed"
         | "entity-blocked"
         | "entity-ambiguous"
-        | "entity-unavailable";
+        | "entity-unavailable"
+        | "context-ambiguous"
+        | "context-unavailable"
+        | "context-stale";
     }>;
 
 export type HoidConversationRecommendationResult =
@@ -78,7 +87,7 @@ export type HoidConversationGatewayConfig = Readonly<{
   relationshipGateway?: Pick<HoidRelationshipGateway, "answer"> | null;
 }>;
 
-const REQUEST_KEYS = ["question", "progress", "intent"] as const;
+const REQUEST_KEYS = ["question", "progress", "intent", "context"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
 const CONTEXT_KEYS = ["progress"] as const;
 const MAX_QUESTION_LENGTH = 4_000;
@@ -89,6 +98,7 @@ function canonicalRequest(value: unknown): Readonly<{
   question: string;
   progress: unknown;
   intent: HoidClaimIntent;
+  context?: unknown;
 }> | null {
   const record = canonicalDataRecord(value, REQUEST_KEYS, ["question", "progress"]);
   if (!record) return null;
@@ -110,6 +120,7 @@ function canonicalRequest(value: unknown): Readonly<{
     question,
     progress: record.progress,
     intent,
+    ...(Object.prototype.hasOwnProperty.call(record, "context") ? { context: record.context } : {}),
   });
 }
 
@@ -405,9 +416,23 @@ export class HoidConversationGateway {
       return unavailable("progress-changed");
     }
 
-    // Explicit relationship questions use only the local reviewed graph. They never
-    // fall through to the general claim selector when a graph edge is unavailable.
-    if (isHoidRelationshipQuestion(request.question)) {
+    const followUp = resolveHoidConversationFollowUp(
+      request.question,
+      request.context,
+      requestedProgress,
+    );
+    if (followUp.status === "unavailable") {
+      if (followUp.reason === "ambiguous-reference") return unavailable("context-ambiguous");
+      if (followUp.reason === "stale-context") return unavailable("context-stale");
+      if (followUp.reason === "invalid-progress") return unavailable("invalid-progress");
+      if (followUp.reason === "invalid-question") return unavailable("invalid-request");
+      return unavailable("context-unavailable");
+    }
+
+    // Explicit relationship questions and narrowly recognized group follow-ups
+    // use only the local reviewed graph. They never fall through to a general
+    // selector when a referent or graph edge is unavailable.
+    if (isHoidRelationshipQuestion(request.question) || followUp.status === "resolved") {
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");
 
@@ -416,6 +441,7 @@ export class HoidConversationGateway {
         relationshipResult = relationshipGateway.answer({
           question: request.question,
           progress: request.progress,
+          ...(followUp.status === "resolved" ? { entityIds: followUp.entityIds } : {}),
         });
       } catch {
         return unavailable("entity-unavailable");
@@ -435,7 +461,12 @@ export class HoidConversationGateway {
       ) return unavailable("invalid-progress");
 
       const relationshipAnswer = createHoidEvidenceAnswerFromRelationshipResult(
-        relationshipResult,
+        {
+          status: relationshipResult.status,
+          explanation: relationshipResult.explanation,
+          progressRevision: relationshipResult.progressRevision,
+          progressFingerprint: relationshipResult.progressFingerprint,
+        },
         request.progress,
       );
       if (!relationshipAnswer) return unavailable("entity-unavailable");
@@ -452,9 +483,16 @@ export class HoidConversationGateway {
         return unavailable("progress-changed");
       }
 
+      const conversationContext = createHoidConversationContext(
+        relationshipResult.entityIds,
+        requestedProgress,
+      );
+      if (!conversationContext) return unavailable("entity-unavailable");
+
       return Object.freeze({
         status: "ready",
         answer: relationshipAnswer,
+        conversationContext,
         progressRevision: requestedProgress.revision,
         progressFingerprint: requestedProgress.fingerprint,
       });

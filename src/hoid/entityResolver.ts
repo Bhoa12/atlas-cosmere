@@ -757,3 +757,114 @@ export function resolveProductionHoidEntityMentions(
     questionInput,
   );
 }
+
+
+function unavailableMention(
+  reason: "invalid-question" | "invalid-progress" | "invalid-knowledge",
+): HoidEntityMentionResolutionResult {
+  return Object.freeze({ status: "unavailable", reason });
+}
+
+function resolveEntityIds(
+  knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
+  progressInput: unknown,
+  entityIdsInput: unknown,
+): HoidEntityMentionResolutionResult {
+  const requestedIds = canonicalDenseArray(entityIdsInput, 2, 4);
+  if (!requestedIds) return unavailableMention("invalid-question");
+
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const rawId of requestedIds) {
+    if (
+      typeof rawId !== "string" ||
+      !ID_PATTERN.test(rawId) ||
+      seen.has(rawId)
+    ) return unavailableMention("invalid-question");
+    seen.add(rawId);
+    ids.push(rawId);
+  }
+
+  const knowledge = canonicalKnowledge(knowledgeInput);
+  if (!knowledge) return unavailableMention("invalid-knowledge");
+  const aliasRecords = canonicalAliasRecords(aliasEvidenceInput, knowledge);
+  if (!aliasRecords) return unavailableMention("invalid-knowledge");
+
+  const projection = projectHoidCursorProgressSnapshot(progressInput);
+  if (projection.status !== "ready") return unavailableMention("invalid-progress");
+
+  const reading = [...projection.reading];
+  const catalog = new HoidKnowledgeCatalog([...knowledge]);
+  const safeEntries = catalog.entriesForContext(reading)
+    .filter(entry => isEvidenceUnlocked(entry, reading));
+  const safeById = new Map(safeEntries.map(entry => [entry.id, entry]));
+  const matches: HoidResolvedEntity[] = [];
+
+  for (const id of ids) {
+    const entity = safeById.get(id);
+    if (!entity) return Object.freeze({ status: "blocked" });
+
+    const disclosedAliases = aliasRecords
+      .filter(record =>
+        record.entityId === id &&
+        record.evidence.every(item => aliasEvidenceIsUnlocked(item, reading))
+      )
+      .sort((left, right) =>
+        left.alias < right.alias ? -1 : left.alias > right.alias ? 1 : 0
+      );
+    const selectedAlias = disclosedAliases[0];
+    if (!selectedAlias) return Object.freeze({ status: "blocked" });
+
+    const entitySource = sourceForEntry(entity);
+    if (!entitySource) return unavailableMention("invalid-knowledge");
+
+    matches.push(Object.freeze({
+      id: entity.id,
+      kind: entity.kind,
+      matchedAlias: selectedAlias.alias,
+      entitySource,
+      aliasEvidence: Object.freeze(selectedAlias.evidence.map(item => Object.freeze({
+        evidenceId: item.id,
+        source: item.source,
+      }))),
+    }));
+  }
+
+  return Object.freeze({
+    status: "ready",
+    resolution: "matched",
+    progressRevision: projection.revision,
+    progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+    matches: Object.freeze(matches),
+    truncated: false,
+  });
+}
+
+/** Revalidate canonical IDs against the current production knowledge and alias disclosure registries. */
+export function resolveProductionHoidEntityIds(
+  progressInput: unknown,
+  entityIdsInput: unknown,
+): HoidEntityMentionResolutionResult {
+  return resolveEntityIds(
+    HOID_EDITORIAL_KNOWLEDGE,
+    HOID_ENTITY_ALIAS_EVIDENCE,
+    progressInput,
+    entityIdsInput,
+  );
+}
+
+/** Generic ID-only revalidation seam for controlled composition and tests. */
+export function resolveHoidAuthorizedEntityIds(
+  knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
+  progressInput: unknown,
+  entityIdsInput: unknown,
+): HoidEntityMentionResolutionResult {
+  return resolveEntityIds(
+    knowledgeInput,
+    aliasEvidenceInput,
+    progressInput,
+    entityIdsInput,
+  );
+}

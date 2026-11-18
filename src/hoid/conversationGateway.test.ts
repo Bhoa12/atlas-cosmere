@@ -8,6 +8,7 @@ import { createHoidReadingCursor } from "./readingManifest";
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidEditorialRuntime } from "./editorialRegistry";
+import { createHoidConversationContext } from "./conversationContext";
 
 const UPDATED_AT = "2026-11-17T14:00:00.000Z";
 
@@ -623,4 +624,129 @@ describe("HoidConversationGateway", () => {
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
+});
+
+describe("Hoid spoiler-safe conversational follow-ups", () => {
+  function contextFor(progress: unknown) {
+    const projection = projectHoidCursorProgressSnapshot(progress);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const context = createHoidConversationContext(
+      ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      },
+    );
+    if (!context) throw new Error("Contexto sintético no disponible");
+    return context;
+  }
+
+  it("routes an explicit group follow-up through the graph with only prior canonical IDs", async () => {
+    const current = snapshot(3);
+    const relationshipGateway = {
+      answer: vi.fn(() => ({ status: "unavailable" as const, reason: "entity-ambiguous" as const })),
+    };
+    const runtime = { answer: vi.fn(async () => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context: contextFor(current),
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
+    expect(relationshipGateway.answer).toHaveBeenCalledWith({
+      question: "¿Y entre ellos?",
+      progress: current,
+      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
+    });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("blocks singular pronouns instead of guessing which prior entity they name", async () => {
+    const current = snapshot(3);
+    const relationshipGateway = { answer: vi.fn() };
+    const runtime = { answer: vi.fn(async () => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y ella?",
+      progress: current,
+      context: contextFor(current),
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "context-ambiguous" });
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("blocks a group follow-up when the stored progress fingerprint is stale", async () => {
+    const oldProgress = snapshot(3);
+    const current = snapshot(4);
+    const relationshipGateway = { answer: vi.fn() };
+    const runtime = { answer: vi.fn(async () => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context: contextFor(oldProgress),
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "context-stale" });
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("does not send a group follow-up to the general runtime when context is missing", async () => {
+    const current = snapshot(3);
+    const runtime = { answer: vi.fn(async () => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+    })).toEqual({ status: "unavailable", reason: "context-unavailable" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("does not pass an old context to an unrelated new question", async () => {
+    const current = snapshot(3);
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Qué información está autorizada?",
+      progress: current,
+      context: contextFor(current),
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledTimes(1);
+    expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
+  });
 });

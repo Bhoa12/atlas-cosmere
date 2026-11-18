@@ -112,6 +112,7 @@ function readyExplanation(progress: unknown, text = "Afirmación editorial sint�
 function setup(options?: {
   initial?: unknown;
   resolver?: (progress: unknown, question: string) => HoidEntityMentionResolutionResult;
+  resolveEntityIds?: (progress: unknown, entityIds: readonly string[]) => HoidEntityMentionResolutionResult;
   explain?: (input: unknown) => HoidExplanationGatewayResult;
   current?: () => unknown;
 }) {
@@ -129,6 +130,7 @@ function setup(options?: {
     getCurrentProgress: options?.current ?? (() => current),
     explanationGateway: { explain },
     resolveEntities: resolver,
+    ...(options?.resolveEntityIds ? { resolveEntityIds: options.resolveEntityIds } : {}),
   };
   const gateway = createHoidRelationshipGateway(config);
   if (!gateway) throw new Error("No se pudo crear el gateway sintético");
@@ -427,4 +429,51 @@ describe("HoidRelationshipGateway", () => {
     })).toEqual({ status: "unavailable", reason: "progress-changed" });
   });
 
+});
+
+
+describe("HoidRelationshipGateway ID-only follow-up revalidation", () => {
+  it("revalidates the exact prior entity IDs and preserves their order", () => {
+    const progress = snapshot();
+    const requestedIds = ["kelsier", "vin"];
+    const resolveEntityIds = vi.fn((value: unknown, ids: readonly string[]) =>
+      mentionResult(value, ids.map(id => entity(id, id === "vin" ? "Vin" : "Kelsier")))
+    );
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolveEntityIds,
+    });
+
+    const result = gateway.answer({
+      question: "¿Y entre ellos?",
+      progress,
+      entityIds: requestedIds,
+    });
+
+    expect(resolveEntityIds).toHaveBeenCalledWith(progress, requestedIds);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.entityIds).toEqual(requestedIds);
+    expect(explain).toHaveBeenCalledTimes(1);
+    expect(explain.mock.calls[0][0]).toMatchObject({
+      query: { fromId: "kelsier", toId: "vin" },
+    });
+  });
+
+  it("rejects a resolver result whose IDs do not match the supplied context", () => {
+    const progress = snapshot();
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolveEntityIds: value => mentionResult(value, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+      ]),
+    });
+    expect(gateway.answer({
+      question: "¿Y entre ellos?",
+      progress,
+      entityIds: ["kelsier", "vin"],
+    })).toEqual({ status: "unavailable", reason: "entity-unavailable" });
+    expect(explain).not.toHaveBeenCalled();
+  });
 });

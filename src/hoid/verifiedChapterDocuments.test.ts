@@ -152,7 +152,7 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      8,
+      9,
     )).toBeNull();
     expect(getVerifiedChapterDocumentCount("twok")).toBe(8);
     expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);

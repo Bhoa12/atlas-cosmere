@@ -28,7 +28,7 @@ describe("Hoid complete editorial knowledge bundle", () => {
     expect(first.manifest.records.filter(item => item.kind === "atomic-claim")).toHaveLength(1);
     expect(first.manifest.records.filter(item => item.kind === "entity")).toHaveLength(14);
     expect(first.manifest.records.filter(item => item.kind === "relationship")).toHaveLength(3);
-    expect(first.manifest.sources).toHaveLength(26);
+    expect(first.manifest.sources).toHaveLength(29);
     expect(first.manifest.blockers).toEqual([]);
     expect(first.manifest.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(first.promotionAllowed).toBe(false);

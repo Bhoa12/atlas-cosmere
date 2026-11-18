@@ -51,11 +51,19 @@ describe("Hoid spoiler-safe conversation context", () => {
       status: "resolved",
       entityIds: ids,
     });
+    expect(resolveHoidConversationFollowUp("¿Y el vínculo entre ellos?", context, scope)).toEqual({
+      status: "resolved",
+      entityIds: ids,
+    });
   });
 
   it("rejects singular pronouns rather than guessing grammatical gender or identity", () => {
     const context = createHoidConversationContext(ids, scope);
     expect(resolveHoidConversationFollowUp("¿Y ella?", context, scope)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-reference",
+    });
+    expect(resolveHoidConversationFollowUp("¿Y él?", context, scope)).toEqual({
       status: "unavailable",
       reason: "ambiguous-reference",
     });

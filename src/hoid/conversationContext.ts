@@ -44,14 +44,11 @@ const SAFE_RELATIONSHIP_FOLLOW_UP_CUES = Object.freeze([
   "y el vinculo entre ellos",
   "y el vinculo entre ambos",
   "y el vinculo entre los dos",
-  "y su relacion",
-  "y su conexion",
   "y que los une",
 ]);
 
 const AMBIGUOUS_FOLLOW_UP_CUES = Object.freeze([
   "y ella",
-  "y el",
   "y con ella",
   "y con el",
   "y de ella",
@@ -60,6 +57,10 @@ const AMBIGUOUS_FOLLOW_UP_CUES = Object.freeze([
   "y que sabes de el",
   "y que pasa con ella",
   "y que pasa con el",
+  "y como se relaciona con ella",
+  "y como se relaciona con el",
+  "y que relacion tiene con ella",
+  "y que relacion tiene con el",
   "y el otro",
   "y la otra",
   "y esa persona",
@@ -241,7 +242,8 @@ export function resolveHoidConversationFollowUp(
   }
   if (!normalized) return Object.freeze({ status: "unavailable", reason: "invalid-question" });
 
-  const ambiguous = AMBIGUOUS_FOLLOW_UP_CUES.some(cue => containsCue(normalized, cue));
+  const ambiguous = normalized === "y el" ||
+    AMBIGUOUS_FOLLOW_UP_CUES.some(cue => containsCue(normalized, cue));
   const safeRelationshipFollowUp = SAFE_RELATIONSHIP_FOLLOW_UP_CUES.some(
     cue => containsCue(normalized, cue),
   );

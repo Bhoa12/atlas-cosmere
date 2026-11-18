@@ -215,9 +215,9 @@ function assignmentMatchesAnswer(
   assignment: HoidTopicAssignment,
   answer: unknown,
   progress: unknown,
-  approvedEvidence: readonly HoidPresentedCitation[],
+  approvedEvidence: readonly HoidEvidenceCitation[],
 ): HoidTopicRecommendationMatch | null | "invalid" {
-  let presentation;
+  let presentation: ReturnType<typeof presentHoidEvidenceAnswer>;
   try {
     presentation = presentHoidEvidenceAnswer(answer as HoidEvidenceAnswer, progress);
   } catch {

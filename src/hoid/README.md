@@ -518,3 +518,10 @@ HoidScreen now exposes the closed topic taxonomy as explicit selectable interest
 `HoidEvidenceRuntime.renderApprovedClaimById()` renders one exact local claim with intent `recommend` by canonical ID. It bypasses the selector entirely and requires every evidence entry to be verified, eligible for context and unlocked in its own source work. The result carries one immutable segment and reconstructed citations.
 
 `topicApprovedClaimAnswerPort.ts` adapts this method to the explicit-topic recommendation gateway. It accepts only dense, unique canonical claim IDs and returns only exact authorized answers. HoidScreen now wires this local port into the gateway; there is no external provider fallback. The production topic-assignment registry remains empty, so this wiring does not activate recommendations until reviewed assignments exist. See `docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md`.
+
+
+## Run 141 — cursor-native topic recommendation assurance
+
+The explicit-topic gateway passes the authoritative SQLite v2 cursor snapshot to its local approved-claim answer port. The port validates that snapshot with projectHoidCursorProgressSnapshot() and passes only the completed-through ReadingPosition[] projection to HoidEvidenceRuntime.renderApprovedClaimById(). The currently open chapter remains locked. The original v2 snapshot is retained for final source-aware presentation and recommendation composition, so the same edition-bound cursor boundary governs the entire path.
+
+The Run 140 integration test exposed that the adapter forwarded the v2 snapshot directly to a runtime method expecting legacy ReadingPosition[] values. Run 141 corrects the adapter and adds synthetic end-to-end coverage for exact claim rendering, final citations, cross-book AND authorization, open-chapter semantics and malformed snapshots. Production topic assignments remain empty; synthetic records are test-only. See docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md.

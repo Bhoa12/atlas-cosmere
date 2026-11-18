@@ -56,3 +56,8 @@ The explicit-topic workflow runs:
 - strict TypeScript checks including the local port, evidence runtime and `HoidScreen.tsx`.
 
 All fixtures are synthetic original editorial statements. No private EPUB/XHTML body, protected passage, or reading-progress mutation is included.
+
+
+## Run 141 — cursor-native adapter correction
+
+The recommendation gateway supplies the authoritative SQLite v2 cursor snapshot. The local adapter now validates it through projectHoidCursorProgressSnapshot() and passes only the completed-through ReadingPosition[] projection to renderApprovedClaimById(). The original v2 snapshot remains the input to final answer presentation and recommendation composition. An open chapter is never considered completed. Synthetic tests exercise exact rendering, citation presentation, cross-book AND authorization and malformed cursor rejection. See CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md.

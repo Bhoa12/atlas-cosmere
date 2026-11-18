@@ -13,6 +13,15 @@ on:
       - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/topicRecommendations.ts"
       - "src/hoid/topicRecommendations.test.ts"
       - "src/hoid/topicTaxonomy.ts"
@@ -20,6 +29,7 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/EXPLICIT_TOPIC_INTERESTS.md"
       - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
+      - "docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
   pull_request:
@@ -32,6 +42,15 @@ on:
       - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/topicRecommendations.ts"
       - "src/hoid/topicRecommendations.test.ts"
       - "src/hoid/topicTaxonomy.ts"
@@ -39,6 +58,7 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/EXPLICIT_TOPIC_INTERESTS.md"
       - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
+      - "docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
 
@@ -57,13 +77,15 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test explicit interests, recommendation safety and graph ordering
+      - name: Test cursor-native topic rendering and recommendation safety
         run: >-
           npx vitest run
           src/hoid/topicInterestContext.test.ts
           src/hoid/topicInterestRecommendationsGateway.test.ts
           src/hoid/topicApprovedClaimAnswerPort.test.ts
           src/hoid/evidenceRuntime.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+          src/hoid/answerPresentation.test.ts
           src/hoid/topicRecommendations.test.ts
           src/hoid/topicTaxonomy.test.ts
           src/hoid/knowledgeGraph.test.ts
@@ -75,6 +97,8 @@ jobs:
           src/hoid/topicInterestRecommendationsGateway.ts
           src/hoid/topicApprovedClaimAnswerPort.ts
           src/hoid/evidenceRuntime.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/answerPresentation.ts
           src/hoid/topicRecommendations.ts
           src/hoid/topicTaxonomy.ts
           src/hoid/knowledgeGraph.ts

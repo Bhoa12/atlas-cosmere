@@ -37,3 +37,8 @@ The source-controlled production topic-assignment registry is still empty. There
 Run 140 adds `topicApprovedClaimAnswerPort.ts` and a selector-free `HoidEvidenceRuntime.renderApprovedClaimById()` path. The assignment registry selects exact approved claim IDs; the runtime returns only the corresponding local recommendation claim when every evidence item is verified, in context and unlocked in its own source work. The result includes one immutable claim segment and exact citations. No language selector or external provider is invoked.
 
 HoidScreen injects this local port into the topic-interest gateway. The production assignment registry remains empty, so no topic recommendation is activated until an independently reviewed assignment and its approved claim/evidence records exist. See `LOCAL_APPROVED_CLAIM_RENDERING.md`.
+
+
+## Run 141 — cursor-native local answer port
+
+The public answer-port boundary receives the authoritative SQLite v2 cursor snapshot. It validates the snapshot with projectHoidCursorProgressSnapshot() and passes only the completed-through ReadingPosition[] projection to the evidence runtime. The original v2 snapshot is retained for final source-aware presentation and recommendation composition. This fixes the Run 140 shape mismatch without weakening chapter boundaries or adding a provider fallback. See LOCAL_APPROVED_CLAIM_RENDERING.md and CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md.

@@ -97,6 +97,7 @@ function approvedKnowledge(pairs: readonly { claimId: string; answer: ReturnType
     for (const source of pair.answer.sources) {
       byId.set(source.evidenceId, {
         id: source.evidenceId,
+        kind: "concept",
         provenance: "verified",
         summary: pair.answer.text,
         evidenceSource: {

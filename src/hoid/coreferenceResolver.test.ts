@@ -237,8 +237,8 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
 
   it("rejects malformed progress and invalid reviewer metadata", () => {
     const reading = { schemaVersion: 1, revision: 0, positions: [], updatedAt: null };
-    expect(resolve("¿Y ella?", reading, []).status).toBe("unavailable");
     const valid = progress([{ bookId: "twok", chapter: 2 }]);
+    expect(resolve("¿Y ella?", reading, [], contextFor(valid)).status).toBe("unavailable");
     const invalidReview = {
       ...record("synthetic.coref.bad-review", "synthetic.entity-b", "ella"),
       review: { status: "approved", origin: "provider", reviewerId: "x", reviewedAt: NOW },

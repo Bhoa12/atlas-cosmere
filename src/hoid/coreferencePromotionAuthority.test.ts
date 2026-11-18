@@ -265,6 +265,7 @@ describe("Hoid coreference promotion authority", () => {
     const changed = [record(), {
       ...record(),
       id: "synthetic.coref.beta",
+      entityId: "synthetic.entity-beta",
       evidence: [{
         ...record().evidence[0],
         id: "synthetic.coref-evidence-beta",

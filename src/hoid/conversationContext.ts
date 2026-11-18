@@ -242,8 +242,8 @@ export function validateHoidConversationContext(
 
 /**
  * Resolves only explicit group-level relationship follow-ups. Singular
- * pronouns and demonstratives are deliberately treated as ambiguous because
- * the entity registry does not carry reviewed grammatical-gender/coreference metadata.
+ * pronouns are handled by the separate source-reviewed coreference resolver;
+ * this broad group-level path never guesses a singular referent.
  */
 export function resolveHoidConversationFollowUp(
   questionInput: unknown,

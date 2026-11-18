@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createHoidConversationContext,
   resolveHoidConversationFollowUp,
+  validateHoidConversationContext,
 } from "./conversationContext";
 
 const scope = Object.freeze({ revision: 7, fingerprint: "a".repeat(64) });
@@ -115,25 +116,19 @@ describe("Hoid spoiler-safe conversation context", () => {
     )).toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
   it("validates an ID-only context independently of a follow-up phrase", () => {
-    const reading = progress();
-    const context = createHoidConversationContext(
-      ["synthetic.entity-a", "synthetic.entity-b"],
-      identity(reading),
-    );
-    expect(validateHoidConversationContext(context, identity(reading))).toEqual({
+    const context = createHoidConversationContext(ids, scope);
+    expect(validateHoidConversationContext(context, scope)).toEqual({
       status: "resolved",
-      entityIds: ["synthetic.entity-a", "synthetic.entity-b"],
+      entityIds: ids,
     });
   });
 
   it("rejects an ID-only context after the authoritative progress fingerprint changes", () => {
-    const oldReading = progress();
-    const context = createHoidConversationContext(
-      ["synthetic.entity-a", "synthetic.entity-b"],
-      identity(oldReading),
-    );
-    const changed = progress(2);
-    expect(validateHoidConversationContext(context, identity(changed))).toEqual({
+    const context = createHoidConversationContext(ids, scope);
+    expect(validateHoidConversationContext(context, {
+      revision: 8,
+      fingerprint: "b".repeat(64),
+    })).toEqual({
       status: "unavailable",
       reason: "stale-context",
     });

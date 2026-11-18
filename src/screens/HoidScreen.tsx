@@ -417,7 +417,7 @@ export const HoidScreen: React.FC = () => {
         setTopicRecommendations(result.items);
         setTopicRecommendationRevision(result.progressRevision);
         setTopicRecommendationFingerprint(result.progressFingerprint);
-        setTopicRecommendationSelectionKey(JSON.stringify(selectedTopicIds));
+        setTopicRecommendationSelectionKey(selectedTopicIds.join('\n'));
         setTopicRecommendationMessage(
           result.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'
@@ -460,7 +460,7 @@ export const HoidScreen: React.FC = () => {
     liveProgressScope !== null &&
     topicRecommendationRevision === liveProgressScope.revision &&
     topicRecommendationFingerprint === liveProgressScope.fingerprint &&
-    topicRecommendationSelectionKey === JSON.stringify(selectedTopicIds);
+    topicRecommendationSelectionKey === selectedTopicIds.join('\n');
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>

@@ -91,6 +91,33 @@ function approvedClaims(pairs: readonly { claimId: string; answer: ReturnType<ty
   return [...byId.values()];
 }
 
+function approvedKnowledge(pairs: readonly { claimId: string; answer: ReturnType<typeof answer> }[]) {
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const pair of pairs) {
+    for (const source of pair.answer.sources) {
+      byId.set(source.evidenceId, {
+        id: source.evidenceId,
+        provenance: "verified",
+        summary: pair.answer.text,
+        evidenceSource: {
+          bookId: source.sourceBookId,
+          chapter: source.sourceChapter,
+          locatorId: source.locatorId,
+        },
+        evidenceUnlock: {
+          bookId: source.unlockBookId,
+          chapter: source.unlockChapter,
+        },
+        firstSafeAppearance: {
+          bookId: source.sourceBookId,
+          chapter: source.sourceChapter,
+        },
+      });
+    }
+  }
+  return [...byId.values()];
+}
+
 describe("Hoid topic-aware safe recommendations", () => {
   it("recommends an unstarted work only when its reviewed association is supported by unlocked evidence elsewhere", () => {
     const text = "Asociación temática sintética respaldada por una fuente ya leída.";
@@ -103,6 +130,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
       approvedClaims(pairs),
+      approvedKnowledge(pairs),
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -122,6 +150,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
       approvedClaims(pairs),
+      approvedKnowledge(pairs),
     );
     expect(result).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
   });
@@ -137,6 +166,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text, "tfe")],
       approvedClaims(pairs),
+      approvedKnowledge(pairs),
     );
     expect(result).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
   });
@@ -152,6 +182,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
       approvedClaims(pairs),
+      approvedKnowledge(pairs),
     );
     expect(result).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
   });
@@ -175,6 +206,7 @@ describe("Hoid topic-aware safe recommendations", () => {
         assignment("elantris", "investiture-system", "mechanism", secondId, secondText),
       ],
       approvedClaims(pairs),
+      approvedKnowledge(pairs),
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -221,6 +253,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [mismatched],
       approvedClaims(singlePair),
+      approvedKnowledge(singlePair),
     )).toEqual({ status: "invalid", reason: "invalid-assignments" });
   });
 
@@ -236,6 +269,7 @@ describe("Hoid topic-aware safe recommendations", () => {
       5,
       [assignment("tfe", "investiture-system", "mechanism", claimId, approvedText)],
       [{ id: claimId, text: approvedText, evidenceIds: ["evidence." + claimId] }],
+      approvedKnowledge(pairs),
     )).toEqual({ status: "invalid", reason: "invalid-answers" });
   });
 

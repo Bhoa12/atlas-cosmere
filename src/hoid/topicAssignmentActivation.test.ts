@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { getHoidReadingManifest } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { sha256Hex } from "./sha256";
 import {
   authorizeHoidTopicAssignmentActivation,
   buildHoidTopicAssignmentActivationReceipt,
   HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT,
   HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT_PATH,
-  HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
   resolveHoidTopicAssignmentsForActivation,
   resolveProductionHoidTopicAssignments,
   validateHoidTopicAssignmentActivationReceipt,
 } from "./topicAssignmentActivation";
-import { fingerprintHoidTopicAssignmentRegistry } from "./topicAssignmentPromotionAuthority";
+import {
+  buildHoidTopicAssignmentPromotionPlan,
+  fingerprintHoidTopicAssignmentRegistry,
+  HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
+} from "./topicAssignmentPromotionAuthority";
 
 const CLAIM_TEXT = "Afirmación editorial sintética para probar la activación temática.";
 const REVIEWED_AT = "2026-11-18T11:00:00.000Z";
@@ -72,12 +75,84 @@ function registry() {
   return result;
 }
 
+function cursor(bookId: string, chapter: number) {
+  const result = createHoidReadingCursor(bookId, chapter);
+  if (result.status !== "ready") throw new Error("Cursor sintético no disponible");
+  return result.cursor;
+}
+
+function progress() {
+  return {
+    schemaVersion: 2,
+    revision: 8,
+    positions: [{ bookId: "tfe", cursor: cursor("tfe", 3) }],
+    updatedAt: "2026-11-18T12:00:00.000Z",
+  };
+}
+
+function promotionPlan() {
+  const result = buildHoidTopicAssignmentPromotionPlan([assignment()], progress(), approvedClaims, approvedKnowledge);
+  if (result.status !== "ready") throw new Error("Plan sintético no disponible");
+  return result.plan;
+}
+
+function reviewRequest(planFingerprint: string) {
+  return {
+    schemaVersion: 1,
+    repositoryFullName: "Bhoa12/atlas-cosmere",
+    pullRequestNumber: 142,
+    expectedBaseRef: "main",
+    expectedHeadRef: "feat/hoid-ia-core-run142",
+    expectedHeadSha: "a".repeat(40),
+    promotionManifestPath: HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
+    minimumApprovals: 1,
+    requireCodeOwnerReview: false,
+    requireDismissStaleReviews: true,
+    requireEnforcedAdmins: true,
+  };
+}
+
+function protectedReviewSnapshot(planFingerprint: string, reviewerId = "reviewer-1") {
+  return {
+    schemaVersion: 1,
+    repositoryFullName: "Bhoa12/atlas-cosmere",
+    pullRequestNumber: 142,
+    state: "open",
+    draft: false,
+    baseRef: "main",
+    headRef: "feat/hoid-ia-core-run142",
+    headSha: "a".repeat(40),
+    authorId: "author-1",
+    promotionManifestPath: HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
+    promotionPlanFingerprint: planFingerprint,
+    verifiedAt: "2026-11-18T12:00:00.000Z",
+    branchProtection: {
+      status: "verified",
+      requiredApprovingReviewCount: 1,
+      requireCodeOwnerReview: false,
+      dismissStaleReviews: true,
+      enforceAdmins: true,
+    },
+    reviews: [{
+      reviewId: "review-1",
+      reviewerId,
+      state: "APPROVED",
+      commitSha: "a".repeat(40),
+      submittedAt: "2026-11-18T11:59:00.000Z",
+      dismissed: false,
+      isCodeOwner: false,
+    }],
+  };
+}
+
 function authorization(overrides: Record<string, unknown> = {}) {
   const current = registry();
   return {
     status: "ready-for-maintainer-commit",
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 142,
+    baseRef: "main",
+    headRef: "feat/hoid-ia-core-run142",
     headSha: "a".repeat(40),
     promotionPlanFingerprint: "b".repeat(64),
     assignmentFingerprint: current.assignmentFingerprint,
@@ -250,16 +325,26 @@ describe("Hoid topic assignment activation", () => {
     expect(result.receipt.receiptFingerprint).toBe(receipt.receiptFingerprint);
   });
 
-  it("uses a read-only merged-review port and never writes production", async () => {
+  it("runs protected pre-merge review and post-merge verification without writing production", async () => {
+    const plan = promotionPlan();
+    const progressPort = { readAuthoritativeProgressSnapshot: async () => progress() };
+    const sourceControlPort = {
+      fetchProtectedReviewSnapshot: async () => protectedReviewSnapshot(plan.fingerprint),
+    };
     const result = await authorizeHoidTopicAssignmentActivation(
-      authorization(),
+      plan,
+      [assignment()],
+      reviewRequest(plan.fingerprint),
+      sourceControlPort,
+      progressPort,
       { fetchMergedPromotionSnapshot: async request => {
         expect(request.targetBranch).toBe("main");
+        expect(request.expectedBaseRef).toBe("main");
+        expect(request.expectedHeadRef).toBe("feat/hoid-ia-core-run142");
         expect(request.expectedHeadSha).toBe("a".repeat(40));
         expect(request.promotionManifestPath).toBe(HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH);
         return mergedSnapshot();
       } },
-      [assignment()],
       approvedClaims,
       approvedKnowledge,
     );
@@ -269,11 +354,35 @@ describe("Hoid topic assignment activation", () => {
     }
   });
 
-  it("fails closed when the merge adapter is missing or unavailable", async () => {
-    expect(await authorizeHoidTopicAssignmentActivation(
-      authorization(),
-      {},
+  it("does not query the merged PR when pre-merge protected review is insufficient", async () => {
+    const plan = promotionPlan();
+    let mergeCalled = false;
+    const result = await authorizeHoidTopicAssignmentActivation(
+      plan,
       [assignment()],
+      reviewRequest(plan.fingerprint),
+      { fetchProtectedReviewSnapshot: async () => protectedReviewSnapshot(plan.fingerprint, "reviewer-2") },
+      { readAuthoritativeProgressSnapshot: async () => progress() },
+      { fetchMergedPromotionSnapshot: async () => { mergeCalled = true; return mergedSnapshot(); } },
+      approvedClaims,
+      approvedKnowledge,
+    );
+    expect(result.status).toBe("blocked");
+    if (result.status === "blocked") expect(result.reason).toBe("pre-merge-review-not-satisfied");
+    expect(mergeCalled).toBe(false);
+  });
+
+  it("fails closed when the merge adapter is missing or unavailable", async () => {
+    const plan = promotionPlan();
+    const sourceControlPort = { fetchProtectedReviewSnapshot: async () => protectedReviewSnapshot(plan.fingerprint) };
+    const progressPort = { readAuthoritativeProgressSnapshot: async () => progress() };
+    expect(await authorizeHoidTopicAssignmentActivation(
+      plan,
+      [assignment()],
+      reviewRequest(plan.fingerprint),
+      sourceControlPort,
+      progressPort,
+      {},
       approvedClaims,
       approvedKnowledge,
     )).toEqual({
@@ -283,9 +392,12 @@ describe("Hoid topic assignment activation", () => {
     });
 
     expect(await authorizeHoidTopicAssignmentActivation(
-      authorization(),
-      { fetchMergedPromotionSnapshot: async () => { throw new Error("offline"); } },
+      plan,
       [assignment()],
+      reviewRequest(plan.fingerprint),
+      sourceControlPort,
+      progressPort,
+      { fetchMergedPromotionSnapshot: async () => { throw new Error("offline"); } },
       approvedClaims,
       approvedKnowledge,
     )).toEqual({

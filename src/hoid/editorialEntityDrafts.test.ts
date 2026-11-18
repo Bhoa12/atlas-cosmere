@@ -111,6 +111,19 @@ describe("Hoid editorial entity identity staging", () => {
     expect(HOID_EDITORIAL_ENTITY_DRAFTS.every(item => !("aliases" in item))).toBe(true);
   });
 
+  it("accepts phenomenon as a distinct staged entity kind without promoting it", () => {
+    const source = HOID_EDITORIAL_ENTITY_DRAFTS[0];
+    const candidate = createHoidEditorialEntityDraft({
+      id: "synthetic.phenomenon",
+      kind: "phenomenon",
+      identity: { status: "resolved", canonicalLabel: "Fenómeno sintético" },
+      evidence: source.evidence,
+    });
+    expect(candidate.status).toBe("valid");
+    if (candidate.status === "valid") expect(candidate.draft.kind).toBe("phenomenon");
+    expect(getHoidEditorialRegistryStatus()).toBe("empty");
+  });
+
   it("uses previously verified TFE chapter-one and chapter-two documents for Vin and Kelsier identities", () => {
     const vin = HOID_EDITORIAL_ENTITY_DRAFTS.find(item => item.id === "tfe.vin");
     const kelsier = HOID_EDITORIAL_ENTITY_DRAFTS.find(item => item.id === "tfe.kelsier");

@@ -1,36 +1,63 @@
-# Run 141 — cursor-native approved-claim rendering and recommendation assurance
+# Run 140 — local approved-claim rendering for topic recommendations
 
-## Defect found in Run 140
+## Purpose
 
-The explicit-topic gateway passes the authoritative SQLite v2 cursor snapshot to its local answer port. HoidEvidenceRuntime.renderApprovedClaimById() intentionally accepts the legacy, normalized ReadingPosition[] contract used by the evidence core. Run 140 forwarded the v2 snapshot directly, so the runtime rejected it. Its first CI run exposed a second symptom: the presentation test passed a legacy reading array to presentHoidEvidenceAnswer(), although that boundary requires the authoritative v2 cursor snapshot.
+Run 139 introduced explicit topic interests and a provider-neutral recommendation gateway, but its optional local answer port was not wired into HoidScreen. Once reviewed topic assignments exist, the UI would therefore abstain with `answers-unavailable`.
 
-## Corrected adapter boundary
+This run supplies a local, selector-free renderer. The approved assignment registry chooses claim IDs; the evidence runtime renders only the exact approved editorial claim associated with each ID.
 
-topicApprovedClaimAnswerPort.ts now:
+## Runtime contract
 
-1. accepts the full SQLite v2 cursor snapshot supplied by the gateway;
-2. calls projectHoidCursorProgressSnapshot() to validate the snapshot against edition manifests;
-3. passes only the projected completed-through ReadingPosition[] to renderApprovedClaimById();
-4. returns only an exact, authorized, one-segment result for the requested claim ID.
+`HoidEvidenceRuntime.renderApprovedClaimById(claimId, reading)`:
 
-The projection preserves the cursor rule: if chapter N is open, only chapters before N are complete. An invalid snapshot, stale edition or unavailable cursor yields an empty result. The original v2 snapshot remains the input to presentHoidEvidenceAnswer() and to the topic recommendation composer.
+- accepts one canonical claim ID and a validated edition-bound reading snapshot;
+- accepts only claims whose intent is `recommend`;
+- requires every evidence ID to resolve to a known knowledge entry;
+- requires every entry to be verified and eligible for context;
+- requires every first-safe-appearance and evidence-unlock threshold to be reached in its own work;
+- reconstructs exact evidence citations from the local knowledge registry;
+- returns one immutable segment containing the exact local claim text and its evidence IDs;
+- never invokes `HoidClaimSelector` or any language provider.
 
-## End-to-end synthetic assurance
+Unknown, malformed, non-recommendation, or locked claims abstain or are rejected. There is no partial rendering of a multi-evidence claim.
 
-The adapter tests now exercise the real boundary shapes and a local recommendation composition path:
+## Answer port
 
-- a v2 snapshot unlocks evidence only after the cursor advances past its unlock chapter;
-- the same v2 snapshot is accepted by final answer presentation;
-- cross-book claims require each source work's own cursor to pass its unlock boundary;
-- the local adapter never invokes the selector;
-- exact claim text, evidence IDs and citations survive recommendation composition;
-- malformed snapshots and non-recommendation claims abstain;
-- the empty production registry remains unchanged.
+`topicApprovedClaimAnswerPort.ts` adapts a local `HoidEvidenceRuntime` to the recommendation gateway's `answerApprovedClaims` port.
 
-All synthetic claims and assignments are original test fixtures. They do not represent Cosmere facts and are never inserted into production registries.
+The adapter accepts only a dense, unique, bounded list of canonical claim IDs. It returns records shaped as `{ claimId, answer }` only when the runtime returns exactly one authorized segment for that same ID.
 
-## Production behavior
+The adapter receives no topic labels, free-text questions, prior conversation context, EPUB bodies, or provider output. It has no network or provider dependency.
 
-The production topic-assignment registry remains empty. The new tests validate the pipeline with injected synthetic registries only; Hoid continues to show a neutral no-reviewed-matches result until authentic assignments and claims pass the protected editorial review process.
+## UI wiring
 
-No external provider fallback is added. No reading progress is changed. No private EPUB/XHTML body, protected passage or image is committed.
+`HoidScreen` creates the local answer port from the same editorial runtime used by the strict conversation path and injects it into `createHoidTopicInterestRecommendationGateway`.
+
+The production topic assignment registry remains empty. Consequently the gateway still returns a neutral no-match result and does not invoke the port today. When assignments are added through the protected editorial workflow, the local port is already available; it will not activate any assignment by itself.
+
+## Regression correction
+
+The gateway distinguishes a missing context from a malformed context:
+
+- absent or `null` context → `context-missing`;
+- present but malformed context → `context-invalid`.
+
+The Run 139 test expectation is updated to match this contract and now tests both cases separately.
+
+## Validation
+
+The explicit-topic workflow runs:
+
+- topic-interest context and gateway tests;
+- local approved-claim answer-port tests;
+- strict evidence-runtime tests;
+- topic recommendation and taxonomy tests;
+- deterministic knowledge-graph tests;
+- strict TypeScript checks including the local port, evidence runtime and `HoidScreen.tsx`.
+
+All fixtures are synthetic original editorial statements. No private EPUB/XHTML body, protected passage, or reading-progress mutation is included.
+
+
+## Run 141 — cursor-native adapter correction
+
+The recommendation gateway supplies the authoritative SQLite v2 cursor snapshot. The local adapter now validates it through projectHoidCursorProgressSnapshot() and passes only the completed-through ReadingPosition[] projection to renderApprovedClaimById(). The original v2 snapshot remains the input to final answer presentation and recommendation composition. An open chapter is never considered completed. Synthetic tests exercise exact rendering, citation presentation, cross-book AND authorization and malformed cursor rejection. See CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md.

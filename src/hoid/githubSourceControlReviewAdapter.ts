@@ -342,11 +342,16 @@ function latestReviews(
     if (reviewIds.has(review.reviewId)) throw new Error("Duplicate GitHub review ID");
     reviewIds.add(review.reviewId);
     const current = latest.get(review.reviewerId);
-    if (
-      !current ||
-      Date.parse(review.submittedAt) > Date.parse(current.submittedAt) ||
-      (review.submittedAt === current.submittedAt && review.reviewId > current.reviewId)
-    ) latest.set(review.reviewerId, review);
+    if (!current) {
+      latest.set(review.reviewerId, review);
+      continue;
+    }
+    const submittedAt = Date.parse(review.submittedAt);
+    const currentSubmittedAt = Date.parse(current.submittedAt);
+    if (submittedAt === currentSubmittedAt) {
+      throw new Error("Ambiguous GitHub review ordering for one reviewer");
+    }
+    if (submittedAt > currentSubmittedAt) latest.set(review.reviewerId, review);
   }
   return Object.freeze([...latest.values()]
     .sort((left, right) => left.reviewerId.localeCompare(right.reviewerId))

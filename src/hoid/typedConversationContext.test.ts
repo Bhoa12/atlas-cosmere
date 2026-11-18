@@ -113,6 +113,20 @@ describe("Hoid typed conversation context", () => {
       .toEqual({ status: "unavailable", reason: "invalid-context" });
   });
 
+  it("resolves a phenomenon only through its explicit reviewed category cue", () => {
+    const phenomenonContext = context([
+      { id: "entity.phenomenon", kind: "phenomenon" },
+      { id: "entity.character", kind: "character" },
+    ]);
+    expect(resolveHoidTypedEntityFollowUp("¿Y ese fenómeno?", phenomenonContext, progress)).toMatchObject({
+      status: "resolved",
+      entityId: "entity.phenomenon",
+      entityKind: "phenomenon",
+    });
+    expect(resolveHoidTypedEntityFollowUp("¿Y ese fenómeno natural?", phenomenonContext, progress))
+      .toEqual({ status: "unavailable", reason: "ambiguous-reference" });
+  });
+
   it("resolves a unique organization by its explicit noun category", () => {
     expect(resolveHoidTypedEntityFollowUp("¿Y esa organización?", context(), progress)).toMatchObject({
       status: "resolved",

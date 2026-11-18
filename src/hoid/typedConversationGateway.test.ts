@@ -35,6 +35,7 @@ const refs = Object.freeze([
   Object.freeze({ id: "synthetic.character-a", kind: "character" as const }),
   Object.freeze({ id: "synthetic.organization-a", kind: "organization" as const }),
   Object.freeze({ id: "synthetic.object-a", kind: "object" as const }),
+  Object.freeze({ id: "synthetic.phenomenon-a", kind: "phenomenon" as const }),
 ]);
 
 function typedContext(progress: unknown = snapshot()) {
@@ -124,6 +125,23 @@ describe("Hoid typed entity follow-up gateway", () => {
       reason: "context-unavailable",
     });
     expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("resolves a phenomenon follow-up and sends only its canonical ID", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      typedContext: typedContext(current),
+    });
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      intent: "explain",
+      entityIds: ["synthetic.phenomenon-a"],
+    });
   });
 
   it("blocks ambiguous categories before entity reauthorization and runtime invocation", async () => {

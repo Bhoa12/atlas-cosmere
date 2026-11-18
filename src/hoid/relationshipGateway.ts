@@ -60,7 +60,7 @@ type PairResolution =
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
-const KINDS = new Set(["character", "place", "event", "concept", "magic", "organization", "object"]);
+const KINDS = new Set(["character", "place", "event", "phenomenon", "concept", "magic", "organization", "object"]);
 const SOURCE_KEYS = [
   "evidenceId", "sourceBookId", "sourceChapter", "locatorId", "unlockBookId",
   "unlockChapter", "editionId", "navigationSha256", "documentSha256",

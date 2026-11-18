@@ -160,7 +160,7 @@ export type HoidEditorialPromotionPlan =
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
+  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
 ]);
 const CORE_KEYS = new Set(["id", "kind", "identity", "evidence"]);
 const DRAFT_KEYS = new Set(["schemaVersion", ...CORE_KEYS, "integrity", "review"]);

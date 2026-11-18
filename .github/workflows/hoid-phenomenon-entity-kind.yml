@@ -1,0 +1,98 @@
+name: Hoid phenomenon entity kind
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/catalog.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/typedConversationContext.ts"
+      - "src/hoid/typedConversationContext.test.ts"
+      - "src/hoid/typedConversationGateway.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialEntityDrafts.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicTaxonomy.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/README.md"
+      - "docs/hoid/PHENOMENON_ENTITY_KIND.md"
+      - ".github/workflows/hoid-phenomenon-entity-kind.yml"
+  pull_request:
+    paths:
+      - "src/hoid/catalog.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/typedConversationContext.ts"
+      - "src/hoid/typedConversationContext.test.ts"
+      - "src/hoid/typedConversationGateway.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialEntityDrafts.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicTaxonomy.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/README.md"
+      - "docs/hoid/PHENOMENON_ENTITY_KIND.md"
+      - ".github/workflows/hoid-phenomenon-entity-kind.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phenomenon-entity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test phenomenon entity boundaries
+        run: >-
+          npx vitest run
+          src/hoid/typedConversationContext.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/typedConversationGateway.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/editorialEntityDrafts.test.ts
+          src/hoid/editorialClaimDrafts.test.ts
+          src/hoid/knowledgeGraph.test.ts
+          src/hoid/relationshipGateway.test.ts
+          src/hoid/topicTaxonomy.test.ts
+      - name: Type-check strict application boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/catalog.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/typedConversationContext.ts
+          src/hoid/entityResolver.ts
+          src/hoid/editorialEntityDrafts.ts
+          src/hoid/editorialClaimDrafts.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/relationshipGateway.ts
+          src/hoid/topicTaxonomy.ts
+          src/hoid/conversationGateway.ts
+          src/screens/HoidScreen.tsx

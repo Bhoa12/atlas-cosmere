@@ -136,7 +136,7 @@ const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_ASSIGNMENTS = 512;
 const MAX_EVIDENCE_IDS = 16;
 const KNOWLEDGE_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
+  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
 ]);
 
 const PRODUCTION_APPROVED_CLAIMS = Object.freeze(

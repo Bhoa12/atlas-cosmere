@@ -93,6 +93,22 @@ function createRuntime(
 }
 
 describe("HoidEvidenceRuntime", () => {
+  it("accepts phenomenon as a distinct verified knowledge kind", () => {
+    const phenomenon = {
+      ...knowledge[0],
+      id: "e-phenomenon",
+      aliases: ["Fenómeno sintético"],
+      kind: "phenomenon" as const,
+      summary: "Resumen sintético de un fenómeno; no representa hechos del Cosmere.",
+    };
+    const runtime = createHoidEvidenceRuntime({
+      knowledge: [...knowledge, phenomenon],
+      claims: [],
+      selector: null,
+    });
+    expect(runtime).not.toBeNull();
+  });
+
   it("sends only claims whose complete evidence set is authorized", async () => {
     const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
       expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);

@@ -22,7 +22,7 @@ const KNOWLEDGE_KEYS = [
 ] as const;
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
+  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
 ]);
 const MAX_ENTRIES = 512;
 const MAX_ALIASES = 64;

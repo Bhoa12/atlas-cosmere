@@ -50,6 +50,7 @@ const ENTITY_KINDS = new Set<HoidKnowledgeKind>([
   "character",
   "place",
   "event",
+  "phenomenon",
   "concept",
   "magic",
   "organization",
@@ -69,6 +70,8 @@ const SAFE_TYPED_CUES: readonly Readonly<{
   Object.freeze({ cue: "y esa magia", kind: "magic" }),
   Object.freeze({ cue: "y ese sistema de magia", kind: "magic" }),
   Object.freeze({ cue: "y ese acontecimiento", kind: "event" }),
+  Object.freeze({ cue: "y ese fenomeno", kind: "phenomenon" }),
+  Object.freeze({ cue: "y ese fenomeno en concreto", kind: "phenomenon" }),
 ]);
 
 function canonicalRecord(

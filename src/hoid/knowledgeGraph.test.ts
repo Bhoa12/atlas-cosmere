@@ -8,6 +8,7 @@ import {
   type HoidKnowledgeGraphRelation,
 } from "./knowledgeGraph";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import type { HoidKnowledgeKind } from "./catalog";
 
 const NOW = "2026-11-17T11:00:00.000Z";
 
@@ -41,6 +42,7 @@ function knowledge(
   bookId: string,
   unlockChapter = 1,
   provenance: "verified" | "limited" | "unavailable" = "verified",
+  kind: HoidKnowledgeKind = "character",
 ) {
   const manifest = getHoidReadingManifest(bookId);
   if (manifest.status !== "ready") throw new Error("Manifiesto de fixture no disponible");
@@ -49,7 +51,7 @@ function knowledge(
   return {
     id,
     aliases: ["alias-" + id],
-    kind: "character" as const,
+    kind,
     firstSafeAppearance: { bookId, chapter: 1 },
     evidenceSource: { bookId, chapter: 1, locatorId: unit.locatorId },
     evidenceUnlock: { bookId, chapter: unlockChapter },
@@ -132,6 +134,28 @@ describe("Hoid authorized knowledge graph", () => {
     expect(result.nodes.map(node => node.id)).toEqual([a.id, b.id]);
     expect(result.edges[0].sources).toHaveLength(2);
     expect(result.edges[0].sources.map(source => source.documentSha256)).toHaveLength(2);
+  });
+
+  it("preserves phenomenon as a distinct authorized graph-node kind", () => {
+    const phenomenon = knowledge("synthetic.phenomenon", "twok", 1, "verified", "phenomenon");
+    const character = knowledge("synthetic.character", "edgedancer", 1, "verified", "character");
+    const claim = approvedClaim("synthetic.claim-phenomenon", [phenomenon.id, character.id]);
+    const result = buildHoidAuthorizedKnowledgeGraph(
+      definition([relation("synthetic.edge-phenomenon", phenomenon.id, character.id, claim.id)]),
+      [phenomenon, character],
+      [claim],
+      progress([
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
+      ]),
+    );
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.nodes).toEqual([
+      expect.objectContaining({ id: "synthetic.phenomenon", kind: "phenomenon" }),
+      expect.objectContaining({ id: "synthetic.character", kind: "character" }),
+    ]);
+    expect(result.edges).toHaveLength(1);
   });
 
   it("withholds the complete cross-work edge when one source is still locked", () => {

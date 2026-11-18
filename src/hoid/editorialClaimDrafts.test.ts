@@ -10,6 +10,7 @@ import {
 } from "./editorialClaimDrafts";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import type { HoidKnowledgeKind } from "./catalog";
 
 function evidence(bookId: string, chapter = 1, unlockChapter = chapter) {
   const result = getHoidReadingManifest(bookId);
@@ -50,11 +51,11 @@ function progress(positions: Array<{ bookId: string; chapter?: number; completed
   };
 }
 
-function draft(id: string, items: ReturnType<typeof evidence>[]) {
+function draft(id: string, items: ReturnType<typeof evidence>[], subjectKind: HoidKnowledgeKind = "concept") {
   const result = createHoidEditorialClaimDraft({
     id,
     subjectId: "synthetic-subject",
-    subjectKind: "concept",
+    subjectKind,
     assertionKind: "interpretation",
     intent: "explain",
     statement: "Afirmación sintética de prueba para verificar la autorización por evidencias.",
@@ -71,6 +72,13 @@ describe("Hoid atomic editorial claim drafts", () => {
     expect(value.integrity.statementSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(value.integrity.claimSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(validateHoidEditorialClaimDraft(value).status).toBe("valid");
+  });
+
+  it("accepts phenomenon as a distinct atomic-claim subject kind", () => {
+    const value = draft("synthetic.phenomenon-claim", [evidence("twok")], "phenomenon");
+    expect(value.subjectKind).toBe("phenomenon");
+    expect(validateHoidEditorialClaimDraft(value).status).toBe("valid");
+    expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
   it("requires every source in a cross-work claim before review eligibility", () => {

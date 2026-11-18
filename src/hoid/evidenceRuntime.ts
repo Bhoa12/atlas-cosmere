@@ -104,7 +104,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
   if (!Array.isArray(value) || value.length > MAX_KNOWLEDGE_ENTRIES) return null;
 
   const entries: HoidKnowledgeEntry[] = [];
-  const validKinds = new Set(["character", "place", "event", "concept", "magic", "organization", "object"]);
+  const validKinds = new Set(["character", "place", "event", "phenomenon", "concept", "magic", "organization", "object"]);
   const validProvenance = new Set(["verified", "limited", "unavailable"]);
 
   for (const raw of value) {

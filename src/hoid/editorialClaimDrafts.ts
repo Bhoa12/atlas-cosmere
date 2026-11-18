@@ -84,7 +84,7 @@ const SOURCE_INTEGRITY_KEYS = new Set(["editionId", "navigationSha256", "documen
 const INTEGRITY_KEYS = new Set(["statementSha256", "claimSha256"]);
 const REVIEW_KEYS = new Set(["status"]);
 const SUBJECT_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
+  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
 ]);
 const ASSERTION_KINDS = new Set<HoidEditorialClaimAssertionKind>([
   "identity", "appearance", "ability", "limitation", "relationship", "event", "location", "interpretation",

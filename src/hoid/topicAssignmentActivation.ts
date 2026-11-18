@@ -1,4 +1,5 @@
 import { HOID_APPROVED_TOPIC_ASSIGNMENTS } from "./topicTaxonomy";
+import type { HoidTopicAssignment } from "./topicTaxonomy";
 import {
   fingerprintHoidTopicAssignmentRegistry,
   HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
@@ -55,9 +56,7 @@ export type HoidTopicAssignmentActivationValidation =
 export type HoidTopicAssignmentActivationResolution =
   | Readonly<{
       status: "active";
-      assignments: ReturnType<typeof fingerprintHoidTopicAssignmentRegistry> extends infer T
-        ? T extends { status: "valid"; assignments: infer A } ? A : never
-        : never;
+      assignments: readonly HoidTopicAssignment[];
       receipt: HoidTopicAssignmentActivationReceipt;
     }>
   | Readonly<{ status: "inactive"; reason: "no-topic-assignments" | "activation-receipt-missing" }>

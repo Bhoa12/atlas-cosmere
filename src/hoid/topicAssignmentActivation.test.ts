@@ -343,7 +343,7 @@ describe("Hoid topic assignment activation", () => {
         expect(request.expectedHeadRef).toBe("feat/hoid-ia-core-run142");
         expect(request.expectedHeadSha).toBe("a".repeat(40));
         expect(request.promotionManifestPath).toBe(HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH);
-        return mergedSnapshot();
+        return mergedSnapshot({ promotionPlanFingerprint: plan.fingerprint });
       } },
       approvedClaims,
       approvedKnowledge,

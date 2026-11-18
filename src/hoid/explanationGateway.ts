@@ -170,7 +170,6 @@ function validPlanIdentity(
     const planId = read("planId");
     return Boolean(
       read("schemaVersion") === 1 &&
-      planId === plan.planId &&
       typeof planId === "string" &&
       FINGERPRINT_PATTERN.test(planId) &&
       read("fromId") === query.fromId &&
@@ -239,7 +238,7 @@ function canonicalSource(value: unknown): Record<string, unknown> | null {
     typeof source.locatorId !== "string" ||
     source.locatorId.length < 1 ||
     source.locatorId.length > 256 ||
-    /[\\u0000-\\u001F\\u007F]/u.test(source.locatorId) ||
+    /[\u0000-\u001F\u007F]/u.test(source.locatorId) ||
     typeof source.editionId !== "string" ||
     source.editionId.length < 1 ||
     source.editionId.length > 128 ||
@@ -340,7 +339,7 @@ function validRenderedExplanation(
 
     return (
       referencedSourceIds.size === sourcesById.size &&
-      record.text === segmentTexts.join("\\n\\n")
+      record.text === segmentTexts.join("\n\n")
     );
   } catch {
     return false;

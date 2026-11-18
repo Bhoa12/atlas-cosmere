@@ -195,7 +195,7 @@ function validatePromotionManifest(value: unknown, expectedPlanFingerprint: stri
   const reviewerIds = canonicalSortedStrings(raw.assignmentReviewerIds, REVIEWER_ID_PATTERN, 512);
   if (!assignmentIds || !reviewerIds || assignmentIds.length !== raw.assignmentCount) return false;
 
-  const expectedPlanFingerprint = sha256Hex(JSON.stringify([
+  const computedPlanFingerprint = sha256Hex(JSON.stringify([
     "hoid-topic-assignment-promotion-v1",
     raw.assignmentCount,
     assignmentIds,
@@ -205,7 +205,7 @@ function validatePromotionManifest(value: unknown, expectedPlanFingerprint: stri
     raw.progressRevision,
     raw.progressFingerprint,
   ]));
-  if (expectedPlanFingerprint !== raw.planFingerprint) return false;
+  if (computedPlanFingerprint !== raw.planFingerprint) return false;
 
   const expectedFingerprint = sha256Hex(JSON.stringify([
     "hoid-topic-assignment-promotion-manifest-v1",
@@ -321,7 +321,7 @@ export function createHoidGitHubRestTopicAssignmentMergeApiPort(
         encodePath(path) + "?ref=" + encodeURIComponent(commitSha);
       const response = await getJson(url);
       const type = ownDataValue(response, "type");
-      const path = ownDataValue(response, "path");
+      const responsePath = ownDataValue(response, "path");
       const encoding = ownDataValue(response, "encoding");
       const size = ownDataValue(response, "size");
       const blobSha = ownDataValue(response, "sha");
@@ -329,7 +329,7 @@ export function createHoidGitHubRestTopicAssignmentMergeApiPort(
 
       if (
         type !== "file" ||
-        path !== HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH ||
+        responsePath !== HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH ||
         encoding !== "base64" ||
         !Number.isSafeInteger(size) ||
         (size as number) < 1 ||

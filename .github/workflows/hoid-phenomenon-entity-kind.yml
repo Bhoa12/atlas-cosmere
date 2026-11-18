@@ -30,6 +30,8 @@ on:
   pull_request:
     paths:
       - "src/hoid/catalog.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/typedConversationContext.ts"
       - "src/hoid/typedConversationContext.test.ts"
       - "src/hoid/typedConversationGateway.test.ts"

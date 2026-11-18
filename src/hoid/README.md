@@ -493,3 +493,12 @@ The resolver accepts only exact noun-category follow-ups such as “¿Y esa orga
 Before a selected ID reaches the strict evidence runtime, the conversation gateway reauthorizes every context ID against the production knowledge and alias registries. IDs, kinds, order and progress identity must match exactly. The runtime receives only the single selected ID. The typed context remains component-local in HoidScreen and is cleared on progress changes, unrelated routes, failed presentation, stale responses and errors.
 
 The production editorial and alias registries remain the only factual authority. This run adds no Cosmere claims, aliases or source records. Synthetic tests validate the contracts; no private EPUB/XHTML body or protected passage is committed. See `docs/hoid/TYPED_ENTITY_CONVERSATION_CONTINUITY.md`.
+
+
+## Phenomenon entities
+
+`phenomenon` is a distinct `HoidKnowledgeKind`, separate from `event` (a bounded occurrence) and `concept` (an abstract knowledge item). The kind is accepted consistently by editorial claim/entity staging, entity resolution, the authorized knowledge graph, relationship validation, topic evidence validation and typed conversation reauthorization.
+
+The exact Spanish follow-up “¿Y ese fenómeno?” resolves only when the current, progress-bound context contains exactly one reauthorized phenomenon ID. Ambiguous, missing or stale references abstain. The phenomenon topic in the reviewed topic taxonomy remains a separate topic classification; an entity kind does not itself create a topic assignment.
+
+Production registries remain unchanged until source-backed records are independently reviewed. Synthetic tests establish contract behavior only.

@@ -18,6 +18,9 @@ export type HoidCoreferenceEvidence = Readonly<{
     bookId: string;
     chapter: number;
     locatorId: string;
+    editionId: string;
+    navigationSha256: string;
+    documentSha256: string;
   }>;
   unlock: Readonly<{
     bookId: string;

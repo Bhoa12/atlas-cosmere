@@ -331,8 +331,15 @@ function canonicalAuthorizedEntityIds(
   const matches = canonicalDenseArray(record.matches, requestedIds.length, requestedIds.length);
   if (!matches) return false;
   for (let index = 0; index < matches.length; index += 1) {
-    const match = canonicalOptionalRecord(matches[index], ["id"], ["id"]);
-    if (match?.id !== requestedIds[index]) return false;
+    const item = matches[index];
+    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+    const idDescriptor = Object.getOwnPropertyDescriptor(item, "id");
+    if (
+      !idDescriptor ||
+      !Object.prototype.hasOwnProperty.call(idDescriptor, "value") ||
+      idDescriptor.enumerable !== true ||
+      idDescriptor.value !== requestedIds[index]
+    ) return false;
   }
   return true;
 }

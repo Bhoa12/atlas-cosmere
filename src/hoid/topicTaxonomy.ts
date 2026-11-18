@@ -1,5 +1,6 @@
 import { isKnownHoidSource } from "./bibliography";
-import { HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
+import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
+import { sha256Hex } from "./sha256";
 
 const RAW_TOPIC_TAXONOMY = [
   {
@@ -124,6 +125,13 @@ const APPROVED_ENTITY_IDS = new Set(
     .filter(entry => entry.provenance === "verified")
     .map(entry => entry.id),
 );
+const PRODUCTION_APPROVED_CLAIMS = Object.freeze(
+  HOID_APPROVED_CLAIMS.map(claim => Object.freeze({
+    id: claim.id,
+    text: claim.text,
+    evidenceIds: Object.freeze([...claim.evidenceIds]),
+  })),
+);
 
 function canonicalRecord(
   value: unknown,
@@ -197,6 +205,49 @@ export function isHoidTopicDimensionAllowed(topicId: unknown, dimensionId: unkno
   return getHoidTopicDimensionDefinition(topicId, dimensionId) !== null;
 }
 
+function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length &&
+    [...left].sort().join("\\n") === [...right].sort().join("\\n");
+}
+
+function canonicalApprovedClaimMap(value: unknown): ReadonlyMap<string, Readonly<{
+  text: string;
+  evidenceIds: readonly string[];
+}>> | null {
+  try {
+    if (
+      !Array.isArray(value) ||
+      value.length > MAX_ASSIGNMENTS ||
+      Object.getPrototypeOf(value) !== Array.prototype
+    ) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+    const claims = new Map<string, Readonly<{ text: string; evidenceIds: readonly string[] }>>();
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+        return null;
+      }
+      const raw = canonicalRecord(descriptor.value, ["id", "text", "evidenceIds"]);
+      const id = raw?.id;
+      const text = raw?.text;
+      const evidenceIds = raw ? canonicalDenseIds(raw.evidenceIds) : null;
+      if (
+        !raw ||
+        typeof id !== "string" || !ID_PATTERN.test(id) || claims.has(id) ||
+        typeof text !== "string" || text.length < 1 || text.length > 4_000 ||
+        text !== text.trim() ||
+        /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(text) ||
+        !evidenceIds
+      ) return null;
+      claims.set(id, Object.freeze({ text, evidenceIds }));
+    }
+    return claims;
+  } catch {
+    return null;
+  }
+}
+
 function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
   const raw = canonicalRecord(value, [
     "schemaVersion", "id", "subjectKind", "subjectId", "worldId", "worldLabel",
@@ -233,6 +284,9 @@ function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
     typeof claimId !== "string" || !ID_PATTERN.test(claimId) ||
     typeof claimTextSha256 !== "string" || !SHA_PATTERN.test(claimTextSha256) ||
     !evidenceIds || !review ||
+    !approvedClaims.has(claimId) ||
+    sha256Hex(approvedClaims.get(claimId)!.text) !== claimTextSha256 ||
+    !sameIds(approvedClaims.get(claimId)!.evidenceIds, evidenceIds) ||
     review.status !== "approved" ||
     typeof review.reviewerId !== "string" ||
     !/^[A-Za-z0-9_.-]{1,100}$/u.test(review.reviewerId) ||
@@ -266,8 +320,13 @@ function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
  * metadata only; independent identity/authentication still belongs to the
  * protected source-control review authority.
  */
-export function validateHoidTopicAssignments(value: unknown): HoidTopicAssignmentValidation {
+export function validateHoidTopicAssignments(
+  value: unknown,
+  approvedClaimsInput: unknown = PRODUCTION_APPROVED_CLAIMS,
+): HoidTopicAssignmentValidation {
   try {
+    const approvedClaims = canonicalApprovedClaimMap(approvedClaimsInput);
+    if (!approvedClaims) return Object.freeze({ status: "invalid", reason: "invalid-batch" });
     if (
       !Array.isArray(value) ||
       value.length > MAX_ASSIGNMENTS ||

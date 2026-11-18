@@ -62,11 +62,11 @@ The validator in `editorialDrafts.ts` deliberately accepts only `pending-review`
 
 The tests assert that the pending summary is not returned by the production answer runtime and that the selector is not invoked.
 
-## Current source coverage and limitations
+## Initial source coverage and limitations (historical)
 
 The three unique Roshar EPUBs are available in the Library and their navigation metadata is recorded in `verifiedChapterLocators.ts`. This run inspected chapter 1 of the omnibus and chapter 1 of each standalone novella only; it does not claim coverage of later chapters or of the other four main Roshar novels.
 
-The private `cosmere.epub` was not present in the current Library listing. Its bibliography entries and previously recorded structural metadata remain catalogue information; no new passage-level claim is created for those works in this run.
+At the time of the initial ingestion batch, the private `cosmere.epub` was not present in that Library listing. Its bibliography entries and previously recorded structural metadata remain catalogue information; no new passage-level claim is created for those works in this run.
 
 Both standalone Roshar novellas were inspected at chapter-one scope and each has one pending original summary. Their remaining chapters are not covered by this batch.
 

@@ -40,12 +40,12 @@ describe("Hoid explicit topic-interest context", () => {
       .toBe("unavailable");
 
     let invoked = false;
-    const hostile = ["organization"] as unknown[] & { 1?: string };
-    Object.defineProperty(hostile, "0", {
+    const hostile = ["investiture-system", "organization"] as unknown[];
+    Object.defineProperty(hostile, "1", {
       enumerable: true,
       get() { invoked = true; return "organization"; },
     });
-    expect(createHoidTopicInterestContext(["investiture-system", hostile[0]], progress)).toBeNull();
+    expect(createHoidTopicInterestContext(hostile, progress)).toBeNull();
     expect(invoked).toBe(false);
   });
 

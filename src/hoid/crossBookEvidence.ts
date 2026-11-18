@@ -1,9 +1,9 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
   presentHoidEvidenceAnswer,
-  type HoidEvidenceAnswer,
   type HoidPresentedCitation,
 } from "./answerPresentation";
+import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 
 export type HoidCrossBookWorkEvidence = Readonly<{
   sourceBookId: string;

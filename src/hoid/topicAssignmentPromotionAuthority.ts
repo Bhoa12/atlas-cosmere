@@ -1,10 +1,12 @@
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import type { HoidEvidenceCitation } from "./evidenceScope";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import {
   getHoidReadingManifest,
   validateHoidTopicAssignments,
   HOID_APPROVED_TOPIC_ASSIGNMENTS,
   type HoidTopicAssignment,
+  type HoidTopicEntityFirstAppearance,
 } from "./topicTaxonomy";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import {
@@ -253,12 +255,8 @@ function verifiedDocumentIdentity(bookId: string, chapter: number): readonly str
 }
 
 function evidenceFingerprint(
-  evidenceCitations: ReturnType<typeof validateHoidTopicAssignments> extends infer T
-    ? T extends { status: "valid"; evidenceCitations: infer C } ? C : never
-    : never,
-  firstAppearances: ReturnType<typeof validateHoidTopicAssignments> extends infer T
-    ? T extends { status: "valid"; entityFirstAppearances: infer A } ? A : never
-    : never,
+  evidenceCitations: readonly HoidEvidenceCitation[],
+  firstAppearances: readonly HoidTopicEntityFirstAppearance[],
 ): string | null {
   const evidence = [...evidenceCitations]
     .sort((left, right) => left.evidenceId.localeCompare(right.evidenceId))

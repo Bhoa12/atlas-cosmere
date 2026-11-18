@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "./sha256";
 import { getHoidReadingManifest } from "./readingManifest";
+import type { HoidKnowledgeKind } from "./catalog";
 import {
   HOID_APPROVED_TOPIC_ASSIGNMENTS,
   HOID_TOPIC_TAXONOMY,
@@ -17,7 +18,7 @@ function locator(bookId: string, chapter: number) {
   return unit.locatorId;
 }
 
-function validate(records: readonly unknown[]) {
+function validate(records: readonly unknown[], knowledgeKind: HoidKnowledgeKind = "concept") {
   const claims = new Map<string, { id: string; text: string; evidenceIds: unknown }>();
   const knowledge = new Map<string, Record<string, unknown>>();
   for (const record of records) {
@@ -35,7 +36,7 @@ function validate(records: readonly unknown[]) {
         if (typeof evidenceId !== "string") continue;
         knowledge.set(evidenceId, {
           id: evidenceId,
-          kind: "concept",
+          kind: knowledgeKind,
           provenance: "verified",
           summary: CLAIM_TEXT,
           evidenceSource: { bookId: "tfe", chapter: 1, locatorId: locator("tfe", 1) },
@@ -126,6 +127,26 @@ describe("Hoid reviewed topic taxonomy", () => {
     expect(validate([assignment({ subjectKind: "work", subjectId: "tfe" })]).status).toBe("valid");
     expect(validate([assignment({ subjectKind: "work", subjectId: "unknown-work" })]).status).toBe("invalid");
     expect(validate([assignment({ subjectKind: "entity", subjectId: "entity.not-approved" })]).status).toBe("invalid");
+  });
+
+  it("accepts a reviewed phenomenon entity as a phenomenon-topic subject", () => {
+    const result = validate([
+      assignment({
+        subjectKind: "entity",
+        subjectId: "evidence.alpha",
+        topicId: "phenomenon",
+        dimensionId: "mechanism",
+      }),
+    ], "phenomenon");
+    expect(result.status).toBe("valid");
+    if (result.status === "valid") {
+      expect(result.assignments[0]).toMatchObject({
+        subjectKind: "entity",
+        subjectId: "evidence.alpha",
+        topicId: "phenomenon",
+        dimensionId: "mechanism",
+      });
+    }
   });
 
   it("rejects dimensions that do not belong to the selected topic", () => {

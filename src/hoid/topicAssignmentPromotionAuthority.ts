@@ -82,6 +82,7 @@ export type HoidTopicAssignmentPromotionAuthorization =
       headSha: string;
       promotionPlanFingerprint: string;
       assignmentFingerprint: string;
+      evidenceFingerprint: string;
       authenticatedAssignmentReviewerIds: readonly string[];
       approvalReviewerIds: readonly string[];
       requiredApprovals: number;
@@ -285,6 +286,49 @@ function evidenceFingerprint(
     });
   if (appearances.some(item => item === null)) return null;
   return sha256Hex(JSON.stringify(["hoid-topic-evidence-scope-v1", evidence, appearances]));
+}
+
+export type HoidTopicAssignmentRegistryFingerprintResult =
+  | Readonly<{
+      status: "valid";
+      assignments: readonly HoidTopicAssignment[];
+      assignmentIds: readonly string[];
+      assignmentReviewerIds: readonly string[];
+      assignmentFingerprint: string;
+      evidenceFingerprint: string;
+    }>
+  | Readonly<{ status: "empty" }>
+  | Readonly<{ status: "invalid" }>;
+
+/**
+ * Stable registry identity independent of any individual reader's progress.
+ * The progress-bound promotion plan remains a separate authorization artifact.
+ */
+export function fingerprintHoidTopicAssignmentRegistry(
+  assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
+  approvedClaimsInput?: unknown,
+  approvedKnowledgeInput?: unknown,
+): HoidTopicAssignmentRegistryFingerprintResult {
+  const validation = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput, approvedKnowledgeInput);
+  if (validation.status !== "valid") return Object.freeze({ status: "invalid" });
+  if (validation.assignments.length === 0) return Object.freeze({ status: "empty" });
+
+  const evidenceDigest = evidenceFingerprint(
+    validation.evidenceCitations,
+    validation.entityFirstAppearances,
+  );
+  if (!evidenceDigest) return Object.freeze({ status: "invalid" });
+
+  return Object.freeze({
+    status: "valid",
+    assignments: validation.assignments,
+    assignmentIds: Object.freeze(validation.assignments.map(item => item.id).sort()),
+    assignmentReviewerIds: Object.freeze(
+      [...new Set(validation.assignments.map(item => item.review.reviewerId))].sort(),
+    ),
+    assignmentFingerprint: assignmentFingerprint(validation.assignments),
+    evidenceFingerprint: evidenceDigest,
+  });
 }
 
 function planFingerprint(plan: Omit<HoidTopicAssignmentPromotionPlan, "fingerprint">): string {
@@ -690,6 +734,7 @@ export async function authorizeHoidTopicAssignmentPromotion(
     headSha: verification.headSha,
     promotionPlanFingerprint: verification.promotionPlanFingerprint,
     assignmentFingerprint: plan.assignmentFingerprint,
+    evidenceFingerprint: plan.evidenceFingerprint,
     authenticatedAssignmentReviewerIds: plan.assignmentReviewerIds,
     approvalReviewerIds: verification.approvalReviewerIds,
     requiredApprovals: verification.requiredApprovals,

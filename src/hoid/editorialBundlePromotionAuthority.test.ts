@@ -260,8 +260,8 @@ describe("Hoid complete editorial bundle promotion authority", () => {
     expect(rebuilt.status).toBe("ready-for-protected-review");
     if (rebuilt.status !== "ready-for-protected-review") return;
     expect(rebuilt.plan).toEqual(plan);
-    expect(plan.packetCount).toBe(42);
-    expect(plan.packets).toHaveLength(42);
+    expect(plan.packetCount).toBe(45);
+    expect(plan.packets).toHaveLength(45);
     expect(plan.promotionAllowed).toBe(false);
     expect(plan.productionWritePerformed).toBe(false);
   });

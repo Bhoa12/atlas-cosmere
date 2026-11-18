@@ -17,7 +17,7 @@ It does not retain labels, free text, questions, reading history, claims, eviden
 
 ## Recommendation gateway
 
-`topicInterestRecommendationsGateway.ts` validates the exact interest context against the supplied and live progress identities before producing any result. It reads only `HOID_APPROVED_TOPIC_ASSIGNMENTS`, selects claim IDs for explicitly selected topics, and passes those IDs plus the current progress to an optional trusted local answer port.
+`topicInterestRecommendationsGateway.ts` validates the exact interest context against the supplied and live progress identities before producing any result. It reads only `HOID_APPROVED_TOPIC_ASSIGNMENTS`, selects claim IDs only for explicitly selected topics whose target works are still unstarted, and passes those IDs plus the current progress to an optional trusted local answer port.
 
 The answer port is not a language-provider port. It must render only already-approved local claims through the existing evidence runtime. The gateway never passes topic labels, source prose, private EPUB content or prior conversation context to it. Returned answers are passed through `composeProductionHoidTopicRecommendations()`, which revalidates claim text, evidence IDs, source scopes, citations and per-work unlock boundaries.
 
@@ -25,7 +25,7 @@ If the production topic-assignment registry has no matching assignments, the gat
 
 ## User interface
 
-HoidScreen exposes the closed taxonomy as explicit selectable topics. It does not infer interests from questions, reading history, embeddings or model output. Recommendation results are displayed only while their progress revision and fingerprint match the live SQLite v2 snapshot. A progress change clears result text and citations while retaining the user's temporary selection; the next search creates a new progress-bound context.
+HoidScreen exposes the closed taxonomy as explicit selectable topics. It does not infer interests from questions, reading history, embeddings or model output. Recommendation results are displayed only while their progress revision and fingerprint match the live SQLite v2 snapshot. A progress change clears result text and citations while retaining the user's temporary selection; the next search creates a new progress-bound context. In-flight results are also bound to the exact selected-topic order, and topic chips are disabled while a recommendation request is pending.
 
 ## Production limitations
 

@@ -9,6 +9,7 @@ import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManife
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import type { HoidKnowledgeKind } from "./catalog";
 
 const UPDATED_AT = "2026-11-18T06:00:00.000Z";
 
@@ -57,12 +58,12 @@ function source(evidenceId: string) {
   });
 }
 
-function entity(id: string, alias: string): HoidResolvedEntity {
+function entity(id: string, alias: string, kind: HoidKnowledgeKind = "character"): HoidResolvedEntity {
   const entitySource = source(id);
   const aliasEvidenceId = "alias." + id;
   return Object.freeze({
     id,
-    kind: "character",
+    kind,
     matchedAlias: alias,
     entitySource,
     aliasEvidence: Object.freeze([Object.freeze({
@@ -150,6 +151,26 @@ describe("HoidRelationshipGateway", () => {
     expect(explain).toHaveBeenCalledTimes(1);
     expect(explain.mock.calls[0][0]).toMatchObject({
       query: { fromId: "kelsier", toId: "vin", maxDepth: 4, maxPaths: 1 },
+    });
+  });
+
+  it("accepts a phenomenon endpoint without coercing its category", () => {
+    const progress = snapshot();
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("synthetic.phenomenon", "Synthetic Phenomenon", "phenomenon"),
+        entity("synthetic.character", "Synthetic Character", "character"),
+      ]),
+    });
+    const result = gateway.answer({
+      question: "¿Qué relación hay entre Synthetic Phenomenon y Synthetic Character?",
+      progress,
+    });
+    expect(result.status).toBe("ready");
+    expect(explain).toHaveBeenCalledTimes(1);
+    expect(explain.mock.calls[0][0]).toMatchObject({
+      query: { fromId: "synthetic.phenomenon", toId: "synthetic.character" },
     });
   });
 

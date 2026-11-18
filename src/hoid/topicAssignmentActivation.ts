@@ -11,10 +11,11 @@ import type {
   HoidSourceControlReviewPort,
 } from "./promotionReviewAuthority";
 import { sha256Hex } from "./sha256";
+import { HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT } from "./topicAssignmentActivationReceipt";
 
 export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH = "main";
 export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT_PATH =
-  "docs/hoid/topic-assignment-activation.receipt.json";
+  "src/hoid/topicAssignmentActivationReceipt.ts";
 
 export type HoidTopicAssignmentActivationReceipt = Readonly<{
   schemaVersion: 1;
@@ -564,9 +565,6 @@ export function resolveHoidTopicAssignmentsForActivation(
     receipt: validation.receipt,
   });
 }
-
-/** Production remains inactive until a post-merge receipt is committed through the protected branch. */
-export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT: HoidTopicAssignmentActivationReceipt | null = null;
 
 export function resolveProductionHoidTopicAssignments() {
   return resolveHoidTopicAssignmentsForActivation(

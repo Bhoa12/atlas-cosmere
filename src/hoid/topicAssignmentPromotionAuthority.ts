@@ -2,12 +2,12 @@ import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import type { HoidEvidenceCitation } from "./evidenceScope";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import {
-  getHoidReadingManifest,
   validateHoidTopicAssignments,
   HOID_APPROVED_TOPIC_ASSIGNMENTS,
   type HoidTopicAssignment,
   type HoidTopicEntityFirstAppearance,
 } from "./topicTaxonomy";
+import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import {
   verifyHoidProtectedReviewSnapshot,

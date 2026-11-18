@@ -1,0 +1,52 @@
+name: Hoid editorial bundle promotion authority
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.test.ts"
+      - "src/hoid/sqlitePromotionProgressAdapter.ts"
+      - "src/hoid/sqlitePromotionProgressAdapter.test.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "docs/hoid/EDITORIAL_BUNDLE_PROMOTION_AUTHORITY.md"
+      - ".github/workflows/hoid-editorial-bundle-promotion-authority.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.test.ts"
+      - "src/hoid/sqlitePromotionProgressAdapter.ts"
+      - "src/hoid/sqlitePromotionProgressAdapter.test.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "docs/hoid/EDITORIAL_BUNDLE_PROMOTION_AUTHORITY.md"
+      - ".github/workflows/hoid-editorial-bundle-promotion-authority.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  editorial-bundle-promotion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test complete editorial bundle promotion
+        run: npx vitest run src/hoid/editorialBundlePromotionAuthority.test.ts src/hoid/githubSourceControlReviewAdapter.test.ts src/hoid/sqlitePromotionProgressAdapter.test.ts src/hoid/editorialReviewBundle.test.ts src/hoid/promotionReviewAuthority.test.ts src/hoid/cursorSqliteProgressStore.test.ts
+      - name: Type-check promotion and adapter boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/editorialBundlePromotionAuthority.ts src/hoid/githubSourceControlReviewAdapter.ts src/hoid/sqlitePromotionProgressAdapter.ts src/hoid/editorialReviewBundle.ts src/hoid/promotionReviewAuthority.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/knowledgeGraph.ts src/hoid/cursorProgressLedger.ts src/hoid/readingBoundary.ts src/hoid/progressLedger.ts src/hoid/sqliteProgressStore.ts src/hoid/sha256.ts src/hoid/editorialKnowledgeBundle.ts src/hoid/editorialClaimReviewPackets.ts src/hoid/editorialReviewPackets.ts src/hoid/editorialEntityDrafts.ts src/hoid/editorialRelationshipDrafts.ts src/hoid/editorialClaimDrafts.ts src/hoid/editorialDrafts.ts src/hoid/evidenceScope.ts src/hoid/editionProgressValidation.ts src/hoid/readingValidation.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/verifiedChapterLocators.ts src/hoid/verifiedChapterDocuments.ts src/hoid/bibliography.ts src/hoid/catalog.ts src/hoid/catalogValidation.ts src/hoid/readingContext.ts src/hoid/types.ts

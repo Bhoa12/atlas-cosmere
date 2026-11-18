@@ -2,7 +2,7 @@
 
 ## Alcance
 
-La primera recomendación conversacional muestra obras del catálogo bibliográfico que todavía no se han empezado. Es una función de descubrimiento de catálogo, no un algoritmo de orden de lectura.
+La recomendación conversacional combina dos categorías basadas exclusivamente en metadatos: obras en curso que se pueden retomar desde el capítulo abierto y obras del catálogo que todavía no se han empezado. Es una ayuda de continuidad y descubrimiento, no un algoritmo de orden de lectura.
 
 El catálogo contiene 24 identidades bibliográficas: 17 entradas del grupo cosmere.epub y siete del grupo roshar-epubs. La existencia de una entrada acredita únicamente que forma parte de la bibliografía aportada; no acredita que su contenido narrativo se haya inspeccionado.
 
@@ -21,10 +21,11 @@ No se convierte el progreso de una obra en autorización para otra.
 
 Cada resultado contiene únicamente:
 
-- sourceId;
-- título exacto del catálogo;
-- razón cerrada unread-source;
+- sourceId y título exacto del catálogo;
+- la razón cerrada resume-current-work con currentChapter y completedThroughChapter exactos del cursor, o unread-source;
 - revisión y huella del progreso que autorizó la lista.
+
+Las obras en curso se validan contra su posición exacta. Las obras sin empezar deben estar ausentes del conjunto de obras iniciadas. Las obras completadas no se recomiendan para retomar.
 
 El gateway vuelve a validar cada elemento contra HOID_SOURCE_BIBLIOGRAPHY. Rechaza IDs desconocidos, títulos manipulados, duplicados, obras ya empezadas, razones no admitidas y lotes superiores al límite solicitado.
 
@@ -56,7 +57,7 @@ Las pruebas de conversationGateway.test.ts cubren progreso obsoleto, cambio dura
 
 ## Conversational routing
 
-Spanish recommendation requests are classified deterministically by `classifyHoidConversationIntent()` and routed to `HoidConversationGateway.recommend()`. They do not enter the narrative claim selector. The UI presents only catalogue-backed works not yet started in the v2 snapshot and states that catalogue order is not a canonical reading route. Mixed recommendation/context phrasing follows the documented recommendation-first precedence. See `CONVERSATION_INTENT_ROUTING.md`.
+Spanish recommendation requests are classified deterministically by `classifyHoidConversationIntent()` and routed to `HoidConversationGateway.recommend()`. They do not enter the narrative claim selector. The UI presents active works to resume first and unstarted catalogue works second, with an explicit notice that the latter follow catalogue order rather than a canonical reading route. Mixed recommendation/context phrasing follows the documented recommendation-first precedence. See `CONVERSATION_INTENT_ROUTING.md`.
 
 
 ## Reading-aware ordering

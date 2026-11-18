@@ -1,5 +1,7 @@
 import { isKnownHoidSource } from "./bibliography";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
+import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
+import { getHoidReadingManifest } from "./readingManifest";
 import { sha256Hex } from "./sha256";
 
 const RAW_TOPIC_TAXONOMY = [
@@ -104,8 +106,19 @@ export type HoidTopicAssignment = Readonly<{
   }>;
 }>;
 
+export type HoidTopicEntityFirstAppearance = Readonly<{
+  entityId: string;
+  bookId: string;
+  chapter: number;
+}>;
+
 export type HoidTopicAssignmentValidation =
-  | Readonly<{ status: "valid"; assignments: readonly HoidTopicAssignment[] }>
+  | Readonly<{
+      status: "valid";
+      assignments: readonly HoidTopicAssignment[];
+      evidenceCitations: readonly HoidEvidenceCitation[];
+      entityFirstAppearances: readonly HoidTopicEntityFirstAppearance[];
+    }>
   | Readonly<{
       status: "invalid";
       reason:
@@ -120,17 +133,26 @@ const WORLD_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_ASSIGNMENTS = 512;
 const MAX_EVIDENCE_IDS = 16;
-const APPROVED_ENTITY_IDS = new Set(
-  HOID_EDITORIAL_KNOWLEDGE
-    .filter(entry => entry.provenance === "verified")
-    .map(entry => entry.id),
-);
+
 const PRODUCTION_APPROVED_CLAIMS = Object.freeze(
   HOID_APPROVED_CLAIMS.map(claim => Object.freeze({
     id: claim.id,
     text: claim.text,
     evidenceIds: Object.freeze([...claim.evidenceIds]),
   })),
+);
+
+const PRODUCTION_APPROVED_KNOWLEDGE = Object.freeze(
+  HOID_EDITORIAL_KNOWLEDGE
+    .filter(entry => entry.provenance === "verified")
+    .map(entry => Object.freeze({
+      id: entry.id,
+      provenance: entry.provenance,
+      summary: entry.summary,
+      evidenceSource: entry.evidenceSource,
+      evidenceUnlock: entry.evidenceUnlock,
+      firstSafeAppearance: entry.firstSafeAppearance,
+    })),
 );
 
 function canonicalRecord(
@@ -207,7 +229,7 @@ export function isHoidTopicDimensionAllowed(topicId: unknown, dimensionId: unkno
 
 function sameIds(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length &&
-    [...left].sort().join("\n") === [...right].sort().join("\\n");
+    [...left].sort().join("\n") === [...right].sort().join("\n");
 }
 
 function canonicalApprovedClaimMap(value: unknown): ReadonlyMap<string, Readonly<{
@@ -248,7 +270,84 @@ function canonicalApprovedClaimMap(value: unknown): ReadonlyMap<string, Readonly
   }
 }
 
-function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
+function canonicalApprovedKnowledge(value: unknown): Readonly<{
+  evidenceCitations: readonly HoidEvidenceCitation[];
+  entityFirstAppearances: readonly HoidTopicEntityFirstAppearance[];
+}> | null {
+  try {
+    if (
+      !Array.isArray(value) ||
+      value.length > MAX_ASSIGNMENTS ||
+      Object.getPrototypeOf(value) !== Array.prototype
+    ) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+
+    const evidenceCitations: HoidEvidenceCitation[] = [];
+    const entityFirstAppearances: HoidTopicEntityFirstAppearance[] = [];
+    const seen = new Set<string>();
+
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+        return null;
+      }
+      const raw = canonicalRecord(descriptor.value, [
+        "id", "provenance", "summary", "evidenceSource", "evidenceUnlock", "firstSafeAppearance",
+      ]);
+      if (!raw) return null;
+
+      const id = raw.id;
+      const summary = raw.summary;
+      const firstAppearance = canonicalRecord(raw.firstSafeAppearance, ["bookId", "chapter"]);
+      const scope = canonicalEvidenceScope(raw.evidenceSource, raw.evidenceUnlock);
+      if (
+        typeof id !== "string" || !ID_PATTERN.test(id) || seen.has(id) ||
+        raw.provenance !== "verified" ||
+        typeof summary !== "string" || summary.length < 1 || summary.length > 4_000 ||
+        summary !== summary.trim() ||
+        /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(summary) ||
+        !firstAppearance || !scope
+      ) return null;
+
+      const firstBookId = firstAppearance.bookId;
+      const firstChapter = firstAppearance.chapter;
+      if (
+        typeof firstBookId !== "string" || !isKnownHoidSource(firstBookId) ||
+        typeof firstChapter !== "number" || !Number.isSafeInteger(firstChapter) || firstChapter < 1
+      ) return null;
+      const firstManifest = getHoidReadingManifest(firstBookId);
+      if (
+        firstManifest.status !== "ready" ||
+        !firstManifest.manifest.units.some(unit => unit.chapterNumber === firstChapter)
+      ) return null;
+
+      seen.add(id);
+      evidenceCitations.push(Object.freeze({ evidenceId: id, ...scope }));
+      entityFirstAppearances.push(Object.freeze({
+        entityId: id,
+        bookId: firstBookId,
+        chapter: firstChapter,
+      }));
+    }
+
+    evidenceCitations.sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
+    entityFirstAppearances.sort((left, right) => left.entityId.localeCompare(right.entityId));
+    return Object.freeze({
+      evidenceCitations: Object.freeze(evidenceCitations),
+      entityFirstAppearances: Object.freeze(entityFirstAppearances),
+    });
+  } catch {
+    return null;
+  }
+}
+
+function canonicalAssignment(
+  value: unknown,
+  approvedClaims: ReadonlyMap<string, Readonly<{ text: string; evidenceIds: readonly string[] }>>,
+  approvedEvidenceIds: ReadonlySet<string>,
+  approvedEntityIds: ReadonlySet<string>,
+): HoidTopicAssignment | null {
   const raw = canonicalRecord(value, [
     "schemaVersion", "id", "subjectKind", "subjectId", "worldId", "worldLabel",
     "topicId", "dimensionId", "claimId", "claimTextSha256", "evidenceIds", "review",
@@ -266,13 +365,14 @@ function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
   const claimTextSha256 = raw.claimTextSha256;
   const evidenceIds = canonicalDenseIds(raw.evidenceIds);
   const review = canonicalRecord(raw.review, ["status", "reviewerId", "reviewedAt"]);
+  const approvedClaim = typeof claimId === "string" ? approvedClaims.get(claimId) : undefined;
 
   if (
     typeof id !== "string" || !ID_PATTERN.test(id) ||
     (subjectKind !== "entity" && subjectKind !== "work") ||
     typeof subjectId !== "string" || !ID_PATTERN.test(subjectId) ||
     (subjectKind === "work" && !isKnownHoidSource(subjectId)) ||
-    (subjectKind === "entity" && !APPROVED_ENTITY_IDS.has(subjectId)) ||
+    (subjectKind === "entity" && !approvedEntityIds.has(subjectId)) ||
     typeof worldId !== "string" || !WORLD_ID_PATTERN.test(worldId) ||
     typeof worldLabel !== "string" ||
     worldLabel.length < 1 || worldLabel.length > 80 ||
@@ -283,10 +383,10 @@ function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
     typeof dimensionId !== "string" || !isHoidTopicDimensionAllowed(topicId, dimensionId) ||
     typeof claimId !== "string" || !ID_PATTERN.test(claimId) ||
     typeof claimTextSha256 !== "string" || !SHA_PATTERN.test(claimTextSha256) ||
-    !evidenceIds || !review ||
-    !approvedClaims.has(claimId) ||
-    sha256Hex(approvedClaims.get(claimId)!.text) !== claimTextSha256 ||
-    !sameIds(approvedClaims.get(claimId)!.evidenceIds, evidenceIds) ||
+    !evidenceIds || !review || !approvedClaim ||
+    sha256Hex(approvedClaim.text) !== claimTextSha256 ||
+    !sameIds(approvedClaim.evidenceIds, evidenceIds) ||
+    evidenceIds.some(evidenceId => !approvedEvidenceIds.has(evidenceId)) ||
     review.status !== "approved" ||
     typeof review.reviewerId !== "string" ||
     !/^[A-Za-z0-9_.-]{1,100}$/u.test(review.reviewerId) ||
@@ -316,17 +416,22 @@ function canonicalAssignment(value: unknown): HoidTopicAssignment | null {
 }
 
 /**
- * Validate source-controlled topic assignments. Reviewer fields are audit
- * metadata only; independent identity/authentication still belongs to the
- * protected source-control review authority.
+ * Validate source-controlled topic assignments against the exact approved
+ * claim and verified evidence registries. Optional registry arguments are
+ * trusted composition/test seams only; production callers use defaults.
+ * Reviewer fields are audit metadata, not reviewer authentication.
  */
 export function validateHoidTopicAssignments(
   value: unknown,
   approvedClaimsInput: unknown = PRODUCTION_APPROVED_CLAIMS,
+  approvedKnowledgeInput: unknown = PRODUCTION_APPROVED_KNOWLEDGE,
 ): HoidTopicAssignmentValidation {
   try {
     const approvedClaims = canonicalApprovedClaimMap(approvedClaimsInput);
-    if (!approvedClaims) return Object.freeze({ status: "invalid", reason: "invalid-batch" });
+    const approvedKnowledge = canonicalApprovedKnowledge(approvedKnowledgeInput);
+    if (!approvedClaims || !approvedKnowledge) {
+      return Object.freeze({ status: "invalid", reason: "invalid-batch" });
+    }
     if (
       !Array.isArray(value) ||
       value.length > MAX_ASSIGNMENTS ||
@@ -338,6 +443,8 @@ export function validateHoidTopicAssignments(
       return Object.freeze({ status: "invalid", reason: "invalid-batch" });
     }
 
+    const approvedEvidenceIds = new Set(approvedKnowledge.evidenceCitations.map(item => item.evidenceId));
+    const approvedEntityIds = new Set(approvedKnowledge.entityFirstAppearances.map(item => item.entityId));
     const assignments: HoidTopicAssignment[] = [];
     const ids = new Set<string>();
     const subjects = new Set<string>();
@@ -352,7 +459,12 @@ export function validateHoidTopicAssignments(
         descriptor.enumerable !== true
       ) return Object.freeze({ status: "invalid", reason: "invalid-batch" });
 
-      const assignment = canonicalAssignment(descriptor.value);
+      const assignment = canonicalAssignment(
+        descriptor.value,
+        approvedClaims,
+        approvedEvidenceIds,
+        approvedEntityIds,
+      );
       if (!assignment) return Object.freeze({ status: "invalid", reason: "invalid-assignment" });
 
       const subjectKey = [
@@ -388,7 +500,12 @@ export function validateHoidTopicAssignments(
       left.subjectId.localeCompare(right.subjectId),
     );
 
-    return Object.freeze({ status: "valid", assignments: Object.freeze(assignments) });
+    return Object.freeze({
+      status: "valid",
+      assignments: Object.freeze(assignments),
+      evidenceCitations: approvedKnowledge.evidenceCitations,
+      entityFirstAppearances: approvedKnowledge.entityFirstAppearances,
+    });
   } catch {
     return Object.freeze({ status: "invalid", reason: "invalid-batch" });
   }

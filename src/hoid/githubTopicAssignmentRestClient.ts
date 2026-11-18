@@ -57,6 +57,30 @@ function ownDataValue(value: unknown, key: string): unknown {
   }
 }
 
+
+function canonicalInputRecord(value: unknown, allowedKeys: readonly string[]): Record<string, unknown> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== allowedKeys.length || keys.some(key => typeof key !== "string" || !allowedKeys.includes(key))) {
+      return null;
+    }
+    const result = Object.create(null) as Record<string, unknown>;
+    for (const key of allowedKeys) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+        return null;
+      }
+      result[key] = descriptor.value;
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 function canonicalManifestRecord(value: unknown): Record<string, unknown> | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
@@ -254,30 +278,35 @@ export function createHoidGitHubRestTopicAssignmentMergeApiPort(
 
   return Object.freeze({
     async getPullRequest(input): Promise<unknown> {
-      const repository = decodeRepository(input?.repositoryFullName);
-      if (!repository || !Number.isSafeInteger(input?.pullRequestNumber) || input.pullRequestNumber < 1) {
+      const raw = canonicalInputRecord(input, ["repositoryFullName", "pullRequestNumber"]);
+      const repository = decodeRepository(raw?.repositoryFullName);
+      const pullRequestNumber = raw?.pullRequestNumber;
+      if (!repository || !Number.isSafeInteger(pullRequestNumber) || (pullRequestNumber as number) < 1) {
         throw new Error("Invalid GitHub pull-request lookup");
       }
 
       const url = API_ORIGIN + "/repos/" +
         encodeURIComponent(repository.owner) + "/" +
-        encodeURIComponent(repository.repo) + "/pulls/" + input.pullRequestNumber;
+        encodeURIComponent(repository.repo) + "/pulls/" + pullRequestNumber;
       return getJson(url);
     },
 
     async getPromotionManifestAtCommit(input): Promise<unknown> {
-      const repository = decodeRepository(input?.repositoryFullName);
+      const raw = canonicalInputRecord(input, ["repositoryFullName", "path", "commitSha"]);
+      const repository = decodeRepository(raw?.repositoryFullName);
+      const path = raw?.path;
+      const commitSha = raw?.commitSha;
       if (
         !repository ||
-        input?.path !== HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH ||
-        typeof input.commitSha !== "string" ||
-        !COMMIT_SHA_PATTERN.test(input.commitSha)
+        path !== HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH ||
+        typeof commitSha !== "string" ||
+        !COMMIT_SHA_PATTERN.test(commitSha)
       ) throw new Error("Invalid GitHub promotion-manifest lookup");
 
       const url = API_ORIGIN + "/repos/" +
         encodeURIComponent(repository.owner) + "/" +
         encodeURIComponent(repository.repo) + "/contents/" +
-        encodePath(input.path) + "?ref=" + encodeURIComponent(input.commitSha);
+        encodePath(path) + "?ref=" + encodeURIComponent(commitSha);
       const response = await getJson(url);
       const type = ownDataValue(response, "type");
       const path = ownDataValue(response, "path");
@@ -319,7 +348,7 @@ export function createHoidGitHubRestTopicAssignmentMergeApiPort(
       ) throw new Error("GitHub promotion manifest validation failed");
 
       return Object.freeze({
-        commitSha: input.commitSha,
+        commitSha,
         promotionPlanFingerprint: planFingerprint,
       });
     },

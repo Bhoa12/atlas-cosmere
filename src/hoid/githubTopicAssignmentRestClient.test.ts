@@ -229,4 +229,31 @@ describe("read-only GitHub topic-assignment REST client", () => {
       commitSha: "f".repeat(40),
     })).rejects.toThrow();
   });
+
+  it("rejects lookup objects with getters or extra keys without invoking them", async () => {
+    let invoked = false;
+    const port = createHoidGitHubRestTopicAssignmentMergeApiPort(
+      async () => {
+        throw new Error("network must not be reached");
+      },
+      TOKEN,
+    );
+    const request = { pullRequestNumber: 7 } as Record<string, unknown>;
+    Object.defineProperty(request, "repositoryFullName", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        return "Bhoa12/atlas-cosmere";
+      },
+    });
+    await expect(port.getPullRequest(request as unknown as Parameters<typeof port.getPullRequest>[0])).rejects.toThrow();
+    expect(invoked).toBe(false);
+
+    await expect(port.getPullRequest({
+      repositoryFullName: "Bhoa12/atlas-cosmere",
+      pullRequestNumber: 7,
+      extra: true,
+    } as unknown as Parameters<typeof port.getPullRequest>[0])).rejects.toThrow();
+  });
+
 });

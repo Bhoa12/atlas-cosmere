@@ -20,7 +20,7 @@ The authorization now carries both assignmentFingerprint and evidenceFingerprint
 
 After the reviewed assignment PR is actually merged into main, a trusted read-only source-control adapter implements HoidTopicAssignmentMergeReviewPort.fetchMergedPromotionSnapshot().
 
-The adapter must query GitHub rather than trust caller-supplied metadata. It returns the exact merged PR state, target branch, reviewed head SHA, merge commit SHA, fixed promotion manifest path, plan fingerprint and canonical merge timestamp.
+The concrete createHoidGitHubTopicAssignmentMergeReviewPort() adapter normalizes the raw GitHub REST PR response and reads the fixed promotion manifest at the exact reviewed head SHA. It verifies repository, PR number, closed/merged/non-draft state, target branch, head ref/SHA, merge commit SHA, manifest commit SHA, plan fingerprint and canonical merge timestamp. Its injected API client is the only GitHub-specific dependency; the activation authority sees only the provider-neutral port.
 
 authorizeHoidTopicAssignmentActivation() first calls the existing authorizeHoidTopicAssignmentPromotion() with the plan, exact assignments, review request, read-only source-control port and authoritative progress port. It proceeds to the merge adapter only if that pre-merge authority verifies the protected PR head and all assignment reviewers. It then asks the merge adapter for the post-merge snapshot and builds a metadata-only HoidTopicAssignmentActivationReceipt only when:
 

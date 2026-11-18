@@ -9,6 +9,10 @@ on:
       - "src/hoid/topicInterestContext.test.ts"
       - "src/hoid/topicInterestRecommendationsGateway.ts"
       - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/topicApprovedClaimAnswerPort.ts"
+      - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/topicRecommendations.ts"
       - "src/hoid/topicRecommendations.test.ts"
       - "src/hoid/topicTaxonomy.ts"
@@ -52,6 +56,8 @@ jobs:
           npx vitest run
           src/hoid/topicInterestContext.test.ts
           src/hoid/topicInterestRecommendationsGateway.test.ts
+          src/hoid/topicApprovedClaimAnswerPort.test.ts
+          src/hoid/evidenceRuntime.test.ts
           src/hoid/topicRecommendations.test.ts
           src/hoid/topicTaxonomy.test.ts
           src/hoid/knowledgeGraph.test.ts
@@ -61,6 +67,8 @@ jobs:
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
           src/hoid/topicInterestContext.ts
           src/hoid/topicInterestRecommendationsGateway.ts
+          src/hoid/topicApprovedClaimAnswerPort.ts
+          src/hoid/evidenceRuntime.ts
           src/hoid/topicRecommendations.ts
           src/hoid/topicTaxonomy.ts
           src/hoid/knowledgeGraph.ts

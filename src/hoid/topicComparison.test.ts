@@ -114,6 +114,7 @@ function knowledgeEntry(
 ) {
   return {
     id,
+    kind: "concept",
     provenance: "verified",
     summary: "Resumen editorial sintético de prueba.",
     evidenceSource: {

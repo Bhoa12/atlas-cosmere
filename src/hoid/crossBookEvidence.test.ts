@@ -30,9 +30,11 @@ function source(bookId: string, evidenceId: string, chapter = 1) {
   };
 }
 
-function progress(includeWor = true) {
-  const positions = [{ bookId: "tfe", cursor: cursor("tfe", 3) }];
-  if (includeWor) positions.push({ bookId: "wor", cursor: cursor("wor", 3) } as never);
+function progress(includeWor = true, tfeChapter = 3) {
+  const positions: { bookId: string; cursor: ReturnType<typeof cursor> }[] = [
+    { bookId: "tfe", cursor: cursor("tfe", tfeChapter) },
+  ];
+  if (includeWor) positions.push({ bookId: "wor", cursor: cursor("wor", 3) });
   return {
     schemaVersion: 2,
     revision: 4,
@@ -108,7 +110,11 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
   });
 
   it("rejects a source from an unknown work at the presentation boundary", () => {
-    const unknown = source("unknown-work", "evidence.unknown");
+    const unknown = {
+      ...source("tfe", "evidence.unknown"),
+      sourceBookId: "unknown-work",
+      unlockBookId: "unknown-work",
+    };
     const invalid = answer({
       evidenceIds: ["evidence.unknown"],
       sources: [unknown],
@@ -149,7 +155,7 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
         { claimId: "claim.three", text: "Tercera.", evidenceIds: [other.evidenceId] },
       ],
     };
-    const result = buildHoidCrossBookEvidenceSummary(multi, progress());
+    const result = buildHoidCrossBookEvidenceSummary(multi, progress(true, 4));
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.summary.works[0].chapters).toEqual([1, 2]);

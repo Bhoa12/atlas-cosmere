@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveHoidAuthorizedEntities as resolveWithAliasEvidence,
+  resolveHoidAuthorizedEntityIds as resolveIdsWithAliasEvidence,
   resolveHoidAuthorizedEntityMentions as resolveMentionsWithAliasEvidence,
   resolveProductionHoidEntities,
   resolveProductionHoidEntityMentions,
@@ -735,4 +736,54 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     ]);
   });
 
+});
+
+
+describe("Hoid spoiler-aware ID-only entity revalidation", () => {
+  it("revalidates IDs in their original order and returns metadata only", () => {
+    const alpha = knowledge("synthetic.entity-alpha", ["Synthetic Alpha"], "twok");
+    const beta = knowledge("synthetic.entity-beta", ["Synthetic Beta"], "edgedancer");
+    const entries = [alpha, beta];
+    const reading = progress([
+      { bookId: "twok", chapter: 2 },
+      { bookId: "edgedancer", chapter: 2 },
+    ]);
+    const result = resolveIdsWithAliasEvidence(
+      entries,
+      defaultAliasEvidence(entries),
+      reading,
+      [beta.id, alpha.id],
+    );
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.resolution).toBe("matched");
+    expect(result.matches.map(item => item.id)).toEqual([beta.id, alpha.id]);
+    expect(JSON.stringify(result)).not.toContain(beta.summary);
+  });
+
+  it("blocks the entire ID set when one entity is not unlocked in its own work", () => {
+    const alpha = knowledge("synthetic.entity-alpha", ["Synthetic Alpha"], "twok");
+    const beta = knowledge("synthetic.entity-beta", ["Synthetic Beta"], "edgedancer");
+    const entries = [alpha, beta];
+    const result = resolveIdsWithAliasEvidence(
+      entries,
+      defaultAliasEvidence(entries),
+      progress([{ bookId: "twok", chapter: 2 }]),
+      [alpha.id, beta.id],
+    );
+    expect(result).toEqual({ status: "blocked" });
+  });
+
+  it("rejects duplicate and malformed IDs before returning candidates", () => {
+    const entry = knowledge("synthetic.entity-alpha", ["Synthetic Alpha"]);
+    const aliases = defaultAliasEvidence([entry]);
+    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    expect(resolveIdsWithAliasEvidence(
+      [entry], aliases, reading, [entry.id, entry.id],
+    )).toEqual({ status: "unavailable", reason: "invalid-question" });
+    expect(resolveIdsWithAliasEvidence(
+      [entry], aliases, reading, [entry.id, "bad id"],
+    )).toEqual({ status: "unavailable", reason: "invalid-question" });
+  });
 });

@@ -460,3 +460,14 @@ Topic evidence validation now requires a recognized knowledge kind and an indivi
 The topic-assignment authority rebuilds the plan from the current source-controlled assignments before source-control review, requires the fixed `docs/hoid/topic-assignment-promotion.manifest.json` at the exact PR head, validates the protected branch/ruleset and latest effective approvals, and requires every assignment reviewer ID to be among the authenticated non-author approvals for that same head. Reviewer metadata in an assignment is never treated as authentication.
 
 The authority reads the authoritative v2 progress port before and after review. It only returns `ready-for-maintainer-commit`; `promotionAllowed` and `productionWritePerformed` remain false. The production topic-assignment registry is still empty, so its production plan remains blocked. Synthetic assignments exist only in tests. See `docs/hoid/TOPIC_ASSIGNMENT_PROMOTION_AUTHORITY.md`.
+
+
+## Run 134 — spoiler-safe conversational continuity
+
+conversationContext.ts defines an ephemeral, provider-neutral context containing only canonical entity IDs and the exact SQLite v2 progress revision/fingerprint. It never stores the previous question, aliases, names, claim prose, summaries, citations or provider output. The Hoid screen keeps this context in a component-local ref only; it is not persisted to SQLite, messages or cloud storage.
+
+The follow-up resolver recognizes only a small allowlist of group-level relationship phrases such as “¿Y entre ellos?” and “¿Y cómo se relacionan?”. Singular pronouns and demonstratives are deliberately treated as ambiguous because the current reviewed entity catalog has no grammatical-gender/coreference contract. A missing, malformed or stale context blocks the request; it never falls through to the general answer runtime.
+
+For a recognized group follow-up, the relationship gateway receives the prior entity IDs. resolveProductionHoidEntityIds() revalidates every ID against the current source-controlled knowledge registry, its first-safe-appearance boundary and at least one currently disclosed reviewed alias record. The graph is queried again; prior explanations and text are never replayed.
+
+Any new non-follow-up question, progress/recommendation route, error, stale result or progress change clears the ephemeral context. A restart also clears it automatically. This is intentional: continuity is session-local and is not a second progress or memory store. See docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md.

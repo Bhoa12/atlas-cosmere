@@ -1,4 +1,5 @@
 import {
+  resolveProductionHoidEntityIds,
   resolveProductionHoidEntityMentions,
   type HoidEntityMentionResolutionResult,
 } from "./entityResolver";
@@ -16,6 +17,7 @@ export type HoidRelationshipGatewayResult =
   | Readonly<{
       status: "ready";
       explanation: Extract<HoidRenderedExplanation, { status: "ready" }>;
+      entityIds: readonly string[];
       progressRevision: number;
       progressFingerprint: string;
     }>
@@ -41,6 +43,8 @@ export type HoidRelationshipGatewayConfig = Readonly<{
   explanationGateway: Pick<HoidExplanationGateway, "explain">;
   /** Trusted local resolver; production defaults to the reviewed source-controlled registries. */
   resolveEntities?: (progress: unknown, question: string) => HoidEntityMentionResolutionResult;
+  /** Revalidates ID-only conversational context against the current reviewed registries. */
+  resolveEntityIds?: (progress: unknown, entityIds: readonly string[]) => HoidEntityMentionResolutionResult;
 }>;
 
 type ProgressIdentity = Readonly<{ revision: number; fingerprint: string }>;
@@ -241,6 +245,41 @@ function canonicalMentions(
     id: entity.id,
     matchedAlias: entity.matchedAlias,
   })));
+}
+
+
+function canonicalContextMentions(
+  value: HoidEntityMentionResolutionResult,
+  expected: ProgressIdentity,
+  requestedIds: readonly string[],
+): readonly CanonicalEntityMention[] | "blocked" | "ambiguous" | "unavailable" {
+  const record = canonicalRecord(
+    value,
+    ["status", "resolution", "progressRevision", "progressFingerprint", "matches", "truncated"],
+    ["status"],
+  );
+  if (!record) return "unavailable";
+  if (record.status === "blocked" && Object.keys(record).length === 1) return "blocked";
+  if (record.status === "unavailable") return "unavailable";
+  if (
+    record.status !== "ready" ||
+    record.progressRevision !== expected.revision ||
+    record.progressFingerprint !== expected.fingerprint ||
+    record.resolution !== "matched" ||
+    record.truncated !== false
+  ) return "unavailable";
+
+  const matches = canonicalDenseArray(record.matches, 2, MAX_RELATIONSHIP_ENTITIES);
+  if (!matches || matches.length !== requestedIds.length) return "unavailable";
+  const entities: CanonicalEntityMention[] = [];
+  const seen = new Set<string>();
+  for (let index = 0; index < matches.length; index += 1) {
+    const entity = canonicalEntity(matches[index]);
+    if (!entity || entity.id !== requestedIds[index] || seen.has(entity.id)) return "unavailable";
+    seen.add(entity.id);
+    entities.push(entity);
+  }
+  return Object.freeze(entities);
 }
 
 function unavailable(
@@ -495,7 +534,7 @@ export class HoidRelationshipGateway {
   constructor(private readonly config: HoidRelationshipGatewayConfig) {}
 
   answer(input: unknown): HoidRelationshipGatewayResult {
-    const request = canonicalRecord(input, ["question", "progress"]);
+    const request = canonicalRecord(input, ["question", "progress", "entityIds"], ["question", "progress"]);
     if (
       !request ||
       typeof request.question !== "string" ||
@@ -505,6 +544,19 @@ export class HoidRelationshipGateway {
       /[\u0000-\u001F\u007F\p{Cf}]/u.test(request.question) ||
       !Object.prototype.hasOwnProperty.call(request, "progress")
     ) return unavailable("invalid-request");
+
+    const rawRequestedEntityIds = request.entityIds === undefined
+      ? null
+      : canonicalDenseArray(request.entityIds, 2, MAX_RELATIONSHIP_ENTITIES);
+    if (
+      request.entityIds !== undefined &&
+      (!rawRequestedEntityIds ||
+        rawRequestedEntityIds.some(id => typeof id !== "string" || !ID_PATTERN.test(id)) ||
+        new Set(rawRequestedEntityIds).size !== rawRequestedEntityIds.length)
+    ) return unavailable("invalid-request");
+    const requestedEntityIds: readonly string[] | null = rawRequestedEntityIds
+      ? Object.freeze(rawRequestedEntityIds.map(id => id as string))
+      : null;
 
     const requested = progressIdentity(request.progress);
     if (!requested) return unavailable("invalid-progress");
@@ -521,14 +573,21 @@ export class HoidRelationshipGateway {
 
     let rawMentions: HoidEntityMentionResolutionResult;
     try {
-      rawMentions = (this.config.resolveEntities ?? resolveProductionHoidEntityMentions)(
-        request.progress,
-        request.question,
-      );
+      rawMentions = requestedEntityIds
+        ? (this.config.resolveEntityIds ?? resolveProductionHoidEntityIds)(
+            request.progress,
+            requestedEntityIds,
+          )
+        : (this.config.resolveEntities ?? resolveProductionHoidEntityMentions)(
+            request.progress,
+            request.question,
+          );
     } catch {
       return unavailable("entity-unavailable");
     }
-    const mentions = canonicalMentions(rawMentions, requested, request.question);
+    const mentions = requestedEntityIds
+      ? canonicalContextMentions(rawMentions, requested, requestedEntityIds)
+      : canonicalMentions(rawMentions, requested, request.question);
     if (mentions === "blocked") return unavailable("entity-blocked");
     if (mentions === "ambiguous") return unavailable("entity-ambiguous");
     if (mentions === "unavailable") return unavailable("entity-unavailable");
@@ -590,6 +649,7 @@ export class HoidRelationshipGateway {
     return Object.freeze({
       status: "ready",
       explanation,
+      entityIds: Object.freeze(mentions.map(entity => entity.id)),
       progressRevision: requested.revision,
       progressFingerprint: requested.fingerprint,
     });
@@ -606,7 +666,8 @@ export function createHoidRelationshipGateway(
     config.explanationGateway === null ||
     typeof config.explanationGateway !== "object" ||
     typeof config.explanationGateway.explain !== "function" ||
-    (config.resolveEntities !== undefined && typeof config.resolveEntities !== "function")
+    (config.resolveEntities !== undefined && typeof config.resolveEntities !== "function") ||
+    (config.resolveEntityIds !== undefined && typeof config.resolveEntityIds !== "function")
   ) return null;
   return new HoidRelationshipGateway(config);
 }

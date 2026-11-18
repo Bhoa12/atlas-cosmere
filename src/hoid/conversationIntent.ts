@@ -1,15 +1,18 @@
 import type { HoidClaimIntent } from "./evidenceRuntime";
+import { isHoidRelationshipQuestion } from "./relationshipIntent";
 
 export type HoidConversationIntentMode =
   | "catalogue-recommendation"
   | "reading-progress"
   | "narrative-context"
+  | "relationship-explanation"
   | "explanation";
 
 export type HoidConversationIntentSignal =
   | "recommendation-cue"
   | "progress-position-cue"
   | "narrative-recap-cue"
+  | "relationship-cue"
   | "default-explanation";
 
 export type HoidConversationIntentResult =
@@ -146,6 +149,15 @@ export function classifyHoidConversationIntent(
       intent: "context",
       mode: "reading-progress",
       signal: "progress-position-cue",
+    });
+  }
+
+  if (isHoidRelationshipQuestion(value)) {
+    return Object.freeze({
+      status: "ready",
+      intent: "explain",
+      mode: "relationship-explanation",
+      signal: "relationship-cue",
     });
   }
 

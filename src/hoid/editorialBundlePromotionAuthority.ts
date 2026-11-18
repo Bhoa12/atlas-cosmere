@@ -216,7 +216,7 @@ function canonicalPacketReference(value: unknown): HoidEditorialReviewPacketRefe
     !SHA_PATTERN.test(raw.contentSha256)
   ) return null;
   return Object.freeze({
-    category: raw.category,
+    category: raw.category as HoidEditorialReviewPacketReference["category"],
     draftId: raw.draftId,
     packetId: raw.packetId,
     contentSha256: raw.contentSha256,

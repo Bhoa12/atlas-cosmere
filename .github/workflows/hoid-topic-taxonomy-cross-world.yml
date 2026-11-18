@@ -1,0 +1,70 @@
+name: Hoid reviewed topic taxonomy and cross-world safety
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicTaxonomy.test.ts"
+      - "src/hoid/topicComparison.ts"
+      - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
+      - ".github/workflows/hoid-topic-taxonomy-cross-world.yml"
+  pull_request:
+    paths:
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/topicTaxonomy.test.ts"
+      - "src/hoid/topicComparison.ts"
+      - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
+      - ".github/workflows/hoid-topic-taxonomy-cross-world.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reviewed-topic-taxonomy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test taxonomy, comparisons and recommendations
+        run: >-
+          npx vitest run
+          src/hoid/topicTaxonomy.test.ts
+          src/hoid/topicComparison.test.ts
+          src/hoid/topicRecommendations.test.ts
+          src/hoid/crossBookEvidence.test.ts
+          src/hoid/readingAwareRecommendations.test.ts
+          src/hoid/answerPresentation.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Type-check topic services and existing authorization boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/topicTaxonomy.ts
+          src/hoid/topicComparison.ts
+          src/hoid/topicRecommendations.ts
+          src/hoid/answerPresentation.ts
+          src/hoid/cursorReadingContext.ts
+          src/hoid/crossBookEvidence.ts
+          src/hoid/readingAwareRecommendations.ts

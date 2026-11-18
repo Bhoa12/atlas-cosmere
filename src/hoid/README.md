@@ -378,3 +378,11 @@ El staging editorial dispone ahora de un único inventario de revisión para res
 - El manifiesto agregado contiene identificadores y digests; no duplica prosa editorial ni texto de los EPUB.
 - Los recibos son evidencia estructural, no autenticación de revisores. La independencia y los permisos siguen dependiendo de la revisión protegida del control de versiones.
 - Una revisión completa continúa devolviendo `promotionAllowed: false` y `productionWritePerformed: false`. La revisión editorial no modifica el progreso del lector ni desbloquea spoilers.
+
+## Progress-bound graph explanations
+
+`explanationGateway.ts` composes the authorized graph planner and exact-claim renderer into a progress-bound application service. Requests contain only two entity IDs, bounded path limits and the authoritative v2 snapshot. The gateway compares the request snapshot with the host's live progress before and after planning/rendering, validates the plan identity, and discards the complete result if progress changes.
+
+Production composition must use `createProductionHoidExplanationGateway()`. It binds the source-controlled graph and `HOID_APPROVED_CLAIMS`; the lower-level injected engine factory is intended for trusted composition and tests. The production graph and claim registry remain empty until editorial records are independently reviewed and promoted, so production relationship queries currently return no path rather than inventing a connection.
+
+Rendered explanations contain only exact approved local claim text, separated into evidence-bearing segments with edition-bound citations. No provider-authored prose is accepted. The open-chapter N to completed-through N-1 boundary applies to every graph endpoint and every supporting evidence work. See `docs/hoid/EXPLANATION_GATEWAY.md` and `docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md`.

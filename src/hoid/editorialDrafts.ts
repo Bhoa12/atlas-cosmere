@@ -954,7 +954,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
   })
 ]);
 
-// Chapter-eight summaries remain staging-only and require chapter nine completion.
+// Chapter-eight summaries require chapter nine completion; chapter-nine summaries require chapter ten completion.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

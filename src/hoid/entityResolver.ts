@@ -759,6 +759,12 @@ export function resolveProductionHoidEntityMentions(
 }
 
 
+function unavailableMention(
+  reason: "invalid-question" | "invalid-progress" | "invalid-knowledge",
+): HoidEntityMentionResolutionResult {
+  return Object.freeze({ status: "unavailable", reason });
+}
+
 function resolveEntityIds(
   knowledgeInput: unknown,
   aliasEvidenceInput: unknown,
@@ -766,7 +772,7 @@ function resolveEntityIds(
   entityIdsInput: unknown,
 ): HoidEntityMentionResolutionResult {
   const requestedIds = canonicalDenseArray(entityIdsInput, 2, 4);
-  if (!requestedIds) return unavailable("invalid-question");
+  if (!requestedIds) return unavailableMention("invalid-question");
 
   const ids: string[] = [];
   const seen = new Set<string>();
@@ -775,18 +781,18 @@ function resolveEntityIds(
       typeof rawId !== "string" ||
       !ID_PATTERN.test(rawId) ||
       seen.has(rawId)
-    ) return unavailable("invalid-question");
+    ) return unavailableMention("invalid-question");
     seen.add(rawId);
     ids.push(rawId);
   }
 
   const knowledge = canonicalKnowledge(knowledgeInput);
-  if (!knowledge) return unavailable("invalid-knowledge");
+  if (!knowledge) return unavailableMention("invalid-knowledge");
   const aliasRecords = canonicalAliasRecords(aliasEvidenceInput, knowledge);
-  if (!aliasRecords) return unavailable("invalid-knowledge");
+  if (!aliasRecords) return unavailableMention("invalid-knowledge");
 
   const projection = projectHoidCursorProgressSnapshot(progressInput);
-  if (projection.status !== "ready") return unavailable("invalid-progress");
+  if (projection.status !== "ready") return unavailableMention("invalid-progress");
 
   const reading = [...projection.reading];
   const catalog = new HoidKnowledgeCatalog([...knowledge]);
@@ -811,7 +817,7 @@ function resolveEntityIds(
     if (!selectedAlias) return Object.freeze({ status: "blocked" });
 
     const entitySource = sourceForEntry(entity);
-    if (!entitySource) return unavailable("invalid-knowledge");
+    if (!entitySource) return unavailableMention("invalid-knowledge");
 
     matches.push(Object.freeze({
       id: entity.id,

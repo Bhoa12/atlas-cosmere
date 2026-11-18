@@ -6,6 +6,7 @@ on:
       - "feat/hoid-ia-core-run*"
     paths:
       - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicAssignmentActivationReceipt.ts"
       - "src/hoid/topicAssignmentActivation.test.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
@@ -58,6 +59,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
           src/hoid/topicAssignmentActivation.ts
+          src/hoid/topicAssignmentActivationReceipt.ts
           src/hoid/topicAssignmentPromotionAuthority.ts
           src/hoid/topicTaxonomy.ts
           src/hoid/topicRecommendations.ts

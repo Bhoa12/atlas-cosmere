@@ -6,6 +6,10 @@ import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { resolveProductionHoidEntityMentions, type HoidEntityMentionResolutionResult } from "./entityResolver";
+import { isHoidRelationshipQuestion } from "./relationshipIntent";
+import { createProductionHoidExplanationGateway } from "./explanationGateway";
+import { createHoidRelationshipGateway, type HoidRelationshipGateway } from "./relationshipGateway";
+import { createHoidEvidenceAnswerFromRenderedExplanation } from "./relationshipPresentation";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
   recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
@@ -66,6 +70,8 @@ export type HoidConversationGatewayConfig = Readonly<{
   getCurrentProgress: () => unknown;
   /** Optional test seam; production defaults to the source-controlled mention resolver. */
   resolveEntities?: (progress: unknown, question: string) => HoidEntityMentionResolutionResult;
+  /** Optional trusted local graph route; production composition supplies it by default. */
+  relationshipGateway?: Pick<HoidRelationshipGateway, "answer"> | null;
 }>;
 
 const REQUEST_KEYS = ["question", "progress", "intent"] as const;
@@ -361,6 +367,61 @@ export class HoidConversationGateway {
       return unavailable("progress-changed");
     }
 
+    // Explicit relationship questions use only the local reviewed graph. They never
+    // fall through to the general claim selector when a graph edge is unavailable.
+    if (isHoidRelationshipQuestion(request.question)) {
+      const relationshipGateway = this.config.relationshipGateway;
+      if (!relationshipGateway) return unavailable("entity-unavailable");
+
+      let relationshipResult;
+      try {
+        relationshipResult = relationshipGateway.answer({
+          question: request.question,
+          progress: request.progress,
+        });
+      } catch {
+        return unavailable("entity-unavailable");
+      }
+
+      if (relationshipResult.status === "unavailable") {
+        if (relationshipResult.reason === "progress-changed") return unavailable("progress-changed");
+        if (relationshipResult.reason === "invalid-progress") return unavailable("invalid-progress");
+        if (relationshipResult.reason === "entity-blocked") return unavailable("entity-blocked");
+        if (relationshipResult.reason === "entity-ambiguous") return unavailable("entity-ambiguous");
+        return unavailable("entity-unavailable");
+      }
+      if (relationshipResult.status === "no-path") return unavailable("entity-unavailable");
+      if (
+        relationshipResult.progressRevision !== requestedProgress.revision ||
+        relationshipResult.progressFingerprint !== requestedProgress.fingerprint
+      ) return unavailable("invalid-progress");
+
+      const relationshipAnswer = createHoidEvidenceAnswerFromRenderedExplanation(
+        relationshipResult.explanation,
+        request.progress,
+      );
+      if (!relationshipAnswer) return unavailable("entity-unavailable");
+
+      let currentAfterRelationship: unknown;
+      try {
+        currentAfterRelationship = this.config.getCurrentProgress();
+      } catch {
+        return unavailable("invalid-progress");
+      }
+      const afterRelationshipIdentity = progressIdentity(currentAfterRelationship);
+      if (!afterRelationshipIdentity) return unavailable("invalid-progress");
+      if (!sameProgress(requestedProgress, afterRelationshipIdentity)) {
+        return unavailable("progress-changed");
+      }
+
+      return Object.freeze({
+        status: "ready",
+        answer: relationshipAnswer,
+        progressRevision: requestedProgress.revision,
+        progressFingerprint: requestedProgress.fingerprint,
+      });
+    }
+
     // Resolve every known alias mentioned in the natural-language question
     // before the evidence runtime can select claims. A known but locked alias,
     // or an alias without its own approved disclosure record, blocks the whole
@@ -550,5 +611,17 @@ export function createHoidConversationGateway(
     typeof config.runtime.answer !== "function" ||
     typeof config.getCurrentProgress !== "function"
   ) return null;
-  return new HoidConversationGateway(config);
+  const relationshipGateway = config.relationshipGateway === undefined
+    ? (() => {
+        const explanationGateway = createProductionHoidExplanationGateway(config.getCurrentProgress);
+        return explanationGateway
+          ? createHoidRelationshipGateway({
+              getCurrentProgress: config.getCurrentProgress,
+              explanationGateway,
+              ...(config.resolveEntities ? { resolveEntities: config.resolveEntities } : {}),
+            })
+          : null;
+      })()
+    : config.relationshipGateway;
+  return new HoidConversationGateway({ ...config, relationshipGateway });
 }

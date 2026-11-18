@@ -1,0 +1,72 @@
+name: Hoid natural-language relationship routing
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/relationshipIntent.ts"
+      - "src/hoid/relationshipIntent.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/hoid/relationshipPresentation.ts"
+      - "src/hoid/relationshipPresentation.test.ts"
+      - "src/hoid/conversationRelationshipRouting.test.ts"
+      - "src/hoid/conversationIntentRelationship.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/hoid/conversationIntent.test.ts"
+      - "src/hoid/README.md"
+      - "docs/hoid/NATURAL_LANGUAGE_RELATIONSHIP_ROUTING.md"
+      - ".github/workflows/hoid-natural-language-relationships.yml"
+  pull_request:
+    paths:
+      - "src/hoid/relationshipIntent.ts"
+      - "src/hoid/relationshipIntent.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/hoid/relationshipPresentation.ts"
+      - "src/hoid/relationshipPresentation.test.ts"
+      - "src/hoid/conversationRelationshipRouting.test.ts"
+      - "src/hoid/conversationIntentRelationship.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/hoid/conversationIntent.test.ts"
+      - "src/hoid/README.md"
+      - "docs/hoid/NATURAL_LANGUAGE_RELATIONSHIP_ROUTING.md"
+      - ".github/workflows/hoid-natural-language-relationships.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  relationship-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test relationship routing and presentation
+        run: >-
+          npx vitest run
+          src/hoid/relationshipIntent.test.ts
+          src/hoid/relationshipGateway.test.ts
+          src/hoid/relationshipPresentation.test.ts
+          src/hoid/conversationRelationshipRouting.test.ts
+          src/hoid/conversationIntentRelationship.test.ts
+          src/hoid/conversationIntent.test.ts
+          src/hoid/conversationGateway.test.ts
+      - name: Type-check relationship boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/relationshipGateway.ts
+          src/hoid/relationshipPresentation.ts
+          src/hoid/relationshipIntent.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/conversationIntent.ts

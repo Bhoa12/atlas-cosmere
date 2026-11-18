@@ -401,3 +401,9 @@ The current Library copies were inspected for `twok` chapter 8, `edgedancer` cha
 The staging inventory now contains 29 summaries and 29 individually verified chapter documents. The 47-record editorial bundle remains `ready-for-review`, not approved. The production registry is unchanged and still contains no promoted narrative claims. See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md`, `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md` and `docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md`.
 
 The Library listing exposes `cosmere.epub`, but its chapter bodies were not inspected in this iteration. Existing Cosmere TOC locators do not count as chapter-body verification.
+
+## Natural-language relationship questions
+
+Explicit questions about a relationship, connection or shared property between two named entities are routed to the local graph explanation gateway. The route requires exactly two exact, reviewed and currently disclosed aliases; it queries a bounded directed path and tries the reverse direction only when the first direction has no path. It never falls back to the general provider selector when a relationship is unknown, ambiguous, locked or unsupported.
+
+Graph explanations are converted back into the existing evidence-answer contract only after claim/segment equality, source identity, edition/navigation/document hashes, exact chapter locators and current unlock thresholds are revalidated. The production entity, alias and editorial registries remain empty until source-backed claims are independently reviewed, so this route intentionally abstains rather than fabricating a relationship. See `docs/hoid/NATURAL_LANGUAGE_RELATIONSHIP_ROUTING.md`.

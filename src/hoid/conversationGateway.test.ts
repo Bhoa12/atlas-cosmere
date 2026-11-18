@@ -750,3 +750,106 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
   });
 });
+
+
+describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
+  function contextAndProgress(current: unknown) {
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const context = createHoidConversationContext(
+      ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      },
+    );
+    if (!context) throw new Error("Contexto sintético no disponible");
+    return { context, projection };
+  }
+
+  it("sends only the uniquely reauthorized entity ID to the strict runtime", async () => {
+    const current = snapshot(3);
+    const { context, projection } = contextAndProgress(current);
+    const runtime = { answer: vi.fn(async () => answer) };
+    const resolveCoreference = vi.fn(() => ({
+      status: "resolved" as const,
+      entityId: "synthetic.entity-beta",
+      context,
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+    }));
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveCoreference,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y ella?",
+      progress: current,
+      context,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(resolveCoreference).toHaveBeenCalledWith("¿Y ella?", context, current);
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Y ella?",
+      progress: current,
+      intent: "explain",
+      entityIds: ["synthetic.entity-beta"],
+    });
+    expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
+    if (result.status === "ready") expect(result.conversationContext).toEqual(context);
+  });
+
+  it("does not invoke the runtime or relationship graph when coreference is ambiguous", async () => {
+    const current = snapshot(3);
+    const { context, projection } = contextAndProgress(current);
+    const runtime = { answer: vi.fn(async () => answer) };
+    const relationshipGateway = { answer: vi.fn() };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+      resolveCoreference: () => ({
+        status: "unavailable" as const,
+        reason: "ambiguous-reference" as const,
+      }),
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({ question: "¿Y ella?", progress: current, context });
+    expect(result).toEqual({ status: "unavailable", reason: "context-ambiguous" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(projection.status).toBe("ready");
+  });
+
+  it("discards a pronoun answer if progress changes while the runtime is pending", async () => {
+    const initial = snapshot(3);
+    const { context, projection } = contextAndProgress(initial);
+    let current: unknown = initial;
+    let finish: ((value: HoidEvidenceAnswer) => void) | undefined;
+    const runtime = {
+      answer: vi.fn(() => new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveCoreference: () => ({
+        status: "resolved" as const,
+        entityId: "synthetic.entity-beta",
+        context,
+        progressRevision: projection.revision,
+        progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      }),
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const pending = gateway.answer({ question: "¿Y ella?", progress: initial, context });
+    current = snapshot(4);
+    finish?.(answer);
+    expect(await pending).toEqual({ status: "unavailable", reason: "progress-changed" });
+  });
+});

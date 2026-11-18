@@ -215,6 +215,32 @@ export function createHoidConversationContext(
 }
 
 /**
+ * Validates a session-local ID-only context independently of any follow-up cue.
+ * This is shared by group follow-ups and reviewed pronoun resolution so neither
+ * path needs to synthesize a question merely to validate context freshness.
+ */
+export function validateHoidConversationContext(
+  contextInput: unknown,
+  progressInput: unknown,
+): HoidConversationFollowUpResult {
+  if (contextInput === undefined || contextInput === null) {
+    return Object.freeze({ status: "unavailable", reason: "missing-context" });
+  }
+  const context = canonicalContext(contextInput);
+  if (!context) return Object.freeze({ status: "unavailable", reason: "invalid-context" });
+
+  const progress = canonicalProgressIdentity(progressInput);
+  if (!progress) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+  if (
+    context.progressRevision !== progress.revision ||
+    context.progressFingerprint !== progress.fingerprint
+  ) {
+    return Object.freeze({ status: "unavailable", reason: "stale-context" });
+  }
+  return Object.freeze({ status: "resolved", entityIds: context.entityIds });
+}
+
+/**
  * Resolves only explicit group-level relationship follow-ups. Singular
  * pronouns and demonstratives are deliberately treated as ambiguous because
  * the entity registry does not carry reviewed grammatical-gender/coreference metadata.
@@ -254,20 +280,5 @@ export function resolveHoidConversationFollowUp(
     return Object.freeze({ status: "unavailable", reason: "ambiguous-reference" });
   }
 
-  if (contextInput === undefined || contextInput === null) {
-    return Object.freeze({ status: "unavailable", reason: "missing-context" });
-  }
-  const context = canonicalContext(contextInput);
-  if (!context) return Object.freeze({ status: "unavailable", reason: "invalid-context" });
-
-  const progress = canonicalProgressIdentity(progressInput);
-  if (!progress) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
-  if (
-    context.progressRevision !== progress.revision ||
-    context.progressFingerprint !== progress.fingerprint
-  ) {
-    return Object.freeze({ status: "unavailable", reason: "stale-context" });
-  }
-
-  return Object.freeze({ status: "resolved", entityIds: context.entityIds });
+  return validateHoidConversationContext(contextInput, progressInput);
 }

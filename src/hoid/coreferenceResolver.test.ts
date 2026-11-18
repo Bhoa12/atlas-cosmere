@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveHoidAuthorizedCoreference,
   resolveProductionHoidCoreference,
+  auditHoidCoreferenceRegistry,
   type HoidCoreferenceEntityAuthorizer,
 } from "./coreferenceResolver";
 import { createHoidConversationContext } from "./conversationContext";
@@ -63,7 +64,7 @@ function record(
   id: string,
   entityId: string,
   form: "él" | "ella",
-  evidenceItems: readonly unknown[] = [evidence("synthetic.coref-evidence." + id, "twok", 1, 2)],
+  evidenceItems: readonly unknown[] = [evidence("synthetic.coref-evidence." + id, "tfe", 1, 2)],
 ) {
   return {
     id,
@@ -115,7 +116,7 @@ function resolve(
 
 describe("Hoid reviewed, spoiler-scoped coreference", () => {
   it("resolves a feminine singular follow-up only to the unique reviewed entity ID", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const result = resolve("¿Y ella?", reading, [record("synthetic.coref.ella", "synthetic.entity-b", "ella")]);
     expect(result.status).toBe("resolved");
     if (result.status === "resolved") {
@@ -127,14 +128,14 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("resolves a masculine singular follow-up using an explicit reviewed form, not a name heuristic", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const result = resolve("¿Y él?", reading, [record("synthetic.coref.el", "synthetic.entity-a", "él")]);
     expect(result.status).toBe("resolved");
     if (result.status === "resolved") expect(result.entityId).toBe("synthetic.entity-a");
   });
 
   it("recognizes only exact bounded follow-up cues and does not capture a new noun phrase", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     expect(resolve("¿Y ella?", reading, [record("synthetic.coref.ella", "synthetic.entity-b", "ella")]).status)
       .toBe("resolved");
     expect(resolve("¿Y el sistema?", reading, []).status).toBe("not-follow-up");
@@ -142,7 +143,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("does not confuse the masculine article `el` with the pronoun `él`", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const records = [record("synthetic.coref.el", "synthetic.entity-a", "él")];
     expect(resolve("¿Y él?", reading, records).status).toBe("resolved");
     expect(resolve("¿Y el?", reading, records)).toEqual({
@@ -152,7 +153,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("withholds a pronoun when two context entities have the same reviewed form", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.ella-a", "synthetic.entity-a", "ella"),
       record("synthetic.coref.ella-b", "synthetic.entity-b", "ella"),
@@ -162,7 +163,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
 
   it("does not infer uniqueness by ignoring a matching but still-locked candidate", () => {
     const reading = progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "tfe", chapter: 2 },
       { bookId: "edgedancer", chapter: 2 },
     ]);
     const result = resolve("¿Y ella?", reading, [
@@ -176,15 +177,15 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
 
   it("requires every cross-work pronoun evidence threshold (AND semantics)", () => {
     const records = [record("synthetic.coref.cross", "synthetic.entity-b", "ella", [
-      evidence("synthetic.coref-cross-a", "twok", 1, 2),
+      evidence("synthetic.coref-cross-a", "tfe", 1, 2),
       evidence("synthetic.coref-cross-b", "edgedancer", 1, 3),
     ])];
     const before = resolve("¿Y ella?", progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "tfe", chapter: 2 },
       { bookId: "edgedancer", chapter: 2 },
     ]), records);
     const after = resolve("¿Y ella?", progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "tfe", chapter: 2 },
       { bookId: "edgedancer", chapter: 3 },
     ]), records);
     expect(before).toEqual({ status: "unavailable", reason: "reference-unavailable" });
@@ -192,7 +193,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("revalidates every entity in the prior context before selecting one pronoun target", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const denied: HoidCoreferenceEntityAuthorizer = () => ({ status: "blocked" });
     const result = resolve(
       "¿Y ella?",
@@ -205,8 +206,8 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("rejects a context bound to a different progress fingerprint", () => {
-    const oldReading = progress([{ bookId: "twok", chapter: 2 }]);
-    const currentReading = progress([{ bookId: "twok", chapter: 3 }]);
+    const oldReading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const currentReading = progress([{ bookId: "tfe", chapter: 3 }]);
     const result = resolve(
       "¿Y ella?",
       currentReading,
@@ -217,7 +218,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("requires an existing relationship context", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     expect(resolveHoidAuthorizedCoreference(
       "¿Y ella?", null, reading,
       [record("synthetic.coref.ella", "synthetic.entity-b", "ella")],
@@ -226,8 +227,8 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("rejects evidence from a chapter whose body was not individually inspected", () => {
-    const uninspected = evidence("synthetic.coref-uninspected", "twok", 9, 9);
-    const reading = progress([{ bookId: "twok", chapter: 10 }]);
+    const uninspected = evidence("synthetic.coref-uninspected", "tfe", 9, 9);
+    const reading = progress([{ bookId: "tfe", chapter: 10 }]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.ella", "synthetic.entity-b", "ella", [uninspected]),
     ]);
@@ -235,8 +236,8 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("rejects a coreference record whose stored document digest differs from the inspected EPUB document", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
-    const item = evidence("synthetic.coref-digest", "twok", 1, 2);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const item = evidence("synthetic.coref-digest", "tfe", 1, 2);
     const tampered = {
       ...item,
       source: { ...item.source, documentSha256: "f".repeat(64) },
@@ -248,8 +249,8 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("rejects a coreference record bound to another edition or navigation digest", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
-    const item = evidence("synthetic.coref-edition", "twok", 1, 2);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
+    const item = evidence("synthetic.coref-edition", "tfe", 1, 2);
     const tampered = {
       ...item,
       source: { ...item.source, editionId: "different-edition" },
@@ -261,18 +262,18 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("rejects duplicate entity/form mappings instead of selecting the first record", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.first", "synthetic.entity-b", "ella"),
       record("synthetic.coref.second", "synthetic.entity-b", "ella", [
-        evidence("synthetic.coref-second-evidence", "twok", 1, 2),
+        evidence("synthetic.coref-second-evidence", "tfe", 1, 2),
       ]),
     ]);
     expect(result).toEqual({ status: "unavailable", reason: "invalid-registry" });
   });
 
   it("rejects accessor-backed records without invoking their getters", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const hostile = record("synthetic.coref.ella", "synthetic.entity-b", "ella") as Record<string, unknown>;
     let invoked = false;
     Object.defineProperty(hostile, "form", {
@@ -287,7 +288,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
 
   it("rejects malformed progress and invalid reviewer metadata", () => {
     const reading = { schemaVersion: 1, revision: 0, positions: [], updatedAt: null };
-    const valid = progress([{ bookId: "twok", chapter: 2 }]);
+    const valid = progress([{ bookId: "tfe", chapter: 2 }]);
     expect(resolve("¿Y ella?", reading, [], contextFor(valid)).status).toBe("unavailable");
     const invalidReview = {
       ...record("synthetic.coref.bad-review", "synthetic.entity-b", "ella"),
@@ -299,8 +300,44 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
     });
   });
 
+
+  it("audits a complete registry into metadata-only deterministic fingerprints", () => {
+    const registry = [record("synthetic.coref.audit", "synthetic.entity-b", "ella")];
+    const first = auditHoidCoreferenceRegistry(registry);
+    const second = auditHoidCoreferenceRegistry(registry);
+    expect(first).toEqual(second);
+    expect(first.status).toBe("valid");
+    if (first.status === "valid") {
+      expect(first.recordCount).toBe(1);
+      expect(first.recordIds).toEqual(["synthetic.coref.audit"]);
+      expect(first.entityIds).toEqual(["synthetic.entity-b"]);
+      expect(first.reviewerIds).toEqual(["synthetic-coreference-reviewer"]);
+      expect(first.registryFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+      expect(first.evidenceFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+      expect(JSON.stringify(first)).not.toContain("ella");
+      expect(JSON.stringify(first)).not.toContain("synthetic-coreference-reviewer");
+    }
+  });
+
+  it("audits an empty production registry without manufacturing records", () => {
+    expect(auditHoidCoreferenceRegistry([])).toMatchObject({
+      status: "valid",
+      recordCount: 0,
+      recordIds: [],
+      entityIds: [],
+      reviewerIds: [],
+    });
+  });
+
+  it("rejects a registry containing an uninspected document", () => {
+    const invalid = [record("synthetic.coref.uninspected", "synthetic.entity-b", "ella", [
+      evidence("synthetic.coref.uninspected-evidence", "tfe", 9, 9),
+    ])];
+    expect(auditHoidCoreferenceRegistry(invalid)).toEqual({ status: "invalid" });
+  });
+
   it("keeps the production registry empty and abstains instead of inferring a pronoun target", () => {
-    const reading = progress([{ bookId: "twok", chapter: 2 }]);
+    const reading = progress([{ bookId: "tfe", chapter: 2 }]);
     const result = resolveProductionHoidCoreference("¿Y ella?", contextFor(reading), reading);
     expect(result).toEqual({ status: "unavailable", reason: "entity-unavailable" });
   });

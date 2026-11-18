@@ -12,7 +12,7 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import {
   createHoidConversationContext,
-  resolveHoidConversationFollowUp,
+  validateHoidConversationContext,
   type HoidConversationContext,
   type HoidConversationProgressIdentity,
 } from "./conversationContext";
@@ -24,16 +24,22 @@ import {
   HOID_COREFERENCE_REGISTRY,
   type HoidCoreferenceForm,
 } from "./coreferenceRegistry";
+import { sha256Hex } from "./sha256";
 
 type CanonicalCoreferenceEvidence = Readonly<{
   id: string;
   scope: CanonicalHoidEvidenceScope;
+  editionId: string;
+  navigationSha256: string;
+  documentSha256: string;
 }>;
 
 type CanonicalCoreferenceRecord = Readonly<{
   id: string;
   entityId: string;
   form: HoidCoreferenceForm;
+  reviewerId: string;
+  reviewedAt: string;
   evidence: readonly CanonicalCoreferenceEvidence[];
 }>;
 
@@ -77,14 +83,14 @@ const PRONOUN_FOLLOW_UPS: readonly Readonly<{
   Object.freeze({
     form: "él" as const,
     cues: Object.freeze([
-      "y el",
-      "y con el",
-      "y de el",
-      "y que sabes de el",
-      "y que pasa con el",
-      "y como se relaciona con el",
-      "y que relacion tiene con el",
-      "y que vinculo tiene con el",
+      "y él",
+      "y con él",
+      "y de él",
+      "y qué sabes de él",
+      "y qué pasa con él",
+      "y cómo se relaciona con él",
+      "y qué relación tiene con él",
+      "y qué vínculo tiene con él",
     ]),
   }),
   Object.freeze({
@@ -93,11 +99,11 @@ const PRONOUN_FOLLOW_UPS: readonly Readonly<{
       "y ella",
       "y con ella",
       "y de ella",
-      "y que sabes de ella",
-      "y que pasa con ella",
-      "y como se relaciona con ella",
-      "y que relacion tiene con ella",
-      "y que vinculo tiene con ella",
+      "y qué sabes de ella",
+      "y qué pasa con ella",
+      "y cómo se relaciona con ella",
+      "y qué relación tiene con ella",
+      "y qué vínculo tiene con ella",
     ]),
   }),
 ]);
@@ -274,14 +280,23 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
       );
       if (!documentSha256 || documentSha256 !== sourceRecord.documentSha256) return null;
 
-      evidence.push(Object.freeze({ id: item.id, scope }));
+      evidence.push(Object.freeze({
+        id: item.id,
+        scope,
+        editionId: sourceRecord.editionId,
+        navigationSha256: sourceRecord.navigationSha256,
+        documentSha256: sourceRecord.documentSha256,
+      }));
       evidenceIds.add(item.id);
     }
 
+    const review = record.review as Record<string, unknown>;
     records.push(Object.freeze({
       id: record.id,
       entityId: record.entityId,
       form: record.form,
+      reviewerId: review.reviewerId as string,
+      reviewedAt: review.reviewedAt as string,
       evidence: Object.freeze(evidence),
     }));
     recordIds.add(record.id);
@@ -289,6 +304,68 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
   }
 
   return Object.freeze(records);
+}
+
+
+export type HoidCoreferenceRegistryAuditResult =
+  | Readonly<{
+      status: "valid";
+      recordCount: number;
+      recordIds: readonly string[];
+      entityIds: readonly string[];
+      reviewerIds: readonly string[];
+      registryFingerprint: string;
+      evidenceFingerprint: string;
+    }>
+  | Readonly<{ status: "invalid" }>;
+
+/**
+ * Validates and fingerprints the complete metadata-only production candidate
+ * registry. No source prose, EPUB bytes or provider output is returned.
+ */
+export function auditHoidCoreferenceRegistry(
+  registryInput: unknown,
+): HoidCoreferenceRegistryAuditResult {
+  const records = canonicalRecords(registryInput);
+  if (!records) return Object.freeze({ status: "invalid" });
+
+  const sortedRecords = [...records].sort((left, right) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  );
+  const recordIds = Object.freeze(sortedRecords.map(item => item.id));
+  const entityIds = Object.freeze([...new Set(sortedRecords.map(item => item.entityId))].sort());
+  const reviewerIds = Object.freeze([...new Set(sortedRecords.map(item => item.reviewerId))].sort());
+  const registryFields = sortedRecords.map(item => [
+    item.id,
+    item.entityId,
+    item.form,
+    item.reviewerId,
+    item.reviewedAt,
+    item.evidence.map(source => source.id).sort(),
+  ]);
+  const evidenceFields = sortedRecords.flatMap(item => item.evidence.map(source => [
+    item.id,
+    item.entityId,
+    source.id,
+    source.scope.sourceBookId,
+    source.scope.sourceChapter,
+    source.scope.locatorId,
+    source.editionId,
+    source.navigationSha256,
+    source.documentSha256,
+    source.scope.unlockBookId,
+    source.scope.unlockChapter,
+  ])).sort((left, right) => String(left[2]).localeCompare(String(right[2])));
+
+  return Object.freeze({
+    status: "valid",
+    recordCount: sortedRecords.length,
+    recordIds,
+    entityIds,
+    reviewerIds,
+    registryFingerprint: sha256Hex(JSON.stringify(["hoid-coreference-registry-v1", registryFields])),
+    evidenceFingerprint: sha256Hex(JSON.stringify(["hoid-coreference-evidence-v1", evidenceFields])),
+  });
 }
 
 function evidenceIsUnlocked(
@@ -393,11 +470,7 @@ export function resolveHoidAuthorizedCoreference(
 
   const progress = progressIdentity(progressInput);
   if (!progress) return unavailable("invalid-progress");
-  const groupContext = resolveHoidConversationFollowUp(
-    "¿Y entre ellos?",
-    contextInput,
-    progress,
-  );
+  const groupContext = validateHoidConversationContext(contextInput, progress);
   if (groupContext.status !== "resolved") {
     if (groupContext.status === "unavailable" && groupContext.reason === "stale-context") {
       return unavailable("stale-context");

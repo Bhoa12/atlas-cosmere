@@ -366,3 +366,15 @@ The complete editorial bundle now inventories 23 summaries, one atomic claim, 12
 - The current Library listing did not expose the El camino de los reyes EPUB, so chapter eight of `twok` was not inspected in this run. No claim is made about that passage.
 - No EPUB bytes, XHTML bodies or protected passages were committed. Only metadata, exact locators, SHA-256 digests and original summaries are stored.
 - See `docs/hoid/RUN121_SOURCE_INGESTION.md`, `docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md` and `docs/hoid/EDITORIAL_ENTITY_IDENTITY_AND_PROMOTION.md`.
+
+
+## Paquetes de revisión editoriales unificados
+
+El staging editorial dispone ahora de un único inventario de revisión para resúmenes, afirmaciones atómicas, identidades y relaciones. Consulta `docs/hoid/EDITORIAL_REVIEW_BUNDLE.md`.
+
+- `editorialClaimReviewPackets.ts` añade paquetes y recibos para afirmaciones atómicas, con controles de atomicidad e identidad del sujeto.
+- `editorialReviewBundle.ts` reconstruye las cuatro categorías a partir del manifiesto de conocimiento y vincula cada paquete a una huella de sesión.
+- La validación agregada distingue revisión completa, necesidad de revisión, inventario incompleto y recibos inválidos.
+- El manifiesto agregado contiene identificadores y digests; no duplica prosa editorial ni texto de los EPUB.
+- Los recibos son evidencia estructural, no autenticación de revisores. La independencia y los permisos siguen dependiendo de la revisión protegida del control de versiones.
+- Una revisión completa continúa devolviendo `promotionAllowed: false` y `productionWritePerformed: false`. La revisión editorial no modifica el progreso del lector ni desbloquea spoilers.

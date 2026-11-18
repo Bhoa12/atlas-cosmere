@@ -65,7 +65,7 @@ function assignment(
   return {
     schemaVersion: 1,
     id,
-    subjectKind: "entity",
+    subjectKind: "work",
     subjectId,
     worldId,
     worldLabel,
@@ -88,16 +88,16 @@ function request(firstAnswer = answer("claim.alpha", "Dato sintético Alfa.", "t
     topicId: "investiture-system",
     dimensionId: "mechanism",
     entries: [
-      { subjectKind: "entity", subjectId: "entity.alpha", answer: firstAnswer },
-      { subjectKind: "entity", subjectId: "entity.beta", answer: secondAnswer },
+      { subjectKind: "work", subjectId: "tfe", answer: firstAnswer },
+      { subjectKind: "work", subjectId: "wor", answer: secondAnswer },
     ],
   };
 }
 
 function assignments() {
   return [
-    assignment("entity.alpha", "world-alpha", "Mundo Alfa", "claim.alpha", "Dato sintético Alfa.", "evidence.alpha"),
-    assignment("entity.beta", "world-beta", "Mundo Beta", "claim.beta", "Dato sintético Beta.", "evidence.beta"),
+    assignment("tfe", "world-alpha", "Mundo Alfa", "claim.alpha", "Dato sintético Alfa.", "evidence.alpha"),
+    assignment("wor", "world-beta", "Mundo Beta", "claim.beta", "Dato sintético Beta.", "evidence.beta"),
   ];
 }
 
@@ -124,7 +124,7 @@ describe("Hoid cross-world topic comparison", () => {
 
   it("rejects a claim whose text digest differs from its reviewed topic assignment", () => {
     const changed = assignments().map(item =>
-      item.subjectId === "entity.alpha" ? { ...item, claimTextSha256: sha256Hex("Texto distinto.") } : item
+      item.subjectId === "tfe" ? { ...item, claimTextSha256: sha256Hex("Texto distinto.") } : item
     );
     expect(compareHoidTopicsAcrossWorlds(request(), progress(), changed))
       .toEqual({ status: "unavailable", reason: "no-authorized-comparison" });
@@ -140,16 +140,16 @@ describe("Hoid cross-world topic comparison", () => {
       topicId: "investiture-system",
       dimensionId: "mechanism",
       entries: [
-        { subjectKind: "entity", subjectId: "entity.alpha", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
-        { subjectKind: "entity", subjectId: "entity.alpha", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
+        { subjectKind: "work", subjectId: "tfe", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
+        { subjectKind: "work", subjectId: "tfe", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
       ],
     };
     expect(compareHoidTopicsAcrossWorlds(duplicate, progress(), assignments()).status).toBe("unavailable");
     const mixed = {
       ...request(),
       entries: [
-        { subjectKind: "entity", subjectId: "entity.alpha", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
-        { subjectKind: "work", subjectId: "tfe", answer: answer("claim.beta", "Dato sintético Beta.", "wor", "evidence.beta") },
+        { subjectKind: "work", subjectId: "tfe", answer: answer("claim.alpha", "Dato sintético Alfa.", "tfe", "evidence.alpha") },
+        { subjectKind: "entity", subjectId: "entity.beta", answer: answer("claim.beta", "Dato sintético Beta.", "wor", "evidence.beta") },
       ],
     };
     expect(compareHoidTopicsAcrossWorlds(mixed, progress(), assignments()).status).toBe("unavailable");
@@ -162,8 +162,8 @@ describe("Hoid cross-world topic comparison", () => {
       topicId: "investiture-system",
       dimensionId: "mechanism",
       entries: Array.from({ length: 5 }, (_, index) => ({
-        subjectKind: "entity",
-        subjectId: "entity." + index,
+        subjectKind: "work",
+        subjectId: index === 0 ? "tfe" : "wor",
         answer: answer("claim." + index, "Dato sintético.", "tfe", "evidence." + index),
       })),
     };

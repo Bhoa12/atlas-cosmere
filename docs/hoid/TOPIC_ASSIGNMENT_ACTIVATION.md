@@ -58,7 +58,7 @@ Possible outcomes:
 
 composeProductionHoidTopicRecommendations() and HoidTopicInterestRecommendationGateway now consume only the active result. A non-empty but unactivated registry is not treated as a recommendation source. The gateway returns assignments-not-activated and does not invoke the local claim-answer port.
 
-The production constant HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT is currently null, and HOID_APPROVED_TOPIC_ASSIGNMENTS remains empty. Production recommendations therefore remain inactive.
+The production constant HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT is stored in src/hoid/topicAssignmentActivationReceipt.ts and is currently null. It must be updated only by a protected maintainer-controlled source change after the real post-merge verification. HOID_APPROVED_TOPIC_ASSIGNMENTS remains empty. Production recommendations therefore remain inactive.
 
 ## Trust model and limitation
 

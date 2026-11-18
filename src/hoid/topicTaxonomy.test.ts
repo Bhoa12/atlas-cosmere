@@ -11,8 +11,8 @@ function assignment(overrides: Record<string, unknown> = {}) {
   return {
     schemaVersion: 1,
     id: "topic-assignment.alpha",
-    subjectKind: "entity",
-    subjectId: "entity.alpha",
+    subjectKind: "work",
+    subjectId: "tfe",
     worldId: "world-alpha",
     worldLabel: "Mundo Alfa",
     topicId: "investiture-system",
@@ -41,7 +41,7 @@ describe("Hoid reviewed topic taxonomy", () => {
     expect(HOID_APPROVED_TOPIC_ASSIGNMENTS).toEqual([]);
   });
 
-  it("accepts an exact, source-controlled approved assignment", () => {
+  it("accepts an exact, source-controlled approved work assignment", () => {
     const result = validateHoidTopicAssignments([assignment()]);
     expect(result.status).toBe("valid");
     if (result.status !== "valid") return;
@@ -49,15 +49,10 @@ describe("Hoid reviewed topic taxonomy", () => {
     expect(result.assignments[0].claimTextSha256).toBe(sha256Hex("Dato sintético para probar una asignación editorial."));
   });
 
-  it("accepts a work subject only when it belongs to the private-source bibliography", () => {
-    expect(validateHoidTopicAssignments([assignment({
-      subjectKind: "work",
-      subjectId: "tfe",
-    })]).status).toBe("valid");
-    expect(validateHoidTopicAssignments([assignment({
-      subjectKind: "work",
-      subjectId: "unknown-work",
-    })]).status).toBe("invalid");
+  it("accepts only bibliography works or entities already in the approved identity registry", () => {
+    expect(validateHoidTopicAssignments([assignment({ subjectKind: "work", subjectId: "tfe" })]).status).toBe("valid");
+    expect(validateHoidTopicAssignments([assignment({ subjectKind: "work", subjectId: "unknown-work" })]).status).toBe("invalid");
+    expect(validateHoidTopicAssignments([assignment({ subjectKind: "entity", subjectId: "entity.not-approved" })]).status).toBe("invalid");
   });
 
   it("rejects dimensions that do not belong to the selected topic", () => {
@@ -79,7 +74,7 @@ describe("Hoid reviewed topic taxonomy", () => {
       assignment(),
       assignment({
         id: "topic-assignment.beta",
-        subjectId: "entity.beta",
+        subjectId: "wor",
         claimId: "claim.beta",
         worldLabel: "Etiqueta contradictoria",
       }),

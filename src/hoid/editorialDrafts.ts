@@ -886,9 +886,75 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-008.shallan-jasnah-pupil",
+    kind: "event",
+    aliases: Object.freeze(["aceptación de Shallan como pupila"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 8 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 8,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-021.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 9 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "1f9ad886ddb35ccb723890b8b8b4fd2c8f959182c26e0bef112a01d69736a156",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "299392b4fd7f2656a22c3b79f1b35dcac0c522b5c6306ebdf68062f275da673a" }),
+    summary: "Tras un segundo rechazo inicial, Jasnah reconsidera su reacción y examina la carta y los materiales de Shallan. Reconoce su capacidad autodidacta y su habilidad argumentativa, pero condiciona una futura aceptación como pupila a que complete una formación más sólida en historia y filosofía. Consciente de que su familia no dispone de años para esperar, Shallan decide prepararse por su cuenta: con ayuda de Yalb localiza una librería, selecciona obras exigentes y negocia su compra frente a un comerciante condescendiente. De vuelta en el Palanaeum, empieza a estudiar cerca de Jasnah. La erudita revisa sus dibujos y cuadernos, valora que Shallan busque conocimiento por iniciativa propia y finalmente la acepta como ayudante y futura alumna, con la condición de comenzar al día siguiente.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-009.lift-nale-szeth",
+    kind: "event",
+    aliases: Object.freeze(["encuentro de Lift con Nale y Szeth"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 9 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 9,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/009.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 10 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "3561810a0d4efb150309a41393dd612a8edca55806c98395152e1b88e5e8949d",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "7ee2bd1f2a95b8e0e4d6ef9defa55a309581f1bb6c2ed1ca134e369ba9cbf9b2" }),
+    summary: "Lift se infiltra en una reunión de los Rompedores del Cielo y escucha a Nale, a quien sus seguidores llaman Nin, instruir a dos iniciados sobre su misión de perseguir a quienes manifiestan poderes Radiantes. Nale justifica su postura por el temor a que el regreso de los vínculos con los spren desemboque en otra Desolación. Szeth, presente y todavía vinculado a su código, contradice esa interpretación: sostiene que los Portadores del Vacío han regresado y señala la nueva tormenta y los ojos rojos como indicios. Nale rechaza sus advertencias y ordena a los iniciados localizar a otra persona con poderes en la ciudad, mientras afirma que se ocupará personalmente de Lift al anochecer. Lift logra escapar, pero queda inquieta por la presencia de Szeth y por la identidad de Nale como Heraldo.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-009.rysn-aluminum-fabrial",
+    kind: "event",
+    aliases: Object.freeze(["experimento del fabrial de aluminio de Rysn"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 9 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 9,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/9.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 10 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "4ee69a012acd0e528aa63c5ac3f78cd22a0988e168f178606dc48a4691786906",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "1aa310d2444fbf84afad9783bd843a433fff9a2bb92ac293a08e08597937ae12" }),
+    summary: "Rysn recibe de Vstim información que aclara parte del objetivo de la expedición: Akinah tuvo una Puerta Jurada y la misión debe investigar su estado, además de las señales de actividad enemiga. Las conversaciones con Nikli y Cuerda amplían las tradiciones sobre la antigua Aimia, sus artefactos y unas criaturas colectivas vinculadas a tesoros y pruebas; Rysn también considera la posibilidad de que el incidente del santhid fuera una ilusión. Mientras tanto, Rushu estudia una alteración accidental en un fabrial de rubíes parejos causada por aluminio. El experimento permite que la silla de Rysn conserve el movimiento vertical del ancla, pero adquiera desplazamiento horizontal independiente, una posibilidad que le ofrece una perspectiva de mayor autonomía. La emoción de Rysn ante esa mejora contrasta con la inquietud de Nikli, que sospecha que Cuerda podría estar ocultando sus motivos y pide que se investigue antes de continuar.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  })
 ]);
 
-// Chapter-eight summaries remain staging-only and require chapter nine completion.
+// Chapter-eight summaries require chapter nine completion; chapter-nine summaries require chapter ten completion.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

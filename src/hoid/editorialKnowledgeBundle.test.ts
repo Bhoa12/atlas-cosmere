@@ -23,8 +23,8 @@ describe("Hoid complete editorial knowledge bundle", () => {
     expect(second.status).toBe("ready-for-review");
     if (first.status !== "ready-for-review" || second.status !== "ready-for-review") return;
     expect(first.manifest).toEqual(second.manifest);
-    expect(first.manifest.records).toHaveLength(44);
-    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(26);
+    expect(first.manifest.records).toHaveLength(47);
+    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(29);
     expect(first.manifest.records.filter(item => item.kind === "atomic-claim")).toHaveLength(1);
     expect(first.manifest.records.filter(item => item.kind === "entity")).toHaveLength(14);
     expect(first.manifest.records.filter(item => item.kind === "relationship")).toHaveLength(3);

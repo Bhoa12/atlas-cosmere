@@ -482,3 +482,14 @@ Any new non-follow-up question, progress/recommendation route, error, stale resu
 The conversation gateway sends only the single reauthorized entity ID to the strict evidence runtime. It does not send prior context, aliases, pronoun mappings or source prose. An unresolved pronoun abstains before the runtime and relationship graph. The ordinary answer-presentation boundary still verifies every claim and source before display, and the live progress is checked again after asynchronous generation.
 
 Plural pronouns, possessives, demonstratives and unrestricted natural-language coreference remain unsupported. The production registry is empty, so production pronoun follow-ups continue to abstain until source-backed records are reviewed. Synthetic tests do not add Cosmere facts. See `docs/hoid/REVIEWED_COREFERENCE_AND_PRONOUN_SAFETY.md`.
+
+
+## Run 137 — typed entity conversation continuity
+
+`typedConversationContext.ts` extends the session-local context with canonical `HoidKnowledgeKind` values while retaining only two to four entity IDs, their exact kinds and the SQLite v2 progress revision/fingerprint. It does not store names, aliases, prior questions, claims, summaries, citations or provider output.
+
+The resolver accepts only exact noun-category follow-ups such as “¿Y esa organización?”, “¿Y ese objeto?” and “¿Y ese sistema de magia?”. A category must match exactly one entity in the prior context. Zero matches, multiple matches, generic category phrases and stale context abstain; no entity is selected by recency or array order.
+
+Before a selected ID reaches the strict evidence runtime, the conversation gateway reauthorizes every context ID against the production knowledge and alias registries. IDs, kinds, order and progress identity must match exactly. The runtime receives only the single selected ID. The typed context remains component-local in HoidScreen and is cleared on progress changes, unrelated routes, failed presentation, stale responses and errors.
+
+The production editorial and alias registries remain the only factual authority. This run adds no Cosmere claims, aliases or source records. Synthetic tests validate the contracts; no private EPUB/XHTML body or protected passage is committed. See `docs/hoid/TYPED_ENTITY_CONVERSATION_CONTINUITY.md`.

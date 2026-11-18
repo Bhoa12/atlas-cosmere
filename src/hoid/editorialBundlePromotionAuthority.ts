@@ -7,7 +7,6 @@ import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import {
   verifyHoidProtectedReviewSnapshot,
-  type HoidPromotionProgressPort,
   type HoidPromotionReviewRequest,
   type HoidProtectedReviewFetchRequest,
   type HoidSourceControlReviewPort,

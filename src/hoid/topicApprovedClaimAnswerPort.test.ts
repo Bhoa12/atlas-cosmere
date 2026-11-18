@@ -6,6 +6,7 @@ import {
 } from "./evidenceRuntime";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { getHoidReadingManifest } from "./readingManifest";
+import { presentHoidEvidenceAnswer } from "./answerPresentation";
 import { createHoidApprovedClaimAnswerPort } from "./topicApprovedClaimAnswerPort";
 
 function locator(bookId: string, chapter: number): string {
@@ -109,6 +110,13 @@ describe("Hoid local approved-claim answer port", () => {
       unlockBookId: "twok",
       unlockChapter: 2,
     }]);
+    const presented = presentHoidEvidenceAnswer(result[0].answer, [{ bookId: "twok", chapter: 2 }]);
+    expect(presented.status).toBe("ready");
+    if (presented.status === "ready") {
+      expect(presented.segments).toHaveLength(1);
+      expect(presented.segments?.[0].claimId).toBe("claim-topic");
+      expect(presented.segments?.[0].citations[0].evidenceId).toBe("e-alpha");
+    }
     expect(selector).not.toHaveBeenCalled();
   });
 

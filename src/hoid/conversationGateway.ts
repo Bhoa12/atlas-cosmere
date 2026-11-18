@@ -315,9 +315,6 @@ function canonicalRecommendationResult(
   const seen = new Set<string>();
   const catalog = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
   const items: HoidRecommendation[] = [];
-  const seen = new Set<string>();
-  const catalog = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
-  const items: HoidRecommendation[] = [];
 
   for (const raw of rawItems) {
     const item = canonicalDataRecord(

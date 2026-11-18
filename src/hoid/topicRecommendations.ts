@@ -120,10 +120,32 @@ function sameIds(left: readonly string[], right: readonly string[]): boolean {
     [...left].sort().join("\n") === [...right].sort().join("\n");
 }
 
+function citationsMatch(
+  actual: readonly HoidPresentedCitation[],
+  evidenceIds: readonly string[],
+  expected: readonly HoidPresentedCitation[],
+): boolean {
+  if (actual.length !== evidenceIds.length) return false;
+  for (const evidenceId of evidenceIds) {
+    const actualCitation = actual.find(item => item.evidenceId === evidenceId);
+    const expectedCitation = expected.find(item => item.evidenceId === evidenceId);
+    if (
+      !actualCitation || !expectedCitation ||
+      actualCitation.sourceBookId !== expectedCitation.sourceBookId ||
+      actualCitation.sourceChapter !== expectedCitation.sourceChapter ||
+      actualCitation.locatorId !== expectedCitation.locatorId ||
+      actualCitation.unlockBookId !== expectedCitation.unlockBookId ||
+      actualCitation.unlockChapter !== expectedCitation.unlockChapter
+    ) return false;
+  }
+  return true;
+}
+
 function assignmentMatchesAnswer(
   assignment: HoidTopicAssignment,
   answer: unknown,
   progress: unknown,
+  approvedEvidence: readonly HoidPresentedCitation[],
 ): HoidTopicRecommendationMatch | null | "invalid" {
   let presentation;
   try {
@@ -148,7 +170,7 @@ function assignmentMatchesAnswer(
     segment.claimId !== assignment.claimId ||
     sha256Hex(segment.text) !== assignment.claimTextSha256 ||
     !sameIds(segment.evidenceIds, assignment.evidenceIds) ||
-    segment.citations.length !== assignment.evidenceIds.length
+    !citationsMatch(segment.citations, assignment.evidenceIds, approvedEvidence)
   ) return "invalid";
 
   return Object.freeze({
@@ -175,6 +197,7 @@ export function composeHoidTopicRecommendations(
   limit = 5,
   assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
   approvedClaimsInput?: unknown,
+  approvedKnowledgeInput?: unknown,
 ): HoidTopicRecommendationResult {
   const selectedTopicIds = canonicalDenseStrings(selectedTopicIdsInput, MAX_SELECTED_TOPICS);
   if (!selectedTopicIds || selectedTopicIds.some(id => !getHoidTopicDefinition(id))) {
@@ -190,7 +213,7 @@ export function composeHoidTopicRecommendations(
   const reading = buildHoidCursorReadingContext(progress);
   if (reading.status !== "ready") return Object.freeze({ status: "invalid", reason: "invalid-progress" });
 
-  const assignments = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput);
+  const assignments = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput, approvedKnowledgeInput);
   if (assignments.status !== "valid") return Object.freeze({ status: "invalid", reason: "invalid-assignments" });
 
   const answers = canonicalAnswers(answersInput);
@@ -220,7 +243,7 @@ export function composeHoidTopicRecommendations(
   for (const assignment of candidates) {
     const answer = answers.get(assignment.claimId);
     if (answer === undefined) continue;
-    const match = assignmentMatchesAnswer(assignment, answer, progress);
+    const match = assignmentMatchesAnswer(assignment, answer, progress, assignments.evidenceCitations);
     if (match === "invalid") {
       return Object.freeze({ status: "invalid", reason: "invalid-answers" });
     }

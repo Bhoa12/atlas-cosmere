@@ -1,0 +1,99 @@
+name: Hoid canonical knowledge-kind contract
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/knowledgeKinds.ts"
+      - "src/hoid/knowledgeKinds.test.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialDrafts.test.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialEntityDrafts.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.test.ts"
+      - "src/hoid/typedConversationContext.ts"
+      - "src/hoid/typedConversationContext.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
+      - "docs/hoid/KNOWLEDGE_KIND_CONTRACT.md"
+      - ".github/workflows/hoid-knowledge-kind-contract.yml"
+  pull_request:
+    paths:
+      - "src/hoid/knowledgeKinds.ts"
+      - "src/hoid/knowledgeKinds.test.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialDrafts.test.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialEntityDrafts.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.test.ts"
+      - "src/hoid/typedConversationContext.ts"
+      - "src/hoid/typedConversationContext.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/hoid/relationshipGateway.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
+      - "docs/hoid/KNOWLEDGE_KIND_CONTRACT.md"
+      - ".github/workflows/hoid-knowledge-kind-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge-kind-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate the canonical kind across every boundary
+        run: >-
+          npx vitest run
+          src/hoid/knowledgeKinds.test.ts
+          src/hoid/editorialDrafts.test.ts
+          src/hoid/editorialEntityDrafts.test.ts
+          src/hoid/editorialClaimDrafts.test.ts
+          src/hoid/editorialRelationshipDrafts.test.ts
+          src/hoid/typedConversationContext.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/relationshipGateway.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/knowledgeGraph.test.ts
+      - name: Type-check the canonical kind boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/knowledgeKinds.ts
+          src/hoid/catalog.ts
+          src/hoid/editorialDrafts.ts
+          src/hoid/editorialEntityDrafts.ts
+          src/hoid/editorialClaimDrafts.ts
+          src/hoid/editorialRelationshipDrafts.ts
+          src/hoid/typedConversationContext.ts
+          src/hoid/entityResolver.ts
+          src/hoid/relationshipGateway.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/knowledgeGraph.ts

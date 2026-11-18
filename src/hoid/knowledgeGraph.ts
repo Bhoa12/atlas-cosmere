@@ -1,3 +1,4 @@
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import {
   createHoidEvidenceRuntime,
   type HoidApprovedClaim,
@@ -79,9 +80,6 @@ export type HoidKnowledgeGraphResult =
       reason: "invalid-definition" | "invalid-knowledge" | "invalid-claims" | "invalid-progress";
     }>;
 
-const NODE_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
-]);
 const PREDICATES = new Set<HoidKnowledgeGraphPredicate>([
   "related-to", "appears-in", "located-in", "member-of", "uses",
   "participates-in", "created-by", "part-of", "causes", "opposes", "allied-with",
@@ -172,7 +170,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
     const id = record?.id;
     if (!record || !validId(id) || seen.has(id)) return null;
     const kind = record.kind;
-    if (typeof kind !== "string" || !NODE_KINDS.has(kind as HoidKnowledgeKind)) return null;
+    if (!isHoidKnowledgeKind(kind)) return null;
     if (record.provenance !== "verified") return null;
 
     const aliases = canonicalDenseArray(record.aliases, 1, 64);

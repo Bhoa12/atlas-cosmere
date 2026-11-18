@@ -1,4 +1,5 @@
 import { isKnownHoidSource } from "./bibliography";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { canonicalEvidenceScope, evidenceCitationFor, isEvidenceUnlocked, type HoidEvidenceCitation } from "./evidenceScope";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { validatedKnowledge } from "./catalogValidation";
@@ -104,7 +105,6 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
   if (!Array.isArray(value) || value.length > MAX_KNOWLEDGE_ENTRIES) return null;
 
   const entries: HoidKnowledgeEntry[] = [];
-  const validKinds = new Set(["character", "place", "event", "phenomenon", "concept", "magic", "organization", "object"]);
   const validProvenance = new Set(["verified", "limited", "unavailable"]);
 
   for (const raw of value) {
@@ -112,7 +112,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
     const evidenceScope = canonicalEvidenceScope(raw.evidenceSource, raw.evidenceUnlock);
     if (!evidenceScope) return null;
     if (typeof raw.id !== "string" || !raw.id.trim() || raw.id.trim().length > MAX_CLAIM_ID_LENGTH) return null;
-    if (typeof raw.kind !== "string" || !validKinds.has(raw.kind)) return null;
+    if (!isHoidKnowledgeKind(raw.kind)) return null;
     const firstAppearanceBookId = typeof raw.firstSafeAppearance.bookId === "string"
       ? raw.firstSafeAppearance.bookId.trim()
       : "";

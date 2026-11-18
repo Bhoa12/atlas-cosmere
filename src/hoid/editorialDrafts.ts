@@ -1,4 +1,5 @@
 import type { HoidKnowledgeKind } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { canonicalEvidenceScope } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
@@ -53,15 +54,6 @@ const DRAFT_KEYS = new Set([
   "summary",
   "summaryKind",
   "review",
-]);
-const KINDS = new Set<HoidKnowledgeKind>([
-  "character",
-  "place",
-  "event",
-  "concept",
-  "magic",
-  "organization",
-  "object",
 ]);
 const MAX_SUMMARY_LENGTH = 4_000;
 const MAX_ALIASES = 64;
@@ -150,7 +142,7 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
     raw.id.length > 128
   ) return Object.freeze({ status: "invalid", reason: "invalid-id" });
 
-  if (typeof raw.kind !== "string" || !KINDS.has(raw.kind as HoidKnowledgeKind)) {
+  if (!isHoidKnowledgeKind(raw.kind)) {
     return Object.freeze({ status: "invalid", reason: "invalid-kind" });
   }
 

@@ -1,3 +1,4 @@
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import {
   resolveProductionHoidEntityIds,
   resolveProductionHoidEntityMentions,
@@ -60,7 +61,6 @@ type PairResolution =
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
-const KINDS = new Set(["character", "place", "event", "phenomenon", "concept", "magic", "organization", "object"]);
 const SOURCE_KEYS = [
   "evidenceId", "sourceBookId", "sourceChapter", "locatorId", "unlockBookId",
   "unlockChapter", "editionId", "navigationSha256", "documentSha256",
@@ -148,7 +148,7 @@ function canonicalEntity(value: unknown): CanonicalEntityMention | null {
   const alias = record.matchedAlias;
   if (
     typeof id !== "string" || !ID_PATTERN.test(id) ||
-    typeof kind !== "string" || !KINDS.has(kind) ||
+    !isHoidKnowledgeKind(kind) ||
     typeof alias !== "string" || alias.length < 1 || alias.length > 256 ||
     alias !== alias.trim() || /[\u0000-\u001F\u007F\p{Cf}]/u.test(alias) ||
     !validEntitySource(record.entitySource)

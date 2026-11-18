@@ -1,7 +1,10 @@
 import { buildReadingContext } from './readingContext';
 import { ReadingPosition } from './types';
 
-export type HoidKnowledgeKind = 'character' | 'place' | 'event' | 'phenomenon' | 'concept' | 'magic' | 'organization' | 'object';
+import type { HoidKnowledgeKind } from "./knowledgeKinds";
+
+export { HOID_KNOWLEDGE_KINDS, isHoidKnowledgeKind } from "./knowledgeKinds";
+export type { HoidKnowledgeKind } from "./knowledgeKinds";
 
 export type HoidKnowledgeProvenance = 'verified' | 'limited' | 'unavailable';
 

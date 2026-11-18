@@ -1,4 +1,5 @@
 import type { HoidKnowledgeKind } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { canonicalEvidenceScope } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
@@ -83,9 +84,6 @@ const UNLOCK_KEYS = new Set(["bookId", "chapter"]);
 const SOURCE_INTEGRITY_KEYS = new Set(["editionId", "navigationSha256", "documentSha256"]);
 const INTEGRITY_KEYS = new Set(["statementSha256", "claimSha256"]);
 const REVIEW_KEYS = new Set(["status"]);
-const SUBJECT_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
-]);
 const ASSERTION_KINDS = new Set<HoidEditorialClaimAssertionKind>([
   "identity", "appearance", "ability", "limitation", "relationship", "event", "location", "interpretation",
 ]);
@@ -256,7 +254,7 @@ function canonicalCore(value: unknown): ClaimCore | null {
   ) return null;
 
   if (
-    typeof raw.subjectKind !== "string" || !SUBJECT_KINDS.has(raw.subjectKind as HoidKnowledgeKind) ||
+    !isHoidKnowledgeKind(raw.subjectKind) ||
     typeof raw.assertionKind !== "string" || !ASSERTION_KINDS.has(raw.assertionKind as HoidEditorialClaimAssertionKind) ||
     typeof raw.intent !== "string" || !INTENTS.has(raw.intent)
   ) return null;

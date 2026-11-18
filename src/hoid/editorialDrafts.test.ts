@@ -78,6 +78,13 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
+  it("accepts phenomenon as a canonical staging kind without promoting it", () => {
+    const result = validateHoidEditorialDraft(cloneDraft({ kind: "phenomenon" }));
+    expect(result.status).toBe("valid");
+    if (result.status === "valid") expect(result.draft.kind).toBe("phenomenon");
+    expect(getHoidEditorialRegistryStatus()).toBe("empty");
+  });
+
   it("stages independently sourced chapter-one through chapter-nine drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",

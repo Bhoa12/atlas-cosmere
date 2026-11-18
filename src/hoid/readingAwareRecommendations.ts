@@ -1,5 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
-import type { HoidCursorReadingContext, HoidCursorReadingContextPosition } from "./cursorReadingContext";
+import type { HoidCursorReadingContext } from "./cursorReadingContext";
 import type { HoidRecommendation } from "./recommendations";
 
 const MAX_RECOMMENDATIONS = 20;

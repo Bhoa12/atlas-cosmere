@@ -20,6 +20,7 @@ export type HoidEditorialBundlePromotionPlan = Readonly<{
   reviewBundleFingerprint: string;
   knowledgeBundleFingerprint: string;
   receiptsFingerprint: string;
+  receiptReviewerIds: readonly string[];
   packetCount: number;
   packets: readonly HoidEditorialReviewPacketReference[];
   progressRevision: number;
@@ -78,6 +79,7 @@ export type HoidEditorialBundlePromotionAuthorization =
       promotionPlanFingerprint: string;
       reviewBundleFingerprint: string;
       receiptsFingerprint: string;
+      authenticatedReceiptReviewerIds: readonly string[];
       approvalReviewerIds: readonly string[];
       requiredApprovals: number;
       protectedReviewVerified: true;
@@ -103,7 +105,8 @@ export type HoidEditorialBundlePromotionAuthorization =
         | "editorial-bundle-invalid"
         | "editorial-review-incomplete"
         | "editorial-review-needs-revision"
-        | "editorial-bundle-changed";
+        | "editorial-bundle-changed"
+        | "editorial-reviewer-not-authenticated";
       verificationReason?: string;
       promotionAllowed: false;
       productionWritePerformed: false;
@@ -115,6 +118,7 @@ const PLAN_KEYS = new Set([
   "reviewBundleFingerprint",
   "knowledgeBundleFingerprint",
   "receiptsFingerprint",
+  "receiptReviewerIds",
   "packetCount",
   "packets",
   "progressRevision",
@@ -239,11 +243,44 @@ function planFingerprint(plan: Omit<HoidEditorialBundlePromotionPlan, "fingerpri
     plan.reviewBundleFingerprint,
     plan.knowledgeBundleFingerprint,
     plan.receiptsFingerprint,
+    plan.receiptReviewerIds,
     plan.packetCount,
     plan.packets,
     plan.progressRevision,
     plan.progressFingerprint,
   ]));
+}
+
+function extractReceiptReviewerIds(value: unknown): readonly string[] | null {
+  const raw = canonicalRecord(value, new Set([
+    "schemaVersion", "reviewBundleFingerprint", "summaries", "claims", "entities", "relationships",
+  ]));
+  if (!raw || raw.schemaVersion !== 1) return null;
+  const ids = new Set<string>();
+  for (const key of ["summaries", "claims", "entities", "relationships"]) {
+    const receipts = canonicalDenseArray(raw[key], MAX_PACKETS);
+    if (!receipts) return null;
+    for (const receipt of receipts) {
+      try {
+        if (receipt === null || typeof receipt !== "object" || Array.isArray(receipt)) return null;
+        const prototype = Object.getPrototypeOf(receipt);
+        if (prototype !== Object.prototype && prototype !== null) return null;
+        const descriptor = Object.getOwnPropertyDescriptor(receipt, "reviewerId");
+        if (
+          !descriptor ||
+          !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.value !== "string" ||
+          !descriptor.value.trim() ||
+          descriptor.value.length > 128
+        ) return null;
+        ids.add(descriptor.value);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return ids.size > 0 ? Object.freeze([...ids].sort()) : null;
 }
 
 function invalidBuild(
@@ -309,6 +346,9 @@ export function buildHoidEditorialBundlePromotionPlan(
     });
   }
 
+  const receiptReviewerIds = extractReceiptReviewerIds(receiptsInput);
+  if (!receiptReviewerIds) return invalidBuild("invalid-receipts");
+
   let serializedReceipts: string;
   try {
     serializedReceipts = JSON.stringify(receiptsInput);
@@ -323,6 +363,7 @@ export function buildHoidEditorialBundlePromotionPlan(
     reviewBundleFingerprint: review.manifest.fingerprint,
     knowledgeBundleFingerprint: review.manifest.knowledgeBundleFingerprint,
     receiptsFingerprint: sha256Hex(serializedReceipts),
+    receiptReviewerIds,
     packetCount: review.manifest.packets.length,
     packets: review.manifest.packets,
     progressRevision: projection.revision,
@@ -372,6 +413,23 @@ export function validateHoidEditorialBundlePromotionPlan(
     !SHA_PATTERN.test(raw.fingerprint)
   ) return Object.freeze({ status: "invalid", reason: "invalid-plan" });
 
+  const rawReviewerIds = canonicalDenseArray(raw.receiptReviewerIds, 128);
+  if (!rawReviewerIds || rawReviewerIds.length === 0) {
+    return Object.freeze({ status: "invalid", reason: "invalid-plan" });
+  }
+  const receiptReviewerIds: string[] = [];
+  const reviewerSet = new Set<string>();
+  for (const item of rawReviewerIds) {
+    if (typeof item !== "string" || !item.trim() || item.length > 128 || reviewerSet.has(item)) {
+      return Object.freeze({ status: "invalid", reason: "invalid-plan" });
+    }
+    reviewerSet.add(item);
+    receiptReviewerIds.push(item);
+  }
+  if ([...receiptReviewerIds].sort().some((id, index) => id !== receiptReviewerIds[index])) {
+    return Object.freeze({ status: "invalid", reason: "invalid-plan" });
+  }
+
   const rawPackets = canonicalDenseArray(raw.packets, MAX_PACKETS);
   if (!rawPackets || rawPackets.length !== raw.packetCount) {
     return Object.freeze({ status: "invalid", reason: "invalid-plan" });
@@ -397,6 +455,7 @@ export function validateHoidEditorialBundlePromotionPlan(
     reviewBundleFingerprint: raw.reviewBundleFingerprint,
     knowledgeBundleFingerprint: raw.knowledgeBundleFingerprint,
     receiptsFingerprint: raw.receiptsFingerprint,
+    receiptReviewerIds: Object.freeze(receiptReviewerIds),
     packetCount: raw.packetCount as number,
     packets: Object.freeze(packets),
     progressRevision: raw.progressRevision as number,
@@ -597,6 +656,9 @@ export async function authorizeHoidEditorialBundlePromotion(
   if (verification.status !== "verified") {
     return blocked("review-not-satisfied", verification.reason);
   }
+  if (plan.receiptReviewerIds.some(id => !verification.approvalReviewerIds.includes(id))) {
+    return blocked("editorial-reviewer-not-authenticated");
+  }
 
   const after = await callWithTimeout(readProgress);
   if (after.kind === "timeout") return blocked("progress-timeout");
@@ -612,6 +674,7 @@ export async function authorizeHoidEditorialBundlePromotion(
     promotionPlanFingerprint: verification.promotionPlanFingerprint,
     reviewBundleFingerprint: plan.reviewBundleFingerprint,
     receiptsFingerprint: plan.receiptsFingerprint,
+    authenticatedReceiptReviewerIds: plan.receiptReviewerIds,
     approvalReviewerIds: verification.approvalReviewerIds,
     requiredApprovals: verification.requiredApprovals,
     protectedReviewVerified: true,

@@ -1,16 +1,16 @@
 # Hoid complete editorial knowledge bundle
 
-Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate identity dossier backed by the previously verified chapter-one source document. It also adds three new chapter summaries and their individually verified source documents.
+Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate identity dossier backed by the previously verified chapter-one source document. Run 124 adds three more original chapter summaries after inspecting the current Roshar EPUB copies.
 
 ## Current staging inventory
 
 The deterministic metadata-only manifest now contains:
 
-- 26 original chapter summaries;
+- 29 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 26 distinct edition-bound source documents.
+- 29 distinct edition-bound source documents.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -44,3 +44,14 @@ The protected promotion authority still requires a trusted source-control adapte
 ## Tests
 
 `editorialKnowledgeBundle.test.ts` covers deterministic inventory, exact category counts, missing claim subjects, relationship participant links, manifest tampering, changed source inventories, sparse/accessor-backed input, prose exclusion and unexpected fields.
+
+
+## Run 124 — source-backed Roshar expansion
+
+The current Library copies were rechecked. The eighth numbered chapter in the Roshar omnibus (`twok`) and the ninth numbered chapters in `edgedancer` and `dawnshard` were located in their exact TOCs, matched to OPF manifest entries and confirmed in the spine before hashing. Their document digests are recorded in `verifiedChapterDocuments.ts`.
+
+The staging manifest now contains 47 records across 29 distinct chapter-body documents: 29 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its status remains `ready-for-review`; no summary or dossier is approved by this structural status.
+
+The new chapter-eight summary unlocks only after chapter nine is completed. The two chapter-nine summaries unlock only after chapter ten is completed. All three remain pending review and are excluded from the production registry.
+
+See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md` for exact edition IDs, navigation digests, relative locators and document digests. No EPUB bytes, XHTML bodies or source passages were committed.

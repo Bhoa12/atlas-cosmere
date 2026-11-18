@@ -280,7 +280,7 @@ export function compareHoidTopicsAcrossWorlds(
       }
     }
 
-    let presentation;
+    let presentation: ReturnType<typeof presentHoidEvidenceAnswer>;
     try {
       presentation = presentHoidEvidenceAnswer(entry.answer as HoidEvidenceAnswer, progress);
     } catch {

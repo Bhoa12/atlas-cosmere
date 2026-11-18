@@ -10,6 +10,8 @@ import type {
 } from "./evidenceRuntime";
 import { projectHoidCursorPositionToBoundary } from "./readingBoundary";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { buildHoidCursorReadingContext } from "./cursorReadingContext";
+import { composeHoidReadingAwareRecommendations } from "./readingAwareRecommendations";
 import type { ReadingPosition } from "./types";
 
 export type HoidCursorProgressProjection =
@@ -176,16 +178,25 @@ export class HoidCursorEvidenceRuntime {
 
     const projection = projectHoidCursorProgressSnapshot(progress);
     if (projection.status !== "ready") return invalidRecommendation();
+    const readingContext = buildHoidCursorReadingContext(progress);
+    if (readingContext.status !== "ready") return invalidRecommendation();
 
-    // Ask the metadata-only recommender for a bounded candidate set, then
-    // remove every work already present in the v2 snapshot. Chapter-one
-    // readers have no completed chapter yet, but their work is still started.
+    // The existing metadata-only catalogue recommender supplies unstarted
+    // candidates. The reading-aware composer adds active works first, using
+    // the exact current chapter from the validated v2 cursor context.
     const candidates = this.runtime.recommend([...projection.reading], HOID_SOURCE_BIBLIOGRAPHY.length);
     if (candidates.status !== "ready") return candidates;
     const started = new Set(projection.startedBookIds);
+    const unreadCandidates = candidates.items.filter(item => !started.has(item.sourceId));
+    const items = composeHoidReadingAwareRecommendations(
+      readingContext.context,
+      unreadCandidates,
+      limit,
+    );
+    if (!items) return invalidRecommendation();
     return Object.freeze({
       status: "ready",
-      items: Object.freeze(candidates.items.filter(item => !started.has(item.sourceId)).slice(0, limit)),
+      items,
     });
   }
 }

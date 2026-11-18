@@ -11,6 +11,10 @@ import {
   type HoidPresentedSegment,
 } from '../hoid/answerPresentation';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
+import {
+  buildHoidCrossBookEvidenceSummary,
+  type HoidCrossBookEvidenceSummary,
+} from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidRecommendation } from '../hoid/recommendations';
 import {
@@ -31,6 +35,7 @@ interface Mensaje {
   citas?: readonly HoidPresentedCitation[];
   segmentos?: readonly HoidPresentedSegment[];
   formato?: HoidNarrativeLayout;
+  evidenciaTransversal?: HoidCrossBookEvidenceSummary;
 }
 
 export const HoidScreen: React.FC = () => {
@@ -104,6 +109,7 @@ export const HoidScreen: React.FC = () => {
       let citas: readonly HoidPresentedCitation[] | undefined;
       let segmentos: readonly HoidPresentedSegment[] | undefined;
       let formato: HoidNarrativeLayout | undefined;
+      let evidenciaTransversal: HoidCrossBookEvidenceSummary | undefined;
       let responseScope: HoidConversationProgressScope | null = null;
 
       if (intentPlan.status !== 'ready') {
@@ -138,11 +144,30 @@ export const HoidScreen: React.FC = () => {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
           };
-          respuesta = result.items.length === 0
-            ? 'No quedan obras sin empezar en el catálogo actual.'
-            : 'Estas obras figuran en tu catálogo y todavía no has empezado:\\n\\n'
-              + result.items.map((item, index) => `${index + 1}. ${item.title}`).join('\\n')
-              + '\\n\\nEl orden es únicamente el del catálogo: no representa una ruta canónica ni una recomendación narrativa. Todavía no hay suficientes afirmaciones editoriales aprobadas para justificar una prioridad argumental.';
+          const resumeItems = result.items.filter(
+            (item): item is Extract<HoidRecommendation, { reason: 'resume-current-work' }> =>
+              item.reason === 'resume-current-work',
+          );
+          const unreadItems = result.items.filter(item => item.reason === 'unread-source');
+          const recommendationSections: string[] = [];
+          if (resumeItems.length > 0) {
+            recommendationSections.push(
+              'Para retomar tus lecturas en curso:\\n'
+              + resumeItems.map((item, index) =>
+                `${index + 1}. ${item.title} · capítulo actual ${item.currentChapter} · completado hasta ${item.completedThroughChapter ?? 'ningún capítulo'}`
+              ).join('\\n')
+            );
+          }
+          if (unreadItems.length > 0) {
+            recommendationSections.push(
+              'Para descubrir obras que todavía no has empezado:\\n'
+              + unreadItems.map((item, index) => `${index + 1}. ${item.title}`).join('\\n')
+            );
+          }
+          respuesta = recommendationSections.length === 0
+            ? 'No hay obras en curso que retomar ni obras sin empezar en el catálogo actual.'
+            : recommendationSections.join('\\n\\n')
+              + '\\n\\nLas obras nuevas siguen el orden del catálogo. No es una ruta canónica ni una recomendación argumental: no hay dependencias de lectura aprobadas para establecer ese orden.';
         } else {
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la lista. He descartado el resultado; vuelve a solicitarla.'
@@ -167,6 +192,8 @@ export const HoidScreen: React.FC = () => {
             citas = presentation.citations;
             segmentos = presentation.segments;
             formato = presentation.layout;
+            const crossBook = buildHoidCrossBookEvidenceSummary(result.answer, currentProgress);
+            if (crossBook.status === 'ready') evidenciaTransversal = crossBook.summary;
           } else {
             respuesta = presentation.text;
           }
@@ -206,6 +233,7 @@ export const HoidScreen: React.FC = () => {
         citas = undefined;
         segmentos = undefined;
         formato = undefined;
+        evidenciaTransversal = undefined;
       }
 
       setMensajes(prev => [...prev, {
@@ -215,6 +243,7 @@ export const HoidScreen: React.FC = () => {
         ...(responseScope ? { progressScope: responseScope } : {}),
         ...(citas && citas.length > 0 ? { citas } : {}),
         ...(segmentos && formato ? { segmentos, formato } : {}),
+        ...(evidenciaTransversal ? { evidenciaTransversal } : {}),
       }]);
     } catch {
       setMensajes(prev => [...prev, {
@@ -250,9 +279,11 @@ export const HoidScreen: React.FC = () => {
         setRecomendaciones(result.items);
         setRecommendationRevision(result.progressRevision);
         setRecommendationFingerprint(result.progressFingerprint);
+        const resumeCount = result.items.filter(item => item.reason === 'resume-current-work').length;
+        const unreadCount = result.items.filter(item => item.reason === 'unread-source').length;
         setRecommendationMessage(result.items.length === 0
-          ? 'No quedan obras sin empezar en el catálogo actual.'
-          : 'Son obras del catálogo que todavía no has empezado; el orden no representa una ruta de lectura.');
+          ? 'No hay obras en curso que retomar ni obras sin empezar en el catálogo actual.'
+          : `Se priorizan ${resumeCount} obras en curso para retomar y después aparecen ${unreadCount} obras sin empezar. No es una ruta canónica.`);
       } else {
         setRecomendaciones([]);
         setRecommendationRevision(null);
@@ -299,9 +330,9 @@ export const HoidScreen: React.FC = () => {
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.recommendationTitle}>DESCUBRIR OBRAS</Text>
+            <Text style={styles.recommendationTitle}>RETOMAR Y DESCUBRIR</Text>
             <Text style={styles.recommendationNote}>
-              Solo catálogo y progreso; no establece un orden de lectura.
+              Primero lecturas en curso; después obras sin empezar. No establece un orden canónico.
             </Text>
           </View>
           <TouchableOpacity
@@ -323,7 +354,11 @@ export const HoidScreen: React.FC = () => {
         {recommendationsAreCurrent && recomendaciones.map(item => (
           <View key={item.sourceId} style={styles.recommendationItem}>
             <Text style={styles.recommendationItemText}>{item.title}</Text>
-            <Text style={styles.recommendationItemMeta}>Todavía no empezada</Text>
+            <Text style={styles.recommendationItemMeta}>
+              {item.reason === 'resume-current-work'
+                ? `En curso · capítulo actual ${item.currentChapter} · completado hasta ${item.completedThroughChapter ?? 'ninguno'}`
+                : 'Todavía no empezada · orden de catálogo'}
+            </Text>
           </View>
         ))}
       </View>
@@ -335,6 +370,18 @@ export const HoidScreen: React.FC = () => {
         renderItem={({ item }) => (
           <View style={[styles.bubble, item.emisor === 'usuario' ? styles.userBubble : styles.hoidBubble]}>
             <Text style={styles.bubbleAuthor}>{item.emisor === 'usuario' ? 'TÚ' : 'HOID'}</Text>
+            {item.evidenciaTransversal && (
+              <View style={styles.citationBlock}>
+                <Text style={styles.citationHeading}>
+                  EVIDENCIA TRANSVERSAL · {item.evidenciaTransversal.workCount} OBRAS
+                </Text>
+                {item.evidenciaTransversal.works.map(work => (
+                  <Text key={work.sourceBookId} style={styles.citationText}>
+                    {work.title} · capítulos {work.chapters.join(', ')}
+                  </Text>
+                ))}
+              </View>
+            )}
             {item.segmentos && item.formato ? (
               <View>
                 {item.segmentos.map((segmento, index) => (

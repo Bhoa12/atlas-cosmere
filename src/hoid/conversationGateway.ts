@@ -287,7 +287,7 @@ type ParsedRecommendations =
 function canonicalRecommendationResult(
   value: unknown,
   limit: number,
-  startedBookIds: readonly string[],
+  context: HoidCursorReadingContext,
 ): ParsedRecommendations | null {
   const record = canonicalDataRecord(value, ["status", "items", "reason"], ["status"]);
   if (!record) return null;
@@ -311,13 +311,17 @@ function canonicalRecommendationResult(
   const rawItems = canonicalDenseArray(record.items, limit);
   if (!rawItems) return null;
 
-  const started = new Set(startedBookIds);
+  const started = new Set(context.positions.map(position => position.bookId));
   const seen = new Set<string>();
   const catalog = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
   const items: HoidRecommendation[] = [];
 
   for (const raw of rawItems) {
-    const item = canonicalDataRecord(raw, ["sourceId", "title", "reason"], ["sourceId", "title", "reason"]);
+    const item = canonicalDataRecord(
+      raw,
+      ["sourceId", "title", "reason", "currentChapter", "completedThroughChapter"],
+      ["sourceId", "title", "reason"],
+    );
     if (!item) return null;
 
     const sourceId = item.sourceId;
@@ -325,19 +329,49 @@ function canonicalRecommendationResult(
     if (
       typeof sourceId !== "string" ||
       typeof title !== "string" ||
-      item.reason !== "unread-source" ||
       !catalog.has(sourceId) ||
       catalog.get(sourceId) !== title ||
-      started.has(sourceId) ||
       seen.has(sourceId)
     ) return null;
 
-    seen.add(sourceId);
-    items.push(Object.freeze({
-      sourceId,
-      title,
-      reason: "unread-source",
-    }));
+    if (item.reason === "unread-source") {
+      if (
+        Object.keys(item).length !== 3 ||
+        started.has(sourceId)
+      ) return null;
+      seen.add(sourceId);
+      items.push(Object.freeze({ sourceId, title, reason: "unread-source" }));
+      continue;
+    }
+
+    if (item.reason === "resume-current-work") {
+      const position = context.positions.find(candidate => candidate.bookId === sourceId);
+      if (
+        Object.keys(item).length !== 5 ||
+        !position ||
+        position.status !== "in-progress" ||
+        typeof item.currentChapter !== "number" ||
+        !Number.isSafeInteger(item.currentChapter) ||
+        item.currentChapter !== position.currentChapter ||
+        !(
+          item.completedThroughChapter === null ||
+          (typeof item.completedThroughChapter === "number" &&
+            Number.isSafeInteger(item.completedThroughChapter))
+        ) ||
+        item.completedThroughChapter !== position.completedThroughChapter
+      ) return null;
+      seen.add(sourceId);
+      items.push(Object.freeze({
+        sourceId,
+        title,
+        reason: "resume-current-work",
+        currentChapter: position.currentChapter,
+        completedThroughChapter: position.completedThroughChapter,
+      }));
+      continue;
+    }
+
+    return null;
   }
 
   return Object.freeze({ status: "ready", items: Object.freeze(items) });
@@ -544,6 +578,10 @@ export class HoidConversationGateway {
     if (requestProjection.status !== "ready") {
       return unavailableRecommendation("invalid-progress");
     }
+    const readingContext = buildHoidCursorReadingContext(request.progress);
+    if (readingContext.status !== "ready") {
+      return unavailableRecommendation("invalid-progress");
+    }
     const requestedProgress = Object.freeze({
       revision: requestProjection.revision,
       fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
@@ -588,7 +626,7 @@ export class HoidConversationGateway {
     const parsed = canonicalRecommendationResult(
       rawResult,
       request.limit,
-      requestProjection.startedBookIds,
+      readingContext.context,
     );
     if (!parsed) return unavailableRecommendation("invalid-recommendations");
     if (parsed.status === "invalid-progress") {

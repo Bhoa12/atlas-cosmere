@@ -425,3 +425,14 @@ narrativeComposition.ts adds deterministic presentation for already-validated ed
 HoidNarrativeLayoutPort is an optional provider-neutral selector that receives only the locale, approved-claim count, resolved-entity count and a closed layout allow-list. It never receives the question, entity names, claim text, evidence IDs, source locators or EPUB content. It can select only plain, numbered or grouped. Invalid output, provider errors and timeouts fall back to the deterministic local layout.
 
 relationshipPresentation.ts invokes the local composer only after exact claim/segment text, evidence mappings, source hashes, edition metadata, chapter locators and progress unlocks have passed validation. The formatted answer continues through the existing source-aware presentation boundary. This is a layout port, not a configured remote language provider. See docs/hoid/NARRATIVE_COMPOSITION_AND_LANGUAGE_PORT.md.
+
+
+## Run 131 — cross-book evidence and reading-aware recommendations
+
+`crossBookEvidence.ts` derives a metadata-only work matrix from the final, progress-validated answer presentation. It re-runs `presentHoidEvidenceAnswer()` against the supplied live v2 snapshot, then groups the already-validated per-segment citations by source work and chapter. Every work retains its own source-local unlock boundary; a cursor in one book cannot authorize evidence from another. The UI shows a compact cross-book coverage summary while retaining the exact per-segment citations below each claim. Single-work answers do not receive a cross-book label.
+
+`readingAwareRecommendations.ts` composes two safe categories from the authoritative cursor context: active works are listed first with the exact open chapter and completed-through boundary, followed by unstarted bibliography entries in catalogue order. Explicitly completed works are not suggested for resumption. This is a resume/discovery aid, not a canonical reading-order engine. It does not infer chronology, plot dependencies, thematic similarity or spoiler-safe sequencing. Those capabilities remain unavailable until independently reviewed metadata exists.
+
+The conversation gateway validates every resume entry against the exact current chapter in the v2 snapshot and every unread entry against the bibliography and started-work set. The gateway still compares the progress revision and fingerprint before and after recommendation generation. HoidScreen clears the cross-book matrix together with all other provenance if the final progress comparison becomes stale.
+
+No source passages are read or committed in this run. The production editorial and alias registries remain unchanged; the new cross-book matrix is presentation metadata only and cannot create or promote narrative claims.

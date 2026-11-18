@@ -312,11 +312,9 @@ function canonicalRecommendationResult(
   if (!rawItems) return null;
 
   const started = new Set(context.positions.map(position => position.bookId));
-  const active = new Map(
-    context.positions
-      .filter(position => position.status === "in-progress")
-      .map(position => [position.bookId, position]),
-  );
+  const seen = new Set<string>();
+  const catalog = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
+  const items: HoidRecommendation[] = [];
   const seen = new Set<string>();
   const catalog = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
   const items: HoidRecommendation[] = [];
@@ -350,10 +348,11 @@ function canonicalRecommendationResult(
     }
 
     if (item.reason === "resume-current-work") {
-      const position = active.get(sourceId);
+      const position = context.positions.find(candidate => candidate.bookId === sourceId);
       if (
         Object.keys(item).length !== 5 ||
         !position ||
+        position.status !== "in-progress" ||
         typeof item.currentChapter !== "number" ||
         !Number.isSafeInteger(item.currentChapter) ||
         item.currentChapter !== position.currentChapter ||

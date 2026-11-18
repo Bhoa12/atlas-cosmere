@@ -201,6 +201,11 @@ export const HoidScreen: React.FC = () => {
       if (responseScope && !canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)) {
         respuesta = 'Tu progreso ha cambiado mientras preparaba la respuesta. He descartado el resultado para proteger tu lectura.';
         responseScope = null;
+        // A stale response must lose every citation/provenance field before the
+        // neutral notice is committed as an unscoped chat message.
+        citas = undefined;
+        segmentos = undefined;
+        formato = undefined;
       }
 
       setMensajes(prev => [...prev, {

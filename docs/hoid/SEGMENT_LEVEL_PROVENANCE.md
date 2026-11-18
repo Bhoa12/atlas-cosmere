@@ -31,7 +31,7 @@ A failure withholds the whole answer. No partially cited explanation is displaye
 
 HoidScreen renders each validated segment separately and places its own work/chapter citations immediately below it. Numbered and grouped layouts retain their neutral structural markers. Older answer shapes without segment provenance continue to render their original text and global citations.
 
-Progress-scoped history still stores the complete message object. If the reader changes progress, the existing history policy removes the assistant message, including its segment citations.
+Progress-scoped history still stores the complete message object. If the reader changes progress, the existing history policy removes the assistant message, including its segment citations. The final pre-commit check also clears global and per-segment citation fields before replacing a stale answer with an unscoped neutral notice.
 
 ## Tests
 

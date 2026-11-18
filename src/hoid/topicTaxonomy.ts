@@ -207,7 +207,7 @@ export function isHoidTopicDimensionAllowed(topicId: unknown, dimensionId: unkno
 
 function sameIds(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length &&
-    [...left].sort().join("\\n") === [...right].sort().join("\\n");
+    [...left].sort().join("\n") === [...right].sort().join("\\n");
 }
 
 function canonicalApprovedClaimMap(value: unknown): ReadonlyMap<string, Readonly<{
@@ -237,7 +237,7 @@ function canonicalApprovedClaimMap(value: unknown): ReadonlyMap<string, Readonly
         typeof id !== "string" || !ID_PATTERN.test(id) || claims.has(id) ||
         typeof text !== "string" || text.length < 1 || text.length > 4_000 ||
         text !== text.trim() ||
-        /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(text) ||
+        /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text) ||
         !evidenceIds
       ) return null;
       claims.set(id, Object.freeze({ text, evidenceIds }));

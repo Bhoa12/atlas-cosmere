@@ -207,6 +207,64 @@ describe("HoidConversationGateway", () => {
     expect(runtime.recommend).toHaveBeenCalledWith(current, 2);
   });
 
+  it("accepts a resume recommendation only when its chapter boundary matches the v2 cursor", async () => {
+    const current = snapshot(3);
+    const runtime = {
+      answer: vi.fn(async () => answer),
+      recommend: vi.fn(async () => ({
+        status: "ready" as const,
+        items: [{
+          sourceId: "twok",
+          title: "El Camino de los Reyes",
+          reason: "resume-current-work",
+          currentChapter: 3,
+          completedThroughChapter: 2,
+        }],
+      })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.recommend({ progress: current, limit: 1 });
+    expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.items[0]).toEqual({
+        sourceId: "twok",
+        title: "El Camino de los Reyes",
+        reason: "resume-current-work",
+        currentChapter: 3,
+        completedThroughChapter: 2,
+      });
+    }
+  });
+
+  it("rejects a forged resume chapter that does not match the authoritative cursor", async () => {
+    const current = snapshot(3);
+    const gateway = createHoidConversationGateway({
+      runtime: {
+        answer: vi.fn(async () => answer),
+        recommend: vi.fn(async () => ({
+          status: "ready" as const,
+          items: [{
+            sourceId: "twok",
+            title: "El Camino de los Reyes",
+            reason: "resume-current-work",
+            currentChapter: 4,
+            completedThroughChapter: 3,
+          }],
+        })),
+      },
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.recommend({ progress: current, limit: 1 }))
+      .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
+  });
+
   it("does not invoke the recommender when the request snapshot is stale", async () => {
     const current = snapshot(4);
     const runtime = {
@@ -326,11 +384,16 @@ describe("HoidConversationGateway", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.items).toEqual([
+      {
+        sourceId: "twok",
+        title: "El Camino de los Reyes",
+        reason: "resume-current-work",
+        currentChapter: 1,
+        completedThroughChapter: null,
+      },
       { sourceId: "tfe", title: "El Imperio Final", reason: "unread-source" },
       { sourceId: "woa", title: "El Pozo de la Ascensión", reason: "unread-source" },
-      { sourceId: "hoa", title: "El Héroe de las Eras", reason: "unread-source" },
     ]);
-    expect(result.items.some(item => item.sourceId === "twok")).toBe(false);
   });
 
 

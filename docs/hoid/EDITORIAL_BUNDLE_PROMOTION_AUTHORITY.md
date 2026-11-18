@@ -37,7 +37,7 @@ The source-control adapter must prove all of the following for the same pull req
 - latest effective review per reviewer, with dismissed/stale approvals excluded;
 - Code Owner approval when required.
 
-The authority then reads progress a second time. A changed revision, changed fingerprint, invalid snapshot, timeout or unavailable source fails closed.
+The authority also requires every reviewer ID recorded in an approved receipt to appear among the authenticated, non-author, latest approvals for that exact PR head. Receipt reviewer IDs therefore need to use the same stable identity namespace as the GitHub adapter (prefer immutable GitHub user IDs, not mutable logins). A mismatch blocks authorization.\n\nThe authority then reads progress a second time. A changed revision, changed fingerprint, invalid snapshot, timeout or unavailable source fails closed.
 
 Even a verified result is only `ready-for-maintainer-commit`. The result explicitly keeps `promotionAllowed: false` and `productionWritePerformed: false`. The module does not merge pull requests or write production registries.
 

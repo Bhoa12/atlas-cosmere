@@ -6,6 +6,11 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import {
+  composeHoidNarrative,
+  defaultHoidNarrativeLayout,
+  type HoidNarrativeSegment,
+} from "./narrativeComposition";
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
@@ -189,6 +194,7 @@ export function createHoidEvidenceAnswerFromRelationshipResult(
     const evidenceIds = new Set<string>();
     const referencedSources = new Set<string>();
     const segmentTexts: string[] = [];
+    const narrativeSegments: HoidNarrativeSegment[] = [];
 
     for (const rawSegment of rawSegments) {
       const segment = canonicalRecord(rawSegment, ["claimId", "text", "evidenceIds", "sources"]);
@@ -233,6 +239,11 @@ export function createHoidEvidenceAnswerFromRelationshipResult(
 
       claimIds.push(segment.claimId);
       segmentTexts.push(segment.text);
+      narrativeSegments.push(Object.freeze({
+        claimId: segment.claimId,
+        text: segment.text,
+        evidenceIds: Object.freeze([...segmentEvidenceIds]),
+      }));
     }
 
     if (
@@ -242,6 +253,13 @@ export function createHoidEvidenceAnswerFromRelationshipResult(
       evidenceIds.size !== sourcesById.size ||
       evidenceIds.size > MAX_EVIDENCE
     ) return null;
+    // The original graph text must match the exact approved segments before
+    // local formatting is applied. The composer cannot rewrite claim text.
+    const composition = composeHoidNarrative(
+      { segments: narrativeSegments },
+      defaultHoidNarrativeLayout(narrativeSegments.length),
+    );
+    if (composition.status !== "ready") return null;
 
     const citations: HoidEvidenceCitation[] = [...sourcesById.values()].map(source => Object.freeze({
       evidenceId: source.evidenceId,
@@ -253,7 +271,7 @@ export function createHoidEvidenceAnswerFromRelationshipResult(
     }));
     const answer: HoidEvidenceAnswer = Object.freeze({
       status: "authorized",
-      text: explanation.text,
+      text: composition.text,
       claimIds: Object.freeze(claimIds),
       evidenceIds: Object.freeze([...evidenceIds].sort()),
       sources: Object.freeze(citations),

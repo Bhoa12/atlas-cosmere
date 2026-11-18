@@ -441,53 +441,30 @@ export class HoidConversationGateway {
       if (coreference.reason === "invalid-question") return unavailable("invalid-request");
       return unavailable("context-unavailable");
     }
-
-    if (coreference.status === "resolved") {
-      let answer: HoidEvidenceAnswer;
-      try {
-        // The language runtime receives one reauthorized canonical ID only.
-        // Pronoun text, prior aliases and the complete conversation context
-        // never cross the provider boundary.
-        answer = await this.config.runtime.answer({
-          question: request.question,
-          progress: request.progress,
-          intent: request.intent,
-          entityIds: [coreference.entityId],
-        });
-      } catch {
-        return unavailable("runtime-failed");
-      }
-
-      let currentAfterCoreference: unknown;
-      try {
-        currentAfterCoreference = this.config.getCurrentProgress();
-      } catch {
-        return unavailable("invalid-progress");
-      }
-      const afterCoreferenceIdentity = progressIdentity(currentAfterCoreference);
-      if (!afterCoreferenceIdentity) return unavailable("invalid-progress");
-      if (!sameProgress(requestedProgress, afterCoreferenceIdentity)) {
-        return unavailable("progress-changed");
-      }
-      if (
+    if (
+      coreference.status === "resolved" &&
+      (
         coreference.progressRevision !== requestedProgress.revision ||
         coreference.progressFingerprint !== requestedProgress.fingerprint
-      ) return unavailable("invalid-progress");
+      )
+    ) return unavailable("invalid-progress");
 
-      return Object.freeze({
-        status: "ready",
-        answer,
-        conversationContext: coreference.context,
-        progressRevision: requestedProgress.revision,
-        progressFingerprint: requestedProgress.fingerprint,
-      });
-    }
+    const relationshipQuestion = isHoidRelationshipQuestion(request.question);
+    if (
+      coreference.status === "resolved" &&
+      relationshipQuestion &&
+      coreference.context.entityIds.length !== 2
+    ) return unavailable("context-ambiguous");
 
-    const followUp = resolveHoidConversationFollowUp(
-      request.question,
-      request.context,
-      requestedProgress,
-    );
+    const followUp = coreference.status === "resolved"
+      ? relationshipQuestion
+        ? Object.freeze({ status: "resolved" as const, entityIds: coreference.context.entityIds })
+        : Object.freeze({ status: "not-follow-up" as const })
+      : resolveHoidConversationFollowUp(
+          request.question,
+          request.context,
+          requestedProgress,
+        );
     if (followUp.status === "unavailable") {
       if (followUp.reason === "ambiguous-reference") return unavailable("context-ambiguous");
       if (followUp.reason === "stale-context") return unavailable("context-stale");
@@ -497,9 +474,10 @@ export class HoidConversationGateway {
     }
 
     // Explicit relationship questions and narrowly recognized group follow-ups
-    // use only the local reviewed graph. They never fall through to a general
-    // selector when a referent or graph edge is unavailable.
-    if (isHoidRelationshipQuestion(request.question) || followUp.status === "resolved") {
+    // use only the local reviewed graph. A pronoun may enter this route only
+    // after a unique reviewed target has been resolved; two-member context is
+    // required so the counterpart cannot be guessed from a larger group.
+    if (relationshipQuestion || followUp.status === "resolved") {
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");
 
@@ -560,6 +538,43 @@ export class HoidConversationGateway {
         status: "ready",
         answer: relationshipAnswer,
         conversationContext,
+        progressRevision: requestedProgress.revision,
+        progressFingerprint: requestedProgress.fingerprint,
+      });
+    }
+
+    if (coreference.status === "resolved") {
+      let answer: HoidEvidenceAnswer;
+      try {
+        // Preserve the original user question, but add only the one canonical
+        // entity ID selected by reviewed evidence. The mapping record, alias
+        // list, previous answer and full context never cross this boundary.
+        answer = await this.config.runtime.answer({
+          question: request.question,
+          progress: request.progress,
+          intent: request.intent,
+          entityIds: [coreference.entityId],
+        });
+      } catch {
+        return unavailable("runtime-failed");
+      }
+
+      let currentAfterCoreference: unknown;
+      try {
+        currentAfterCoreference = this.config.getCurrentProgress();
+      } catch {
+        return unavailable("invalid-progress");
+      }
+      const afterCoreferenceIdentity = progressIdentity(currentAfterCoreference);
+      if (!afterCoreferenceIdentity) return unavailable("invalid-progress");
+      if (!sameProgress(requestedProgress, afterCoreferenceIdentity)) {
+        return unavailable("progress-changed");
+      }
+
+      return Object.freeze({
+        status: "ready",
+        answer,
+        conversationContext: coreference.context,
         progressRevision: requestedProgress.revision,
         progressFingerprint: requestedProgress.fingerprint,
       });

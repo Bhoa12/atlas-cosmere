@@ -1,5 +1,7 @@
 import { presentHoidEvidenceAnswer, type HoidPresentedCitation } from "./answerPresentation";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
+import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import { sha256Hex } from "./sha256";
 import {
@@ -102,22 +104,91 @@ function sameIds(left: readonly string[], right: readonly string[]): boolean {
     [...left].sort().join("\n") === [...right].sort().join("\n");
 }
 
-function citationsMatch(
+function readDataProperty(value: unknown, key: string): unknown {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      !descriptor ||
+      !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+      descriptor.enumerable !== true
+    ) return undefined;
+    return descriptor.value;
+  } catch {
+    return undefined;
+  }
+}
+
+function canonicalSourceRecords(answer: unknown): readonly Record<string, unknown>[] | null {
+  try {
+    const sources = readDataProperty(answer, "sources");
+    if (!Array.isArray(sources) || sources.length < 1 || sources.length > 16) return null;
+    if (Object.getPrototypeOf(sources) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(sources);
+    if (keys.length !== sources.length + 1 || !keys.includes("length")) return null;
+    const records: Record<string, unknown>[] = [];
+    for (let index = 0; index < sources.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(sources, String(index));
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+        return null;
+      }
+      const record = canonicalRecord(descriptor.value, [
+        "evidenceId", "sourceBookId", "sourceChapter", "locatorId", "unlockBookId", "unlockChapter",
+      ]);
+      if (!record) return null;
+      records.push(record);
+    }
+    return records;
+  } catch {
+    return null;
+  }
+}
+
+function sourceScopesMatch(
+  answer: unknown,
+  evidenceIds: readonly string[],
+  expected: readonly HoidEvidenceCitation[],
+): boolean {
+  const records = canonicalSourceRecords(answer);
+  if (!records || records.length !== evidenceIds.length) return false;
+  for (const evidenceId of evidenceIds) {
+    const record = records.find(item => item.evidenceId === evidenceId);
+    const citation = expected.find(item => item.evidenceId === evidenceId);
+    if (!record || !citation) return false;
+    const scope = canonicalEvidenceScope(
+      { bookId: record.sourceBookId, chapter: record.sourceChapter, locatorId: record.locatorId },
+      { bookId: record.unlockBookId, chapter: record.unlockChapter },
+    );
+    if (
+      !scope ||
+      scope.sourceBookId !== citation.sourceBookId ||
+      scope.sourceChapter !== citation.sourceChapter ||
+      scope.locatorId !== citation.locatorId ||
+      scope.unlockBookId !== citation.unlockBookId ||
+      scope.unlockChapter !== citation.unlockChapter
+    ) return false;
+  }
+  return true;
+}
+
+function presentationCitationsMatch(
   actual: readonly HoidPresentedCitation[],
   evidenceIds: readonly string[],
-  expected: readonly HoidPresentedCitation[],
+  expected: readonly HoidEvidenceCitation[],
 ): boolean {
   if (actual.length !== evidenceIds.length) return false;
   for (const evidenceId of evidenceIds) {
     const actualCitation = actual.find(item => item.evidenceId === evidenceId);
     const expectedCitation = expected.find(item => item.evidenceId === evidenceId);
+    const expectedTitle = expectedCitation
+      ? HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === expectedCitation.sourceBookId)?.title
+      : undefined;
     if (
       !actualCitation || !expectedCitation ||
       actualCitation.sourceBookId !== expectedCitation.sourceBookId ||
-      actualCitation.sourceChapter !== expectedCitation.sourceChapter ||
+      actualCitation.chapter !== expectedCitation.sourceChapter ||
       actualCitation.locatorId !== expectedCitation.locatorId ||
-      actualCitation.unlockBookId !== expectedCitation.unlockBookId ||
-      actualCitation.unlockChapter !== expectedCitation.unlockChapter
+      actualCitation.title !== expectedTitle
     ) return false;
   }
   return true;
@@ -181,7 +252,6 @@ export function compareHoidTopicsAcrossWorlds(
     return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
   }
 
-  const evidenceById = new Map(validatedAssignments.evidenceCitations.map(citation => [citation.evidenceId, citation]));
   const firstAppearanceByEntity = new Map(validatedAssignments.entityFirstAppearances.map(item => [item.entityId, item]));
   const presentedEntries: HoidCrossWorldComparisonEntry[] = [];
   for (const entry of entries) {
@@ -229,7 +299,8 @@ export function compareHoidTopicsAcrossWorlds(
       segment.claimId !== assignment.claimId ||
       sha256Hex(segment.text) !== assignment.claimTextSha256 ||
       !sameIds(segment.evidenceIds, assignment.evidenceIds) ||
-      !citationsMatch(
+      !sourceScopesMatch(entry.answer, assignment.evidenceIds, validatedAssignments.evidenceCitations) ||
+      !presentationCitationsMatch(
         segment.citations,
         assignment.evidenceIds,
         validatedAssignments.evidenceCitations,

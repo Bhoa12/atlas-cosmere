@@ -25,7 +25,7 @@ describe("Hoid explicit topic-interest context", () => {
     expect(createHoidTopicInterestContext([], progress)).toBeNull();
     expect(createHoidTopicInterestContext([
       "investiture-system", "organization", "artifact", "phenomenon",
-      "character", "place", "narrative-theme", "investiture-system",
+      "character", "place", "narrative-theme", "investiture-system", "organization",
     ], progress)).toBeNull();
   });
 

@@ -106,24 +106,6 @@ function unavailable(
   return Object.freeze({ status: "unavailable", reason });
 }
 
-type CanonicalRequest = Readonly<{
-  progress: unknown;
-  context: HoidTopicInterestContext;
-  limit: number;
-}>;
-
-function canonicalRequest(value: unknown): CanonicalRequest | null {
-  const record = canonicalRecord(value, ["progress", "context", "limit"], ["progress", "context"]);
-  if (!record) return null;
-  const limit = record.limit === undefined ? 5 : record.limit;
-  if (typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 10) return null;
-  const identity = progressIdentity(record.progress);
-  if (!identity) return null;
-  const validation = validateHoidTopicInterestContext(record.context, identity);
-  if (validation.status !== "valid") return null;
-  return Object.freeze({ progress: record.progress, context: validation.context, limit });
-}
-
 /**
  * Provider-neutral, progress-bound recommendation boundary. Interests are
  * explicit user selections, never inferred from behaviour or model output.

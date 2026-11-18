@@ -196,6 +196,32 @@ describe("Hoid GitHub source-control review adapter", () => {
     ).rejects.toThrow("Invalid GitHub review record");
   });
 
+  it("fails closed when two reviews by one reviewer have an ambiguous timestamp tie", async () => {
+    const api = apiWith({
+      listPullRequestReviews: vi.fn(async () => [
+        {
+          reviewId: "review-tie-a",
+          reviewerId: "same-reviewer",
+          state: "APPROVED",
+          commitSha: HEAD_SHA,
+          submittedAt: "2026-11-18T02:00:00.000Z",
+          dismissed: false,
+        },
+        {
+          reviewId: "review-tie-b",
+          reviewerId: "same-reviewer",
+          state: "CHANGES_REQUESTED",
+          commitSha: HEAD_SHA,
+          submittedAt: "2026-11-18T02:00:00.000Z",
+          dismissed: false,
+        },
+      ]),
+    });
+    await expect(
+      createHoidGitHubSourceControlReviewPort(api).fetchProtectedReviewSnapshot(request),
+    ).rejects.toThrow("Ambiguous GitHub review ordering");
+  });
+
   it("does not invoke accessors on an untrusted API response", async () => {
     let getterCalled = false;
     const hostile = Object.create(null) as Record<string, unknown>;

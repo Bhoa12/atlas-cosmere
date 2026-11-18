@@ -60,7 +60,7 @@ describe("composeHoidReadingAwareRecommendations", () => {
 
   it("does not recommend explicitly completed works for resumption", () => {
     const reading = context([{ bookId: "tfe", completed: true }]);
-    const result = composeHoidReadingAwareRecommendations(reading, unread, 2);
+    const result = composeHoidReadingAwareRecommendations(reading, unread.slice(1), 2);
     expect(result).toEqual([unread[1], unread[2]]);
   });
 

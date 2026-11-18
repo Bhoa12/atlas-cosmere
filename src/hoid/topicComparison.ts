@@ -126,6 +126,7 @@ export function compareHoidTopicsAcrossWorlds(
   input: unknown,
   progress: unknown,
   assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
+  approvedClaimsInput?: unknown,
 ): HoidCrossWorldComparisonResult {
   const request = canonicalRecord(input, ["topicId", "dimensionId", "entries"]);
   if (!request) return Object.freeze({ status: "unavailable", reason: "invalid-input" });
@@ -148,7 +149,7 @@ export function compareHoidTopicsAcrossWorlds(
     seenSubjects.add(key);
   }
 
-  const validatedAssignments = validateHoidTopicAssignments(assignmentsInput);
+  const validatedAssignments = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput);
   if (validatedAssignments.status !== "valid") {
     return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
   }

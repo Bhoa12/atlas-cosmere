@@ -171,6 +171,25 @@ describe("Hoid topic assignment promotion authority", () => {
     expect(first.productionWritePerformed).toBe(false);
   });
 
+  it("preserves the exact case of source-control reviewer identities", () => {
+    const result = buildHoidTopicAssignmentPromotionPlan(
+      [assignment({
+        review: {
+          status: "approved",
+          reviewerId: "Reviewer_ABC",
+          reviewedAt: "2026-11-18T11:00:00.000Z",
+        },
+      })],
+      progress(),
+      approvedClaims,
+      approvedKnowledge,
+    );
+    expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.plan.assignmentReviewerIds).toEqual(["Reviewer_ABC"]);
+    }
+  });
+
   it("keeps the production authority blocked while the reviewed topic registry is empty", () => {
     expect(buildProductionHoidTopicAssignmentPromotionPlan(progress())).toEqual({
       status: "blocked",

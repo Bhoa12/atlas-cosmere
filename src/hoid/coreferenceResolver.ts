@@ -316,32 +316,36 @@ function canonicalAuthorizedEntityIds(
   requestedIds: readonly string[],
   expected: HoidConversationProgressIdentity,
 ): boolean {
-  const record = canonicalRecord(value, [
-    "status", "resolution", "progressRevision", "progressFingerprint", "matches", "truncated",
-  ]);
-  if (
-    !record ||
-    record.status !== "ready" ||
-    record.resolution !== "matched" ||
-    record.progressRevision !== expected.revision ||
-    record.progressFingerprint !== expected.fingerprint ||
-    record.truncated !== false
-  ) return false;
-
-  const matches = canonicalDenseArray(record.matches, requestedIds.length, requestedIds.length);
-  if (!matches) return false;
-  for (let index = 0; index < matches.length; index += 1) {
-    const item = matches[index];
-    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-    const idDescriptor = Object.getOwnPropertyDescriptor(item, "id");
+  try {
+    const record = canonicalRecord(value, [
+      "status", "resolution", "progressRevision", "progressFingerprint", "matches", "truncated",
+    ]);
     if (
-      !idDescriptor ||
-      !Object.prototype.hasOwnProperty.call(idDescriptor, "value") ||
-      idDescriptor.enumerable !== true ||
-      idDescriptor.value !== requestedIds[index]
+      !record ||
+      record.status !== "ready" ||
+      record.resolution !== "matched" ||
+      record.progressRevision !== expected.revision ||
+      record.progressFingerprint !== expected.fingerprint ||
+      record.truncated !== false
     ) return false;
+
+    const matches = canonicalDenseArray(record.matches, requestedIds.length, requestedIds.length);
+    if (!matches) return false;
+    for (let index = 0; index < matches.length; index += 1) {
+      const item = matches[index];
+      if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+      const idDescriptor = Object.getOwnPropertyDescriptor(item, "id");
+      if (
+        !idDescriptor ||
+        !Object.prototype.hasOwnProperty.call(idDescriptor, "value") ||
+        idDescriptor.enumerable !== true ||
+        idDescriptor.value !== requestedIds[index]
+      ) return false;
+    }
+    return true;
+  } catch {
+    return false;
   }
-  return true;
 }
 
 function unavailable(

@@ -6,8 +6,26 @@ import {
   validateHoidTopicAssignments,
 } from "./topicTaxonomy";
 
+const CLAIM_TEXT = "Dato sintético para probar una asignación editorial.";
+
+function validate(records: readonly unknown[]) {
+  const claims = new Map<string, { id: string; text: string; evidenceIds: unknown }>();
+  for (const record of records) {
+    if (record === null || typeof record !== "object") continue;
+    const raw = record as Record<string, unknown>;
+    if (typeof raw.claimId === "string") {
+      claims.set(raw.claimId, {
+        id: raw.claimId,
+        text: CLAIM_TEXT,
+        evidenceIds: raw.evidenceIds,
+      });
+    }
+  }
+  return validateHoidTopicAssignments(records, [...claims.values()]);
+}
+
 function assignment(overrides: Record<string, unknown> = {}) {
-  const text = "Dato sintético para probar una asignación editorial.";
+  const text = CLAIM_TEXT;
   return {
     schemaVersion: 1,
     id: "topic-assignment.alpha",
@@ -34,7 +52,7 @@ describe("Hoid reviewed topic taxonomy", () => {
     expect(HOID_TOPIC_TAXONOMY.map(topic => topic.id)).toContain("investiture-system");
     expect(HOID_TOPIC_TAXONOMY.find(topic => topic.id === "investiture-system")?.dimensions.map(item => item.id))
       .toEqual(["mechanism", "source", "access-condition", "manifestation", "limitation"]);
-    expect(validateHoidTopicAssignments([])).toEqual({ status: "valid", assignments: [] });
+    expect(validate([])).toEqual({ status: "valid", assignments: [] });
   });
 
   it("keeps the production assignment registry empty until independently reviewed records exist", () => {
@@ -42,7 +60,7 @@ describe("Hoid reviewed topic taxonomy", () => {
   });
 
   it("accepts an exact, source-controlled approved work assignment", () => {
-    const result = validateHoidTopicAssignments([assignment()]);
+    const result = validate([assignment()]);
     expect(result.status).toBe("valid");
     if (result.status !== "valid") return;
     expect(result.assignments).toHaveLength(1);
@@ -50,27 +68,27 @@ describe("Hoid reviewed topic taxonomy", () => {
   });
 
   it("accepts only bibliography works or entities already in the approved identity registry", () => {
-    expect(validateHoidTopicAssignments([assignment({ subjectKind: "work", subjectId: "tfe" })]).status).toBe("valid");
-    expect(validateHoidTopicAssignments([assignment({ subjectKind: "work", subjectId: "unknown-work" })]).status).toBe("invalid");
-    expect(validateHoidTopicAssignments([assignment({ subjectKind: "entity", subjectId: "entity.not-approved" })]).status).toBe("invalid");
+    expect(validate([assignment({ subjectKind: "work", subjectId: "tfe" })]).status).toBe("valid");
+    expect(validate([assignment({ subjectKind: "work", subjectId: "unknown-work" })]).status).toBe("invalid");
+    expect(validate([assignment({ subjectKind: "entity", subjectId: "entity.not-approved" })]).status).toBe("invalid");
   });
 
   it("rejects dimensions that do not belong to the selected topic", () => {
-    expect(validateHoidTopicAssignments([assignment({
+    expect(validate([assignment({
       topicId: "investiture-system",
       dimensionId: "membership",
     })]).status).toBe("invalid");
   });
 
   it("rejects duplicate assignments for the same subject and dimension", () => {
-    expect(validateHoidTopicAssignments([
+    expect(validate([
       assignment({ id: "assignment.one" }),
       assignment({ id: "assignment.two" }),
     ])).toEqual({ status: "invalid", reason: "duplicate-assignment" });
   });
 
-  it("rejects conflicting labels for one canonical world identity", () => {
-    expect(validateHoidTopicAssignments([
+  it("rejects conflicting labels for one world ID and duplicate labels across world IDs", () => {
+    expect(validate([
       assignment(),
       assignment({
         id: "topic-assignment.beta",
@@ -79,15 +97,25 @@ describe("Hoid reviewed topic taxonomy", () => {
         worldLabel: "Etiqueta contradictoria",
       }),
     ])).toEqual({ status: "invalid", reason: "inconsistent-world-label" });
+    expect(validate([
+      assignment(),
+      assignment({
+        id: "topic-assignment.gamma",
+        subjectId: "wor",
+        claimId: "claim.beta",
+        worldId: "world-beta",
+        worldLabel: "Mundo Alfa",
+      }),
+    ])).toEqual({ status: "invalid", reason: "inconsistent-world-label" });
   });
 
   it("rejects malformed review metadata, hashes, duplicate evidence and unknown fields", () => {
-    expect(validateHoidTopicAssignments([assignment({
+    expect(validate([assignment({
       review: { status: "approved", reviewerId: "reviewer-1", reviewedAt: "yesterday" },
     })]).status).toBe("invalid");
-    expect(validateHoidTopicAssignments([assignment({ claimTextSha256: "abc" })]).status).toBe("invalid");
-    expect(validateHoidTopicAssignments([assignment({ evidenceIds: ["evidence.alpha", "evidence.alpha"] })]).status).toBe("invalid");
-    expect(validateHoidTopicAssignments([assignment({ unreviewedExtra: true })]).status).toBe("invalid");
+    expect(validate([assignment({ claimTextSha256: "abc" })]).status).toBe("invalid");
+    expect(validate([assignment({ evidenceIds: ["evidence.alpha", "evidence.alpha"] })]).status).toBe("invalid");
+    expect(validate([assignment({ unreviewedExtra: true })]).status).toBe("invalid");
   });
 
   it("rejects accessors and sparse assignment arrays without invoking getters", () => {
@@ -96,9 +124,9 @@ describe("Hoid reviewed topic taxonomy", () => {
       enumerable: true,
       get() { invoked = true; return 1; },
     });
-    expect(validateHoidTopicAssignments([accessor]).status).toBe("invalid");
+    expect(validate([accessor]).status).toBe("invalid");
     expect(invoked).toBe(false);
     const sparse = new Array(1);
-    expect(validateHoidTopicAssignments(sparse)).toEqual({ status: "invalid", reason: "invalid-batch" });
+    expect(validate(sparse)).toEqual({ status: "invalid", reason: "invalid-batch" });
   });
 });

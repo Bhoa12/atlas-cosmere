@@ -20,7 +20,7 @@ It does not accept caller-authored prose, provider output, a prefiltered graph, 
 4. Build a graph query plan through the injected trusted engine. The production factory binds this step to `createProductionHoidExplanationPlan()`, which reads only source-controlled relation definitions and the approved editorial registry.
 5. Require the plan's progress identity to equal the request identity.
 6. Render through the local renderer. Production uses `renderProductionHoidExplanationPlan()`, which accepts only a plan created by the same module instance and resolves exact statements from `HOID_APPROVED_CLAIMS`.
-7. Validate the rendered envelope and require its text to be exactly the ordered concatenation of its cited editorial segments.
+7. Validate the rendered envelope, require the plan endpoints to match the requested IDs, require each segment's citation IDs to exactly cover its evidence IDs, require every segment citation to match the top-level source record, and require rendered text to be exactly the ordered concatenation of its cited editorial segments.
 8. Read authoritative progress again. Any change discards the entire explanation.
 
 The gateway is synchronous and provider-independent. The two progress reads protect the composition boundary and provide a stable contract if the host later adds asynchronous planning or persistence.

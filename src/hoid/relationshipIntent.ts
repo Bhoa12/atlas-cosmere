@@ -13,6 +13,7 @@ const RELATIONSHIP_CUES = Object.freeze([
   "que conexion existe entre",
   "conexion entre",
   "vinculo entre",
+  "vinculo hay entre",
   "que une a",
   "que tienen en comun",
   "en que se relacionan",
@@ -23,7 +24,7 @@ function normalizeRelationshipQuestion(value: string): string {
     .normalize("NFKD")
     .replace(/[\p{Cf}\p{Mn}]/gu, "")
     .toLowerCase()
-    .replace(/\s+/gu, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
 

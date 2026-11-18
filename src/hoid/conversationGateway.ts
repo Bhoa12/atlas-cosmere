@@ -9,7 +9,7 @@ import { resolveProductionHoidEntityMentions, type HoidEntityMentionResolutionRe
 import { isHoidRelationshipQuestion } from "./relationshipIntent";
 import { createProductionHoidExplanationGateway } from "./explanationGateway";
 import { createHoidRelationshipGateway, type HoidRelationshipGateway } from "./relationshipGateway";
-import { createHoidEvidenceAnswerFromRenderedExplanation } from "./relationshipPresentation";
+import { createHoidEvidenceAnswerFromRelationshipResult } from "./relationshipPresentation";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
   recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
@@ -396,8 +396,8 @@ export class HoidConversationGateway {
         relationshipResult.progressFingerprint !== requestedProgress.fingerprint
       ) return unavailable("invalid-progress");
 
-      const relationshipAnswer = createHoidEvidenceAnswerFromRenderedExplanation(
-        relationshipResult.explanation,
+      const relationshipAnswer = createHoidEvidenceAnswerFromRelationshipResult(
+        relationshipResult,
         request.progress,
       );
       if (!relationshipAnswer) return unavailable("entity-unavailable");

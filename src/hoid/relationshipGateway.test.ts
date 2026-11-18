@@ -158,7 +158,8 @@ describe("HoidRelationshipGateway", () => {
       explain: vi.fn()
         .mockReturnValueOnce({
           status: "no-path",
-          ...identity(progress),
+          progressRevision: identity(progress).revision,
+          progressFingerprint: identity(progress).fingerprint,
         } as HoidExplanationGatewayResult)
         .mockImplementationOnce(() => readyExplanation(progress)),
     });
@@ -236,9 +237,11 @@ describe("HoidRelationshipGateway", () => {
 
   it("returns no-path only after both directed searches are empty", () => {
     const progress = snapshot();
+    const currentIdentity = identity(progress);
     const noPath = {
       status: "no-path" as const,
-      ...identity(progress),
+      progressRevision: currentIdentity.revision,
+      progressFingerprint: currentIdentity.fingerprint,
     };
     const { gateway, explain } = setup({ initial: progress, explain: () => noPath });
     expect(gateway.answer({ question: "¿Qué relación hay entre Vin y Kelsier?", progress }))

@@ -3,6 +3,8 @@ import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceSco
 import { presentHoidEvidenceAnswer } from "./answerPresentation";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import { getHoidReadingManifest } from "./readingManifest";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
@@ -135,18 +137,34 @@ function sourceFingerprint(source: CanonicalGraphSource): string {
  * contract. It rechecks segment/source identity, exact edition hashes and the
  * reader's current unlock thresholds before the conversation layer can return it.
  */
-export function createHoidEvidenceAnswerFromRenderedExplanation(
+export function createHoidEvidenceAnswerFromRelationshipResult(
   input: unknown,
   progress: unknown,
 ): HoidEvidenceAnswer | null {
   try {
+    const wrapper = canonicalRecord(input, ["status", "explanation", "progressRevision", "progressFingerprint"]);
+    const projection = projectHoidCursorProgressSnapshot(progress);
+    if (
+      !wrapper ||
+      wrapper.status !== "ready" ||
+      typeof wrapper.progressRevision !== "number" ||
+      !Number.isSafeInteger(wrapper.progressRevision) ||
+      wrapper.progressRevision < 0 ||
+      typeof wrapper.progressFingerprint !== "string" ||
+      !HASH_PATTERN.test(wrapper.progressFingerprint) ||
+      projection.status !== "ready" ||
+      projection.revision !== wrapper.progressRevision ||
+      fingerprintHoidCursorProgressProjection(projection) !== wrapper.progressFingerprint
+    ) return null;
+
     const explanation = canonicalRecord(
-      input,
+      wrapper.explanation,
       ["status", "planId", "progressRevision", "text", "segments", "sources", "truncated"],
     );
     if (
       !explanation ||
       explanation.status !== "ready" ||
+      explanation.progressRevision !== wrapper.progressRevision ||
       typeof explanation.planId !== "string" || !HASH_PATTERN.test(explanation.planId) ||
       typeof explanation.progressRevision !== "number" ||
       !Number.isSafeInteger(explanation.progressRevision) || explanation.progressRevision < 0 ||

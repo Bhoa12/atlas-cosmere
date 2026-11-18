@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createHoidEvidenceAnswerFromRenderedExplanation } from "./relationshipPresentation";
+import { createHoidEvidenceAnswerFromRelationshipResult } from "./relationshipPresentation";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 
 const UPDATED_AT = "2026-11-18T06:00:00.000Z";
 
@@ -61,9 +63,20 @@ function explanation(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
+function relationshipResult(value: unknown, progress: unknown) {
+  const projection = projectHoidCursorProgressSnapshot(progress);
+  if (projection.status !== "ready") throw new Error("Progreso sintético inválido");
+  return {
+    status: "ready",
+    explanation: value,
+    progressRevision: projection.revision,
+    progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+  };
+}
+
+describe("createHoidEvidenceAnswerFromRelationshipResult", () => {
   it("converts an exact, edition-verified graph explanation into the evidence answer contract", () => {
-    const result = createHoidEvidenceAnswerFromRenderedExplanation(explanation(), snapshot());
+    const result = createHoidEvidenceAnswerFromRelationshipResult(relationshipResult(explanation(), snapshot()), snapshot());
     expect(result).toMatchObject({
       status: "authorized",
       text: "Afirmación editorial sintética.",
@@ -73,8 +86,8 @@ describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
   });
 
   it("rejects free prose not represented by exact editorial segments", () => {
-    const result = createHoidEvidenceAnswerFromRenderedExplanation(
-      explanation({ text: "Afirmación editorial sintética. Texto añadido." }),
+    const result = createHoidEvidenceAnswerFromRelationshipResult(
+      relationshipResult(explanation({ text: "Afirmación editorial sintética. Texto añadido." }), snapshot()),
       snapshot(),
     );
     expect(result).toBeNull();
@@ -91,7 +104,7 @@ describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
         sources: [invalid],
       }],
     });
-    expect(createHoidEvidenceAnswerFromRenderedExplanation(value, snapshot())).toBeNull();
+    expect(createHoidEvidenceAnswerFromRelationshipResult(relationshipResult(value, snapshot()), snapshot())).toBeNull();
   });
 
   it("rejects a source unlocked after the current chapter", () => {
@@ -105,12 +118,12 @@ describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
         sources: [locked],
       }],
     });
-    expect(createHoidEvidenceAnswerFromRenderedExplanation(value, snapshot(3))).toBeNull();
+    expect(createHoidEvidenceAnswerFromRelationshipResult(relationshipResult(value, snapshot(3)), snapshot(3))).toBeNull();
   });
 
   it("rejects truncated graph explanations rather than presenting an incomplete path", () => {
-    expect(createHoidEvidenceAnswerFromRenderedExplanation(
-      explanation({ truncated: true }),
+    expect(createHoidEvidenceAnswerFromRelationshipResult(
+      relationshipResult(explanation({ truncated: true }), snapshot()),
       snapshot(),
     )).toBeNull();
   });
@@ -124,7 +137,7 @@ describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
         sources: [source()],
       }],
     });
-    expect(createHoidEvidenceAnswerFromRenderedExplanation(value, snapshot())).toBeNull();
+    expect(createHoidEvidenceAnswerFromRelationshipResult(relationshipResult(value, snapshot()), snapshot())).toBeNull();
   });
 
   it("rejects duplicate claims and duplicate evidence IDs", () => {
@@ -135,8 +148,8 @@ describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
       evidenceIds: [evidence.evidenceId],
       sources: [evidence],
     };
-    expect(createHoidEvidenceAnswerFromRenderedExplanation(
-      explanation({ segments: [segment, segment], text: segment.text + "\n\n" + segment.text }),
+    expect(createHoidEvidenceAnswerFromRelationshipResult(
+      relationshipResult(explanation({ segments: [segment, segment], text: segment.text + "\n\n" + segment.text }), snapshot()),
       snapshot(),
     )).toBeNull();
   });
@@ -148,7 +161,14 @@ describe("createHoidEvidenceAnswerFromRenderedExplanation", () => {
       enumerable: true,
       get() { invoked = true; return "No debe leerse"; },
     });
-    expect(createHoidEvidenceAnswerFromRenderedExplanation(value, snapshot())).toBeNull();
+    expect(createHoidEvidenceAnswerFromRelationshipResult(relationshipResult(value, snapshot()), snapshot())).toBeNull();
     expect(invoked).toBe(false);
+  });
+
+  it("rejects a result bound to a different progress revision or fingerprint", () => {
+    const progress = snapshot();
+    const valid = relationshipResult(explanation(), progress);
+    expect(createHoidEvidenceAnswerFromRelationshipResult({ ...valid, progressRevision: 2 }, progress)).toBeNull();
+    expect(createHoidEvidenceAnswerFromRelationshipResult({ ...valid, progressFingerprint: "f".repeat(64) }, progress)).toBeNull();
   });
 });

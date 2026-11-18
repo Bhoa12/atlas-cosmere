@@ -192,6 +192,28 @@ describe("Hoid topic assignment promotion authority", () => {
     )).toEqual({ status: "invalid", reason: "manifest-mismatch" });
   });
 
+  it("rejects manifest arrays with accessors without invoking them", () => {
+    const currentPlan = plan();
+    const built = buildHoidTopicAssignmentPromotionManifest(currentPlan);
+    if (built.status !== "valid") throw new Error("Manifiesto sintético no disponible");
+    let invoked = false;
+    const accessorIds: string[] = [];
+    Object.defineProperty(accessorIds, "0", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        return "topic-assignment.alpha";
+      },
+    });
+    accessorIds.length = 1;
+    const result = validateHoidTopicAssignmentPromotionManifest({
+      ...built.manifest,
+      assignmentIds: accessorIds,
+    }, currentPlan);
+    expect(result.status).toBe("invalid");
+    expect(invoked).toBe(false);
+  });
+
   it("rejects a plan whose assignment or progress fingerprint was changed", () => {
     const currentPlan = plan();
     expect(buildHoidTopicAssignmentPromotionManifest({

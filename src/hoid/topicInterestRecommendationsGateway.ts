@@ -170,6 +170,13 @@ export class HoidTopicInterestRecommendationGateway {
       }
     }
 
+    // Revalidate both the caller-owned request snapshot and the live coordinator
+    // snapshot after the optional asynchronous local answer port. This closes
+    // mutation races in either object before evidence is composed.
+    const requestAfterIdentity = progressIdentity(raw.progress);
+    if (!requestAfterIdentity) return unavailable("invalid-progress");
+    if (!sameProgress(requestedProgress, requestAfterIdentity)) return unavailable("progress-changed");
+
     let currentAfter: unknown;
     try {
       currentAfter = this.config.getCurrentProgress();

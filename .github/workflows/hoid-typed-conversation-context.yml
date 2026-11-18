@@ -1,0 +1,73 @@
+name: Hoid typed entity conversation continuity
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/typedConversationContext.ts"
+      - "src/hoid/typedConversationContext.test.ts"
+      - "src/hoid/typedConversationGateway.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/conversationContext.ts"
+      - "src/hoid/coreferenceResolver.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/TYPED_ENTITY_CONVERSATION_CONTINUITY.md"
+      - "src/hoid/README.md"
+      - ".github/workflows/hoid-typed-conversation-context.yml"
+  pull_request:
+    paths:
+      - "src/hoid/typedConversationContext.ts"
+      - "src/hoid/typedConversationContext.test.ts"
+      - "src/hoid/typedConversationGateway.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/conversationContext.ts"
+      - "src/hoid/coreferenceResolver.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/relationshipGateway.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/TYPED_ENTITY_CONVERSATION_CONTINUITY.md"
+      - "src/hoid/README.md"
+      - ".github/workflows/hoid-typed-conversation-context.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typed-conversation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test typed context and gateway safety
+        run: >-
+          npx vitest run
+          src/hoid/typedConversationContext.test.ts
+          src/hoid/typedConversationGateway.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/conversationContext.test.ts
+          src/hoid/coreferenceResolver.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/relationshipGateway.test.ts
+      - name: Type-check application boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/typedConversationContext.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/conversationContext.ts
+          src/hoid/coreferenceResolver.ts
+          src/hoid/entityResolver.ts
+          src/hoid/relationshipGateway.ts
+          src/screens/HoidScreen.tsx

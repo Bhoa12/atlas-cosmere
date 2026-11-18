@@ -17,6 +17,7 @@ import {
 } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
+import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
 import type { HoidRecommendation } from '../hoid/recommendations';
 import {
   canCommitHoidProgressScopedResponse,
@@ -49,6 +50,7 @@ export const HoidScreen: React.FC = () => {
   progressReaderRef.current = getHoidCursorProgressSnapshot;
   // Ephemeral ID-only context: never persisted to SQLite, messages or providers.
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
+  const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({ runtime: hoidRuntime, getCurrentProgress: () => progressReaderRef.current() })
     : null;
@@ -79,6 +81,7 @@ export const HoidScreen: React.FC = () => {
 
   useEffect(() => {
     conversationContextRef.current = null;
+    typedConversationContextRef.current = null;
     setRecomendaciones([]);
     setRecommendationRevision(null);
     setRecommendationFingerprint(null);
@@ -118,12 +121,15 @@ export const HoidScreen: React.FC = () => {
 
       if (intentPlan.status !== 'ready') {
         conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
       } else if (!conversationGateway) {
         conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
         respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
       } else if (intentPlan.mode === 'reading-progress') {
         conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
         const result = await conversationGateway.readingContext({ progress: currentProgress });
         if (result.status === 'ready') {
           responseScope = {
@@ -146,6 +152,7 @@ export const HoidScreen: React.FC = () => {
         }
       } else if (intentPlan.mode === 'catalogue-recommendation') {
         conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
         const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
         if (result.status === 'ready') {
           responseScope = {
@@ -189,6 +196,7 @@ export const HoidScreen: React.FC = () => {
           progress: currentProgress,
           intent: intentPlan.intent,
           context: conversationContextRef.current ?? undefined,
+          typedContext: typedConversationContextRef.current ?? undefined,
         });
         if (result.status === 'ready') {
           responseScope = {
@@ -204,12 +212,15 @@ export const HoidScreen: React.FC = () => {
             const crossBook = buildHoidCrossBookEvidenceSummary(result.answer, currentProgress);
             if (crossBook.status === 'ready') evidenciaTransversal = crossBook.summary;
             conversationContextRef.current = result.conversationContext ?? null;
+            typedConversationContextRef.current = result.typedConversationContext ?? null;
           } else {
             respuesta = presentation.text;
             conversationContextRef.current = null;
+            typedConversationContextRef.current = null;
           }
         } else {
           conversationContextRef.current = null;
+          typedConversationContextRef.current = null;
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
             : result.reason === 'invalid-progress'
@@ -256,6 +267,7 @@ export const HoidScreen: React.FC = () => {
         formato = undefined;
         evidenciaTransversal = undefined;
         conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
       }
 
       setMensajes(prev => [...prev, {
@@ -269,6 +281,7 @@ export const HoidScreen: React.FC = () => {
       }]);
     } catch {
       conversationContextRef.current = null;
+      typedConversationContextRef.current = null;
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
@@ -281,6 +294,7 @@ export const HoidScreen: React.FC = () => {
 
   const cargarRecomendaciones = async () => {
     conversationContextRef.current = null;
+    typedConversationContextRef.current = null;
     if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready' || !conversationGateway) return;
     const currentProgress = progressReaderRef.current();
     if (!currentProgress) {

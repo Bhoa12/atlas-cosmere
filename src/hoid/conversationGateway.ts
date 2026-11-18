@@ -5,7 +5,12 @@ import { buildHoidCursorReadingContext, type HoidCursorReadingContext } from "./
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
-import { resolveProductionHoidEntityMentions, type HoidEntityMentionResolutionResult } from "./entityResolver";
+import {
+  resolveProductionHoidEntityIds,
+  resolveProductionHoidEntityMentions,
+  type HoidEntityMentionResolutionResult,
+} from "./entityResolver";
+import type { HoidKnowledgeKind } from "./catalog";
 import { isHoidRelationshipQuestion } from "./relationshipIntent";
 import { createProductionHoidExplanationGateway } from "./explanationGateway";
 import {
@@ -17,8 +22,14 @@ import { createHoidEvidenceAnswerFromRelationshipResult } from "./relationshipPr
 import {
   createHoidConversationContext,
   resolveHoidConversationFollowUp,
+  validateHoidConversationContext,
   type HoidConversationContext,
 } from "./conversationContext";
+import {
+  createHoidTypedConversationContext,
+  resolveHoidTypedEntityFollowUp,
+  type HoidTypedConversationContext,
+} from "./typedConversationContext";
 import {
   resolveProductionHoidCoreference,
   type HoidCoreferenceResolutionResult,
@@ -33,6 +44,7 @@ export type HoidConversationGatewayResult =
       status: "ready";
       answer: HoidEvidenceAnswer;
       conversationContext?: HoidConversationContext;
+      typedConversationContext?: HoidTypedConversationContext;
       progressRevision: number;
       progressFingerprint: string;
     }>
@@ -93,11 +105,13 @@ export type HoidConversationGatewayConfig = Readonly<{
   ) => HoidCoreferenceResolutionResult;
   /** Optional test seam; production defaults to the source-controlled mention resolver. */
   resolveEntities?: (progress: unknown, question: string) => HoidEntityMentionResolutionResult;
+  /** Revalidates every typed context ID against current production knowledge and alias evidence. */
+  resolveEntityIds?: (progress: unknown, entityIds: readonly string[]) => HoidEntityMentionResolutionResult;
   /** Optional trusted local graph route; production composition supplies it by default. */
   relationshipGateway?: Pick<HoidRelationshipGateway, "answer"> | null;
 }>;
 
-const REQUEST_KEYS = ["question", "progress", "intent", "context"] as const;
+const REQUEST_KEYS = ["question", "progress", "intent", "context", "typedContext"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
 const CONTEXT_KEYS = ["progress"] as const;
 const MAX_QUESTION_LENGTH = 4_000;
@@ -109,6 +123,7 @@ function canonicalRequest(value: unknown): Readonly<{
   progress: unknown;
   intent: HoidClaimIntent;
   context?: unknown;
+  typedContext?: unknown;
 }> | null {
   const record = canonicalDataRecord(value, REQUEST_KEYS, ["question", "progress"]);
   if (!record) return null;
@@ -131,6 +146,7 @@ function canonicalRequest(value: unknown): Readonly<{
     progress: record.progress,
     intent,
     ...(Object.prototype.hasOwnProperty.call(record, "context") ? { context: record.context } : {}),
+    ...(Object.prototype.hasOwnProperty.call(record, "typedContext") ? { typedContext: record.typedContext } : {}),
   });
 }
 
@@ -228,6 +244,109 @@ function progressIdentity(value: unknown): ProgressIdentity | null {
     revision: projection.revision,
     fingerprint: fingerprintHoidCursorProgressProjection(projection),
   });
+}
+
+const ENTITY_KINDS = new Set<HoidKnowledgeKind>([
+  "character", "place", "event", "concept", "magic", "organization", "object",
+]);
+
+function canonicalTypedEntityReauthorization(
+  value: unknown,
+  expectedIds: readonly string[],
+  expectedKinds: readonly HoidKnowledgeKind[],
+  expectedProgress: ProgressIdentity,
+): boolean {
+  const record = canonicalDataRecord(
+    value,
+    ["status", "resolution", "progressRevision", "progressFingerprint", "matches", "truncated"],
+    ["status"],
+  );
+  if (
+    !record ||
+    Object.keys(record).length !== 6 ||
+    record.status !== "ready" ||
+    record.resolution !== "matched" ||
+    record.progressRevision !== expectedProgress.revision ||
+    record.progressFingerprint !== expectedProgress.fingerprint ||
+    record.truncated !== false
+  ) return false;
+
+  const matches = canonicalDenseArray(record.matches, 4);
+  if (!matches || matches.length !== expectedIds.length || expectedIds.length !== expectedKinds.length) return false;
+  for (let index = 0; index < matches.length; index += 1) {
+    const item = canonicalDataRecord(matches[index], [
+      "id", "kind", "matchedAlias", "entitySource", "aliasEvidence",
+    ], ["id", "kind"]);
+    if (
+      !item ||
+      typeof item.id !== "string" ||
+      item.id !== expectedIds[index] ||
+      typeof item.kind !== "string" ||
+      !ENTITY_KINDS.has(item.kind as HoidKnowledgeKind) ||
+      item.kind !== expectedKinds[index]
+    ) return false;
+  }
+  return true;
+}
+
+function reauthorizeTypedContext(
+  progress: unknown,
+  context: HoidTypedConversationContext,
+  expectedProgress: ProgressIdentity,
+  resolver: NonNullable<HoidConversationGatewayConfig["resolveEntityIds"]>,
+): boolean {
+  try {
+    const ids = context.entities.map(entity => entity.id);
+    const kinds = context.entities.map(entity => entity.kind);
+    const result = resolver(progress, ids);
+    return canonicalTypedEntityReauthorization(result, ids, kinds, expectedProgress);
+  } catch {
+    return false;
+  }
+}
+
+function buildTypedContextFromIds(
+  progress: unknown,
+  entityIds: readonly string[],
+  expectedProgress: ProgressIdentity,
+  resolver: NonNullable<HoidConversationGatewayConfig["resolveEntityIds"]>,
+): HoidTypedConversationContext | null {
+  if (entityIds.length < 2 || entityIds.length > 4) return null;
+  try {
+    const result = resolver(progress, entityIds);
+    const record = canonicalDataRecord(
+      result,
+      ["status", "resolution", "progressRevision", "progressFingerprint", "matches", "truncated"],
+      ["status"],
+    );
+    if (
+      !record ||
+      Object.keys(record).length !== 6 ||
+      record.status !== "ready" ||
+      record.resolution !== "matched" ||
+      record.progressRevision !== expectedProgress.revision ||
+      record.progressFingerprint !== expectedProgress.fingerprint ||
+      record.truncated !== false
+    ) return null;
+    const matches = canonicalDenseArray(record.matches, 4);
+    if (!matches || matches.length !== entityIds.length) return null;
+    const refs: Array<Readonly<{ id: string; kind: HoidKnowledgeKind }>> = [];
+    for (let index = 0; index < matches.length; index += 1) {
+      const item = canonicalDataRecord(matches[index], [
+        "id", "kind", "matchedAlias", "entitySource", "aliasEvidence",
+      ], ["id", "kind"]);
+      if (
+        !item ||
+        item.id !== entityIds[index] ||
+        typeof item.kind !== "string" ||
+        !ENTITY_KINDS.has(item.kind as HoidKnowledgeKind)
+      ) return null;
+      refs.push(Object.freeze({ id: item.id as string, kind: item.kind as HoidKnowledgeKind }));
+    }
+    return createHoidTypedConversationContext(refs, expectedProgress);
+  } catch {
+    return null;
+  }
 }
 
 function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean {
@@ -426,6 +545,62 @@ export class HoidConversationGateway {
       return unavailable("progress-changed");
     }
 
+    const typedFollowUp = resolveHoidTypedEntityFollowUp(
+      request.question,
+      request.typedContext,
+      requestedProgress,
+    );
+    if (typedFollowUp.status === "unavailable") {
+      if (typedFollowUp.reason === "stale-context") return unavailable("context-stale");
+      if (typedFollowUp.reason === "invalid-progress") return unavailable("invalid-progress");
+      if (typedFollowUp.reason === "invalid-question") return unavailable("invalid-request");
+      if (typedFollowUp.reason === "ambiguous-reference") return unavailable("context-ambiguous");
+      return unavailable("context-unavailable");
+    }
+    if (typedFollowUp.status === "resolved") {
+      const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
+      if (!reauthorizeTypedContext(request.progress, typedFollowUp.context, requestedProgress, resolveEntityIds)) {
+        return unavailable("context-unavailable");
+      }
+
+      let answer: HoidEvidenceAnswer;
+      try {
+        // Only the single, live-reauthorized target ID crosses the evidence-runtime boundary.
+        // The typed context, names, aliases and previous answer remain local to this screen.
+        answer = await this.config.runtime.answer({
+          question: request.question,
+          progress: request.progress,
+          intent: request.intent,
+          entityIds: [typedFollowUp.entityId],
+        });
+      } catch {
+        return unavailable("runtime-failed");
+      }
+
+      let currentAfterTypedFollowUp: unknown;
+      try {
+        currentAfterTypedFollowUp = this.config.getCurrentProgress();
+      } catch {
+        return unavailable("invalid-progress");
+      }
+      const afterTypedIdentity = progressIdentity(currentAfterTypedFollowUp);
+      if (!afterTypedIdentity) return unavailable("invalid-progress");
+      if (!sameProgress(requestedProgress, afterTypedIdentity)) return unavailable("progress-changed");
+
+      const priorRelationship = validateHoidConversationContext(request.context, requestedProgress);
+      const conversationContext = priorRelationship.status === "resolved"
+        ? createHoidConversationContext(priorRelationship.entityIds, requestedProgress) ?? undefined
+        : undefined;
+      return Object.freeze({
+        status: "ready",
+        answer,
+        ...(conversationContext ? { conversationContext } : {}),
+        typedConversationContext: typedFollowUp.context,
+        progressRevision: requestedProgress.revision,
+        progressFingerprint: requestedProgress.fingerprint,
+      });
+    }
+
     const coreference = (this.config.resolveCoreference ?? resolveProductionHoidCoreference)(
       request.question,
       request.context,
@@ -534,11 +709,19 @@ export class HoidConversationGateway {
         requestedProgress,
       );
       if (!conversationContext) return unavailable("entity-unavailable");
+      const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
+      const typedConversationContext = buildTypedContextFromIds(
+        request.progress,
+        relationshipResult.entityIds,
+        requestedProgress,
+        resolveEntityIds,
+      );
 
       return Object.freeze({
         status: "ready",
         answer: relationshipAnswer,
         conversationContext,
+        ...(typedConversationContext ? { typedConversationContext } : {}),
         progressRevision: requestedProgress.revision,
         progressFingerprint: requestedProgress.fingerprint,
       });
@@ -572,10 +755,18 @@ export class HoidConversationGateway {
         return unavailable("progress-changed");
       }
 
+      const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
+      const typedConversationContext = buildTypedContextFromIds(
+        request.progress,
+        coreference.context.entityIds,
+        requestedProgress,
+        resolveEntityIds,
+      );
       return Object.freeze({
         status: "ready",
         answer,
         conversationContext: coreference.context,
+        ...(typedConversationContext ? { typedConversationContext } : {}),
         progressRevision: requestedProgress.revision,
         progressFingerprint: requestedProgress.fingerprint,
       });
@@ -639,9 +830,14 @@ export class HoidConversationGateway {
       return unavailable("progress-changed");
     }
 
+    const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
+    const typedConversationContext = entityIds && entityIds.length >= 2 && entityIds.length <= 4
+      ? buildTypedContextFromIds(request.progress, entityIds, requestedProgress, resolveEntityIds)
+      : null;
     return Object.freeze({
       status: "ready",
       answer,
+      ...(typedConversationContext ? { typedConversationContext } : {}),
       progressRevision: requestedProgress.revision,
       progressFingerprint: requestedProgress.fingerprint,
     });

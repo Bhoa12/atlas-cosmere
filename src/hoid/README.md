@@ -436,3 +436,15 @@ relationshipPresentation.ts invokes the local composer only after exact claim/se
 The conversation gateway validates every resume entry against the exact current chapter in the v2 snapshot and every unread entry against the bibliography and started-work set. The gateway still compares the progress revision and fingerprint before and after recommendation generation. HoidScreen clears the cross-book matrix together with all other provenance if the final progress comparison becomes stale.
 
 No source passages are read or committed in this run. The production editorial and alias registries remain unchanged; the new cross-book matrix is presentation metadata only and cannot create or promote narrative claims.
+
+
+## Run 132 — reviewed topic taxonomy and cross-world comparisons
+
+- `topicTaxonomy.ts` defines a closed, metadata-only topic vocabulary and validates source-controlled assignments against exact claim IDs, text digests, evidence IDs, work IDs, world labels and review metadata. The production assignment registry is intentionally empty.
+- `topicComparison.ts` builds side-by-side comparisons for two to four subjects only when every subject has one approved assignment for the same topic/dimension and its exact one-segment answer passes the existing source-aware presentation boundary against the current v2 progress snapshot.
+- Cross-world output explicitly carries `inference: "none"`. The service does not infer equivalence, similarity, causality, chronology or a relationship between worlds. Any such conclusion requires its own reviewed editorial claim.
+- `topicRecommendations.ts` requires explicit selected topic IDs. It recommends only unstarted catalogue works whose reviewed work-topic association is backed by already-unlocked evidence outside the unread candidate work. It does not infer interests, thematic similarity or reading order.
+- The production topic-assignment registry remains empty, so production comparisons and topic recommendations abstain until source-backed assignments are independently reviewed and committed. Synthetic tests are not production knowledge.
+- No EPUB/XHTML bodies, extracted passages or protected narrative text are committed. See `docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md`.
+
+- Run 132 hardening: topic assignments now have to match an exact approved claim text digest and evidence-ID set; every evidence ID must resolve to a verified knowledge record with canonical source and unlock scopes. Entity subjects must already exist in the verified knowledge registry and their first-safe-appearance boundary is checked against the current reading context. The comparison and recommendation paths compare the caller-supplied citation scope to the canonical evidence registry, including the unlock work/chapter. Generic registry-injection parameters are trusted test/composition seams only; application code must use the production entry points, which bind the checked-in registries. The production topic-assignment registry remains empty.

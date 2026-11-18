@@ -274,6 +274,23 @@ describe("Hoid topic-aware safe recommendations", () => {
     )).toEqual({ status: "invalid", reason: "invalid-answers" });
   });
 
+  it("rejects a forged unlocked source scope that differs from the approved evidence registry", () => {
+    const text = "Asociación temática sintética.";
+    const claimId = "claim.tfe.forged-source";
+    const approvedPair = { claimId, answer: answer(claimId, text, "wor") };
+    const forgedPair = { claimId, answer: answer(claimId, text, "tfe") };
+    const result = composeHoidTopicRecommendations(
+      ["investiture-system"],
+      progress([{ bookId: "wor", chapter: 3 }, { bookId: "tfe", chapter: 3 }]),
+      [forgedPair],
+      5,
+      [assignment("tfe", "investiture-system", "mechanism", claimId, text)],
+      approvedClaims([approvedPair]),
+      approvedKnowledge([approvedPair]),
+    );
+    expect(result).toEqual({ status: "invalid", reason: "invalid-answers" });
+  });
+
   it("uses the empty production registry until approved topic assignments are committed", () => {
     expect(composeProductionHoidTopicRecommendations(
       ["investiture-system"],

@@ -231,7 +231,7 @@ describe("Hoid topic assignment activation", () => {
     expect(result.receipt.approvalReviewerIds).toEqual(["reviewer-1", "reviewer-2"]);
     expect(result.receipt.mergeCommitSha).toBe("c".repeat(40));
     expect(result.productionWritePerformed).toBe(false);
-    expect(HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT_PATH).toBe("docs/hoid/topic-assignment-activation.receipt.json");
+    expect(HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT_PATH).toBe("src/hoid/topicAssignmentActivationReceipt.ts");
   });
 
   it("rejects a draft, unmerged PR, wrong base, wrong head, or wrong manifest", () => {

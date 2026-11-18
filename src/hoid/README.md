@@ -448,3 +448,15 @@ No source passages are read or committed in this run. The production editorial a
 - No EPUB/XHTML bodies, extracted passages or protected narrative text are committed. See `docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md`.
 
 - Run 132 hardening: topic assignments now have to match an exact approved claim text digest and evidence-ID set; every evidence ID must resolve to a verified knowledge record with canonical source and unlock scopes. Entity subjects must already exist in the verified knowledge registry and their first-safe-appearance boundary is checked against the current reading context. The comparison and recommendation paths compare the caller-supplied citation scope to the canonical evidence registry, including the unlock work/chapter. Generic registry-injection parameters are trusted test/composition seams only; application code must use the production entry points, which bind the checked-in registries. The production topic-assignment registry remains empty.
+
+
+
+## Run 133 — protected topic-assignment promotion
+
+`topicAssignmentPromotionAuthority.ts` closes the source-control review gap for Run 132's topic-assignment registry without changing the existing four-category editorial bundle. It builds a metadata-only plan fingerprint over exact assignment IDs/fields, assignment reviewer IDs, approved claim digests, evidence IDs, source and unlock scopes, edition/navigation/document digests, first-safe-appearance document identity, and the v2 progress revision/fingerprint.
+
+Topic evidence validation now requires a recognized knowledge kind and an individually verified chapter-document digest for both the evidence source and first-safe-appearance chapter. A valid TOC locator alone is not sufficient.
+
+The topic-assignment authority rebuilds the plan from the current source-controlled assignments before source-control review, requires the fixed `docs/hoid/topic-assignment-promotion.manifest.json` at the exact PR head, validates the protected branch/ruleset and latest effective approvals, and requires every assignment reviewer ID to be among the authenticated non-author approvals for that same head. Reviewer metadata in an assignment is never treated as authentication.
+
+The authority reads the authoritative v2 progress port before and after review. It only returns `ready-for-maintainer-commit`; `promotionAllowed` and `productionWritePerformed` remain false. The production topic-assignment registry is still empty, so its production plan remains blocked. Synthetic assignments exist only in tests. See `docs/hoid/TOPIC_ASSIGNMENT_PROMOTION_AUTHORITY.md`.

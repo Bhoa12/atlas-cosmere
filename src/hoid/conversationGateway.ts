@@ -558,7 +558,6 @@ export class HoidConversationGateway {
       return unavailable("context-unavailable");
     }
     if (typedFollowUp.status === "resolved") {
-      const entityIds = typedFollowUp.context.entities.map(entity => entity.id);
       const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
       if (!reauthorizeTypedContext(request.progress, typedFollowUp.context, requestedProgress, resolveEntityIds)) {
         return unavailable("context-unavailable");

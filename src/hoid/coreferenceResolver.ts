@@ -238,17 +238,38 @@ function canonicalRecords(value: unknown): readonly CanonicalCoreferenceRecord[]
         evidenceIds.has(item.id)
       ) return null;
 
-      const scope = canonicalEvidenceScope(item.source, item.unlock);
+      const sourceRecord = canonicalRecord(item.source, [
+        "bookId", "chapter", "locatorId", "editionId", "navigationSha256", "documentSha256",
+      ]);
+      if (
+        !sourceRecord ||
+        typeof sourceRecord.editionId !== "string" ||
+        sourceRecord.editionId.length < 1 ||
+        sourceRecord.editionId.length > 128 ||
+        typeof sourceRecord.navigationSha256 !== "string" ||
+        !/^[a-f0-9]{64}$/u.test(sourceRecord.navigationSha256) ||
+        typeof sourceRecord.documentSha256 !== "string" ||
+        !/^[a-f0-9]{64}$/u.test(sourceRecord.documentSha256)
+      ) return null;
+      const scope = canonicalEvidenceScope({
+        bookId: sourceRecord.bookId,
+        chapter: sourceRecord.chapter,
+        locatorId: sourceRecord.locatorId,
+      }, item.unlock);
       if (!scope) return null;
       const manifest = getHoidReadingManifest(scope.sourceBookId);
-      if (manifest.status !== "ready") return null;
+      if (
+        manifest.status !== "ready" ||
+        manifest.manifest.editionId !== sourceRecord.editionId ||
+        manifest.manifest.navigationSha256 !== sourceRecord.navigationSha256
+      ) return null;
       const documentSha256 = getVerifiedChapterDocumentSha256(
         scope.sourceBookId,
         manifest.manifest.editionId,
         manifest.manifest.navigationSha256,
         scope.sourceChapter,
       );
-      if (!documentSha256) return null;
+      if (!documentSha256 || documentSha256 !== sourceRecord.documentSha256) return null;
 
       evidence.push(Object.freeze({ id: item.id, scope }));
       evidenceIds.add(item.id);

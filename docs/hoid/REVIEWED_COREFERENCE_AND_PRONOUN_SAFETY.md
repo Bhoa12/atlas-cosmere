@@ -16,7 +16,7 @@ The first supported forms are exactly `él` and `ella`, and only a closed set of
 - one or more mandatory source evidence items;
 - structural editorial review metadata.
 
-Each evidence item has an exact bibliography work, chapter, edition-bound locator and same-work unlock threshold. The chapter body must also have an individually verified SHA-256 digest in the sparse inspected-document registry.
+Each evidence item stores an exact bibliography work, chapter, edition ID, navigation SHA-256, chapter-document SHA-256, edition-bound locator and same-work unlock threshold. The resolver compares all three edition/document identities against the current manifest and sparse inspected-document registry; a digest change invalidates the record.
 
 The form is an explicit editorial mapping supported by the cited document. It is never inferred from a name, avatar, provider response, assumed gender, grammatical stereotype or a previous answer.
 

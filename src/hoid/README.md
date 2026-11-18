@@ -386,3 +386,11 @@ El staging editorial dispone ahora de un único inventario de revisión para res
 Production composition must use `createProductionHoidExplanationGateway()`. It binds the source-controlled graph and `HOID_APPROVED_CLAIMS`; the lower-level injected engine factory is intended for trusted composition and tests. The production graph and claim registry remain empty until editorial records are independently reviewed and promoted, so production relationship queries currently return no path rather than inventing a connection.
 
 Rendered explanations contain only exact approved local claim text, separated into evidence-bearing segments with edition-bound citations. No provider-authored prose is accepted. The open-chapter N to completed-through N-1 boundary applies to every graph endpoint and every supporting evidence work. See `docs/hoid/EXPLANATION_GATEWAY.md` and `docs/hoid/KNOWLEDGE_GRAPH_QUERIES_AND_EXPLANATIONS.md`.
+
+## Run 124 — Roshar source expansion
+
+The current Library copies were inspected for `twok` chapter 8, `edgedancer` chapter 9 and `dawnshard` chapter 9. Each chapter body is bound to the existing edition navigation digest, exact relative locator and a SHA-256 digest of the original XHTML bytes. The new original Spanish summaries remain staging-only and unlock at chapters 9, 10 and 10 respectively.
+
+The staging inventory now contains 29 summaries and 29 individually verified chapter documents. The 47-record editorial bundle remains `ready-for-review`, not approved. The production registry is unchanged and still contains no promoted narrative claims. See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md`, `docs/hoid/EDITORIAL_DRAFT_PIPELINE.md` and `docs/hoid/COMPLETE_EDITORIAL_KNOWLEDGE_BUNDLE.md`.
+
+The Library listing exposes `cosmere.epub`, but its chapter bodies were not inspected in this iteration. Existing Cosmere TOC locators do not count as chapter-body verification.

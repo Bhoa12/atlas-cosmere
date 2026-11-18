@@ -22,7 +22,7 @@ After the reviewed assignment PR is actually merged into main, a trusted read-on
 
 The adapter must query GitHub rather than trust caller-supplied metadata. It returns the exact merged PR state, target branch, reviewed head SHA, merge commit SHA, fixed promotion manifest path, plan fingerprint and canonical merge timestamp.
 
-authorizeHoidTopicAssignmentActivation() validates the original protected-review authorization and asks that adapter for the post-merge snapshot. It then builds a metadata-only HoidTopicAssignmentActivationReceipt only when:
+authorizeHoidTopicAssignmentActivation() first calls the existing authorizeHoidTopicAssignmentPromotion() with the plan, exact assignments, review request, read-only source-control port and authoritative progress port. It proceeds to the merge adapter only if that pre-merge authority verifies the protected PR head and all assignment reviewers. It then asks the merge adapter for the post-merge snapshot and builds a metadata-only HoidTopicAssignmentActivationReceipt only when:
 
 - the PR is closed and merged, not a draft;
 - the target branch is exactly main;

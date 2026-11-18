@@ -1,9 +1,12 @@
 import { HOID_APPROVED_TOPIC_ASSIGNMENTS } from "./topicTaxonomy";
 import type { HoidTopicAssignment } from "./topicTaxonomy";
 import {
+  authorizeHoidTopicAssignmentPromotion,
   fingerprintHoidTopicAssignmentRegistry,
   HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
-  type HoidTopicAssignmentPromotionAuthorization,
+  type HoidPromotionProgressPort,
+  type HoidPromotionReviewRequest,
+  type HoidSourceControlReviewPort,
 } from "./topicAssignmentPromotionAuthority";
 import { sha256Hex } from "./sha256";
 
@@ -65,6 +68,8 @@ export type HoidTopicAssignmentActivationResolution =
 export type HoidTopicAssignmentMergedSnapshotRequest = Readonly<{
   repositoryFullName: string;
   pullRequestNumber: number;
+  expectedBaseRef: "main";
+  expectedHeadRef: string;
   expectedHeadSha: string;
   promotionPlanFingerprint: string;
   promotionManifestPath: typeof HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH;
@@ -80,6 +85,8 @@ const AUTHORIZATION_KEYS = new Set([
   "status",
   "repositoryFullName",
   "pullRequestNumber",
+  "baseRef",
+  "headRef",
   "headSha",
   "promotionPlanFingerprint",
   "assignmentFingerprint",
@@ -204,6 +211,8 @@ function canonicalTimestamp(value: unknown): value is string {
 type CanonicalAuthorization = Readonly<{
   repositoryFullName: string;
   pullRequestNumber: number;
+  baseRef: "main";
+  headRef: string;
   headSha: string;
   promotionPlanFingerprint: string;
   assignmentFingerprint: string;
@@ -222,6 +231,10 @@ function canonicalAuthorization(value: unknown): CanonicalAuthorization | null {
     !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
     !Number.isSafeInteger(raw.pullRequestNumber) ||
     (raw.pullRequestNumber as number) < 1 ||
+    raw.baseRef !== HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH ||
+    typeof raw.headRef !== "string" ||
+    !REF_PATTERN.test(raw.headRef) ||
+    raw.headRef === HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH ||
     typeof raw.headSha !== "string" ||
     !COMMIT_SHA_PATTERN.test(raw.headSha) ||
     typeof raw.promotionPlanFingerprint !== "string" ||
@@ -250,6 +263,8 @@ function canonicalAuthorization(value: unknown): CanonicalAuthorization | null {
   return Object.freeze({
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
+    baseRef: HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH,
+    headRef: raw.headRef,
     headSha: raw.headSha,
     promotionPlanFingerprint: raw.promotionPlanFingerprint,
     assignmentFingerprint: raw.assignmentFingerprint,
@@ -263,6 +278,7 @@ function canonicalAuthorization(value: unknown): CanonicalAuthorization | null {
 type CanonicalMergedSnapshot = Readonly<{
   repositoryFullName: string;
   pullRequestNumber: number;
+  baseRef: "main";
   headRef: string;
   headSha: string;
   mergeCommitSha: string;
@@ -299,6 +315,7 @@ function canonicalMergedSnapshot(value: unknown): CanonicalMergedSnapshot | null
   return Object.freeze({
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
+    baseRef: HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH,
     headRef: raw.headRef,
     headSha: raw.headSha,
     mergeCommitSha: raw.mergeCommitSha,
@@ -412,6 +429,8 @@ export function buildHoidTopicAssignmentActivationReceipt(
     !merged ||
     merged.repositoryFullName !== authorization.repositoryFullName ||
     merged.pullRequestNumber !== authorization.pullRequestNumber ||
+    merged.baseRef !== authorization.baseRef ||
+    merged.headRef !== authorization.headRef ||
     merged.headSha !== authorization.headSha ||
     merged.promotionPlanFingerprint !== authorization.promotionPlanFingerprint
   ) return Object.freeze({
@@ -576,27 +595,29 @@ export type HoidTopicAssignmentActivationAuthorizationResult =
   | HoidTopicAssignmentActivationBuildResult
   | Readonly<{
       status: "blocked";
-      reason: "invalid-merge-port" | "merge-source-unavailable" | "merge-timeout";
+      reason:
+        | "pre-merge-review-not-satisfied"
+        | "invalid-merge-port"
+        | "merge-source-unavailable"
+        | "merge-timeout";
+      verificationReason?: string;
       productionWritePerformed: false;
     }>;
 
 /**
- * Post-merge verification is read-only. A successful result only prepares a
- * receipt for a maintainer-controlled source change; it never writes or activates production.
+ * Runs the protected pre-merge review authority first, then verifies the
+ * actual merged PR through a separate read-only adapter. It never writes.
  */
 export async function authorizeHoidTopicAssignmentActivation(
-  authorizationInput: unknown,
+  planInput: unknown,
+  assignmentsInput: unknown,
+  requestInput: HoidPromotionReviewRequest,
+  sourceControlPortInput: HoidSourceControlReviewPort,
+  progressPortInput: HoidPromotionProgressPort,
   mergePortInput: unknown,
-  assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
   approvedClaimsInput?: unknown,
   approvedKnowledgeInput?: unknown,
 ): Promise<HoidTopicAssignmentActivationAuthorizationResult> {
-  const authorization = canonicalAuthorization(authorizationInput);
-  if (!authorization) return Object.freeze({
-    status: "blocked",
-    reason: "invalid-authorization",
-    productionWritePerformed: false,
-  });
   const fetchMerged = methodFromPort(mergePortInput);
   if (!fetchMerged) return Object.freeze({
     status: "blocked",
@@ -604,9 +625,35 @@ export async function authorizeHoidTopicAssignmentActivation(
     productionWritePerformed: false,
   });
 
+  const preMerge = await authorizeHoidTopicAssignmentPromotion(
+    planInput,
+    assignmentsInput,
+    requestInput,
+    sourceControlPortInput,
+    progressPortInput,
+    approvedClaimsInput,
+    approvedKnowledgeInput,
+  );
+  if (preMerge.status !== "ready-for-maintainer-commit") return Object.freeze({
+    status: "blocked",
+    reason: "pre-merge-review-not-satisfied",
+    verificationReason: preMerge.status === "blocked" ? preMerge.reason : "invalid-plan",
+    productionWritePerformed: false,
+  });
+
+  const authorization = canonicalAuthorization(preMerge);
+  if (!authorization) return Object.freeze({
+    status: "blocked",
+    reason: "pre-merge-review-not-satisfied",
+    verificationReason: "invalid-authorization-result",
+    productionWritePerformed: false,
+  });
+
   const request: HoidTopicAssignmentMergedSnapshotRequest = Object.freeze({
     repositoryFullName: authorization.repositoryFullName,
     pullRequestNumber: authorization.pullRequestNumber,
+    expectedBaseRef: authorization.baseRef,
+    expectedHeadRef: authorization.headRef,
     expectedHeadSha: authorization.headSha,
     promotionPlanFingerprint: authorization.promotionPlanFingerprint,
     promotionManifestPath: HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
@@ -634,7 +681,7 @@ export async function authorizeHoidTopicAssignmentActivation(
     productionWritePerformed: false,
   });
   return buildHoidTopicAssignmentActivationReceipt(
-    authorization,
+    preMerge,
     outcome.value,
     assignmentsInput,
     approvedClaimsInput,

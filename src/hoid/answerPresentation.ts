@@ -1,6 +1,6 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
-import type { HoidEvidenceCitation } from "./evidenceScope";
+import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
 
 export type HoidPresentedCitation = Readonly<{
   evidenceId: string;
@@ -152,6 +152,11 @@ function canonicalSources(value: unknown): readonly HoidEvidenceCitation[] | nul
         !Number.isSafeInteger(unlockChapter) ||
         unlockChapter < sourceChapter
       ) return null;
+
+      if (!canonicalEvidenceScope(
+        { bookId: sourceBookId, chapter: sourceChapter, locatorId },
+        { bookId: unlockBookId, chapter: unlockChapter },
+      )) return null;
 
       seen.add(evidenceId);
       sources.push(Object.freeze({

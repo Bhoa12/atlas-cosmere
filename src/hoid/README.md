@@ -502,3 +502,12 @@ The production editorial and alias registries remain the only factual authority.
 The exact Spanish follow-up “¿Y ese fenómeno?” resolves only when the current, progress-bound context contains exactly one reauthorized phenomenon ID. Ambiguous, missing or stale references abstain. The phenomenon topic in the reviewed topic taxonomy remains a separate topic classification; an entity kind does not itself create a topic assignment.
 
 Production registries remain unchanged until source-backed records are independently reviewed. Synthetic tests establish contract behavior only.
+
+
+## Run 139 — explicit topic interests
+
+`topicInterestContext.ts` defines an ephemeral context containing only the reader's explicitly selected topic IDs and the exact SQLite v2 progress revision/fingerprint. It stores no topic labels, question text, reading history, claim prose, citations or provider output. Selection order is preserved as the reader's priority.
+
+`topicInterestRecommendationsGateway.ts` validates the context against both the request snapshot and the live progress port. It reads only the source-controlled approved topic assignments and, if matching assignments exist, passes approved claim IDs to a trusted local answer port. The returned answers are revalidated by `composeProductionHoidTopicRecommendations()` against approved claim text, evidence IDs, citations, source scopes and same-work unlock boundaries. No provider fallback exists.
+
+HoidScreen now exposes the closed topic taxonomy as explicit selectable interests. Results are shown only while their progress revision and fingerprint match the live snapshot. A progress change clears recommendation text and citations; the selection itself remains temporary and is rebound to the new progress only when the reader searches again. The production assignment registry remains empty, so the current UI correctly reports that no reviewed topic matches are available. See `docs/hoid/EXPLICIT_TOPIC_INTERESTS.md`.

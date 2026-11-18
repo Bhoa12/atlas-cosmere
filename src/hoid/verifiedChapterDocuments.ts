@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 121 adds TFE chapter three and chapter eight for the currently accessible Edgedancer and Dawnshard editions.
+ * Run 124 adds The Way of Kings chapter eight and Edgedancer/Dawnshard chapter nine.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -26,6 +26,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       5: "1cc47f030de9132acec9b6eaca0310e325f4eb34d49bac7294611d09080d68d8",
       6: "9af4c12b07013a211fa399d6b53061c9207cfd49c42c56d89ded8cdc68c9c1c2",
       7: "30d9cecf9748261ad6e47fcea6064ac2f93ec523e8fe6a2d528d76306233bebb",
+      8: "1f9ad886ddb35ccb723890b8b8b4fd2c8f959182c26e0bef112a01d69736a156",
     }),
   }),
   edgedancer: Object.freeze({
@@ -40,6 +41,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       6: "b911d60b2e2630d79e6659a441ce4210e228b11c47ad6f9f026a9ce6b3c48de2",
       7: "c98233f98e7b5368a1e9e1d6db216ebbc4c22b43aa056624758a76ff67d7540f",
       8: "3b6e7ed84bcd4b08908f0f022edfc127b2dca223d834dc8841359fcb3ecbe095",
+      9: "3561810a0d4efb150309a41393dd612a8edca55806c98395152e1b88e5e8949d",
     }),
   }),
   dawnshard: Object.freeze({
@@ -54,6 +56,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       6: "4025cf190a6b7d6e17d66036705f6aa1f16f3194b3964a29ea4aa77249a3bc3b",
       7: "c2d2eb939495f883a1d507a42728ca3f39b561534e6984de56af574872066aaf",
       8: "04cf11bf2784a7cc8b01cc226cb403744860f72cf8715bc8c2724f1e2c860a25",
+      9: "4ee69a012acd0e528aa63c5ac3f78cd22a0988e168f178606dc48a4691786906",
     }),
   }),
   tfe: Object.freeze({

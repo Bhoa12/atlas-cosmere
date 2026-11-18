@@ -204,7 +204,7 @@ describe("Hoid editorial entity identity staging", () => {
     expect(first).toEqual(second);
     expect(first.status).toBe("ready");
     if (first.status !== "ready") return;
-    expect(first.packets).toHaveLength(12);
+    expect(first.packets).toHaveLength(14);
     expect(first.packets.every(packet => packet.status === "pending-review")).toBe(true);
     expect(first.packets.every(packet => !("aliases" in packet))).toBe(true);
   });

@@ -116,7 +116,7 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(8);
   });
 
-  it("returns only the two individually inspected Mistborn chapter digests", () => {
+  it("returns the three individually inspected Mistborn chapter digests", () => {
     expect(getVerifiedChapterDocumentSha256(
       "tfe",
       "cosmere-epub-merged-v1",
@@ -135,7 +135,7 @@ describe("verified EPUB chapter document fingerprints", () => {
       "cosmere-epub-merged-v1",
       "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
       3,
-    )).toBeNull();
+    )).toBe("bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7");
   });
 
   it("rejects a digest lookup from another edition or navigation document", () => {

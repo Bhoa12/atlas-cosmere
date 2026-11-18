@@ -511,3 +511,10 @@ Production registries remain unchanged until source-backed records are independe
 `topicInterestRecommendationsGateway.ts` validates the context against both the request snapshot and the live progress port. It reads only the source-controlled approved topic assignments and, if matching assignments exist, passes approved claim IDs to a trusted local answer port. The returned answers are revalidated by `composeProductionHoidTopicRecommendations()` against approved claim text, evidence IDs, citations, source scopes and same-work unlock boundaries. No provider fallback exists.
 
 HoidScreen now exposes the closed topic taxonomy as explicit selectable interests. Results are shown only while their progress revision and fingerprint match the live snapshot. A progress change clears recommendation text and citations; the selection itself remains temporary and is rebound to the new progress only when the reader searches again. The production assignment registry remains empty, so the current UI correctly reports that no reviewed topic matches are available. See `docs/hoid/EXPLICIT_TOPIC_INTERESTS.md`.
+
+
+## Run 140 — local approved-claim recommendation rendering
+
+`HoidEvidenceRuntime.renderApprovedClaimById()` renders one exact local claim with intent `recommend` by canonical ID. It bypasses the selector entirely and requires every evidence entry to be verified, eligible for context and unlocked in its own source work. The result carries one immutable segment and reconstructed citations.
+
+`topicApprovedClaimAnswerPort.ts` adapts this method to the explicit-topic recommendation gateway. It accepts only dense, unique canonical claim IDs and returns only exact authorized answers. HoidScreen now wires this local port into the gateway; there is no external provider fallback. The production topic-assignment registry remains empty, so this wiring does not activate recommendations until reviewed assignments exist. See `docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md`.

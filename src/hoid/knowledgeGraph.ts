@@ -80,7 +80,7 @@ export type HoidKnowledgeGraphResult =
     }>;
 
 const NODE_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
+  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
 ]);
 const PREDICATES = new Set<HoidKnowledgeGraphPredicate>([
   "related-to", "appears-in", "located-in", "member-of", "uses",

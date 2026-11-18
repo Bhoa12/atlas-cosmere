@@ -84,17 +84,17 @@ function mentionResult(progress: unknown, matches: readonly HoidResolvedEntity[]
   });
 }
 
-function readyExplanation(progress: unknown): HoidExplanationGatewayResult {
+function readyExplanation(progress: unknown, text = "Afirmación editorial sintética."): HoidExplanationGatewayResult {
   const current = identity(progress);
   const evidence = source("evidence.claim-one");
   const explanation = Object.freeze({
     status: "ready" as const,
     planId: "a".repeat(64),
     progressRevision: current.revision,
-    text: "Afirmación editorial sintética.",
+    text,
     segments: Object.freeze([Object.freeze({
       claimId: "claim.one",
-      text: "Afirmación editorial sintética.",
+      text,
       evidenceIds: Object.freeze([evidence.evidenceId]),
       sources: Object.freeze([evidence]),
     })]),
@@ -248,4 +248,183 @@ describe("HoidRelationshipGateway", () => {
       .toMatchObject({ status: "no-path" });
     expect(explain).toHaveBeenCalledTimes(2);
   });
+
+  it("builds a complete pairwise explanation for three entities in question order", () => {
+    const progress = snapshot();
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("sazed", "Sazed"),
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+      ]),
+    });
+
+    const result = gateway.answer({
+      question: "¿Qué conexión existe entre Kelsier, Vin y Sazed?",
+      progress,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(explain).toHaveBeenCalledTimes(3);
+    const queries = explain.mock.calls.map(call => (call[0] as {
+      query: { fromId: string; toId: string };
+    }).query);
+    expect(queries).toEqual([
+      { fromId: "kelsier", toId: "vin", maxDepth: 4, maxPaths: 1 },
+      { fromId: "kelsier", toId: "sazed", maxDepth: 4, maxPaths: 1 },
+      { fromId: "vin", toId: "sazed", maxDepth: 4, maxPaths: 1 },
+    ]);
+    if (result.status === "ready") {
+      expect(result.explanation.planId).toMatch(/^[a-f0-9]{64}$/);
+      expect(result.explanation.segments).toHaveLength(1);
+    }
+  });
+
+  it("caps a four-entity group at six pairwise graph queries", () => {
+    const progress = snapshot();
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+        entity("sazed", "Sazed"),
+        entity("kaladin", "Kaladin"),
+      ]),
+    });
+
+    const result = gateway.answer({
+      question: "¿Qué relación hay entre Vin, Kelsier, Sazed y Kaladin?",
+      progress,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(explain).toHaveBeenCalledTimes(6);
+  });
+
+  it("withholds the entire group when any required pair has no path in either direction", () => {
+    const progress = snapshot();
+    const noPath = Object.freeze({
+      status: "no-path" as const,
+      progressRevision: identity(progress).revision,
+      progressFingerprint: identity(progress).fingerprint,
+    });
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+        entity("sazed", "Sazed"),
+      ]),
+      explain: () => noPath,
+    });
+
+    const result = gateway.answer({
+      question: "¿Qué relación hay entre Vin, Kelsier y Sazed?",
+      progress,
+    });
+
+    expect(result).toMatchObject({ status: "no-path" });
+    expect(explain).toHaveBeenCalledTimes(2);
+  });
+
+  it("reverses only the pair whose first directed query has no path", () => {
+    const progress = snapshot();
+    const noPath = Object.freeze({
+      status: "no-path" as const,
+      progressRevision: identity(progress).revision,
+      progressFingerprint: identity(progress).fingerprint,
+    });
+    const explain = vi.fn()
+      .mockReturnValueOnce(noPath)
+      .mockImplementationOnce(() => readyExplanation(progress))
+      .mockImplementation(() => readyExplanation(progress));
+    const { gateway } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+        entity("sazed", "Sazed"),
+      ]),
+      explain,
+    });
+
+    const result = gateway.answer({
+      question: "¿Qué relación hay entre Vin, Kelsier y Sazed?",
+      progress,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(explain).toHaveBeenCalledTimes(4);
+    expect(explain.mock.calls[1][0]).toMatchObject({
+      query: { fromId: "kelsier", toId: "vin" },
+    });
+    expect(explain.mock.calls[2][0]).toMatchObject({
+      query: { fromId: "vin", toId: "sazed" },
+    });
+  });
+
+  it("rejects groups larger than four entities before querying the graph", () => {
+    const progress = snapshot();
+    const { gateway, explain } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+        entity("sazed", "Sazed"),
+        entity("kaladin", "Kaladin"),
+        entity("shallan", "Shallan"),
+      ]),
+    });
+
+    expect(gateway.answer({
+      question: "¿Qué relación hay entre Vin, Kelsier, Sazed, Kaladin y Shallan?",
+      progress,
+    })).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
+    expect(explain).not.toHaveBeenCalled();
+  });
+
+  it("rejects conflicting duplicate claim IDs instead of merging incompatible prose", () => {
+    const progress = snapshot();
+    const explain = vi.fn()
+      .mockImplementationOnce(() => readyExplanation(progress))
+      .mockImplementationOnce(() => readyExplanation(progress, "Texto editorial incompatible."));
+    const { gateway } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+        entity("sazed", "Sazed"),
+      ]),
+      explain,
+    });
+
+    expect(gateway.answer({
+      question: "¿Qué relación hay entre Vin, Kelsier y Sazed?",
+      progress,
+    })).toEqual({ status: "unavailable", reason: "explanation-unavailable" });
+  });
+
+  it("discards a multi-entity result when progress changes during pairwise planning", () => {
+    const progress = snapshot();
+    let reads = 0;
+    const { gateway } = setup({
+      initial: progress,
+      resolver: () => mentionResult(progress, [
+        entity("vin", "Vin"),
+        entity("kelsier", "Kelsier"),
+        entity("sazed", "Sazed"),
+      ]),
+      current: () => {
+        reads += 1;
+        return reads === 1 ? progress : snapshot(4);
+      },
+    });
+
+    expect(gateway.answer({
+      question: "¿Qué relación hay entre Vin, Kelsier y Sazed?",
+      progress,
+    })).toEqual({ status: "unavailable", reason: "progress-changed" });
+  });
+
 });

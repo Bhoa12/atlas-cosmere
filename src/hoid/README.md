@@ -407,3 +407,13 @@ The Library listing exposes `cosmere.epub`, but its chapter bodies were not insp
 Explicit questions about a relationship, connection or shared property between two named entities are routed to the local graph explanation gateway. The route requires exactly two exact, reviewed and currently disclosed aliases; it queries a bounded directed path and tries the reverse direction only when the first direction has no path. It never falls back to the general provider selector when a relationship is unknown, ambiguous, locked or unsupported.
 
 Graph explanations are converted back into the existing evidence-answer contract only after claim/segment equality, source identity, edition/navigation/document hashes, exact chapter locators and current unlock thresholds are revalidated. The production entity, alias and editorial registries remain empty until source-backed claims are independently reviewed, so this route intentionally abstains rather than fabricating a relationship. See `docs/hoid/NATURAL_LANGUAGE_RELATIONSHIP_ROUTING.md`.
+
+## Run 128 — bounded multi-entity relationship explanations
+
+`HoidRelationshipGateway` now accepts two to four exact, reviewed and currently disclosed entity mentions. Two entities retain the existing pair path. Three or four entities are decomposed into a deterministic complete pairwise matrix (at most six pairs, each with depth four and one path). The reverse direction is attempted only after a validated no-path result.
+
+Every pair must produce a valid explanation. A missing path, stale progress, malformed source, truncated result or conflicting duplicate claim withholds the entire group. Identical claim/evidence records are deduplicated only when their complete fingerprints match. The aggregate plan ID is a deterministic SHA-256 digest over ordered entity and pair-plan IDs.
+
+The aggregate remains the existing `HoidRenderedExplanation` contract, so the existing relationship presentation layer rechecks every source, edition, navigation digest, chapter locator, document digest and unlock threshold. The existing conversation gateway and HoidScreen route require no provider-specific changes.
+
+The maximum group size is four (six unordered pairs, up to twelve directed queries). Larger or ambiguous groups abstain. Production editorial, alias and approved-claim registries remain empty; synthetic tests do not add Cosmere facts or promote staging records. See `docs/hoid/MULTI_ENTITY_EXPLANATIONS.md`.

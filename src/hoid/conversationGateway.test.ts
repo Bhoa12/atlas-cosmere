@@ -853,3 +853,91 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     expect(await pending).toEqual({ status: "unavailable", reason: "progress-changed" });
   });
 });
+
+
+describe("HoidConversationGateway pronoun relationship routing", () => {
+  it("routes a uniquely resolved pronoun relationship through the local graph for a two-entity context", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const context = createHoidConversationContext(
+      ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      },
+    );
+    if (!context) throw new Error("Contexto sintético no disponible");
+    const runtime = { answer: vi.fn(async () => answer) };
+    const relationshipGateway = {
+      answer: vi.fn(() => ({
+        status: "unavailable" as const,
+        reason: "entity-ambiguous" as const,
+      })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+      resolveCoreference: () => ({
+        status: "resolved" as const,
+        entityId: "synthetic.entity-beta",
+        context,
+        progressRevision: projection.revision,
+        progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      }),
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y cómo se relaciona con ella?",
+      progress: current,
+      context,
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
+    expect(relationshipGateway.answer).toHaveBeenCalledWith({
+      question: "¿Y cómo se relaciona con ella?",
+      progress: current,
+      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
+    });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("abstains when a relational pronoun is used with a context larger than a pair", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const context = createHoidConversationContext(
+      ["synthetic.entity-alpha", "synthetic.entity-beta", "synthetic.entity-gamma"],
+      {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      },
+    );
+    if (!context) throw new Error("Contexto sintético no disponible");
+    const runtime = { answer: vi.fn(async () => answer) };
+    const relationshipGateway = { answer: vi.fn() };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+      resolveCoreference: () => ({
+        status: "resolved" as const,
+        entityId: "synthetic.entity-beta",
+        context,
+        progressRevision: projection.revision,
+        progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      }),
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y cómo se relaciona con ella?",
+      progress: current,
+      context,
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "context-ambiguous" });
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+});

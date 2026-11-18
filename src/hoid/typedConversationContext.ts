@@ -1,4 +1,5 @@
 import type { HoidKnowledgeKind } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 
 export type HoidTypedConversationEntity = Readonly<{
   id: string;
@@ -45,17 +46,6 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_QUESTION_LENGTH = 4_000;
 const MIN_ENTITIES = 2;
 const MAX_ENTITIES = 4;
-
-const ENTITY_KINDS = new Set<HoidKnowledgeKind>([
-  "character",
-  "place",
-  "event",
-  "phenomenon",
-  "concept",
-  "magic",
-  "organization",
-  "object",
-]);
 
 const SAFE_TYPED_CUES: readonly Readonly<{
   cue: string;
@@ -164,7 +154,7 @@ function canonicalEntities(value: unknown): readonly HoidTypedConversationEntity
       !ID_PATTERN.test(id) ||
       ids.has(id) ||
       typeof kind !== "string" ||
-      !ENTITY_KINDS.has(kind as HoidKnowledgeKind)
+      !isHoidKnowledgeKind(kind)
     ) return null;
     ids.add(id);
     entities.push(Object.freeze({ id, kind: kind as HoidKnowledgeKind }));

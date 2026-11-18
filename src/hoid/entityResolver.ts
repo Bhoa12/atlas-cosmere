@@ -1,4 +1,5 @@
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry, type HoidKnowledgeKind } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import {
   HOID_ENTITY_ALIAS_EVIDENCE,
@@ -21,9 +22,6 @@ const KNOWLEDGE_KEYS = [
   "evidenceSource", "evidenceUnlock", "summary", "provenance",
 ] as const;
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-const KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
-]);
 const MAX_ENTRIES = 512;
 const MAX_ALIASES = 64;
 const MAX_ALIAS_RECORDS = 2_048;
@@ -214,7 +212,7 @@ function canonicalQuery(value: unknown): CanonicalQuery | null {
   if (!normalizedText || normalizedText.length > MAX_QUERY_LENGTH) return null;
 
   const kind = record.kind;
-  if (kind !== undefined && (typeof kind !== "string" || !KINDS.has(kind as HoidKnowledgeKind))) {
+  if (kind !== undefined && !isHoidKnowledgeKind(kind)) {
     return null;
   }
   const maxResults = record.maxResults === undefined ? DEFAULT_RESULTS : record.maxResults;
@@ -252,8 +250,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
       id.length > 128 ||
       !ID_PATTERN.test(id) ||
       ids.has(id) ||
-      typeof kind !== "string" ||
-      !KINDS.has(kind as HoidKnowledgeKind) ||
+      !isHoidKnowledgeKind(kind) ||
       provenance !== "verified" ||
       typeof summary !== "string" ||
       summary.length < 1 ||

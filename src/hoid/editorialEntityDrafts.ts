@@ -1,4 +1,5 @@
 import type { HoidKnowledgeKind } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import {
   createHoidEditorialClaimDraft,
   evaluateHoidEditorialClaimDrafts,
@@ -159,9 +160,6 @@ export type HoidEditorialPromotionPlan =
     }>;
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-const KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "phenomenon", "concept", "magic", "organization", "object",
-]);
 const CORE_KEYS = new Set(["id", "kind", "identity", "evidence"]);
 const DRAFT_KEYS = new Set(["schemaVersion", ...CORE_KEYS, "integrity", "review"]);
 const INTEGRITY_KEYS = new Set(["identitySha256", "draftSha256"]);
@@ -324,8 +322,7 @@ function normalizeCore(value: unknown):
   if (
     !ID_PATTERN.test(id) ||
     id.length > 128 ||
-    typeof raw.kind !== "string" ||
-    !KINDS.has(raw.kind as HoidKnowledgeKind)
+    !isHoidKnowledgeKind(raw.kind)
   ) return Object.freeze({ status: "invalid", reason: "invalid-identity" });
   const identity = canonicalIdentity(raw.identity);
   if (!identity) return Object.freeze({ status: "invalid", reason: "invalid-identity" });

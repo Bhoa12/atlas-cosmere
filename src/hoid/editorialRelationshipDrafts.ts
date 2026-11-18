@@ -1,4 +1,5 @@
 import type { HoidKnowledgeKind } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import type { HoidKnowledgeGraphPredicate } from "./knowledgeGraph";
 import {
   createHoidEditorialClaimDraft,
@@ -131,9 +132,6 @@ const RECEIPT_KEYS = new Set([
   "schemaVersion", "packetId", "draftId", "claimSha256", "decision", "reviewerId",
   "reviewedAt", "checklist", "noteCodes",
 ]);
-const ENTITY_KINDS = new Set<HoidKnowledgeKind>([
-  "character", "place", "event", "concept", "magic", "organization", "object",
-]);
 const PREDICATES = new Set<HoidKnowledgeGraphPredicate>([
   "related-to", "appears-in", "located-in", "member-of", "uses",
   "participates-in", "created-by", "part-of", "causes", "opposes", "allied-with",
@@ -229,7 +227,7 @@ function canonicalParticipant(value: unknown, evidenceLength: number): HoidEdito
   if (!raw) return null;
   const id = typeof raw.id === "string" ? raw.id : "";
   if (!ID_PATTERN.test(id) || id.length > 128) return null;
-  if (typeof raw.kind !== "string" || !ENTITY_KINDS.has(raw.kind as HoidKnowledgeKind)) return null;
+  if (!isHoidKnowledgeKind(raw.kind)) return null;
   const evidenceIndices = canonicalIndices(raw.evidenceIndices, evidenceLength);
   if (!evidenceIndices) return null;
   return Object.freeze({

@@ -116,6 +116,23 @@ describe("Hoid multi-entity relationship staging", () => {
     }
   });
 
+  it("accepts a phenomenon participant through the canonical kind contract", () => {
+    const result = createHoidEditorialRelationshipDraft({
+      id: "synthetic.phenomenon-character-relationship",
+      predicate: "related-to",
+      subject: { id: "synthetic.phenomenon", kind: "phenomenon", evidenceIndices: [0] },
+      object: { id: "synthetic.character", kind: "character", evidenceIndices: [0] },
+      intent: "context",
+      statement: "Relación sintética entre un fenómeno y un personaje, respaldada por evidencia verificada.",
+      evidence: [evidence("twok")],
+      relationEvidenceIndices: [0],
+    });
+    expect(result.status).toBe("valid");
+    if (result.status !== "valid") return;
+    expect(result.draft.subject.kind).toBe("phenomenon");
+    expect(validateHoidEditorialRelationshipDraft(result.draft).status).toBe("valid");
+  });
+
   it("withholds a relationship while chapter four is open and makes it eligible after chapter four is completed", () => {
     const draft = HOID_EDITORIAL_RELATIONSHIP_DRAFTS.find(item => item.id === "twok.relationship.shallan-seeks-jasnah")!;
     const before = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 4));

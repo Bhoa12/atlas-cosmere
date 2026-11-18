@@ -242,8 +242,9 @@ function compareReferences(
     entity: 2,
     relationship: 3,
   };
-  return order[left.category] - order[right.category] ||
-    left.draftId.localeCompare(right.draftId);
+  const categoryOrder = order[left.category] - order[right.category];
+  if (categoryOrder !== 0) return categoryOrder;
+  return left.draftId < right.draftId ? -1 : left.draftId > right.draftId ? 1 : 0;
 }
 
 function reviewBundleFingerprint(
@@ -615,7 +616,23 @@ export function validateHoidEditorialReviewBundleReceipts(
 
   if (missingCount > 0) return Object.freeze({ status: "incomplete", ...base });
   if (revisionRequiredCount > 0 || rejectedCount > 0) {
-    return Object.freeze({ status: "needs-revision", ...base });
+    return Object.freeze({
+      status: "needs-revision",
+      approvedCount,
+      revisionRequiredCount,
+      rejectedCount,
+      missingCount: 0,
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
   }
-  return Object.freeze({ status: "complete", ...base });
+  return Object.freeze({
+    status: "complete",
+    approvedCount,
+    revisionRequiredCount: 0,
+    rejectedCount: 0,
+    missingCount: 0,
+    promotionAllowed: false,
+    productionWritePerformed: false,
+  });
 }

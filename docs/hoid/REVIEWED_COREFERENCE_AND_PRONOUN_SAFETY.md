@@ -38,7 +38,7 @@ A matching but locked candidate blocks uniqueness. The resolver never silently i
 
 ## Provider boundary
 
-The conversation gateway passes only the single reauthorized canonical entity ID to the strict evidence runtime. It does not pass the prior context, matched pronoun, alias, source prose or reviewer metadata.
+For a person-focused follow-up, the conversation gateway passes the original user question plus only the single reauthorized canonical entity ID to the strict evidence runtime. It does not pass the prior context, the pronoun-to-entity mapping record, alias lists, source prose or reviewer metadata. If the follow-up is explicitly relational, a two-entity context is required and the local relationship graph receives the two canonical IDs; contexts with three or four entities abstain because the counterpart would be ambiguous. The graph path does not send those IDs to a language provider.
 
 The runtime still selects only local approved claim IDs and Hoid renders exact local claim text. The existing answer-presentation boundary revalidates every evidence item and unlock before the UI displays the result.
 

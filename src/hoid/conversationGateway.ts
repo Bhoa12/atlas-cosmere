@@ -432,7 +432,10 @@ export class HoidConversationGateway {
       request.progress,
     );
     if (coreference.status === "unavailable") {
-      if (coreference.reason === "ambiguous-reference") return unavailable("context-ambiguous");
+      if (
+        coreference.reason === "ambiguous-reference" ||
+        coreference.reason === "reference-unavailable"
+      ) return unavailable("context-ambiguous");
       if (coreference.reason === "stale-context") return unavailable("context-stale");
       if (coreference.reason === "invalid-progress") return unavailable("invalid-progress");
       if (coreference.reason === "invalid-question") return unavailable("invalid-request");

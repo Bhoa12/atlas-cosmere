@@ -292,6 +292,15 @@ describe("Hoid topic-aware safe recommendations", () => {
     expect(result).toEqual({ status: "invalid", reason: "invalid-answers" });
   });
 
+  it("does not implicitly load production assignments in the lower-level composer", () => {
+    expect(composeHoidTopicRecommendations(
+      ["investiture-system"],
+      progress([{ bookId: "twok", chapter: 3 }]),
+      [],
+      5,
+    )).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
+  });
+
   it("uses the empty production registry until approved topic assignments are committed", () => {
     expect(composeProductionHoidTopicRecommendations(
       ["investiture-system"],

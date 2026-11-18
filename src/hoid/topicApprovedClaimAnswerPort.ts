@@ -1,4 +1,5 @@
 import type { HoidEvidenceAnswer, HoidEvidenceRuntime } from "./evidenceRuntime";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 
 export type HoidApprovedClaimAnswerRecord = Readonly<{
   claimId: string;
@@ -49,22 +50,30 @@ function canonicalClaimIds(value: unknown): readonly string[] | null {
 
 /**
  * Creates a local-only renderer for claim IDs selected by the approved topic
- * assignment registry. It never calls a language provider or accepts prose.
- * Each result is an exact, chapter-authorized editorial claim with its own
- * evidence segment and citation manifest.
+ * assignment registry. Its public boundary accepts the authoritative SQLite
+ * v2 cursor snapshot. The adapter validates that snapshot and projects only
+ * completed-through chapters into the legacy ReadingPosition contract used by
+ * HoidEvidenceRuntime; the open chapter is never treated as completed.
+ *
+ * It never calls a language provider or accepts prose. Each result is an exact,
+ * chapter-authorized editorial claim with its own evidence segment and citation
+ * manifest.
  */
 export function createHoidApprovedClaimAnswerPort(
   runtime: HoidEvidenceRuntime | null,
-): ((claimIds: readonly string[], progress: unknown) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
+): ((claimIds: readonly string[], progressSnapshot: unknown) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
   if (runtime === null || typeof runtime.renderApprovedClaimById !== "function") return undefined;
 
-  return (claimIdsInput, progress) => {
+  return (claimIdsInput, progressSnapshot) => {
     const claimIds = canonicalClaimIds(claimIdsInput);
     if (!claimIds) return Object.freeze([]);
 
+    const projection = projectHoidCursorProgressSnapshot(progressSnapshot);
+    if (projection.status !== "ready") return Object.freeze([]);
+
     const records: HoidApprovedClaimAnswerRecord[] = [];
     for (const claimId of claimIds) {
-      const answer = runtime.renderApprovedClaimById(claimId, progress);
+      const answer = runtime.renderApprovedClaimById(claimId, projection.reading);
       if (
         answer.status !== "authorized" ||
         answer.claimIds.length !== 1 ||

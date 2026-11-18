@@ -155,29 +155,104 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
 function validPlanIdentity(
   plan: HoidExplanationPlan,
   expected: ProgressIdentity,
+  query: HoidKnowledgeGraphQuery,
 ): boolean {
   try {
     if (plan === null || typeof plan !== "object" || Array.isArray(plan)) return false;
     const prototype = Object.getPrototypeOf(plan);
     if (prototype !== Object.prototype && prototype !== null) return false;
-    const planId = Object.getOwnPropertyDescriptor(plan, "planId");
-    const revision = Object.getOwnPropertyDescriptor(plan, "progressRevision");
-    const fingerprint = Object.getOwnPropertyDescriptor(plan, "progressFingerprint");
+    const read = (key: string): unknown => {
+      const descriptor = Object.getOwnPropertyDescriptor(plan, key);
+      return descriptor && Object.prototype.hasOwnProperty.call(descriptor, "value")
+        ? descriptor.value
+        : undefined;
+    };
+    const planId = read("planId");
     return Boolean(
-      planId &&
-      Object.prototype.hasOwnProperty.call(planId, "value") &&
-      typeof planId.value === "string" &&
-      FINGERPRINT_PATTERN.test(planId.value) &&
-      revision &&
-      Object.prototype.hasOwnProperty.call(revision, "value") &&
-      revision.value === expected.revision &&
-      fingerprint &&
-      Object.prototype.hasOwnProperty.call(fingerprint, "value") &&
-      fingerprint.value === expected.fingerprint
+      read("schemaVersion") === 1 &&
+      planId === plan.planId &&
+      typeof planId === "string" &&
+      FINGERPRINT_PATTERN.test(planId) &&
+      read("fromId") === query.fromId &&
+      read("toId") === query.toId &&
+      read("progressRevision") === expected.revision &&
+      read("progressFingerprint") === expected.fingerprint
     );
   } catch {
     return false;
   }
+}
+
+function canonicalArrayItems(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): readonly unknown[] | null {
+  try {
+    if (!Array.isArray(value) || value.length < minimum || value.length > maximum) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+    const items: unknown[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      items.push(descriptor.value);
+    }
+    return Object.freeze(items);
+  } catch {
+    return null;
+  }
+}
+
+const SOURCE_KEYS = [
+  "evidenceId",
+  "sourceBookId",
+  "sourceChapter",
+  "locatorId",
+  "unlockBookId",
+  "unlockChapter",
+  "editionId",
+  "navigationSha256",
+  "documentSha256",
+] as const;
+
+function canonicalSource(value: unknown): Record<string, unknown> | null {
+  const source = canonicalRecord(value, SOURCE_KEYS, SOURCE_KEYS);
+  if (!source) return null;
+  if (
+    typeof source.evidenceId !== "string" ||
+    !ID_PATTERN.test(source.evidenceId) ||
+    typeof source.sourceBookId !== "string" ||
+    !ID_PATTERN.test(source.sourceBookId) ||
+    typeof source.sourceChapter !== "number" ||
+    !Number.isSafeInteger(source.sourceChapter) ||
+    source.sourceChapter < 1 ||
+    typeof source.unlockBookId !== "string" ||
+    source.unlockBookId !== source.sourceBookId ||
+    typeof source.unlockChapter !== "number" ||
+    !Number.isSafeInteger(source.unlockChapter) ||
+    source.unlockChapter < source.sourceChapter ||
+    typeof source.locatorId !== "string" ||
+    source.locatorId.length < 1 ||
+    source.locatorId.length > 256 ||
+    /[\\u0000-\\u001F\\u007F]/u.test(source.locatorId) ||
+    typeof source.editionId !== "string" ||
+    source.editionId.length < 1 ||
+    source.editionId.length > 128 ||
+    typeof source.navigationSha256 !== "string" ||
+    !FINGERPRINT_PATTERN.test(source.navigationSha256) ||
+    typeof source.documentSha256 !== "string" ||
+    !FINGERPRINT_PATTERN.test(source.documentSha256)
+  ) return null;
+  return source;
+}
+
+function sourceFingerprint(source: Record<string, unknown>): string {
+  return JSON.stringify(SOURCE_KEYS.map(key => source[key]));
 }
 
 function validRenderedExplanation(
@@ -201,17 +276,25 @@ function validRenderedExplanation(
       typeof record.text !== "string" ||
       record.text.length < 1 ||
       record.text.length > MAX_EXPLANATION_LENGTH ||
-      typeof record.truncated !== "boolean" ||
-      !Array.isArray(record.segments) ||
-      record.segments.length < 1 ||
-      record.segments.length > MAX_SEGMENTS ||
-      !Array.isArray(record.sources) ||
-      record.sources.length < 1 ||
-      record.sources.length > MAX_SOURCES
+      typeof record.truncated !== "boolean"
     ) return false;
 
+    const rawSegments = canonicalArrayItems(record.segments, 1, MAX_SEGMENTS);
+    const rawSources = canonicalArrayItems(record.sources, 1, MAX_SOURCES);
+    if (!rawSegments || !rawSources) return false;
+
+    const sourcesById = new Map<string, Record<string, unknown>>();
+    for (const rawSource of rawSources) {
+      const source = canonicalSource(rawSource);
+      if (!source) return false;
+      const evidenceId = source.evidenceId as string;
+      if (sourcesById.has(evidenceId)) return false;
+      sourcesById.set(evidenceId, source);
+    }
+
     const segmentTexts: string[] = [];
-    for (const rawSegment of record.segments) {
+    const referencedSourceIds = new Set<string>();
+    for (const rawSegment of rawSegments) {
       const segment = canonicalRecord(
         rawSegment,
         ["claimId", "text", "evidenceIds", "sources"],
@@ -223,17 +306,42 @@ function validRenderedExplanation(
         !ID_PATTERN.test(segment.claimId) ||
         typeof segment.text !== "string" ||
         segment.text.length < 1 ||
-        segment.text.length > 4_000 ||
-        !Array.isArray(segment.evidenceIds) ||
-        segment.evidenceIds.length < 1 ||
-        segment.evidenceIds.length > 16 ||
-        !segment.evidenceIds.every((id: unknown) => typeof id === "string" && ID_PATTERN.test(id)) ||
-        !Array.isArray(segment.sources) ||
-        segment.sources.length !== segment.evidenceIds.length
+        segment.text.length > 4_000
       ) return false;
+
+      const evidenceIds = canonicalArrayItems(segment.evidenceIds, 1, 16);
+      const rawSegmentSources = canonicalArrayItems(segment.sources, 1, 16);
+      if (!evidenceIds || !rawSegmentSources) return false;
+      if (!evidenceIds.every(id => typeof id === "string" && ID_PATTERN.test(id))) return false;
+      const evidenceSet = new Set(evidenceIds as readonly string[]);
+      if (evidenceSet.size !== evidenceIds.length) return false;
+
+      const segmentSources: Record<string, unknown>[] = [];
+      for (const rawSource of rawSegmentSources) {
+        const source = canonicalSource(rawSource);
+        if (!source) return false;
+        segmentSources.push(source);
+      }
+      const sourceIds = segmentSources.map(source => source.evidenceId as string);
+      if (
+        sourceIds.length !== evidenceIds.length ||
+        new Set(sourceIds).size !== sourceIds.length ||
+        JSON.stringify([...sourceIds].sort()) !== JSON.stringify([...(evidenceIds as readonly string[])].sort())
+      ) return false;
+
+      for (const source of segmentSources) {
+        const evidenceId = source.evidenceId as string;
+        const topLevelSource = sourcesById.get(evidenceId);
+        if (!topLevelSource || sourceFingerprint(source) !== sourceFingerprint(topLevelSource)) return false;
+        referencedSourceIds.add(evidenceId);
+      }
       segmentTexts.push(segment.text);
     }
-    return record.text === segmentTexts.join("\n\n");
+
+    return (
+      referencedSourceIds.size === sourcesById.size &&
+      record.text === segmentTexts.join("\\n\\n")
+    );
   } catch {
     return false;
   }
@@ -303,7 +411,7 @@ export class HoidExplanationGateway {
       });
     }
 
-    if (!validPlanIdentity(planned.plan, requested)) {
+    if (!validPlanIdentity(planned.plan, requested, request.query)) {
       return Object.freeze({ status: "unavailable", reason: "invalid-plan" });
     }
 

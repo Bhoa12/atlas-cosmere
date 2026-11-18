@@ -342,6 +342,7 @@ export function validateHoidTopicAssignments(
     const ids = new Set<string>();
     const subjects = new Set<string>();
     const worldLabels = new Map<string, string>();
+    const worldIdsByLabel = new Map<string, string>();
 
     for (let index = 0; index < value.length; index += 1) {
       const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
@@ -365,13 +366,18 @@ export function validateHoidTopicAssignments(
       }
 
       const previousLabel = worldLabels.get(assignment.worldId);
-      if (previousLabel !== undefined && previousLabel !== assignment.worldLabel) {
+      const previousWorldId = worldIdsByLabel.get(assignment.worldLabel);
+      if (
+        (previousLabel !== undefined && previousLabel !== assignment.worldLabel) ||
+        (previousWorldId !== undefined && previousWorldId !== assignment.worldId)
+      ) {
         return Object.freeze({ status: "invalid", reason: "inconsistent-world-label" });
       }
 
       ids.add(assignment.id);
       subjects.add(subjectKey);
       worldLabels.set(assignment.worldId, assignment.worldLabel);
+      worldIdsByLabel.set(assignment.worldLabel, assignment.worldId);
       assignments.push(assignment);
     }
 

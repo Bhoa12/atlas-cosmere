@@ -114,4 +114,29 @@ describe("Hoid spoiler-safe conversation context", () => {
       null,
     )).toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
+  it("validates an ID-only context independently of a follow-up phrase", () => {
+    const reading = progress();
+    const context = createHoidConversationContext(
+      ["synthetic.entity-a", "synthetic.entity-b"],
+      identity(reading),
+    );
+    expect(validateHoidConversationContext(context, identity(reading))).toEqual({
+      status: "resolved",
+      entityIds: ["synthetic.entity-a", "synthetic.entity-b"],
+    });
+  });
+
+  it("rejects an ID-only context after the authoritative progress fingerprint changes", () => {
+    const oldReading = progress();
+    const context = createHoidConversationContext(
+      ["synthetic.entity-a", "synthetic.entity-b"],
+      identity(oldReading),
+    );
+    const changed = progress(2);
+    expect(validateHoidConversationContext(context, identity(changed))).toEqual({
+      status: "unavailable",
+      reason: "stale-context",
+    });
+  });
+
 });

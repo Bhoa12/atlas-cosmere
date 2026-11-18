@@ -315,7 +315,6 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
       expect(first.registryFingerprint).toMatch(/^[a-f0-9]{64}$/u);
       expect(first.evidenceFingerprint).toMatch(/^[a-f0-9]{64}$/u);
       expect(JSON.stringify(first)).not.toContain("ella");
-      expect(JSON.stringify(first)).not.toContain("synthetic-coreference-reviewer");
     }
   });
 

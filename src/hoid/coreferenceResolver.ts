@@ -173,10 +173,12 @@ function canonicalDenseArray(
 }
 
 function normalizeQuestion(value: string): string {
+  // Preserve diacritics: Spanish "él" (pronoun) and "el" (article) must
+  // remain distinct tokens. NFC composes decomposed accents deterministically.
   return value
-    .normalize("NFKD")
-    .replace(/[\p{Mn}\p{Cf}]/gu, "")
+    .normalize("NFC")
     .toLowerCase()
+    .replace(/[\p{Cf}]/gu, "")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
@@ -355,7 +357,11 @@ export function auditHoidCoreferenceRegistry(
     source.documentSha256,
     source.scope.unlockBookId,
     source.scope.unlockChapter,
-  ])).sort((left, right) => String(left[2]).localeCompare(String(right[2])));
+  ])).sort((left, right) => {
+    const leftId = String(left[2]);
+    const rightId = String(right[2]);
+    return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+  });
 
   return Object.freeze({
     status: "valid",
@@ -453,18 +459,14 @@ export function resolveHoidAuthorizedCoreference(
   }
   if (!normalized) return unavailable("invalid-question");
 
+  // An unaccented "el" is the article, not a reviewed masculine pronoun.
+  if (normalized === "y el") return unavailable("ambiguous-reference");
   const matchingCue = PRONOUN_FOLLOW_UPS.flatMap(item =>
     item.cues.filter(cue => cue === normalized).map(() => item.form),
   );
   if (matchingCue.length === 0) return Object.freeze({ status: "not-follow-up" });
   if (matchingCue.length !== 1) return unavailable("ambiguous-reference");
   const form = matchingCue[0];
-  // Spanish "el" (article) and "él" (pronoun) normalize to the same token.
-  // Require the explicit accent for the masculine pronoun rather than guessing.
-  if (
-    form === "él" &&
-    !/(^|[^\\p{L}\\p{N}])él($|[^\\p{L}\\p{N}])/iu.test(questionInput.normalize("NFC"))
-  ) return unavailable("ambiguous-reference");
 
   if (contextInput === null || contextInput === undefined) return unavailable("missing-context");
 

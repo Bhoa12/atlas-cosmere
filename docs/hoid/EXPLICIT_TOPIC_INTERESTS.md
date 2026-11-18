@@ -17,7 +17,7 @@ It does not retain labels, free text, questions, reading history, claims, eviden
 
 ## Recommendation gateway
 
-`topicInterestRecommendationsGateway.ts` validates the exact interest context against the supplied and live progress identities before producing any result. It reads only `HOID_APPROVED_TOPIC_ASSIGNMENTS`, selects claim IDs only for explicitly selected topics whose target works are still unstarted, and passes those IDs plus the current progress to an optional trusted local answer port.
+`topicInterestRecommendationsGateway.ts` validates the exact interest context against the supplied and live progress identities before producing any result. After an asynchronous local answer-port call, it revalidates both the caller-owned request snapshot and the live progress snapshot to reject mutation races. It reads only `HOID_APPROVED_TOPIC_ASSIGNMENTS`, selects claim IDs only for explicitly selected topics whose target works are still unstarted, and passes those IDs plus the current progress to an optional trusted local answer port.
 
 The answer port is not a language-provider port. It must render only already-approved local claims through the existing evidence runtime. The gateway never passes topic labels, source prose, private EPUB content or prior conversation context to it. Returned answers are passed through `composeProductionHoidTopicRecommendations()`, which revalidates claim text, evidence IDs, source scopes, citations and per-work unlock boundaries.
 

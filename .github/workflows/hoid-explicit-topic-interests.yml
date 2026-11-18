@@ -19,6 +19,7 @@ on:
       - "src/hoid/knowledgeGraph.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/EXPLICIT_TOPIC_INTERESTS.md"
+      - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
   pull_request:

@@ -251,8 +251,14 @@ describe("HoidCursorEvidenceRuntime", () => {
 
     expect(recommendations.status).toBe("ready");
     if (recommendations.status === "ready") {
-      expect(recommendations.items.some(item => item.sourceId === "twok")).toBe(false);
-      expect(recommendations.items.every(item => item.reason === "unread-source")).toBe(true);
+      expect(recommendations.items[0]).toEqual({
+        sourceId: "twok",
+        title: "El Camino de los Reyes",
+        reason: "resume-current-work",
+        currentChapter: 1,
+        completedThroughChapter: null,
+      });
+      expect(recommendations.items.slice(1).every(item => item.reason === "unread-source")).toBe(true);
     }
 
     const invalid = facade.recommend(null);

@@ -59,7 +59,7 @@ function approvedReceipts(packets: HoidEditorialReviewBundlePackets, fingerprint
       summarySha256: packet.summarySha256,
       sourceDocumentSha256: packet.sourceDocumentSha256,
       decision: "approved",
-      reviewerId: "summary-reviewer",
+      reviewerId: "code-owner",
       reviewedAt: "2026-11-18T02:00:00.000Z",
       checklist: {
         factualAccuracy: true,
@@ -76,7 +76,7 @@ function approvedReceipts(packets: HoidEditorialReviewBundlePackets, fingerprint
       draftId: packet.draftId,
       claimSha256: packet.claimSha256,
       decision: "approved",
-      reviewerId: "claim-reviewer",
+      reviewerId: "second-reviewer",
       reviewedAt: "2026-11-18T02:00:00.000Z",
       checklist: {
         factualAccuracy: true,
@@ -99,7 +99,7 @@ function approvedReceipts(packets: HoidEditorialReviewBundlePackets, fingerprint
         identitySha256: packet.identitySha256,
         draftSha256: packet.draftSha256,
         decision: approved ? "approved" : "revision-required",
-        reviewerId: "entity-reviewer",
+        reviewerId: "code-owner",
         reviewedAt: "2026-11-18T02:00:00.000Z",
         checklist: {
           factualAccuracy: approved,
@@ -118,7 +118,7 @@ function approvedReceipts(packets: HoidEditorialReviewBundlePackets, fingerprint
       draftId: packet.draftId,
       claimSha256: packet.claimSha256,
       decision: "approved",
-      reviewerId: "relationship-reviewer",
+      reviewerId: "second-reviewer",
       reviewedAt: "2026-11-18T02:00:00.000Z",
       checklist: {
         factualAccuracy: true,
@@ -386,6 +386,44 @@ describe("Hoid complete editorial bundle promotion authority", () => {
     );
     expect(result).toMatchObject({ status: "blocked", reason: "editorial-bundle-changed" });
     expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("requires every receipt reviewer to be an authenticated protected-PR approver", async () => {
+    const { receipts } = buildResolvedPlan();
+    const changedReceipts = {
+      ...receipts,
+      summaries: receipts.summaries.map((receipt, index) =>
+        index === 0 ? { ...receipt, reviewerId: "unlisted-reviewer" } : receipt,
+      ),
+    };
+    const built = buildHoidEditorialBundlePromotionPlan(
+      resolvedReview.manifest,
+      resolvedKnowledge.manifest,
+      resolvedSource,
+      changedReceipts,
+      initialProgress,
+    );
+    if (built.status !== "ready-for-protected-review") {
+      throw new Error("Authenticated reviewer fixture unavailable");
+    }
+    const result = await authorizeHoidEditorialBundlePromotion(
+      built.plan,
+      contextFor(
+        resolvedReview.manifest,
+        resolvedKnowledge.manifest,
+        resolvedSource,
+        changedReceipts,
+      ),
+      request,
+      sourceControlPort(),
+      progressPort(),
+    );
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "editorial-reviewer-not-authenticated",
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
   });
 
   it("blocks when the live progress is already stale before contacting GitHub", async () => {

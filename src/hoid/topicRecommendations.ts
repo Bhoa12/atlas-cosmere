@@ -266,7 +266,7 @@ export function composeHoidTopicRecommendations(
   progress: unknown,
   answersInput: unknown,
   limit = 5,
-  assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
+  assignmentsInput: unknown = [],
   approvedClaimsInput?: unknown,
   approvedKnowledgeInput?: unknown,
 ): HoidTopicRecommendationResult {

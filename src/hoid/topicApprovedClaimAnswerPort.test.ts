@@ -211,7 +211,7 @@ describe("Hoid local approved-claim answer port", () => {
     const authorized = port(["claim-cross-book"], unlockedSnapshot);
     expect(authorized).toHaveLength(1);
     expect(authorized[0].answer.evidenceIds).toEqual(["e-alpha", "e-beta"]);
-    expect(authorized[0].answer.sources.map(source => source.sourceBookId)).toEqual(["tfe", "twok"]);
+    expect(authorized[0].answer.sources.map(source => source.sourceBookId)).toEqual(["twok", "tfe"]);
     expect(presentHoidEvidenceAnswer(authorized[0].answer, unlockedSnapshot).status).toBe("ready");
   });
 

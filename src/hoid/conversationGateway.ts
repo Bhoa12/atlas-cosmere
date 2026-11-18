@@ -19,6 +19,10 @@ import {
   resolveHoidConversationFollowUp,
   type HoidConversationContext,
 } from "./conversationContext";
+import {
+  resolveProductionHoidCoreference,
+  type HoidCoreferenceResolutionResult,
+} from "./coreferenceResolver";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
   recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
@@ -81,6 +85,12 @@ export type HoidConversationGatewayConfig = Readonly<{
   runtime: HoidConversationRuntime;
   /** Must return the coordinator's latest authoritative v2 snapshot. */
   getCurrentProgress: () => unknown;
+  /** Optional test seam; production defaults to reviewed local coreference evidence. */
+  resolveCoreference?: (
+    question: string,
+    context: unknown,
+    progress: unknown,
+  ) => HoidCoreferenceResolutionResult;
   /** Optional test seam; production defaults to the source-controlled mention resolver. */
   resolveEntities?: (progress: unknown, question: string) => HoidEntityMentionResolutionResult;
   /** Optional trusted local graph route; production composition supplies it by default. */
@@ -414,6 +424,60 @@ export class HoidConversationGateway {
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) {
       return unavailable("progress-changed");
+    }
+
+    const coreference = (this.config.resolveCoreference ?? resolveProductionHoidCoreference)(
+      request.question,
+      request.context,
+      request.progress,
+    );
+    if (coreference.status === "unavailable") {
+      if (coreference.reason === "ambiguous-reference") return unavailable("context-ambiguous");
+      if (coreference.reason === "stale-context") return unavailable("context-stale");
+      if (coreference.reason === "invalid-progress") return unavailable("invalid-progress");
+      if (coreference.reason === "invalid-question") return unavailable("invalid-request");
+      return unavailable("context-unavailable");
+    }
+
+    if (coreference.status === "resolved") {
+      let answer: HoidEvidenceAnswer;
+      try {
+        // The language runtime receives one reauthorized canonical ID only.
+        // Pronoun text, prior aliases and the complete conversation context
+        // never cross the provider boundary.
+        answer = await this.config.runtime.answer({
+          question: request.question,
+          progress: request.progress,
+          intent: request.intent,
+          entityIds: [coreference.entityId],
+        });
+      } catch {
+        return unavailable("runtime-failed");
+      }
+
+      let currentAfterCoreference: unknown;
+      try {
+        currentAfterCoreference = this.config.getCurrentProgress();
+      } catch {
+        return unavailable("invalid-progress");
+      }
+      const afterCoreferenceIdentity = progressIdentity(currentAfterCoreference);
+      if (!afterCoreferenceIdentity) return unavailable("invalid-progress");
+      if (!sameProgress(requestedProgress, afterCoreferenceIdentity)) {
+        return unavailable("progress-changed");
+      }
+      if (
+        coreference.progressRevision !== requestedProgress.revision ||
+        coreference.progressFingerprint !== requestedProgress.fingerprint
+      ) return unavailable("invalid-progress");
+
+      return Object.freeze({
+        status: "ready",
+        answer,
+        conversationContext: coreference.context,
+        progressRevision: requestedProgress.revision,
+        progressFingerprint: requestedProgress.fingerprint,
+      });
     }
 
     const followUp = resolveHoidConversationFollowUp(

@@ -174,6 +174,7 @@ export function composeHoidTopicRecommendations(
   answersInput: unknown,
   limit = 5,
   assignmentsInput: unknown = HOID_APPROVED_TOPIC_ASSIGNMENTS,
+  approvedClaimsInput?: unknown,
 ): HoidTopicRecommendationResult {
   const selectedTopicIds = canonicalDenseStrings(selectedTopicIdsInput, MAX_SELECTED_TOPICS);
   if (!selectedTopicIds || selectedTopicIds.some(id => !getHoidTopicDefinition(id))) {
@@ -189,7 +190,7 @@ export function composeHoidTopicRecommendations(
   const reading = buildHoidCursorReadingContext(progress);
   if (reading.status !== "ready") return Object.freeze({ status: "invalid", reason: "invalid-progress" });
 
-  const assignments = validateHoidTopicAssignments(assignmentsInput);
+  const assignments = validateHoidTopicAssignments(assignmentsInput, approvedClaimsInput);
   if (assignments.status !== "valid") return Object.freeze({ status: "invalid", reason: "invalid-assignments" });
 
   const answers = canonicalAnswers(answersInput);

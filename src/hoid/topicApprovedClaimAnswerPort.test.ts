@@ -139,6 +139,18 @@ function approvedClaims() {
   }));
 }
 
+function approvedKnowledge() {
+  return knowledge.map(entry => ({
+    id: entry.id,
+    kind: entry.kind,
+    provenance: entry.provenance,
+    summary: entry.summary,
+    evidenceSource: entry.evidenceSource,
+    evidenceUnlock: entry.evidenceUnlock,
+    firstSafeAppearance: entry.firstSafeAppearance,
+  }));
+}
+
 describe("Hoid local approved-claim answer port", () => {
   it("projects a v2 cursor snapshot, renders exact approved text and presents its citation without invoking a selector", () => {
     const { port, selector } = createPort();
@@ -236,7 +248,7 @@ describe("Hoid local approved-claim answer port", () => {
       5,
       [assignment("claim-topic", text, ["e-alpha"])],
       approvedClaims(),
-      knowledge,
+      approvedKnowledge(),
     );
 
     expect(result.status).toBe("ready");
@@ -263,7 +275,7 @@ describe("Hoid local approved-claim answer port", () => {
       5,
       [targetAssignment],
       approvedClaims(),
-      knowledge,
+      approvedKnowledge(),
     );
     expect(locked).toEqual({ status: "none", reason: "no-safe-reviewed-matches" });
 
@@ -278,7 +290,7 @@ describe("Hoid local approved-claim answer port", () => {
       5,
       [targetAssignment],
       approvedClaims(),
-      knowledge,
+      approvedKnowledge(),
     );
     expect(unlocked.status).toBe("ready");
     if (unlocked.status !== "ready") return;

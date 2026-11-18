@@ -12,6 +12,7 @@ import type {
 } from "./promotionReviewAuthority";
 import { sha256Hex } from "./sha256";
 import { HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT } from "./topicAssignmentActivationReceipt";
+export { HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT };
 
 export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH = "main";
 export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT_PATH =

@@ -19,6 +19,12 @@ import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
 import type { HoidRecommendation } from '../hoid/recommendations';
+import { HOID_TOPIC_TAXONOMY, type HoidTopicId } from '../hoid/topicTaxonomy';
+import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
+import {
+  createHoidTopicInterestRecommendationGateway,
+} from '../hoid/topicInterestRecommendationsGateway';
+import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
 import {
   canCommitHoidProgressScopedResponse,
   filterVisibleHoidMessages,
@@ -54,6 +60,9 @@ export const HoidScreen: React.FC = () => {
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({ runtime: hoidRuntime, getCurrentProgress: () => progressReaderRef.current() })
     : null;
+  const topicInterestGateway = createHoidTopicInterestRecommendationGateway({
+    getCurrentProgress: () => progressReaderRef.current(),
+  });
 
   const [cargando, setCargando] = useState(false);
   const [cargandoRecomendaciones, setCargandoRecomendaciones] = useState(false);
@@ -69,6 +78,12 @@ export const HoidScreen: React.FC = () => {
   const [recommendationRevision, setRecommendationRevision] = useState<number | null>(null);
   const [recommendationFingerprint, setRecommendationFingerprint] = useState<string | null>(null);
   const [recommendationMessage, setRecommendationMessage] = useState('');
+  const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
+  const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
+  const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
+  const [topicRecommendationFingerprint, setTopicRecommendationFingerprint] = useState<string | null>(null);
+  const [topicRecommendationSelectionKey, setTopicRecommendationSelectionKey] = useState<string | null>(null);
+  const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
 
   const liveProgress = progressReaderRef.current();
   const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
@@ -86,6 +101,11 @@ export const HoidScreen: React.FC = () => {
     setRecommendationRevision(null);
     setRecommendationFingerprint(null);
     setRecommendationMessage('');
+    setTopicRecommendations([]);
+    setTopicRecommendationRevision(null);
+    setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationMessage('');
   }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado]);
 
   // Filter immediately during render, then prune stale assistant text from state.
@@ -340,6 +360,93 @@ export const HoidScreen: React.FC = () => {
     }
   };
 
+
+  const toggleTopicInterest = (topicId: HoidTopicId) => {
+    setSelectedTopicIds(previous => previous.includes(topicId)
+      ? previous.filter(item => item !== topicId)
+      : [...previous, topicId]);
+    setTopicRecommendations([]);
+    setTopicRecommendationRevision(null);
+    setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationMessage('');
+  };
+
+  const cargarRecomendacionesTematicas = async () => {
+    conversationContextRef.current = null;
+    typedConversationContextRef.current = null;
+    setTopicRecommendations([]);
+    setTopicRecommendationRevision(null);
+    setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationMessage('');
+
+    if (selectedTopicIds.length === 0) {
+      setTopicRecommendationMessage('Selecciona al menos un tema de interés explícito.');
+      return;
+    }
+    if (progresoPersistenciaEstado !== 'ready' || !topicInterestGateway) {
+      setTopicRecommendationMessage('El progreso o el servicio de recomendaciones no está disponible. No mostraré resultados.');
+      return;
+    }
+
+    const currentProgress = progressReaderRef.current();
+    const projection = currentProgress ? projectHoidCursorProgressSnapshot(currentProgress) : null;
+    if (!currentProgress || projection?.status !== 'ready') {
+      setTopicRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones temáticas.');
+      return;
+    }
+    const progressIdentity = {
+      revision: projection.revision,
+      fingerprint: fingerprintHoidCursorProgressProjection(projection),
+    };
+    const context = createHoidTopicInterestContext(selectedTopicIds, progressIdentity);
+    if (!context) {
+      setTopicRecommendationMessage('La selección temática no es válida. No mostraré recomendaciones.');
+      return;
+    }
+
+    setCargandoRecomendaciones(true);
+    try {
+      const result = await topicInterestGateway.recommend({
+        progress: currentProgress,
+        context,
+        limit: 5,
+      });
+      if (result.status === 'ready') {
+        setTopicRecommendations(result.items);
+        setTopicRecommendationRevision(result.progressRevision);
+        setTopicRecommendationFingerprint(result.progressFingerprint);
+        setTopicRecommendationSelectionKey(selectedTopicIds.join('\n'));
+        setTopicRecommendationMessage(
+          result.items.length === 0
+            ? 'No hay coincidencias temáticas aprobadas para esta selección.'
+            : 'Estas recomendaciones utilizan únicamente asociaciones editoriales aprobadas y evidencias ya desbloqueadas.',
+        );
+      } else if (result.status === 'none') {
+        setTopicRecommendationSelectionKey(null);
+        setTopicRecommendationMessage(
+          'Todavía no hay asociaciones temáticas aprobadas y seguras para estos intereses. No inferiré recomendaciones por semejanza.',
+        );
+      } else {
+        setTopicRecommendationSelectionKey(null);
+        setTopicRecommendationMessage(
+          result.reason === 'progress-changed' || result.reason === 'context-stale'
+            ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
+            : 'No puedo verificar las asociaciones temáticas o sus evidencias. No mostraré recomendaciones.',
+        );
+      }
+    } catch {
+      setTopicRecommendations([]);
+      setTopicRecommendationRevision(null);
+      setTopicRecommendationFingerprint(null);
+      setTopicRecommendationSelectionKey(null);
+      setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
+    } finally {
+      setCargandoRecomendaciones(false);
+    }
+  };
+
   const recommendationsAreCurrent =
     recommendationRevision !== null &&
     recommendationFingerprint !== null &&
@@ -347,6 +454,13 @@ export const HoidScreen: React.FC = () => {
     recommendationRevision === liveProgressScope.revision &&
     recommendationFingerprint === liveProgressScope.fingerprint;
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
+  const topicRecommendationsAreCurrent =
+    topicRecommendationRevision !== null &&
+    topicRecommendationFingerprint !== null &&
+    liveProgressScope !== null &&
+    topicRecommendationRevision === liveProgressScope.revision &&
+    topicRecommendationFingerprint === liveProgressScope.fingerprint &&
+    topicRecommendationSelectionKey === selectedTopicIds.join('\n');
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -397,6 +511,65 @@ export const HoidScreen: React.FC = () => {
                 ? `En curso · capítulo actual ${item.currentChapter} · completado hasta ${item.completedThroughChapter ?? 'ninguno'}`
                 : 'Todavía no empezada · orden de catálogo'}
             </Text>
+          </View>
+        ))}
+      </View>
+
+
+      <View style={styles.topicInterestPanel}>
+        <Text style={styles.recommendationTitle}>TEMAS QUE TE INTERESAN</Text>
+        <Text style={styles.recommendationNote}>
+          Selección explícita y temporal. Hoid no deduce intereses de tus preguntas ni de tu historial.
+        </Text>
+        <View style={styles.topicChipRow}>
+          {HOID_TOPIC_TAXONOMY.map(topic => {
+            const selected = selectedTopicIds.includes(topic.id);
+            return (
+              <TouchableOpacity
+                key={topic.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected, disabled: cargandoRecomendaciones }}
+                disabled={cargandoRecomendaciones}
+                onPress={() => toggleTopicInterest(topic.id)}
+                style={[styles.topicChip, selected && styles.topicChipSelected, cargandoRecomendaciones && styles.disabledButton]}
+              >
+                <Text style={[styles.topicChipText, selected && styles.topicChipTextSelected]}>
+                  {topic.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <TouchableOpacity
+          accessibilityRole="button"
+          disabled={progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !topicInterestGateway}
+          style={[
+            styles.recommendationButton,
+            (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !topicInterestGateway) && styles.disabledButton,
+          ]}
+          onPress={cargarRecomendacionesTematicas}
+        >
+          <Text style={styles.recommendationButtonText}>Buscar por temas seleccionados</Text>
+        </TouchableOpacity>
+        {topicRecommendationMessage.length > 0 && (
+          <Text style={styles.recommendationMessage}>{topicRecommendationMessage}</Text>
+        )}
+        {topicRecommendationsAreCurrent && topicRecommendations.map(item => (
+          <View key={item.sourceId} style={styles.topicRecommendationItem}>
+            <Text style={styles.recommendationItemText}>{item.title}</Text>
+            {item.matches.map(match => (
+              <View key={match.claimId} style={styles.provenanceSegment}>
+                <Text style={styles.recommendationItemMeta}>
+                  {match.topicLabel} · {match.dimensionLabel}
+                </Text>
+                <Text style={styles.bubbleText}>{match.reasonText}</Text>
+                {match.citations.map(citation => (
+                  <Text key={citation.evidenceId} style={styles.citationText}>
+                    {citation.title} · capítulo {citation.chapter}
+                  </Text>
+                ))}
+              </View>
+            ))}
           </View>
         ))}
       </View>
@@ -490,6 +663,13 @@ const styles = StyleSheet.create({
   recommendationButton: { backgroundColor: '#312e81', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
   recommendationButtonText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
   recommendationMessage: { color: '#cbd5e1', fontSize: 11, lineHeight: 16, marginTop: 8 },
+  topicInterestPanel: { padding: 12, backgroundColor: '#0d1526', borderBottomWidth: 1, borderColor: '#1e293b' },
+  topicChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9, marginBottom: 10 },
+  topicChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: '#475569', backgroundColor: '#111827' },
+  topicChipSelected: { borderColor: '#818cf8', backgroundColor: '#312e81' },
+  topicChipText: { color: '#cbd5e1', fontSize: 10 },
+  topicChipTextSelected: { color: '#ffffff', fontWeight: '700' },
+  topicRecommendationItem: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 8 },
   recommendationItem: { paddingVertical: 7, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 7 },
   recommendationItemText: { color: '#f8fafc', fontSize: 12, fontWeight: '700' },
   recommendationItemMeta: { color: '#94a3b8', fontSize: 10, marginTop: 2 },

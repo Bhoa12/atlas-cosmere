@@ -152,8 +152,8 @@ describe("Hoid authorized knowledge graph", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.nodes).toEqual([
-      expect.objectContaining({ id: "synthetic.phenomenon", kind: "phenomenon" }),
       expect.objectContaining({ id: "synthetic.character", kind: "character" }),
+      expect.objectContaining({ id: "synthetic.phenomenon", kind: "phenomenon" }),
     ]);
     expect(result.edges).toHaveLength(1);
   });

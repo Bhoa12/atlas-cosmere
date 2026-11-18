@@ -25,6 +25,23 @@ if (built.status !== "ready-for-review") {
   throw new Error("Editorial review bundle fixture is not ready");
 }
 const { manifest, packets } = built;
+const resolvedEntities = HOID_EDITORIAL_ENTITY_DRAFTS.filter(item => item.identity.status === "resolved");
+const resolvedRelationships = HOID_EDITORIAL_RELATIONSHIP_DRAFTS.filter(item =>
+  item.subject.id !== "edgedancer.unnamed-girl" && item.object.id !== "edgedancer.unnamed-girl",
+);
+const resolvedSourceInput = Object.freeze({
+  ...sourceInput,
+  entities: resolvedEntities,
+  relationships: resolvedRelationships,
+});
+const resolvedKnowledge = buildHoidEditorialKnowledgeBundle(resolvedSourceInput);
+if (resolvedKnowledge.status !== "ready-for-review") {
+  throw new Error("Resolved-only knowledge fixture is not ready for review");
+}
+const resolvedBuilt = buildHoidEditorialReviewBundle(resolvedKnowledge.manifest, resolvedSourceInput);
+if (resolvedBuilt.status !== "ready-for-review") {
+  throw new Error("Resolved-only review fixture is not ready");
+}
 
 function approvedSummaryReceipt(packet: (typeof packets.summaries)[number]) {
   return {
@@ -70,24 +87,25 @@ function approvedClaimReceipt(packet: (typeof packets.claims)[number]) {
 }
 
 function approvedEntityReceipt(packet: (typeof packets.entities)[number]) {
+  const unresolved = packet.identity.status === "unresolved";
   return {
     schemaVersion: 1,
     packetId: packet.packetId,
     draftId: packet.draftId,
     identitySha256: packet.identitySha256,
     draftSha256: packet.draftSha256,
-    decision: "approved",
+    decision: unresolved ? "revision-required" : "approved",
     reviewerId: "entity-reviewer",
     reviewedAt: "2026-11-18T00:00:00.000Z",
     checklist: {
-      factualAccuracy: true,
-      identityResolution: true,
+      factualAccuracy: !unresolved,
+      identityResolution: !unresolved,
       uniqueness: true,
       completeness: true,
       spoilerCeiling: true,
       provenance: true,
     },
-    noteCodes: ["no-issues"],
+    noteCodes: unresolved ? ["identity-issue"] : ["no-issues"],
   };
 }
 
@@ -113,14 +131,14 @@ function approvedRelationshipReceipt(packet: (typeof packets.relationships)[numb
   };
 }
 
-function completeReceiptBatch() {
+function completeReceiptBatch(reviewPackets = packets, reviewFingerprint = manifest.fingerprint) {
   return {
     schemaVersion: 1,
-    reviewBundleFingerprint: manifest.fingerprint,
-    summaries: packets.summaries.map(approvedSummaryReceipt),
-    claims: packets.claims.map(approvedClaimReceipt),
-    entities: packets.entities.map(approvedEntityReceipt),
-    relationships: packets.relationships.map(approvedRelationshipReceipt),
+    reviewBundleFingerprint: reviewFingerprint,
+    summaries: reviewPackets.summaries.map(approvedSummaryReceipt),
+    claims: reviewPackets.claims.map(approvedClaimReceipt),
+    entities: reviewPackets.entities.map(approvedEntityReceipt),
+    relationships: reviewPackets.relationships.map(approvedRelationshipReceipt),
   };
 }
 
@@ -209,21 +227,42 @@ describe("Hoid complete editorial review bundle", () => {
     });
   });
 
-  it("accepts a complete structurally valid receipt set but still forbids production writes", () => {
+  it("accepts a complete receipt set for a fully resolved review subset but still forbids production writes", () => {
+    const reviewManifest = resolvedBuilt.manifest;
+    const result = validateHoidEditorialReviewBundleReceipts(
+      reviewManifest,
+      resolvedKnowledge.manifest,
+      resolvedSourceInput,
+      completeReceiptBatch(resolvedBuilt.packets, reviewManifest.fingerprint),
+    );
+    expect(result).toEqual({
+      status: "complete",
+      approvedCount: 42,
+      revisionRequiredCount: 0,
+      rejectedCount: 0,
+      missingCount: 0,
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+  });
+
+  it("does not allow an unresolved identity dossier to receive an approval receipt", () => {
+    const unresolved = packets.entities.find(item => item.identity.status === "unresolved");
+    expect(unresolved).toBeDefined();
+    if (!unresolved) return;
+    expect(approvedEntityReceipt(unresolved).decision).toBe("revision-required");
     const result = validateHoidEditorialReviewBundleReceipts(
       manifest,
       knowledge.manifest,
       sourceInput,
       completeReceiptBatch(),
     );
-    expect(result).toEqual({
-      status: "complete",
-      approvedCount: 44,
-      revisionRequiredCount: 0,
-      rejectedCount: 0,
+    expect(result).toMatchObject({
+      status: "needs-revision",
+      approvedCount: 43,
+      revisionRequiredCount: 1,
       missingCount: 0,
       promotionAllowed: false,
-      productionWritePerformed: false,
     });
   });
 
@@ -252,8 +291,8 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "needs-revision",
-      approvedCount: 43,
-      revisionRequiredCount: 1,
+      approvedCount: 42,
+      revisionRequiredCount: 2,
       rejectedCount: 0,
       missingCount: 0,
       promotionAllowed: false,
@@ -270,7 +309,8 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "incomplete",
-      approvedCount: 43,
+      approvedCount: 42,
+      revisionRequiredCount: 1,
       missingCount: 1,
     });
   });

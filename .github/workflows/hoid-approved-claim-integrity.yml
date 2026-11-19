@@ -1,0 +1,63 @@
+name: Hoid approved claim integrity
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/approvedClaimIntegrity.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/answerClaimProvenance.test.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/APPROVED_CLAIM_INTEGRITY.md"
+      - ".github/workflows/hoid-approved-claim-integrity.yml"
+  pull_request:
+    paths:
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/approvedClaimIntegrity.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/answerClaimProvenance.test.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/APPROVED_CLAIM_INTEGRITY.md"
+      - ".github/workflows/hoid-approved-claim-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  approved-claim-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test approved claim integrity and evidence runtime
+        run: >-
+          npx vitest run
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/answerClaimProvenance.test.ts
+      - name: Type-check integrity and runtime boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/approvedClaimIntegrity.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/sha256.ts

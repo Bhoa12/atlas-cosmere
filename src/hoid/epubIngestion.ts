@@ -719,6 +719,8 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         navigationEntryCount: flattened.count,
         navigationXhtmlTargetCount: flattened.xhtmlPaths.size,
         archiveInventorySha256: inventorySha,
+        mimetypeSha256: mimetypeSha,
+        containerDocumentSha256: containerSha,
         packageDocumentSha256: packageSha,
         navigationDocumentSha256: navigationSha,
         sourceFingerprint,

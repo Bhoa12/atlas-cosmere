@@ -218,6 +218,7 @@ describe("Hoid coreference promotion authority", () => {
     );
     expect(result.status).toBe("ready-for-maintainer-commit");
     if (result.status === "ready-for-maintainer-commit") {
+      expect(result.baseSha).toBe("b".repeat(40));
       expect(result.authenticatedReviewerIds).toEqual(["Reviewer_ABC"]);
       expect(result.promotionAllowed).toBe(false);
       expect(result.productionWritePerformed).toBe(false);

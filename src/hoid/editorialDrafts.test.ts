@@ -358,7 +358,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps all chapter-four summaries unavailable until chapter five is completed", () => {
     const chapterFourDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 4);
-    expect(chapterFourDrafts).toHaveLength(3);
+    expect(chapterFourDrafts).toHaveLength(4);
     for (const draft of chapterFourDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 5 });
       expect(draft.review.status).toBe("pending-review");
@@ -414,7 +414,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps the chapter-eleven summaries unavailable until chapter twelve is completed", () => {
     const chapterElevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 11);
-    expect(chapterElevenDrafts).toHaveLength(2);
+    expect(chapterElevenDrafts).toHaveLength(3);
     for (const draft of chapterElevenDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 12 });
       expect(draft.review.status).toBe("pending-review");
@@ -435,6 +435,15 @@ describe("Hoid editorial draft staging", () => {
     expect(chapterNineDrafts).toHaveLength(3);
     for (const draft of chapterNineDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 10 });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
+  it("keeps the chapter-twelve summaries unavailable until chapter thirteen is completed", () => {
+    const chapterTwelveDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 12);
+    expect(chapterTwelveDrafts).toHaveLength(2);
+    for (const draft of chapterTwelveDrafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 13 });
       expect(draft.review.status).toBe("pending-review");
     }
   });

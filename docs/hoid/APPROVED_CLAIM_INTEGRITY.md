@@ -10,7 +10,7 @@ Cada afirmación aprobada incorpora cuatro SHA-256:
 
 - `statementSha256`: texto original exacto.
 - `claimSha256`: identificador, texto, intención, conjunto canónico de evidencias y ámbito de entidades.
-- `evidenceSha256`: para cada evidencia, identificador, obra, capítulo, localizador, umbral de desbloqueo, primera aparición segura, edición, huella de navegación, huella del XHTML individual, procedencia y huella del resumen original.
+- `evidenceSha256`: para cada evidencia, identificador, obra, capítulo, localizador, umbral de desbloqueo, primera aparición segura, tipo de conocimiento, conjunto de alias, edición, huella de navegación, huella del XHTML individual, procedencia y huella del resumen original.
 - `reviewSha256`: estado, origen editorial, identificador del revisor, fecha y `claimSha256`.
 
 Los identificadores de evidencia y entidad se normalizan como conjuntos ordenados para evitar huellas distintas por cambios de orden que no alteran su significado.

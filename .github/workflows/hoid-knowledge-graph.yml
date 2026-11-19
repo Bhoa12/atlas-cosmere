@@ -24,7 +24,7 @@ on:
       - "src/hoid/conversationIntent.test.ts"
       - "src/hoid/cursorReadingContext.test.ts"
       - "src/hoid/conversationHistoryPolicy.ts"
-      - "src/hoid/conversationHistoryPolicy.test.ts"
+      - "src/hoid/conversationHistoryPolicy.test.ts src/hoid/approvedClaimIntegrity.test.ts"
       - "src/hoid/cursorReadingContext.ts"
       - "src/hoid/cursorReadingContext.test.ts"
       - "src/hoid/conversationHistoryPolicy.ts"
@@ -36,6 +36,8 @@ on:
       - "src/hoid/sha256.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/approvedClaimIntegrity.test.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/catalog.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
@@ -90,6 +92,8 @@ on:
       - "src/hoid/recommendations.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/approvedClaimIntegrity.test.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/catalog.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
@@ -135,4 +139,4 @@ jobs:
       - name: Test graph authorization and dependent spoiler boundaries
         run: npx vitest run src/hoid/knowledgeGraph.test.ts src/hoid/knowledgeGraphQuery.test.ts src/hoid/explanationGateway.test.ts src/hoid/editorialClaimDrafts.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/readingBoundary.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/readingManifest.test.ts src/hoid/verifiedChapterDocuments.test.ts src/hoid/editorialRegistry.test.ts src/hoid/entityResolver.test.ts src/hoid/conversationGateway.test.ts src/hoid/conversationIntent.test.ts src/hoid/cursorReadingContext.test.ts src/hoid/conversationHistoryPolicy.test.ts
       - name: Type-check graph and authorization dependencies
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/knowledgeGraph.ts src/hoid/knowledgeGraphQuery.ts src/hoid/explanationGateway.ts src/hoid/entityResolver.ts src/hoid/conversationGateway.ts src/hoid/conversationIntent.ts src/hoid/cursorReadingContext.ts src/hoid/conversationHistoryPolicy.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/knowledgeGraph.ts src/hoid/knowledgeGraphQuery.ts src/hoid/explanationGateway.ts src/hoid/entityResolver.ts src/hoid/conversationGateway.ts src/hoid/conversationIntent.ts src/hoid/cursorReadingContext.ts src/hoid/conversationHistoryPolicy.ts src/hoid/approvedClaimIntegrity.ts

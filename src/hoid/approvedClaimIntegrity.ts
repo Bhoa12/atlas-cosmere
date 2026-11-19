@@ -262,7 +262,7 @@ function canonicalAliases(value: unknown): readonly string[] | null {
 
 export type HoidEvidenceBindingInspection =
   | Readonly<{ status: "valid" }>
-  | Readonly<{ status: "invalid"; reason: "invalid-entry" | "invalid-scope" | "invalid-metadata" | "edition-unavailable" | "locator-mismatch" | "document-unverified" | "first-appearance-unverified" }>;
+  | Readonly<{ status: "invalid"; reason: "invalid-entry" | "invalid-scope" | "invalid-metadata" | "invalid-kind" | "invalid-aliases" | "invalid-source-metadata" | "invalid-unlock" | "invalid-first-appearance" | "invalid-provenance" | "invalid-summary" | "edition-unavailable" | "locator-mismatch" | "document-unverified" | "first-appearance-unverified" }>;
 
 type EvidenceBindingResult =
   | Readonly<{ status: "valid"; binding: readonly unknown[] }>
@@ -295,9 +295,9 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
   const provenance = dataValue(entry, "provenance");
   const summary = dataValue(entry, "summary");
 
+  if (!isHoidKnowledgeKind(kind)) return Object.freeze({ status: "invalid", reason: "invalid-kind" });
+  if (!aliases) return Object.freeze({ status: "invalid", reason: "invalid-aliases" });
   if (
-    !isHoidKnowledgeKind(kind) ||
-    !aliases ||
     typeof sourceBookId !== "string" ||
     sourceBookId !== sourceBookId.trim() ||
     typeof sourceChapter !== "number" ||
@@ -306,23 +306,29 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
     typeof locatorId !== "string" ||
     locatorId.length < 1 ||
     locatorId.length > 256 ||
-    /[\u0000-\u001F\u007F]/u.test(locatorId) ||
+    /[\\u0000-\\u001F\\u007F]/u.test(locatorId)
+  ) return Object.freeze({ status: "invalid", reason: "invalid-source-metadata" });
+  if (
     unlockBookId !== sourceBookId ||
     typeof unlockChapter !== "number" ||
     !Number.isSafeInteger(unlockChapter) ||
-    unlockChapter < sourceChapter ||
+    unlockChapter < sourceChapter
+  ) return Object.freeze({ status: "invalid", reason: "invalid-unlock" });
+  if (
     typeof firstBookId !== "string" ||
     firstBookId !== firstBookId.trim() ||
     firstBookId.length < 1 ||
     typeof firstChapter !== "number" ||
     !Number.isSafeInteger(firstChapter) ||
     firstChapter < 1 ||
-    (firstBookId === sourceBookId && sourceChapter < firstChapter) ||
-    (provenance !== undefined && (typeof provenance !== "string" || !PROVENANCE.has(provenance))) ||
-    typeof summary !== "string" ||
-    summary.trim().length < 1 ||
-    summary.length > MAX_TEXT
-  ) return Object.freeze({ status: "invalid", reason: "invalid-metadata" });
+    (firstBookId === sourceBookId && sourceChapter < firstChapter)
+  ) return Object.freeze({ status: "invalid", reason: "invalid-first-appearance" });
+  if (provenance !== undefined && (typeof provenance !== "string" || !PROVENANCE.has(provenance))) {
+    return Object.freeze({ status: "invalid", reason: "invalid-provenance" });
+  }
+  if (typeof summary !== "string" || summary.trim().length < 1 || summary.length > MAX_TEXT) {
+    return Object.freeze({ status: "invalid", reason: "invalid-summary" });
+  }
 
   const manifestResult = getHoidReadingManifest(sourceBookId);
   if (manifestResult.status !== "ready") return Object.freeze({ status: "invalid", reason: "edition-unavailable" });

@@ -81,7 +81,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 - `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 39 inspected documents, 39 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
-## Scope of this run
+## Scope of Run 165 (historical)
 
 Run 165 materialized the three unique Roshar EPUBs currently present in the Library and inspected only these chapter-body targets:
 

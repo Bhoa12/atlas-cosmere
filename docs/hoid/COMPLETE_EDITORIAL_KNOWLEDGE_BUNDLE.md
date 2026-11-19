@@ -6,7 +6,7 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 35 original chapter summaries;
+- 39 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
@@ -50,7 +50,7 @@ The protected promotion authority still requires a trusted source-control adapte
 
 The current Library copies were rechecked. The eighth numbered chapter in the Roshar omnibus (`twok`) and the ninth numbered chapters in `edgedancer` and `dawnshard` were located in their exact TOCs, matched to OPF manifest entries and confirmed in the spine before hashing. Their document digests are recorded in `verifiedChapterDocuments.ts`.
 
-The staging manifest now contains 53 records across 35 distinct chapter-body documents: 35 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its status remains `ready-for-review`; no summary or dossier is approved by this structural status.
+The staging manifest now contains 57 records across 39 distinct chapter-body documents: 39 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its status remains `ready-for-review`; no summary or dossier is approved by this structural status.
 
 The chapter-eight summary unlocks only after chapter nine is completed. The three chapter-nine summaries unlock only after chapter ten is completed. The three chapter-ten summaries unlock only after chapter eleven is completed. The two chapter-eleven summaries unlock only after chapter twelve is completed. All nine remain pending review and are excluded from the production registry.
 
@@ -74,6 +74,20 @@ The current Library listing did not include cosmere.epub, so no new Cosmere chap
 
 A second read-only pass inspected the next numbered chapter in each of the three available Roshar EPUBs: El Camino de los Reyes chapter 10, Danzante del Filo chapter 11 and Esquirla del amanecer chapter 11. Each target was resolved from the existing TOC, confirmed in the OPF manifest and spine, and SHA-256 fingerprinted. Three additional original Spanish summaries were staged, each unlocking only at chapter 11 or 12 as appropriate. All remain pending review.
 
-The staging inventory now contains 53 metadata-only records across 35 distinct chapter-body documents: 35 summaries, one atomic claim, 14 entity dossiers and three relationship claims. Production remains empty.
+The staging inventory now contains 57 metadata-only records across 39 distinct chapter-body documents: 39 summaries, one atomic claim, 14 entity dossiers and three relationship claims. Production remains empty.
 
 See docs/hoid/ROSHAR_CHAPTER_TEN_ELEVEN_INGESTION.md for the exact source metadata. No EPUB bytes, XHTML bodies or source passages were committed.
+
+
+## Run 168 — four additional source-backed summaries
+
+Four chapter bodies were inspected from the current Library EPUB copies after revalidating the existing navigation digests and confirming each target in the OPF manifest and reading spine:
+
+- El Imperio Final chapter 4 — EPUB/books/b000001/OEBPS/Text/004.xhtml — 6b729cfc609f926a4bac5b10f3eb5148a7c8935adde54f51f4ff13b9995b35d7;
+- El Camino de los Reyes chapter 11 — OEBPS/Text/L1-025.xhtml — 3198740aafd799096672d6a893b925c08a4f33819219e7769761319eaea97ae5;
+- Danzante del Filo chapter 12 — OEBPS/Text/012.xhtml — d02ecf9613cb9ae5ff8f95984b2a7bcdf56b19c72e9dcc6f193a1a959150155c;
+- Esquirla del amanecer chapter 12 — OEBPS/Text/12.xhtml — d5d73c0ebaaaeccf2dfbd2f16315aa521b860c043c0b61b971bbce76b7bc8990.
+
+Four original Spanish summaries are staged with exact edition-bound locators, document digests and summary digests. Their unlock thresholds are chapters 5, 12, 13 and 13 respectively. All four remain pending independent review and are excluded from the production registry.
+
+The staging manifest now contains 57 records across 39 distinct chapter-body documents: 39 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Production remains empty; no activation receipt is created. No EPUB bytes, XHTML bodies, source passages or images are committed.

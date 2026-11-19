@@ -200,8 +200,15 @@ function contextFor(reviewManifest: unknown, knowledgeManifest: unknown, source:
   return Object.freeze({ reviewManifest, knowledgeManifest, source, receipts });
 }
 
-function buildFixture() {
-  const receipts = approvedReceipts(resolvedReview.packets, resolvedReview.manifest.fingerprint);
+function buildFixture(singleReviewer = false) {
+  const baseReceipts = approvedReceipts(resolvedReview.packets, resolvedReview.manifest.fingerprint);
+  const receipts = singleReviewer
+    ? {
+        ...baseReceipts,
+        claims: baseReceipts.claims.map(receipt => ({ ...receipt, reviewerId: "code-owner" })),
+        relationships: baseReceipts.relationships.map(receipt => ({ ...receipt, reviewerId: "code-owner" })),
+      }
+    : baseReceipts;
   const built = buildHoidEditorialBundlePromotionPlan(
     resolvedReview.manifest,
     resolvedKnowledge.manifest,
@@ -434,6 +441,18 @@ describe("Hoid signed editorial bundle promotion", () => {
     });
     expect(result).toMatchObject({ status: "blocked", reason: "progress-changed" });
     expect(source.fetchProtectedReviewSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires distinct signed reviewers to meet the protected approval quorum", async () => {
+    const fixture = buildFixture(true);
+    const { result, source } = await authorize(fixture);
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "insufficient-signed-reviewers",
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
   });
 
   it("keeps unresolved identity receipts as a hard editorial blocker", async () => {

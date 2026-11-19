@@ -12,6 +12,9 @@ on:
       - "src/hoid/promotionReviewAuthority.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicAssignmentActivation.test.ts"
+      - "src/hoid/topicAssignmentActivationReceipt.ts"
       - "src/hoid/coreferencePromotionAuthority.test.ts"
       - "src/hoid/coreferencePromotionAuthority.ts"
       - "src/hoid/editorialBundlePromotionAuthority.test.ts"
@@ -34,6 +37,9 @@ on:
       - "src/hoid/coreferencePromotionAuthority.ts"
       - "src/hoid/coreferencePromotionAuthority.test.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicAssignmentActivation.test.ts"
+      - "src/hoid/topicAssignmentActivationReceipt.ts"
       - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
       - "src/hoid/githubSourceControlReviewAdapter.ts"
       - "src/hoid/promotionReviewAuthority.test.ts"
@@ -68,6 +74,7 @@ jobs:
           src/hoid/editorialBundlePromotionAuthority.test.ts
           src/hoid/coreferencePromotionAuthority.test.ts
           src/hoid/topicAssignmentPromotionAuthority.test.ts
+          src/hoid/topicAssignmentActivation.test.ts
       - name: Type-check trust and review boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs

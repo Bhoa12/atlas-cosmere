@@ -92,6 +92,8 @@ export type HoidReviewerTrustRegistryVerification =
         | "root-key-mismatch"
         | "registry-not-current"
         | "registry-lifetime-exceeded"
+        | "registry-rollback"
+        | "invalid-minimum-revision"
         | "registry-signature-invalid"
         | "verifier-unavailable"
         | "cryptographic-verification-failed";
@@ -119,6 +121,7 @@ export type HoidApprovedClaimSignatureVerification =
         | "invalid-trust-registry"
         | "trust-root-invalid"
         | "registry-not-current"
+        | "registry-rollback"
         | "key-not-found"
         | "key-revoked"
         | "key-not-current"
@@ -518,6 +521,7 @@ export async function verifyHoidReviewerTrustRegistry(
   rootKeyInput: unknown,
   verifierInput: unknown,
   nowInput: unknown,
+  minimumRevisionInput: unknown,
 ): Promise<HoidReviewerTrustRegistryVerification> {
   const registry = canonicalRegistry(registryInput);
   if (!registry) return invalidRegistry("invalid-registry");
@@ -525,6 +529,10 @@ export async function verifyHoidReviewerTrustRegistry(
   if (!rootKey) return invalidRegistry("invalid-root-key");
   if (registry.rootSignature.keyId !== rootKey.keyId) return invalidRegistry("root-key-mismatch");
   if (!isoTimestamp(nowInput)) return invalidRegistry("registry-not-current");
+  if (!Number.isSafeInteger(minimumRevisionInput) || (minimumRevisionInput as number) < 1) {
+    return invalidRegistry("invalid-minimum-revision");
+  }
+  if (registry.revision < (minimumRevisionInput as number)) return invalidRegistry("registry-rollback");
 
   const now = Date.parse(nowInput);
   const issuedAt = Date.parse(registry.issuedAt);
@@ -572,6 +580,7 @@ export async function verifyHoidApprovedClaimReviewSignature(
   rootKeyInput: unknown,
   verifierInput: unknown,
   nowInput: unknown,
+  minimumRegistryRevisionInput: unknown,
 ): Promise<HoidApprovedClaimSignatureVerification> {
   const claimValidation = validateHoidApprovedClaimAttestation(claimInput, knowledgeInput);
   if (claimValidation.status !== "valid") return invalidClaimSignature("invalid-claim");
@@ -586,6 +595,7 @@ export async function verifyHoidApprovedClaimReviewSignature(
     rootKeyInput,
     verifierInput,
     nowInput,
+    minimumRegistryRevisionInput,
   );
   if (registryValidation.status !== "verified") {
     return invalidClaimSignature(
@@ -596,7 +606,9 @@ export async function verifyHoidApprovedClaimReviewSignature(
           : registryValidation.reason === "registry-not-current" ||
               registryValidation.reason === "registry-lifetime-exceeded"
             ? "registry-not-current"
-            : "trust-root-invalid",
+            : registryValidation.reason === "registry-rollback"
+              ? "registry-rollback"
+              : "trust-root-invalid",
     );
   }
 

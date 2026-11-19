@@ -94,6 +94,7 @@ const MAX_ENTITY_IDS = 8;
 const ENTITY_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const MAX_CANDIDATES = 32;
 const MAX_SELECTED_CLAIMS = 12;
+const MAX_SELECTED_EVIDENCE_IDS = 16;
 const DEFAULT_SELECTION_TIMEOUT_MS = 10_000;
 const MAX_SELECTION_TIMEOUT_MS = 60_000;
 
@@ -499,6 +500,9 @@ export class HoidEvidenceRuntime {
     }
 
     const evidenceIds = [...new Set(selectedClaims.flatMap(claim => claim.evidenceIds))].sort();
+    if (evidenceIds.length > MAX_SELECTED_EVIDENCE_IDS) {
+      return blocked("invalid-selection", "La respuesta requiere demasiadas evidencias para conservar una trazabilidad completa. Hoid no reducirá las fuentes de forma silenciosa.");
+    }
     const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
     const sources = evidenceIds.map(id => {
       const entry = knowledgeById.get(id);
@@ -507,12 +511,19 @@ export class HoidEvidenceRuntime {
     if (sources.some(source => source === null)) {
       return blocked("invalid-selection", "La procedencia de una evidencia no se puede reconstruir. No se mostrará la respuesta.");
     }
+    const segments = selectedClaims.map(claim => Object.freeze({
+      claimId: claim.id,
+      text: claim.text,
+      evidenceIds: Object.freeze([...claim.evidenceIds]),
+    }));
     return Object.freeze({
       status: "authorized",
       text: selectedClaims.map(claim => claim.text).join("\n\n"),
       claimIds: Object.freeze(selectedClaims.map(claim => claim.id)),
       evidenceIds: Object.freeze(evidenceIds),
       sources: Object.freeze(sources as HoidEvidenceCitation[]),
+      segments: Object.freeze(segments),
+      layout: "plain",
     });
   }
 

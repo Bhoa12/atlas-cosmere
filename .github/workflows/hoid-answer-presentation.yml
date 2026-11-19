@@ -7,6 +7,9 @@ on:
     paths:
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/answerClaimProvenance.test.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "docs/hoid/ANSWER_CLAIM_PROVENANCE.md"
       - "src/hoid/bibliography.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/readingManifest.ts"
@@ -20,6 +23,9 @@ on:
     paths:
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/answerClaimProvenance.test.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "docs/hoid/ANSWER_CLAIM_PROVENANCE.md"
       - "src/hoid/bibliography.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/readingManifest.ts"
@@ -46,6 +52,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test source-aware answer presentation
-        run: npx vitest run src/hoid/answerPresentation.test.ts
+        run: npx vitest run src/hoid/answerPresentation.test.ts src/hoid/answerClaimProvenance.test.ts src/hoid/evidenceRuntime.test.ts
       - name: Type-check presentation boundary and dependencies
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/answerPresentation.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/answerPresentation.ts src/hoid/evidenceRuntime.ts

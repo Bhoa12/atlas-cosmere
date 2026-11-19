@@ -260,13 +260,21 @@ function canonicalAliases(value: unknown): readonly string[] | null {
   }
 }
 
-function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unknown[] | null {
+type HoidEvidenceBindingInspection =
+  | Readonly<{ status: "valid" }>
+  | Readonly<{ status: "invalid"; reason: "invalid-entry" | "invalid-scope" | "invalid-metadata" | "edition-unavailable" | "locator-mismatch" | "document-unverified" | "first-appearance-unverified" }>;
+
+type EvidenceBindingResult =
+  | Readonly<{ status: "valid"; binding: readonly unknown[] }>
+  | Extract<HoidEvidenceBindingInspection, { status: "invalid" }>;
+
+function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindingResult {
   const entry = plainRecord(entryInput);
-  if (!entry) return null;
+  if (!entry) return Object.freeze({ status: "invalid", reason: "invalid-entry" });
   const source = exactRecord(dataValue(entry, "evidenceSource"), ["bookId", "chapter", "locatorId"], ["bookId", "chapter", "locatorId"]);
   const unlock = exactRecord(dataValue(entry, "evidenceUnlock"), ["bookId", "chapter"], ["bookId", "chapter"]);
   const first = exactRecord(dataValue(entry, "firstSafeAppearance"), ["bookId", "chapter"], ["bookId", "chapter"]);
-  if (!source || !unlock || !first) return null;
+  if (!source || !unlock || !first) return Object.freeze({ status: "invalid", reason: "invalid-scope" });
 
   const sourceBookId = source.bookId;
   const sourceChapter = source.chapter;
@@ -280,7 +288,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     if (descriptor && (
       !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
       descriptor.enumerable !== true
-    )) return null;
+    )) return Object.freeze({ status: "invalid", reason: "invalid-metadata" });
   }
   const kind = dataValue(entry, "kind");
   const aliases = canonicalAliases(dataValue(entry, "aliases"));
@@ -314,13 +322,13 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     typeof summary !== "string" ||
     summary.trim().length < 1 ||
     summary.length > MAX_TEXT
-  ) return null;
+  ) return Object.freeze({ status: "invalid", reason: "invalid-metadata" });
 
   const manifestResult = getHoidReadingManifest(sourceBookId);
-  if (manifestResult.status !== "ready") return null;
+  if (manifestResult.status !== "ready") return Object.freeze({ status: "invalid", reason: "edition-unavailable" });
   const manifest = manifestResult.manifest;
   const unit = manifest.units.find(candidate => candidate.chapterNumber === sourceChapter);
-  if (!unit || unit.locatorId !== locatorId) return null;
+  if (!unit || unit.locatorId !== locatorId) return Object.freeze({ status: "invalid", reason: "locator-mismatch" });
 
   const documentSha256 = getVerifiedChapterDocumentSha256(
     sourceBookId,
@@ -328,15 +336,15 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     manifest.navigationSha256,
     sourceChapter,
   );
-  if (!documentSha256) return null;
+  if (!documentSha256) return Object.freeze({ status: "invalid", reason: "document-unverified" });
 
   const firstManifest = getHoidReadingManifest(firstBookId);
   if (
     firstManifest.status !== "ready" ||
     !firstManifest.manifest.units.some(candidate => candidate.chapterNumber === firstChapter)
-  ) return null;
+  ) return Object.freeze({ status: "invalid", reason: "first-appearance-unverified" });
 
-  return Object.freeze([
+  return Object.freeze({ status: "valid", binding: Object.freeze([
     evidenceId,
     sourceBookId,
     sourceChapter,
@@ -352,7 +360,25 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     sha256Hex(JSON.stringify(aliases)),
     provenance ?? null,
     sha256Hex(summary.trim()),
-  ]);
+  ]) });
+}
+
+/** Metadata-only diagnostic for the evidence binding; never returns source text. */
+export function inspectHoidApprovedClaimEvidenceBinding(
+  evidenceId: unknown,
+  knowledgeInput: unknown,
+): HoidEvidenceBindingInspection {
+  if (typeof evidenceId !== "string" || !ID_PATTERN.test(evidenceId)) {
+    return Object.freeze({ status: "invalid", reason: "invalid-entry" });
+  }
+  const entries = knowledgeById(knowledgeInput);
+  if (!entries) return Object.freeze({ status: "invalid", reason: "invalid-entry" });
+  const entry = entries.get(evidenceId);
+  if (entry === undefined) return Object.freeze({ status: "invalid", reason: "invalid-entry" });
+  const result = evidenceBinding(evidenceId, entry);
+  return result.status === "valid"
+    ? Object.freeze({ status: "valid" })
+    : Object.freeze({ status: "invalid", reason: result.reason });
 }
 
 function canonicalReviewer(value: unknown): Readonly<{ reviewerId: string; reviewedAt: string }> | null {
@@ -388,8 +414,8 @@ function buildAttestation(
     const entry = entries.get(evidenceId);
     if (entry === undefined) return Object.freeze({ status: "invalid", reason: "unverified-source" });
     const binding = evidenceBinding(evidenceId, entry);
-    if (!binding) return Object.freeze({ status: "invalid", reason: "unverified-source" });
-    mutableBindings.push([...binding]);
+    if (binding.status !== "valid") return Object.freeze({ status: "invalid", reason: "unverified-source" });
+    mutableBindings.push([...binding.binding]);
   }
   mutableBindings.sort((left, right) =>
     String(left[0]) < String(right[0]) ? -1 : String(left[0]) > String(right[0]) ? 1 : 0

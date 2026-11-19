@@ -89,9 +89,9 @@ A completed work means only that every numbered unit in its current manifest has
 - src/hoid/sourceIngestionPlan.test.ts asserts task counts, priority, exact continuation chapters, partial safe prefixes, segmentation blockers, relative locator shape, next-chapter unlock and production isolation.
 - hoid-source-ingestion-plan.yml runs the planner, source coverage, locator and manifest regressions with strict TypeScript checking.
 
-## Scope of Run 165
+## Scope of Run 165 (historical)
 
-This run adds the metadata-only planner and tests, then separately uses the explicit local-source inspection process for four available Cosmere/Roshar EPUB chapters. The planner itself does not read source bytes or authorize evidence. The ten inspected chapter digests and original summaries are recorded in the sparse allowlist and staging only; no progress is changed, no claim is approved and no production knowledge is written. No EPUB, XHTML, extracted passage or private file URI is committed.
+This run adds the metadata-only planner and tests, then separately uses the explicit local-source inspection process for three available Roshar EPUB chapters. The planner itself does not read source bytes or authorize evidence. The six inspected chapter digests and original summaries are recorded in the sparse allowlist and staging only; no progress is changed, no claim is approved and no production knowledge is written. No EPUB, XHTML, extracted passage or private file URI is committed.
 
 
 ## Run 168 — refreshed continuation queue

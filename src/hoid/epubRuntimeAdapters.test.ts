@@ -125,9 +125,8 @@ describe("concrete local EPUB runtime adapters", () => {
     const bytes = makeZip();
     const centralSignature = findSequence(bytes, Uint8Array.from([0x50, 0x4b, 0x01, 0x02]));
     expect(centralSignature).toBeGreaterThanOrEqual(0);
-    const nameLength = readU16(bytes, centralSignature + 28);
-    const entryName = bytes.subarray(centralSignature + 46, centralSignature + 46 + nameLength);
-    expect(new TextDecoder().decode(entryName)).toBe("mimetype");
+    const nameOffset = findSequence(bytes, strToU8("mimetype"), centralSignature + 46);
+    expect(nameOffset).toBe(centralSignature + 46);
     writeU32(bytes, centralSignature + 20, 0xffffffff);
     await expect(archiveFor(bytes).listEntries("fixture")).rejects.toThrow(/ZIP64/);
   });

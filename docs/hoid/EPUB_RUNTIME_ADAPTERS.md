@@ -39,7 +39,9 @@ Runtime limits:
 | XML nodes | 100,000 |
 | XML depth | 256 |
 
-ZIP64, multi-disk archives, encrypted entries, legacy non-ASCII filename encodings and compression methods other than stored/DEFLATE fail closed. The adapter preallocates a bounded output buffer one byte larger than the declared uncompressed size. That sentinel detects output-size mismatches without allowing the inflater to grow its buffer. It never asks fflate to enumerate or extract the ZIP.
+ZIP64, multi-disk archives, encrypted entries, legacy non-ASCII filename encodings and compression methods other than stored/DEFLATE fail closed.
+
+The byte-array adapter keeps a **256 MiB** archive ceiling because it receives the complete source in memory. The Expo random-access adapter has a separate **320 MiB** source ceiling and reads only the ZIP tail, central directory and requested members. Both derive their limits from `HOID_EPUB_INGESTION_LIMITS`; the larger range budget does not increase any per-member or aggregate decompression limit. The adapter preallocates a bounded output buffer one byte larger than the declared uncompressed size. That sentinel detects output-size mismatches without allowing the inflater to grow its buffer. It never asks fflate to enumerate or extract the ZIP.
 
 ### Dependency security note
 

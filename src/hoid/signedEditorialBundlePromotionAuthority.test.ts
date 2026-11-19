@@ -614,10 +614,13 @@ describe("Hoid signed editorial bundle promotion", () => {
       promotionAllowed: false,
       productionWritePerformed: false,
     });
-    const reviewers = new Set(
-      fixture.receipts.summaries.concat(fixture.receipts.claims, fixture.receipts.entities, fixture.receipts.relationships)
-        .map((receipt: any) => receipt.reviewerId),
-    );
+    const allReceipts = [
+      ...fixture.receipts.summaries,
+      ...fixture.receipts.claims,
+      ...fixture.receipts.entities,
+      ...fixture.receipts.relationships,
+    ];
+    const reviewers = new Set(allReceipts.map(receipt => receipt.reviewerId));
     expect(reviewers).toEqual(new Set(["code-owner", "second-reviewer"]));
     expect(source.fetchProtectedReviewSnapshot).toHaveBeenCalledTimes(1);
     expect(progress.readAuthoritativeProgressSnapshot).toHaveBeenCalledTimes(2);

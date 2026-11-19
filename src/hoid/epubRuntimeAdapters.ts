@@ -556,11 +556,9 @@ function preflightXmlStructure(xml: string): void {
       const close = xml.indexOf(">", open + 2);
       if (close < 0) throw new Error("XML closing tag is unterminated");
       const rawName = xml.slice(open + 2, close);
-      const closingName = rawName.trim();
-      if (
-        closingName !== rawName ||
-        !/^[A-Za-z_][A-Za-z0-9._-]*(?::[A-Za-z_][A-Za-z0-9._-]*)?$/.test(closingName)
-      ) throw new Error("XML closing tag name is invalid");
+      const closingMatch = /^([A-Za-z_][A-Za-z0-9._-]*(?::[A-Za-z_][A-Za-z0-9._-]*)?)[\\t\\n\\r ]*$/.exec(rawName);
+      if (closingMatch === null) throw new Error("XML closing tag name is invalid");
+      const closingName = closingMatch[1];
       const expectedName = tagStack.pop();
       if (expectedName !== closingName) throw new Error("XML element names are not properly nested");
       depth -= 1;

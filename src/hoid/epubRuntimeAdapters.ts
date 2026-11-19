@@ -399,6 +399,7 @@ export function createHoidFflateArchivePort(
     const bytes = await resolveSourceBytes(sourceId);
     if (
       !(bytes instanceof Uint8Array) ||
+      !(bytes.buffer instanceof ArrayBuffer) ||
       bytes.byteLength === 0 ||
       bytes.byteLength > HOID_EPUB_RUNTIME_LIMITS.maxArchiveBytes
     ) throw new Error("EPUB source bytes are unavailable or exceed the archive limit");

@@ -15,9 +15,9 @@ import {
   type HoidReviewerTrustKey,
   type HoidReviewerTrustRegistryUnsigned,
 } from "./editorialReviewSignatures";
+import { buildHoidEditorialBundlePromotionPlan } from "./editorialBundlePromotionAuthority";
 import {
   authorizeHoidSignedEditorialBundlePromotion,
-  buildHoidEditorialBundlePromotionPlan,
   buildHoidEditorialReviewPacketSigningMessage,
   type HoidEditorialBundleSignatureBatch,
 } from "./signedEditorialBundlePromotionAuthority";

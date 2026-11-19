@@ -55,6 +55,9 @@ describe("Hoid editorial draft staging", () => {
       "6dc7e29663c7194cd10a37af3551e1aada86810594ad77e58acaacbdf78c5a0d",
       "f159a40c1e17a01ef67da4aeb81943913c86f565d5908a40577499b06d45dd3e",
       "7e2809b9a96a6c6f3c2c1f73ae19c30a5be697917cf09e209d2ba4ee29219125",
+      "fca6e2195b7b80d51f75e7480f6bccb0040f02952620aca4f66a95ba750955f6",
+      "9e2e57a5717d63832ff1bb36014cffdae1870a189507dcc434c5f843c6628f72",
+      "adb307b600410e6022e783a0002adcc3187f508292f0c01f14e7e346523af12c",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -75,7 +78,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(32);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(35);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -88,7 +91,7 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one through chapter-ten drafts for the accessible EPUBs", () => {
+  it("stages independently sourced chapter-one through chapter-eleven drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -122,6 +125,9 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-009.kaladin-recruit-death",
       "edgedancer.chapter-010.lift-orphanage-reflection",
       "dawnshard.chapter-010.rysn-arrests-nikli",
+      "twok.chapter-010.kaladin-lirin-surgeon",
+      "edgedancer.chapter-011.lift-finds-great-indicium",
+      "dawnshard.chapter-011.lopen-crosses-akinah-storm",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).toContain(draft.evidenceSource.chapter);
@@ -398,9 +404,18 @@ describe("Hoid editorial draft staging", () => {
   });
 
 
+  it("keeps the chapter-eleven summaries unavailable until chapter twelve is completed", () => {
+    const chapterElevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 11);
+    expect(chapterElevenDrafts).toHaveLength(2);
+    for (const draft of chapterElevenDrafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 12 });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
   it("keeps the chapter-ten summaries unavailable until chapter eleven is completed", () => {
     const chapterTenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 10);
-    expect(chapterTenDrafts).toHaveLength(2);
+    expect(chapterTenDrafts).toHaveLength(3);
     for (const draft of chapterTenDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 11 });
       expect(draft.review.status).toBe("pending-review");

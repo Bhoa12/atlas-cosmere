@@ -22,8 +22,8 @@ createHoidEpubIngestionService() returns two operations:
 
 1. inspectPackage(sourceDescriptor):
    - validates the opaque source ID and resolves the work ID against the canonical bibliography, requiring the exact source group and edition ID from the checked-in edition policy;
-   - checks archive entry count, ordinal continuity, path canonicalization, duplicate/case-fold collisions, symlinks, encryption, compression method, per-entry and aggregate expanded sizes, and compression ratio;
-   - requires mimetype to be the first file entry, stored without compression, exactly 20 bytes, with content application/epub+zip;
+   - checks archive entry count, physical local-header ordinal continuity, path canonicalization, duplicate/case-fold collisions, symlinks, encryption, compression method, local-header metadata, per-entry and aggregate expanded sizes, and compression ratio;
+   - requires mimetype to be the first file entry, stored without compression, exactly 20 bytes, with no local-header extra field and content application/epub+zip;
    - reads the fixed META-INF/container.xml entry and requires exactly one supported OPF rootfile;
    - validates the package version, unique identifier, language, manifest IDs/hrefs/media types, spine references and navigation document;
    - resolves every manifest href relative to the OPF and every navigation href relative to the navigation document, without URL/network access;

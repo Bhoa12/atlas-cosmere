@@ -131,6 +131,22 @@ Six chapter bodies were inspected from the three current Library EPUBs. The exis
 
 Six original Spanish summaries are staged with exact edition, locator, document and summary digests. All six remain pending review. The chapter-ten and chapter-eleven summaries remain locked until the reader reaches the following chapter.
 
-The current staging inventory contains 35 summaries backed by 35 individually inspected chapter documents. The current Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected. No EPUB bytes, XHTML bodies, copied passages or images were committed.
+The current staging inventory contains 39 summaries backed by 39 individually inspected chapter documents. The current Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected. No EPUB bytes, XHTML bodies, copied passages or images were committed.
 
 See docs/hoid/ROSHAR_CHAPTER_NINE_TEN_INGESTION.md and docs/hoid/ROSHAR_CHAPTER_TEN_ELEVEN_INGESTION.md for the exact source metadata.
+
+
+## Run 168 — four new chapter summaries
+
+Four additional source documents were inspected from the current Library copies. Each edition's recorded navigation digest matched the navigation document in the EPUB; each target was confirmed in the OPF manifest and reading spine before its exact original XHTML bytes were hashed.
+
+| Work | Chapter | Relative XHTML target | Document SHA-256 | Future unlock |
+|---|---:|---|---|---:|
+| El Imperio Final | 4 | EPUB/books/b000001/OEBPS/Text/004.xhtml | 6b729cfc609f926a4bac5b10f3eb5148a7c8935adde54f51f4ff13b9995b35d7 | 5 |
+| El Camino de los Reyes | 11 | OEBPS/Text/L1-025.xhtml | 3198740aafd799096672d6a893b925c08a4f33819219e7769761319eaea97ae5 | 12 |
+| Danzante del Filo | 12 | OEBPS/Text/012.xhtml | d02ecf9613cb9ae5ff8f95984b2a7bcdf56b19c72e9dcc6f193a1a959150155c | 13 |
+| Esquirla del amanecer | 12 | OEBPS/Text/12.xhtml | d5d73c0ebaaaeccf2dfbd2f16315aa521b860c043c0b61b971bbce76b7bc8990 | 13 |
+
+Four original Spanish summaries were added to editorialDrafts.ts. Each is bound to its own work, chapter locator, edition navigation digest, exact document digest and summary digest. All remain pending review. A chapter-N summary stays locked until the reader reaches chapter N+1; the chapter itself is not considered completed merely because it is open.
+
+The new batch raises the staging inventory to 39 summaries backed by 39 individually inspected chapter documents. No production registry, approved claim, graph edge, reading progress or activation receipt was changed. No EPUB, XHTML body, copied passage, extracted text or image is committed.

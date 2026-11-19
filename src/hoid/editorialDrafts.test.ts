@@ -226,6 +226,16 @@ describe("Hoid editorial draft staging", () => {
     });
   });
 
+  it("rejects a draft whose summary unlocks in its own source chapter", () => {
+    const result = validateHoidEditorialDraft(cloneDraft({
+      evidenceUnlock: {
+        bookId: validDraft.evidenceSource.bookId,
+        chapter: validDraft.evidenceSource.chapter,
+      },
+    }));
+    expect(result).toEqual({ status: "invalid", reason: "invalid-evidence" });
+  });
+
   it("requires first appearance to be in the same work as this v1 draft", () => {
     expect(validateHoidEditorialDraft(cloneDraft({
       firstSafeAppearance: { bookId: "wor", chapter: 1 },

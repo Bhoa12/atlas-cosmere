@@ -23,6 +23,17 @@ const entry: HoidKnowledgeEntry = {
 };
 
 describe("isEvidenceUnlocked public boundary", () => {
+  it("accepts the immediate successor as the earliest valid unlock", () => {
+    const source = { bookId: "twok", chapter: 1, locatorId: locator("twok", 1) };
+    expect(canonicalEvidenceScope(source, { bookId: "twok", chapter: 2 })).toEqual({
+      sourceBookId: "twok",
+      sourceChapter: 1,
+      locatorId: source.locatorId,
+      unlockBookId: "twok",
+      unlockChapter: 2,
+    });
+  });
+
   it("unlocks only when the single canonical position reaches the evidence ceiling", () => {
     expect(isEvidenceUnlocked(entry, [{ bookId: "twok", chapter: 3 }])).toBe(false);
     expect(isEvidenceUnlocked(entry, [{ bookId: "twok", chapter: 4 }])).toBe(true);

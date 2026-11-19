@@ -109,8 +109,25 @@ Each href was checked against the edition TOC, OPF manifest and spine. The origi
 
 Three original Spanish summaries were added to staging. The `twok` chapter-eight summary unlocks after chapter nine is completed; the `edgedancer` and `dawnshard` chapter-nine summaries unlock after chapter ten is completed. All three remain `pending-review`.
 
-The current staging inventory contains 29 original summaries backed by 29 individually inspected chapter documents: `twok` chapters 1–8, `edgedancer` and `dawnshard` chapters 1–9, and `tfe` chapters 1–3. No production registry entry was added.
+The current staging inventory contains 32 original summaries backed by 32 individually inspected chapter documents: `twok` chapters 1–9, `edgedancer` and `dawnshard` chapters 1–10, and `tfe` chapters 1–3. No production registry entry was added.
 
-The Library listing also exposes the private `cosmere.epub`, but this iteration did not materialize or inspect its chapter bodies. Its previously verified navigation metadata remains catalogue/structure data only. No new Cosmere chapter summary is claimed.
+The Run 124 Library listing exposed `cosmere.epub`, but the current Run 165 Library listing does not include it. No new Cosmere chapter body was available for inspection in this run, and no new Cosmere chapter summary is claimed.
 
 See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md` for the exact source metadata and document digests.
+
+
+## Run 165 — Roshar chapter-nine and chapter-ten ingestion
+
+Three current Library EPUBs were materialized for read-only inspection. Their navigation-document SHA-256 values matched the edition-bound navigation digests already recorded in the repository. Each target was then checked against the EPUB OPF manifest and spine:
+
+| Work | Chapter | Relative XHTML target | Document SHA-256 | Future unlock |
+|---|---:|---|---|---:|
+| El Camino de los Reyes | 9 | OEBPS/Text/L1-023.xhtml | c5737b3dc6b37d9bd9166d910f70c2f39f522ceb07123703387b34399e703945 | 10 |
+| Danzante del Filo | 10 | OEBPS/Text/010.xhtml | 4fe0dc1e86f52d76bcabef23c4b730ba15543db5491559eed44462b4dfbfe6bf | 11 |
+| Esquirla del amanecer | 10 | OEBPS/Text/10.xhtml | 0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22 | 11 |
+
+The three summaries are original Spanish editorial prose. They contain no copied chapter passage and remain pending independent review. Their summary digests are checked in the draft records; the source-document allowlist contains only the exact XHTML SHA-256 values.
+
+The TWOK chapter-nine summary covers Kaladin's reaction to the new bridge crew recruits, Syl's departure and the death of the youth who reminds him of Tien. The Edgedancer chapter-ten summary covers Lift's conversation at the orphanage and her uncertainty about growth and responsibility. The Dawnshard chapter-ten summary covers Rysn's improved chair mobility, her conversation with Cord and her decision to detain Nikli after the attempted framing.
+
+No new entity identity, relationship or atomic claim was created from these chapters. No production registry was modified. No EPUB bytes, XHTML, copied passages or images were committed.

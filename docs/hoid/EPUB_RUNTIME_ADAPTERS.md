@@ -51,6 +51,8 @@ ZIP64, multi-disk archives, encrypted entries, legacy non-ASCII filename encodin
 
 The parser is a platform-edge implementation behind `HoidEpubXmlPort`; the ingestion core does not import it. The pinned 0.9.12 release is the maintained scoped package, not the deprecated unscoped `xmldom` package. Reassess the pin and its advisories before upgrades. The upstream project documents support for the latest two minor lines and publishes security fixes; the release and policy links are recorded below.
 
+Important limitation: upstream explicitly describes xmldom as a non-validating parser and does not guarantee that every not-well-formed construct is reported. Therefore Hoid does not treat DOM parse success as EPUB conformance. It additionally performs a bounded lexical preflight with a qualified-tag stack, rejects DTD/entity declarations, fails on every reported parser warning/error, validates namespaces and required EPUB structure, and keeps the result candidate-only. The parser cannot authorize a chapter, alter progress or approve narrative knowledge by itself.
+
 - Package: https://www.npmjs.com/package/@xmldom/xmldom
 - Release 0.9.12: https://github.com/xmldom/xmldom/releases/tag/0.9.12
 - Security policy: https://github.com/xmldom/xmldom/security

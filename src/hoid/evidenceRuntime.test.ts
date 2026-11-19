@@ -149,7 +149,7 @@ describe("HoidEvidenceRuntime", () => {
       sourceChapter: 2,
       locatorId: locator("twok", 2),
       unlockBookId: "twok",
-      unlockChapter: 2,
+      unlockChapter: 3,
     }]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
@@ -161,7 +161,7 @@ describe("HoidEvidenceRuntime", () => {
     const locked = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
         { bookId: "edgedancer", chapter: 3 },
       ],
     });
@@ -199,7 +199,7 @@ describe("HoidEvidenceRuntime", () => {
     const oneChapterShort = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
         { bookId: "edgedancer", chapter: 3 },
       ],
     });

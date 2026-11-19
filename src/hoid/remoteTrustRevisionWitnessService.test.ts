@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
-import { buildHoidTrustRevisionWitnessReceiptSigningMessage } from "./remoteTrustRevisionWitness";
+import {
+  buildHoidTrustRevisionWitnessReceiptSigningMessage,
+  createHoidRemoteTrustRegistryRevisionStorePort,
+  type HoidTrustRevisionWitnessCompareAndSetRequest,
+  type HoidTrustRevisionWitnessReadRequest,
+} from "./remoteTrustRevisionWitness";
 import {
   createHoidTrustRevisionWitnessServer,
   type HoidTrustRevisionWitnessServerOptions,
@@ -152,6 +157,47 @@ describe("Hoid remote trust revision witness server", () => {
       requestNonceHex: "0".repeat(63) + "1",
     });
     expect(fixture.store.readMinimumRevision).toHaveBeenCalledTimes(1);
+  });
+
+  it("interoperates with the Run 159 client adapter through the signed server handler", async () => {
+    const fixture = setup();
+    let nonce = 100;
+    const clientStore = createHoidRemoteTrustRegistryRevisionStorePort({
+      configuration: {
+        witnessId: WITNESS_ID,
+        keyId: KEY_ID,
+        publicKeyHex: SERVER_PUBLIC_KEY,
+        trustDomainId: DOMAIN,
+      },
+      transport: {
+        readMinimumRevision: async (request: HoidTrustRevisionWitnessReadRequest) => {
+          const result = await fixture.service.handle(request, CLIENT_ID);
+          if (result.status !== "issued") throw new Error(result.reason);
+          return result.receipt;
+        },
+        compareAndSetMinimumRevision: async (request: HoidTrustRevisionWitnessCompareAndSetRequest) => {
+          const result = await fixture.service.handle(request, CLIENT_ID);
+          if (result.status !== "issued") throw new Error(result.reason);
+          return result.receipt;
+        },
+      },
+      noncePort: {
+        createNonceHex: async () => {
+          nonce += 1;
+          return nonce.toString(16).padStart(64, "0");
+        },
+      },
+      clock: { now: () => NOW },
+      verifier: createHoidNobleEd25519VerificationPort(),
+    });
+
+    await expect(clientStore.readMinimumRevision({ trustDomainId: DOMAIN })).resolves.toBe(7);
+    await expect(clientStore.compareAndSetMinimumRevision({
+      trustDomainId: DOMAIN,
+      expectedRevision: 7,
+      nextRevision: 8,
+    })).resolves.toBe(true);
+    await expect(clientStore.readMinimumRevision({ trustDomainId: DOMAIN })).resolves.toBe(8);
   });
 
   it("issues an authenticated CAS advance receipt and persists the target revision", async () => {

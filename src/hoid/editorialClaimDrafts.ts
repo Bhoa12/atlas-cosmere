@@ -456,7 +456,7 @@ const RAW_EDITORIAL_CLAIM_DRAFTS: readonly unknown[] = Object.freeze([
           chapter: 2,
           locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/002.xhtml",
         }),
-        unlock: Object.freeze({ bookId: "tfe", chapter: 3 }),
+        unlock: Object.freeze({ bookId: "tfe", chapter: 2 }),
         sourceIntegrity: Object.freeze({
           editionId: "cosmere-epub-merged-v1",
           navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",

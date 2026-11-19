@@ -12,7 +12,7 @@ Una huella SHA-256 no autentica a un revisor. Un identificador declarativo de re
 
 ## Payload firmado
 
-\`buildHoidApprovedClaimReviewSigningMessage()\` produce una serialización JSON canónica basada en una tupla ordenada y con separación de dominio. Vincula:
+`buildHoidApprovedClaimReviewSigningMessage()` produce una serialización JSON canónica basada en una tupla ordenada y con separación de dominio. Vincula:
 
 - repositorio y número de Pull Request;
 - rama base y SHA base;
@@ -33,22 +33,22 @@ Cambiar de PR, HEAD, plan, paquete, revisor, evidencia o revisión invalida la f
 
 El registro tiene versión, revisión monotónica, fecha de emisión, caducidad y claves ordenadas. Cada clave contiene:
 
-- \`keyId\` y \`reviewerId\` estable;
+- `keyId` y `reviewerId` estable;
 - algoritmo Ed25519 y clave pública hexadecimal de 32 bytes;
 - estado activo o revocado;
 - intervalo de validez;
 - fecha de revocación;
 - lista explícita de repositorios autorizados.
 
-El registro completo lleva una firma raíz Ed25519. La clave pública raíz se fija fuera del propio registro, en la configuración de confianza del host. No se acepta una raíz que venga junto al registro como si se autenticara a sí misma.
+El registro completo lleva una firma raíz Ed25519. La clave pública raíz se fija fuera del propio registro, en la configuración de confianza del host. No se acepta una raíz que venga junto al registro como si se autenticara a sí misma. El host debe conservar una revisión mínima ya aceptada en almacenamiento resistente a rollback y pasarla obligatoriamente al verificador; el núcleo no proporciona un valor predeterminado.
 
-La vigencia del registro está limitada a 90 días. Las claves revocadas, caducadas, fuera de su intervalo o no autorizadas para el repositorio fallan cerradas.
+La vigencia del registro está limitada a 90 días. Una revisión inferior a la revisión mínima persistida se rechaza aunque su firma raíz siga siendo matemáticamente válida. Las claves revocadas, caducadas, fuera de su intervalo o no autorizadas para el repositorio fallan cerradas.
 
 ## Contratos y adaptadores
 
-El núcleo depende únicamente de \`HoidEd25519VerificationPort\`. No importa un SDK criptográfico ni accede a claves privadas.
+El núcleo depende únicamente de `HoidEd25519VerificationPort`. No importa un SDK criptográfico ni accede a claves privadas.
 
-\`createHoidWebCryptoEd25519VerificationPort()\` ofrece un adaptador opcional sobre WebCrypto. El host debe inyectar una implementación que realmente soporte Ed25519 y una codificación UTF-8 compatible. Expo/Hermes no se considera compatible por defecto; si no hay implementación nativa disponible, la verificación se bloquea.
+`createHoidWebCryptoEd25519VerificationPort()` ofrece un adaptador opcional sobre WebCrypto. El host debe inyectar una implementación que realmente soporte Ed25519 y una codificación UTF-8 compatible. Expo/Hermes no se considera compatible por defecto; si no hay implementación nativa disponible, la verificación se bloquea.
 
 El firmante es una herramienta externa controlada por el revisor, idealmente con clave hardware o servicio de firma. La app lectora nunca firma y nunca contiene claves privadas.
 
@@ -71,7 +71,7 @@ Hasta entonces, ninguna afirmación recibe autoridad de producción por el mero 
 
 ## Validación
 
-El workflow \`.github/workflows/hoid-editorial-review-signatures.yml\` ejecuta las pruebas del módulo, las regresiones de integridad de afirmaciones y TypeScript estricto con tipos DOM para el adaptador WebCrypto.
+El workflow `.github/workflows/hoid-editorial-review-signatures.yml` ejecuta las pruebas del módulo, las regresiones de integridad de afirmaciones y TypeScript estricto con tipos DOM para el adaptador WebCrypto.
 
 Las pruebas de confianza utilizan un verificador falso determinista para probar el contrato y un vector público RFC 8032 para el adaptador WebCrypto. El verificador falso nunca se usa en producción.
 

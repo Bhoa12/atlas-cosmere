@@ -487,6 +487,10 @@ function decodeXml(bytes: Uint8Array): string {
   if (!equalBytes(encoded, bytes) && !(hasUtf8Bom && equalBytes(encoded, bytes.subarray(3)))) {
     throw new Error("XML document is not valid UTF-8");
   }
+  const declaration = xml.match(/^\uFEFF?<\?xml\s+[^?]*\bencoding\s*=\s*(['"])([^'"]+)\1/i);
+  if (declaration !== null && declaration[2].toUpperCase() !== "UTF-8") {
+    throw new Error("Only UTF-8 XML encodings are supported");
+  }
   if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml)) throw new Error("DTD and entity declarations are forbidden");
   if (xml.includes("\u0000")) throw new Error("XML document contains a forbidden character");
   return xml;

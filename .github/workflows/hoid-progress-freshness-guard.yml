@@ -71,6 +71,7 @@ jobs:
       - name: Type-check React Native progress composition
         run: >-
           npx tsc --noEmit --strict --target ES2020
-          --module commonjs --moduleResolution node --jsx react --skipLibCheck
+          --module commonjs --moduleResolution node --jsx react
+          --esModuleInterop --skipLibCheck
           src/context/CosmereContext.tsx
           src/screens/HoidScreen.tsx

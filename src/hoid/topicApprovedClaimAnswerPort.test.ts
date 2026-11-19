@@ -10,6 +10,7 @@ import { presentHoidEvidenceAnswer } from "./answerPresentation";
 import { createHoidApprovedClaimAnswerPort } from "./topicApprovedClaimAnswerPort";
 import { composeHoidTopicRecommendations } from "./topicRecommendations";
 import { sha256Hex } from "./sha256";
+import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 const UPDATED_AT = "2026-11-18T19:00:00.000Z";
 
@@ -63,35 +64,36 @@ const knowledge: HoidKnowledgeEntry[] = [
   },
 ];
 
-const review: HoidApprovedClaim["review"] = {
-  status: "approved",
-  origin: "original-editorial",
+const reviewer = Object.freeze({
   reviewerId: "synthetic-editor",
   reviewedAt: "2026-11-18T18:00:00.000Z",
-};
+});
+
+function approvedClaim(core: HoidApprovedClaimCore): HoidApprovedClaim {
+  const attestation = createHoidApprovedClaimAttestation(core, knowledge, reviewer);
+  if (attestation.status !== "valid") throw new Error("Topic answer fixture claim attestation failed: " + attestation.reason);
+  return Object.freeze({ ...core, integrity: attestation.integrity, review: attestation.review });
+}
 
 const claims: HoidApprovedClaim[] = [
-  {
+  approvedClaim({
     id: "claim-topic",
     text: "An original synthetic recommendation reason backed by one approved source.",
     intent: "recommend",
     evidenceIds: ["e-alpha"],
-    review,
-  },
-  {
+  }),
+  approvedClaim({
     id: "claim-cross-book",
     text: "An original synthetic recommendation reason requiring both source works.",
     intent: "recommend",
     evidenceIds: ["e-alpha", "e-beta"],
-    review,
-  },
-  {
+  }),
+  approvedClaim({
     id: "claim-explain",
     text: "An explanation claim must not be rendered through the recommendation port.",
     intent: "explain",
     evidenceIds: ["e-alpha"],
-    review,
-  },
+  }),
 ];
 
 function createPort(selector = vi.fn(async (_request: HoidClaimSelectionRequest) => [])) {

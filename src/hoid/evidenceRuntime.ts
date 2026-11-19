@@ -11,23 +11,14 @@ import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { guardQuestion } from "./spoilerGuard";
 import { getHoidReadingManifest } from "./readingManifest";
 import type { HoidAnswerRequest, ReadingPosition } from "./types";
+import {
+  validateHoidApprovedClaimAttestation,
+  type HoidApprovedClaim as AttestedHoidApprovedClaim,
+  type HoidApprovedClaimIntent,
+} from "./approvedClaimIntegrity";
 
-export type HoidClaimIntent = "explain" | "recommend" | "context";
-
-export type HoidApprovedClaim = Readonly<{
-  id: string;
-  text: string;
-  intent: HoidClaimIntent;
-  evidenceIds: readonly string[];
-  /** Optional reviewed entity scope; every requested entity must be represented. */
-  entityIds?: readonly string[];
-  review: Readonly<{
-    status: "approved";
-    origin: "original-editorial";
-    reviewerId: string;
-    reviewedAt: string;
-  }>;
-}>;
+export type HoidClaimIntent = HoidApprovedClaimIntent;
+export type HoidApprovedClaim = AttestedHoidApprovedClaim;
 
 export type HoidClaimSelectionCandidate = Readonly<{
   id: string;
@@ -88,8 +79,6 @@ const MAX_KNOWLEDGE_ENTRIES = 512;
 const MAX_APPROVED_CLAIMS = 512;
 const MAX_CLAIM_ID_LENGTH = 128;
 const MAX_CLAIM_TEXT_LENGTH = 4_000;
-const MAX_EVIDENCE_IDS_PER_CLAIM = 16;
-const MAX_EVIDENCE_ID_LENGTH = 128;
 const MAX_ENTITY_IDS = 8;
 const ENTITY_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const MAX_CANDIDATES = 32;
@@ -156,73 +145,32 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
 }
 function canonicalClaims(
   value: unknown,
-  knowledgeIds: ReadonlySet<string>,
+  knowledge: readonly HoidKnowledgeEntry[],
 ): readonly HoidApprovedClaim[] | null {
   if (!Array.isArray(value) || value.length > MAX_APPROVED_CLAIMS) return null;
+  try {
+    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
 
-  const seen = new Set<string>();
-  const claims: HoidApprovedClaim[] = [];
-
-  for (const raw of value) {
-    if (!isRecord(raw) || !isRecord(raw.review)) return null;
-
-    const id = typeof raw.id === "string" ? raw.id.trim() : "";
-    const text = typeof raw.text === "string" ? raw.text.trim() : "";
-    const intent = raw.intent;
-    const evidenceIds = raw.evidenceIds;
-    const review = raw.review;
-
-    if (!id || id.length > MAX_CLAIM_ID_LENGTH || seen.has(id)) return null;
-    if (!text || text.length > MAX_CLAIM_TEXT_LENGTH) return null;
-    if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/u.test(text)) return null;
-    if (intent !== "explain" && intent !== "recommend" && intent !== "context") return null;
-    if (!Array.isArray(evidenceIds) || evidenceIds.length === 0 || evidenceIds.length > MAX_EVIDENCE_IDS_PER_CLAIM) return null;
-
-    const canonicalEvidence: string[] = [];
-    const evidenceSeen = new Set<string>();
-    for (const rawEvidenceId of evidenceIds) {
-      if (typeof rawEvidenceId !== "string") return null;
-      const evidenceId = rawEvidenceId.trim();
-      if (!evidenceId || evidenceId.length > MAX_EVIDENCE_ID_LENGTH || evidenceSeen.has(evidenceId)) return null;
-      if (!knowledgeIds.has(evidenceId)) return null;
-      evidenceSeen.add(evidenceId);
-      canonicalEvidence.push(evidenceId);
+    const seen = new Set<string>();
+    const claims: HoidApprovedClaim[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      const attestation = validateHoidApprovedClaimAttestation(descriptor.value, knowledge);
+      if (attestation.status !== "valid" || seen.has(attestation.claim.id)) return null;
+      seen.add(attestation.claim.id);
+      claims.push(attestation.claim);
     }
-
-    const entityIdsDescriptor = Object.getOwnPropertyDescriptor(raw, "entityIds");
-    if (entityIdsDescriptor && (
-      !Object.prototype.hasOwnProperty.call(entityIdsDescriptor, "value") ||
-      entityIdsDescriptor.enumerable !== true
-    )) return null;
-    const entityIds = entityIdsDescriptor
-      ? canonicalEntityIds(entityIdsDescriptor.value, knowledgeIds)
-      : undefined;
-    if (
-      entityIdsDescriptor &&
-      (!entityIds || !entityIds.every(entityId => canonicalEvidence.includes(entityId)))
-    ) return null;
-
-    if (review.status !== "approved" || review.origin !== "original-editorial") return null;
-    if (typeof review.reviewerId !== "string" || !review.reviewerId.trim() || review.reviewerId.length > 128) return null;
-    if (typeof review.reviewedAt !== "string" || !Number.isFinite(Date.parse(review.reviewedAt))) return null;
-
-    seen.add(id);
-    claims.push(Object.freeze({
-      id,
-      text,
-      intent,
-      evidenceIds: Object.freeze(canonicalEvidence),
-      ...(entityIds ? { entityIds } : {}),
-      review: Object.freeze({
-        status: "approved",
-        origin: "original-editorial",
-        reviewerId: review.reviewerId.trim(),
-        reviewedAt: review.reviewedAt,
-      }),
-    }));
+    return Object.freeze(claims);
+  } catch {
+    return null;
   }
-
-  return Object.freeze(claims);
 }
 
 function canonicalEntityIds(
@@ -312,8 +260,7 @@ export class HoidEvidenceRuntime {
     const knowledge = canonicalKnowledge(config.knowledge);
     if (knowledge === null) return null;
 
-    const knowledgeIds = new Set(knowledge.map(entry => entry.id));
-    const claims = canonicalClaims(config.claims, knowledgeIds);
+    const claims = canonicalClaims(config.claims, knowledge);
     if (claims === null) return null;
 
     const selector = config.selector === undefined || config.selector === null

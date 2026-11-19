@@ -328,7 +328,9 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
   if (manifestResult.status !== "ready") return Object.freeze({ status: "invalid", reason: "edition-unavailable" });
   const manifest = manifestResult.manifest;
   const unit = manifest.units.find(candidate => candidate.chapterNumber === sourceChapter);
+  const unlockUnit = manifest.units.find(candidate => candidate.chapterNumber === unlockChapter);
   if (!unit || unit.locatorId !== locatorId) return Object.freeze({ status: "invalid", reason: "locator-mismatch" });
+  if (!unlockUnit) return Object.freeze({ status: "invalid", reason: "invalid-metadata" });
 
   const documentSha256 = getVerifiedChapterDocumentSha256(
     sourceBookId,

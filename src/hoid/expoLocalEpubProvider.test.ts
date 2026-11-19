@@ -27,6 +27,7 @@ function makeProvider(bytes: Uint8Array, overrides: Readonly<Record<string, unkn
   const reads: Array<Readonly<{ position: number; length: number }>> = [];
   let deleted = false;
   let currentModificationTime = 100;
+  let changeDuringNextRead = false;
   const picker = {
     async getDocumentAsync(options: unknown) {
       pickerOptions = options;
@@ -48,7 +49,12 @@ function makeProvider(bytes: Uint8Array, overrides: Readonly<Record<string, unkn
     },
     async readAsStringAsync(_uri: string, options: { position: number; length: number }) {
       reads.push(Object.freeze({ position: options.position, length: options.length }));
-      return encodeBase64(bytes.slice(options.position, options.position + options.length));
+      const encoded = encodeBase64(bytes.slice(options.position, options.position + options.length));
+      if (changeDuringNextRead) {
+        currentModificationTime += 1;
+        changeDuringNextRead = false;
+      }
+      return encoded;
     },
     async deleteAsync() {
       deleted = true;
@@ -65,6 +71,7 @@ function makeProvider(bytes: Uint8Array, overrides: Readonly<Record<string, unkn
     reads,
     isDeleted: () => deleted,
     changeModificationTime: () => { currentModificationTime += 1; },
+    changeDuringNextRead: () => { changeDuringNextRead = true; },
   };
 }
 
@@ -146,6 +153,18 @@ describe("Expo local EPUB source provider", () => {
     if (picked.status !== "selected") return;
     fixture.changeModificationTime();
     await expect(fixture.provider.resolveRangeSource(picked.source.sourceId)).rejects.toThrow("source-changed");
+  });
+
+  it("detects a file changed during a multi-chunk range read", async () => {
+    const bytes = new Uint8Array(100_000);
+    const fixture = makeProvider(bytes);
+    const picked = await fixture.provider.pickEpub();
+    expect(picked.status).toBe("selected");
+    if (picked.status !== "selected") return;
+    const source = await fixture.provider.resolveRangeSource(picked.source.sourceId);
+    expect(source).not.toBeNull();
+    fixture.changeDuringNextRead();
+    await expect(source!.readRange(0, bytes.length)).rejects.toThrow("source-changed");
   });
 
   it("releases source mappings and only deletes cache-owned copies", async () => {

@@ -251,6 +251,7 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
           const output = new Uint8Array(length);
           let outputOffset = 0;
           while (outputOffset < length) {
+            if (sources.get(sourceId) !== registered) throw new Error("source-released");
             const chunkLength = Math.min(
               HOID_EXPO_EPUB_SOURCE_LIMITS.readChunkBytes,
               length - outputOffset,
@@ -267,6 +268,14 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
             output.set(decoded, outputOffset);
             outputOffset += decoded.byteLength;
           }
+          if (sources.get(sourceId) !== registered) throw new Error("source-released");
+          const finalInfo = await readInfo(registered.uri);
+          if (
+            finalInfo.size !== registered.size ||
+            (registered.modificationTime !== null &&
+              finalInfo.modificationTime !== null &&
+              finalInfo.modificationTime !== registered.modificationTime)
+          ) throw new Error("source-changed");
           return output;
         },
       });

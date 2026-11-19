@@ -39,14 +39,15 @@ The inactive, long-unreleased Saxes dependency is replaced by the pinned `@xmldo
 
 ### Read-only source check (2026-11-19)
 
-Three Roshar source EPUBs were available in the user's Library and were checked locally without copying their contents into the repository:
+Four private source EPUBs were available in the user's Library and were checked locally. Only ZIP integrity, container/OPF metadata and navigation structure were inspected; no source bytes or extracted prose were copied into the repository.
 
 | Registered edition | ZIP entries | OPF manifest | Spine | Navigation entries | Unique XHTML targets | Registered navigation SHA-256 |
 |---|---:|---:|---:|---:|---:|---|
+| `cosmere-epub-merged-v1` | 3,288 | 3,285 | 1,626 | 986 | 978 | Match |
 | `roshar-omnibus-v1` | 1,690 | 1,687 | 849 | 713 | 706 | Match |
 | `edgedancer-epub-v1` | 50 | 46 | 30 | 25 | 25 | Match |
 | `dawnshard-epub-v1` | 51 | 47 | 31 | 24 | 24 | Match |
 
-All three archives passed ZIP CRC verification, placed the uncompressed `mimetype` entry first, and declared `application/epub+zip`. Their navigation-document SHA-256 values exactly matched the registered edition structures.
+All four archives passed ZIP CRC verification, placed the uncompressed `mimetype` entry first, and declared `application/epub+zip`. Their navigation-document SHA-256 values exactly matched the registered edition structures. The Cosmere source is larger than the previous 256 MiB mobile range cap, while its observed aggregate uncompressed size, entry count, largest member and compression ratio remain within the existing ingestion budgets. Run 151 raises only the range-based local source ceiling to 320 MiB; the full-buffer adapter remains capped at 256 MiB.
 
-This was an independent, read-only ZIP/XML metadata check, not an execution of the Expo runtime adapter. No chapter XHTML bodies or chapter labels were inspected, no verified-chapter allowlist was expanded, and no progress or editorial registry was changed. The Cosmere `cosmere.epub` file was not present in the accessible Library EPUB listing for this run, so no new Cosmere source verification is claimed.
+This was an independent, read-only ZIP/XML metadata check, not an execution of the TypeScript Expo runtime adapter. Navigation entry counts are structural links, not verified chapter counts. No chapter XHTML bodies or chapter labels were inspected, no verified-chapter allowlist was expanded, and no progress or editorial registry was changed. The private EPUB files remain outside Git and CI.

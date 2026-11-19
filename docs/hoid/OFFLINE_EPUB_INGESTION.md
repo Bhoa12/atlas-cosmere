@@ -74,11 +74,11 @@ The service exposes no write method. It has no GitHub, network, telemetry, uploa
 
 ## Current implementation scope and limitations
 
-This run implements the ingestion contracts, deterministic validation/orchestration, path resolver, candidate fingerprinting, TOCTOU rechecks and synthetic tests.
+The ingestion core remains provider-neutral and exposes injected ZIP, XML and SHA-256 ports. Concrete implementations are provided by `epubRangeRuntimeAdapters.ts` (bounded random-access ZIP/DEFLATE), `epubRuntimeAdapters.ts` (xmldom and SHA-256), and the Expo platform provider. The Expo path accepts source archives up to 320 MiB while reading bounded ranges; the legacy whole-buffer adapter remains capped at 256 MiB. Aggregate uncompressed data remains capped at 512 MiB, with the per-entry, central-directory and compression-ratio limits above.
 
-It does not include a concrete ZIP decompressor, XML parser, local-file picker or cryptographic implementation. Those are injected adapters and must be selected and tested for the actual Expo runtime before inspecting a real private EPUB. No EPUB was materialized or inspected in this run, and no new chapter coverage is claimed.
+A separate local ZIP/XML metadata audit verified four private EPUB packages against their registered navigation digests. It did not execute the TypeScript Expo runtime against those files, inspect chapter XHTML bodies or expand the verified-chapter allowlist. Android/iOS device testing and end-to-end runtime verification against the local sources remain outstanding.
 
-No EPUB, XHTML body, extracted passage, image or source text is committed. The existing 24-work bibliography and Run 145 coverage inventory remain unchanged.
+No EPUB, XHTML body, extracted passage, image or source text is committed. The existing 24-work bibliography, reading progress and production knowledge registry remain unchanged.
 
 ## Validation
 

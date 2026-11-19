@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
+import { HOID_EPUB_INGESTION_LIMITS } from "./epubIngestion";
 import {
   createHoidEpubRuntimePorts,
   createHoidFflateArchivePort,
   createHoidNobleDigestPort,
   createHoidXmldomXmlPort,
+  HOID_EPUB_RUNTIME_LIMITS,
 } from "./epubRuntimeAdapters";
 
 const CONTAINER_XML = strToU8(
@@ -156,6 +158,13 @@ function archiveFor(bytes: Uint8Array) {
 }
 
 describe("concrete local EPUB runtime adapters", () => {
+  it("keeps full-buffer and range-based archive budgets distinct", () => {
+    expect(HOID_EPUB_RUNTIME_LIMITS.maxArchiveBytes).toBe(256 * 1024 * 1024);
+    expect(HOID_EPUB_INGESTION_LIMITS.maxArchiveBytes).toBe(320 * 1024 * 1024);
+    expect(HOID_EPUB_RUNTIME_LIMITS.maxArchiveBytes).toBeLessThan(
+      HOID_EPUB_INGESTION_LIMITS.maxArchiveBytes,
+    );
+  });
   it("rejects shared-memory source buffers when the runtime supports them", async () => {
     if (typeof SharedArrayBuffer === "undefined") return;
     const shared = new SharedArrayBuffer(makeZip().byteLength);

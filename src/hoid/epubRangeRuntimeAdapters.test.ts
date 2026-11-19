@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { createHoidFflateRangeArchivePort } from "./epubRangeRuntimeAdapters";
+import {
+  createHoidFflateRangeArchivePort,
+  HOID_EPUB_RANGE_RUNTIME_LIMITS,
+} from "./epubRangeRuntimeAdapters";
 
 const encoder = new TextEncoder();
 
@@ -14,6 +17,64 @@ function makeZip(): Uint8Array {
     "OEBPS/padding.bin": [new Uint8Array(70_000).map((_, index) => (index * 73 + (index >>> 8) * 19) & 0xff), { level: 0 }],
   };
   return zipSync(files);
+}
+
+
+function sparseArchiveSource(
+  bytes: Uint8Array,
+  targetSize: number,
+  calls: Array<Readonly<{ offset: number; length: number }>>,
+) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocdOffset = -1;
+  for (let offset = bytes.byteLength - 22; offset >= Math.max(0, bytes.byteLength - 22 - 0xffff); offset -= 1) {
+    if (view.getUint32(offset, true) !== 0x06054b50) continue;
+    if (offset + 22 + view.getUint16(offset + 20, true) === bytes.byteLength) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+  if (eocdOffset < 0) throw new Error("Fixture EOCD was not found");
+
+  const centralOffset = view.getUint32(eocdOffset + 16, true);
+  const gapLength = targetSize - bytes.byteLength;
+  if (!Number.isSafeInteger(gapLength) || gapLength < 8 || gapLength - 8 > 0xffffffff) {
+    throw new Error("Sparse ZIP gap is invalid");
+  }
+
+  // ZIP archive-extra-data record: a bounded header followed by a virtual zero-filled payload.
+  const extraHeader = new Uint8Array(8);
+  const extraView = new DataView(extraHeader.buffer);
+  extraView.setUint32(0, 0x08064b50, true);
+  extraView.setUint32(4, gapLength - 8, true);
+
+  const tail = bytes.slice(centralOffset);
+  new DataView(tail.buffer, tail.byteOffset, tail.byteLength)
+    .setUint32(eocdOffset - centralOffset + 16, centralOffset + gapLength, true);
+  const gapEnd = centralOffset + gapLength;
+
+  return Object.freeze({
+    size: targetSize,
+    async readRange(offset: number, length: number): Promise<Uint8Array> {
+      calls.push(Object.freeze({ offset, length }));
+      if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 || length < 0 || offset + length > targetSize) {
+        throw new Error("Sparse fixture range is invalid");
+      }
+      const output = new Uint8Array(length);
+      const end = offset + length;
+      const copyOverlap = (start: number, stop: number, source: Uint8Array, sourceStart: number) => {
+        const from = Math.max(offset, start);
+        const to = Math.min(end, stop);
+        if (to > from) {
+          output.set(source.subarray(sourceStart + from - start, sourceStart + to - start), from - offset);
+        }
+      };
+      copyOverlap(0, centralOffset, bytes, 0);
+      copyOverlap(centralOffset, centralOffset + extraHeader.byteLength, extraHeader, 0);
+      copyOverlap(gapEnd, targetSize, tail, 0);
+      return output;
+    },
+  });
 }
 
 function sourceFor(bytes: Uint8Array, calls: Array<Readonly<{ offset: number; length: number }>>) {
@@ -74,7 +135,7 @@ describe("range-based EPUB ZIP adapter", () => {
   it("rejects a source beyond the archive size limit before reading it", async () => {
     let reads = 0;
     const archive = createHoidFflateRangeArchivePort(async () => ({
-      size: 257 * 1024 * 1024,
+      size: HOID_EPUB_RANGE_RUNTIME_LIMITS.maxArchiveBytes + 1,
       async readRange() {
         reads += 1;
         return new Uint8Array(0);
@@ -82,6 +143,23 @@ describe("range-based EPUB ZIP adapter", () => {
     }));
     await expect(archive.listEntries("fixture")).rejects.toThrow();
     expect(reads).toBe(0);
+  });
+
+
+  it("accepts a 280 MiB range source without materializing the archive", async () => {
+    const bytes = makeZip();
+    const targetSize = 280 * 1024 * 1024;
+    const calls: Array<Readonly<{ offset: number; length: number }>> = [];
+    const source = sparseArchiveSource(bytes, targetSize, calls);
+    const archive = createHoidFflateRangeArchivePort(async id => id === "large-fixture" ? source : null);
+
+    const entries = await archive.listEntries("large-fixture");
+    expect(entries).toHaveLength(6);
+    expect(HOID_EPUB_RANGE_RUNTIME_LIMITS.maxArchiveBytes).toBe(320 * 1024 * 1024);
+    expect(targetSize).toBeLessThan(HOID_EPUB_RANGE_RUNTIME_LIMITS.maxArchiveBytes);
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.every(call => call.length <= 16 * 1024 * 1024)).toBe(true);
+    expect(calls.some(call => call.offset === 0 && call.length === targetSize)).toBe(false);
   });
 
   it("rejects a corrupted member through CRC verification", async () => {

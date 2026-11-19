@@ -11,6 +11,10 @@ import { getHoidEditionProgressPolicy, HOID_EDITION_STRUCTURES } from "./edition
  */
 
 export const HOID_EPUB_INGESTION_LIMITS = Object.freeze({
+  // Range-based local ingestion supports large merged EPUB collections.
+  maxArchiveBytes: 320 * 1024 * 1024,
+  // The legacy byte-array adapter deliberately keeps a lower memory ceiling.
+  maxBufferedArchiveBytes: 256 * 1024 * 1024,
   maxArchiveEntries: 50_000,
   maxTotalUncompressedBytes: 512 * 1024 * 1024,
   maxEntryUncompressedBytes: 64 * 1024 * 1024,

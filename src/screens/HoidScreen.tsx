@@ -281,7 +281,7 @@ export const HoidScreen: React.FC = () => {
 
       // The gateway checks before and after its asynchronous work. This final
       // comparison closes the remaining interval before React commits the text.
-      const latestProgress = progressReaderRef.current();
+      const latestProgress = await progressRefreshRef.current();
       const latestProjection = latestProgress
         ? projectHoidCursorProgressSnapshot(latestProgress)
         : null;
@@ -348,6 +348,21 @@ export const HoidScreen: React.FC = () => {
     try {
       const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
       if (result.status === 'ready') {
+        const latestProgress = await progressRefreshRef.current();
+        const latestProjection = latestProgress
+          ? projectHoidCursorProgressSnapshot(latestProgress)
+          : null;
+        if (
+          latestProjection?.status !== 'ready' ||
+          latestProjection.revision !== result.progressRevision ||
+          fingerprintHoidCursorProgressProjection(latestProjection) !== result.progressFingerprint
+        ) {
+          setRecomendaciones([]);
+          setRecommendationRevision(null);
+          setRecommendationFingerprint(null);
+          setRecommendationMessage('Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.');
+          return;
+        }
         setRecomendaciones(result.items);
         setRecommendationRevision(result.progressRevision);
         setRecommendationFingerprint(result.progressFingerprint);
@@ -428,6 +443,22 @@ export const HoidScreen: React.FC = () => {
         limit: 5,
       });
       if (result.status === 'ready') {
+        const latestProgress = await progressRefreshRef.current();
+        const latestProjection = latestProgress
+          ? projectHoidCursorProgressSnapshot(latestProgress)
+          : null;
+        if (
+          latestProjection?.status !== 'ready' ||
+          latestProjection.revision !== result.progressRevision ||
+          fingerprintHoidCursorProgressProjection(latestProjection) !== result.progressFingerprint
+        ) {
+          setTopicRecommendations([]);
+          setTopicRecommendationRevision(null);
+          setTopicRecommendationFingerprint(null);
+          setTopicRecommendationSelectionKey(null);
+          setTopicRecommendationMessage('Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.');
+          return;
+        }
         setTopicRecommendations(result.items);
         setTopicRecommendationRevision(result.progressRevision);
         setTopicRecommendationFingerprint(result.progressFingerprint);

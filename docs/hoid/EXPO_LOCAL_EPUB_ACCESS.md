@@ -68,4 +68,4 @@ No private EPUB was available to this run. No real source edition was inspected 
 
 ## Remaining validation
 
-The adapter is compiled against the SDK 51 package types and checked in CI. Android/iOS device testing is still required for SAF/content URIs, iCloud-backed documents, cache-copy behavior, memory pressure and native bridge performance. The Saxes XML dependency remains isolated behind HoidEpubXmlPort; its upstream repository is archived and must be replaced before treating the XML stack as a long-term production dependency.
+The adapter is compiled against the SDK 51 package types and checked in CI. Android/iOS device testing is still required for SAF/content URIs, iCloud-backed documents, cache-copy behavior, memory pressure and native bridge performance. The XML adapter is now backed by the pinned `@xmldom/xmldom@0.9.12` release. DTD/entity declarations are rejected before parsing, parser warnings and errors fail closed, and a bounded preflight enforces node/depth limits. The adapter remains behind `HoidEpubXmlPort`.

@@ -120,4 +120,18 @@ describe("isEvidenceUnlocked public boundary", () => {
     expect(canonicalEvidenceScope(source, entry.evidenceUnlock)).toBeNull();
   });
 
+  it("treats the source chapter as a completed-through unlock watermark", () => {
+    const sameChapterEntry: HoidKnowledgeEntry = {
+      ...entry,
+      evidenceUnlock: { bookId: "twok", chapter: 2 },
+    };
+
+    expect(canonicalEvidenceScope(
+      sameChapterEntry.evidenceSource,
+      sameChapterEntry.evidenceUnlock,
+    )).not.toBeNull();
+    expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", chapter: 1 }])).toBe(false);
+    expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", chapter: 2 }])).toBe(true);
+  });
+
 });

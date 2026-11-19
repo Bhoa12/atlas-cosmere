@@ -10,6 +10,8 @@ on:
       - "src/hoid/nobleEd25519VerificationAdapter.test.ts"
       - "src/hoid/trustedHostBootstrap.ts"
       - "src/hoid/trustedHostBootstrap.test.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/trustedHostPromotionAuthority.test.ts"
       - "src/hoid/editorialReviewSignatures.ts"
       - "src/hoid/editorialReviewSignatures.test.ts"
       - "src/hoid/trustRegistryRevisionStore.ts"
@@ -57,6 +59,7 @@ jobs:
           npx vitest run
           src/hoid/nobleEd25519VerificationAdapter.test.ts
           src/hoid/trustedHostBootstrap.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
           src/hoid/editorialReviewSignatures.test.ts
           src/hoid/trustRegistryRevisionStore.test.ts
           src/hoid/signedEditorialBundlePromotionAuthority.test.ts
@@ -66,6 +69,7 @@ jobs:
           --module ESNext --moduleResolution bundler --skipLibCheck
           src/hoid/nobleEd25519VerificationAdapter.ts
           src/hoid/trustedHostBootstrap.ts
+          src/hoid/trustedHostPromotionAuthority.ts
           src/hoid/editorialReviewSignatures.ts
           src/hoid/trustRegistryRevisionStore.ts
           src/hoid/signedEditorialBundlePromotionAuthority.ts

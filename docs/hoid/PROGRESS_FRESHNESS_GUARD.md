@@ -78,3 +78,9 @@ Tests use synthetic cursors and in-memory stores. They prove the contracts and i
 ## Production limitation
 
 The refresh path reads the existing SQLite-backed cursor store and closes stale in-memory-cache gaps within the app's storage boundary. It does not create a cross-device global progress authority or protect SQLite against a malicious backup rollback. Those remain separate infrastructure concerns; neither is required to claim that a normal durable refresh was performed.
+
+## Async test-harness requirement
+
+The durable read-through is asynchronous even when a test supplies a synchronous in-memory getter. A test that wants to mutate progress *while* the answer runtime or recommender is pending must first wait until that deferred port has actually been invoked. Mutating the fixture immediately after calling the gateway can race the initial read-through and leave the deferred resolver unset, producing a timeout rather than exercising the intended mid-flight progress change.
+
+The regression tests therefore expose a separate "runtime/recommender started" signal, await it, then mutate the authoritative snapshot and resolve the deferred operation. This keeps the test aligned with the intended temporal condition and avoids mistaking an unstarted operation for a stale-result check.

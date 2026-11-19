@@ -234,6 +234,25 @@ describe("offline EPUB ingestion core", () => {
     expect(fixture.archive.listEntries).not.toHaveBeenCalled();
   });
 
+  it("rejects parser arrays with custom prototypes without evaluating inherited getters", async () => {
+    const fixture = makeFixture();
+    let getterCalled = false;
+    const rootfiles = [{
+      fullPath: "OEBPS/package.opf",
+      mediaType: "application/oebps-package+xml",
+    }];
+    Object.setPrototypeOf(rootfiles, {
+      get 0() {
+        getterCalled = true;
+        return { fullPath: "OEBPS/package.opf", mediaType: "application/oebps-package+xml" };
+      },
+    });
+    fixture.xml.parseContainerXml = vi.fn(async () => ({ rootfiles }));
+    await expect(fixture.service.inspectPackage(fixture.source))
+      .resolves.toEqual({ status: "rejected", reason: "container-invalid" });
+    expect(getterCalled).toBe(false);
+  });
+
   it("rejects traversal, external URLs, encoded separators and malformed hrefs", () => {
     expect(resolveHoidEpubHref("OEBPS/nav.xhtml", "../Text/chapter.xhtml#part")).toBe("Text/chapter.xhtml");
     expect(resolveHoidEpubHref("OEBPS/nav.xhtml", "../../outside.xhtml")).toBeNull();
@@ -382,10 +401,18 @@ describe("offline EPUB ingestion core", () => {
     )).resolves.toEqual({ status: "rejected", reason: "xhtml-invalid" });
   });
 
-  it("rejects an unsupported or encrypted archive entry", async () => {
-    const fixture = makeFixture();
-    fixture.entries[2] = Object.freeze({ ...fixture.entries[2], encrypted: true });
-    await expect(fixture.service.inspectPackage(fixture.source))
+  it("rejects encrypted and unsupported archive entries", async () => {
+    const encrypted = makeFixture();
+    encrypted.entries[2] = Object.freeze({ ...encrypted.entries[2], encrypted: true });
+    await expect(encrypted.service.inspectPackage(encrypted.source))
       .resolves.toEqual({ status: "rejected", reason: "encrypted-entry" });
+
+    const unsupported = makeFixture();
+    unsupported.entries[2] = Object.freeze({
+      ...unsupported.entries[2],
+      compressionMethod: "unsupported",
+    });
+    await expect(unsupported.service.inspectPackage(unsupported.source))
+      .resolves.toEqual({ status: "rejected", reason: "unsupported-compression" });
   });
 });

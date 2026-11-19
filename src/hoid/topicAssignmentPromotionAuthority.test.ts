@@ -74,7 +74,7 @@ const approvedKnowledge = [{
     chapter: 1,
     locatorId: locator("tfe", 1),
   },
-  evidenceUnlock: { bookId: "tfe", chapter: 2 },
+  evidenceUnlock: { bookId: "tfe", chapter: 1 },
   firstSafeAppearance: { bookId: "tfe", chapter: 1 },
 }];
 

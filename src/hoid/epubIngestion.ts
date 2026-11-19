@@ -711,6 +711,53 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         digestBytes(dependencies.digest, packageBytes),
         digestBytes(dependencies.digest, navigationBytes),
       ]);
+
+      // Re-read every package-defining member before issuing a candidate. This
+      // closes the inspection-time TOCTOU window even when ZIP inventory sizes
+      // remain unchanged while the source bytes are replaced.
+      const finalEntries = normalizeArchiveEntries(await dependencies.archive.listEntries(source.sourceId));
+      const finalInventorySha = await digestText(
+        dependencies.digest,
+        archiveInventoryText(finalEntries),
+      );
+      if (finalInventorySha !== inventorySha) reject("source-changed");
+
+      const packageDefiningDocuments = [
+        {
+          path: "mimetype",
+          digest: mimetypeSha,
+          maximumBytes: HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        },
+        {
+          path: "META-INF/container.xml",
+          digest: containerSha,
+          maximumBytes: HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        },
+        {
+          path: packagePath,
+          digest: packageSha,
+          maximumBytes: HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        },
+        {
+          path: normalized.navigationPath,
+          digest: navigationSha,
+          maximumBytes: HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,
+        },
+      ] as const;
+
+      for (const document of packageDefiningDocuments) {
+        const finalEntry = requireFile(finalEntries, document.path);
+        const finalBytes = await readCheckedEntry(
+          dependencies.archive,
+          source.sourceId,
+          finalEntry,
+          document.maximumBytes,
+        );
+        if (await digestBytes(dependencies.digest, finalBytes) !== document.digest) {
+          reject("source-changed");
+        }
+      }
+
       const expectedEdition = HOID_EDITION_STRUCTURES.find(edition =>
         edition.editionId === source.editionId &&
         edition.sourceGroup === source.sourceGroup &&

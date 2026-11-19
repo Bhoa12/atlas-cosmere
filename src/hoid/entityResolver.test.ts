@@ -32,7 +32,7 @@ function knowledge(
   id: string,
   aliases: string[],
   bookId = "twok",
-  unlockChapter = 1,
+  unlockChapter = 2,
   kind: HoidKnowledgeKind = "character",
 ): HoidKnowledgeEntry {
   const manifest = getHoidReadingManifest(bookId);
@@ -121,7 +121,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
     const result = resolveHoidAuthorizedEntities(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       { text: "Synthetic Entity" },
     );
     expect(result.status).toBe("ready");
@@ -141,7 +141,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const entry = knowledge("synthetic.entity-a", ["Ｓynthetíc Entity"]);
     const result = resolveHoidAuthorizedEntities(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       { text: "synthetic\u200b entity" },
     );
     expect(result.status).toBe("ready");
@@ -155,7 +155,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
     const result = resolveHoidAuthorizedEntities(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       { text: "Synthetic" },
     );
     expect(result.status).toBe("ready");
@@ -203,12 +203,12 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("ignores locked collisions and returns only the independently authorized entity", () => {
-    const unlocked = knowledge("synthetic.visible", ["Shared Synthetic Alias"], "twok", 1);
+    const unlocked = knowledge("synthetic.visible", ["Shared Synthetic Alias"], "twok", 2);
     const locked = knowledge("synthetic.hidden", ["Shared Synthetic Alias"], "edgedancer", 2);
     const result = resolveHoidAuthorizedEntities(
       [locked, unlocked],
       progress([
-        { bookId: "twok", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
         { bookId: "edgedancer", chapter: 2 },
       ]),
       { text: "Shared Synthetic Alias" },
@@ -226,8 +226,8 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const result = resolveHoidAuthorizedEntities(
       [b, a],
       progress([
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ]),
       { text: "Shared Synthetic Alias" },
     );
@@ -239,13 +239,13 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("supports an explicit entity-kind filter", () => {
-    const character = knowledge("synthetic.character", ["Synthetic Target"], "twok", 1, "character");
-    const place = knowledge("synthetic.place", ["Synthetic Target"], "edgedancer", 1, "place");
+    const character = knowledge("synthetic.character", ["Synthetic Target"], "twok", 2, "character");
+    const place = knowledge("synthetic.place", ["Synthetic Target"], "edgedancer", 2, "place");
     const result = resolveHoidAuthorizedEntities(
       [character, place],
       progress([
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ]),
       { text: "Synthetic Target", kind: "place" },
     );
@@ -257,13 +257,13 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("resolves a phenomenon only when the exact kind filter is requested", () => {
-    const phenomenon = knowledge("synthetic.phenomenon", ["Synthetic Target"], "twok", 1, "phenomenon");
-    const character = knowledge("synthetic.character", ["Synthetic Target"], "edgedancer", 1, "character");
+    const phenomenon = knowledge("synthetic.phenomenon", ["Synthetic Target"], "twok", 2, "phenomenon");
+    const character = knowledge("synthetic.character", ["Synthetic Target"], "edgedancer", 2, "character");
     const result = resolveHoidAuthorizedEntities(
       [phenomenon, character],
       progress([
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ]),
       { text: "Synthetic Target", kind: "phenomenon" },
     );
@@ -284,9 +284,9 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const result = resolveHoidAuthorizedEntities(
       entries,
       progress([
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 2 },
-        { bookId: "dawnshard", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "dawnshard", chapter: 3 },
       ]),
       { text: "Shared Synthetic Alias", maxResults: 1 },
     );
@@ -317,7 +317,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
       ...knowledge("synthetic.uninspected", ["Uninspected Synthetic Entity"]),
       firstSafeAppearance: { bookId: "twok", chapter: 12 },
       evidenceSource: { bookId: "twok", chapter: 12, locatorId: unit.locatorId },
-      evidenceUnlock: { bookId: "twok", chapter: 12 },
+      evidenceUnlock: { bookId: "twok", chapter: 13 },
     };
     const result = resolveHoidAuthorizedEntities(
       [entry],
@@ -432,7 +432,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
 
 
   it("keeps an alias hidden until its own later disclosure threshold", () => {
-    const entry = knowledge("synthetic.entity-a", ["Later Synthetic Alias"], "twok", 1);
+    const entry = knowledge("synthetic.entity-a", ["Later Synthetic Alias"], "twok", 2);
     const aliases = [reviewedAliasRecord(
       "synthetic.alias-later",
       entry.id,
@@ -454,14 +454,14 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("requires every cross-work alias disclosure source (AND semantics)", () => {
-    const entity = knowledge("synthetic.entity-a", ["Cross-Work Synthetic Alias"], "twok", 1);
-    const support = knowledge("synthetic.support", ["Support Entity"], "edgedancer", 1);
+    const entity = knowledge("synthetic.entity-a", ["Cross-Work Synthetic Alias"], "twok", 2);
+    const support = knowledge("synthetic.support", ["Support Entity"], "edgedancer", 2);
     const aliases = [reviewedAliasRecord(
       "synthetic.alias-cross-work",
       entity.id,
       "Cross-Work Synthetic Alias",
       [
-        aliasEvidenceItem("synthetic.alias-source-a", "twok", 1, 1),
+        aliasEvidenceItem("synthetic.alias-source-a", "twok", 1, 2),
         aliasEvidenceItem("synthetic.alias-source-b", "edgedancer", 1, 2),
       ],
     )];
@@ -477,7 +477,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const after = resolveHoidAuthorizedEntities(
       [entity, support],
       progress([
-        { bookId: "twok", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
         { bookId: "edgedancer", chapter: 3 },
       ]),
       { text: "Cross-Work Synthetic Alias" },
@@ -493,27 +493,27 @@ describe("Hoid spoiler-aware entity resolution", () => {
   });
 
   it("rejects an alias disclosure that cites an uninspected chapter document", () => {
-    const entry = knowledge("synthetic.entity-a", ["Uninspected Alias"], "twok", 1);
+    const entry = knowledge("synthetic.entity-a", ["Uninspected Alias"], "twok", 2);
     const aliases = [reviewedAliasRecord(
       "synthetic.alias-uninspected",
       entry.id,
       "Uninspected Alias",
-      [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 12, 12)],
+      [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 12, 13)],
     )];
     const result = resolveHoidAuthorizedEntities(
-      [entry], progress([{ bookId: "twok", chapter: 12 }]),
+      [entry], progress([{ bookId: "twok", chapter: 13 }]),
       { text: "Uninspected Alias" }, aliases,
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
   });
 
   it("rejects alias evidence that is not attached to the entity's declared aliases", () => {
-    const entry = knowledge("synthetic.entity-a", ["Declared Alias"], "twok", 1);
+    const entry = knowledge("synthetic.entity-a", ["Declared Alias"], "twok", 2);
     const aliases = [reviewedAliasRecord(
       "synthetic.alias-invented",
       entry.id,
       "Invented Alias",
-      [aliasEvidenceItem("synthetic.alias-source-invented", "twok", 1, 1)],
+      [aliasEvidenceItem("synthetic.alias-source-invented", "twok", 1, 2)],
     )];
     const result = resolveHoidAuthorizedEntities(
       [entry], progress([{ bookId: "twok", chapter: 2 }]),
@@ -529,7 +529,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
       id: "synthetic.alias-unreviewed",
       entityId: entry.id,
       alias: "Unreviewed Alias",
-      evidence: [aliasEvidenceItem("synthetic.alias-source-unreviewed", "twok", 1, 1)],
+      evidence: [aliasEvidenceItem("synthetic.alias-source-unreviewed", "twok", 1, 2)],
     }];
     const result = resolveHoidAuthorizedEntities(
       [entry], progress([{ bookId: "twok", chapter: 2 }]),
@@ -544,7 +544,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
       "synthetic.alias-accessor",
       entry.id,
       "Synthetic Entity",
-      [aliasEvidenceItem("synthetic.alias-source-accessor", "twok", 1, 1)],
+      [aliasEvidenceItem("synthetic.alias-source-accessor", "twok", 1, 2)],
     ) as unknown as Record<string, unknown>;
     let invoked = false;
     Object.defineProperty(record, "alias", {
@@ -579,7 +579,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
     const result = resolveEntityMentions(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "¿Puedes explicarme Synthetic Entity?",
     );
 
@@ -613,7 +613,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     )];
     const result = resolveEntityMentions(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "Explícame Synthetic Entity",
       aliasEvidence,
     );
@@ -625,7 +625,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
     const result = resolveEntityMentions(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "¿Qué sabes de Synthetic Entity?",
       [],
     );
@@ -638,7 +638,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const locked = knowledge("synthetic.locked", ["Locked Entity"], "twok", 3);
     const result = resolveEntityMentions(
       [safe, locked],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "Relaciona Safe Entity con Locked Entity",
     );
 
@@ -652,7 +652,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const second = knowledge("synthetic.entity-b", ["Shared Name"]);
     const result = resolveEntityMentions(
       [first, second],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "¿Quién es Shared Name?",
     );
 
@@ -666,7 +666,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const entry = knowledge("synthetic.entity-a", ["Ｓynthetíc Entity"]);
     const matched = resolveEntityMentions(
       [entry],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "¿Qué sabes de SYNTHETIC ENTITY?",
     );
     expect(matched.status).toBe("ready");
@@ -675,7 +675,7 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const short = knowledge("synthetic.short", ["Kal"]);
     const partial = resolveEntityMentions(
       [short],
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       "¿Qué sabes de Kaladin?",
     );
     expect(partial.status).toBe("ready");
@@ -711,8 +711,8 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
     const alpha = knowledge("synthetic.entity-alpha", ["Synthetic Alpha"], "twok");
     const beta = knowledge("synthetic.entity-beta", ["Synthetic Beta"], "edgedancer");
     const reading = progress([
-      { bookId: "twok", chapter: 2 },
-      { bookId: "edgedancer", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
+      { bookId: "edgedancer", chapter: 3 },
     ]);
     const entries = [alpha, beta];
     const result = resolveMentionsWithAliasEvidence(
@@ -740,8 +740,8 @@ describe("Hoid spoiler-aware natural-language entity mentions", () => {
       entries,
       defaultAliasEvidence(entries),
       progress([
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ]),
       "Shared Synthetic Alias",
     );
@@ -764,8 +764,8 @@ describe("Hoid spoiler-aware ID-only entity revalidation", () => {
     const beta = knowledge("synthetic.entity-beta", ["Synthetic Beta"], "edgedancer");
     const entries = [alpha, beta];
     const reading = progress([
-      { bookId: "twok", chapter: 2 },
-      { bookId: "edgedancer", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
+      { bookId: "edgedancer", chapter: 3 },
     ]);
     const result = resolveIdsWithAliasEvidence(
       entries,
@@ -788,7 +788,7 @@ describe("Hoid spoiler-aware ID-only entity revalidation", () => {
     const result = resolveIdsWithAliasEvidence(
       entries,
       defaultAliasEvidence(entries),
-      progress([{ bookId: "twok", chapter: 2 }]),
+      progress([{ bookId: "twok", chapter: 3 }]),
       [alpha.id, beta.id],
     );
     expect(result).toEqual({ status: "blocked" });

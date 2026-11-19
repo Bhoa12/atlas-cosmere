@@ -24,7 +24,6 @@ on:
       - "src/hoid/conversationIntent.test.ts"
       - "src/hoid/cursorReadingContext.test.ts"
       - "src/hoid/conversationHistoryPolicy.ts"
-      - "src/hoid/conversationHistoryPolicy.test.ts src/hoid/approvedClaimIntegrity.test.ts"
       - "src/hoid/cursorReadingContext.ts"
       - "src/hoid/cursorReadingContext.test.ts"
       - "src/hoid/conversationHistoryPolicy.ts"

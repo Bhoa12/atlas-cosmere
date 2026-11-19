@@ -41,6 +41,8 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Inspect the complete XML parser dependency tree
+        run: npm ls @xmldom/xmldom --all
       - name: Test concrete adapters and ingestion regression
         run: >-
           npx vitest run

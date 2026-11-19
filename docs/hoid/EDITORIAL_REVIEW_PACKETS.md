@@ -51,3 +51,8 @@ Then run the strict TypeScript check in `.github/workflows/hoid-editorial-draft-
 ## Copyright and provenance
 
 Only original editorial prose, bibliographic metadata, opaque locators and cryptographic digests may be committed. If a source passage is unavailable, no summary or fact may be invented and no claim of source inspection may be made.
+
+
+## Run 169 — source chapter must precede unlock chapter
+
+Review-packet validation now rejects an unlock threshold equal to the cited source chapter. The chapter-N summary is not available while chapter N is open, even if an input attempts to mark the book completed alongside malformed evidence metadata. The first valid threshold is a later verified chapter unit; a later-than-next threshold remains valid when editorial policy is more conservative.

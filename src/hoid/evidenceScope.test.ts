@@ -28,6 +28,20 @@ describe("isEvidenceUnlocked public boundary", () => {
     expect(isEvidenceUnlocked(entry, [{ bookId: "twok", chapter: 4 }])).toBe(true);
   });
 
+  it("rejects a same-chapter unlock even when the reader position is completed", () => {
+    const sameChapterEntry: HoidKnowledgeEntry = {
+      ...entry,
+      evidenceUnlock: { bookId: "twok", chapter: 2 },
+    };
+
+    expect(canonicalEvidenceScope(
+      sameChapterEntry.evidenceSource,
+      sameChapterEntry.evidenceUnlock,
+    )).toBeNull();
+    expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", chapter: 2 }])).toBe(false);
+    expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", completed: true }])).toBe(false);
+  });
+
   it("rejects duplicate positions instead of depending on their order", () => {
     expect(isEvidenceUnlocked(entry, [
       { bookId: "twok", chapter: 4 },

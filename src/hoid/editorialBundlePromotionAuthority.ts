@@ -74,6 +74,7 @@ export type HoidEditorialBundlePromotionAuthorization =
       status: "ready-for-maintainer-commit";
       repositoryFullName: string;
       pullRequestNumber: number;
+      baseSha: string;
       headSha: string;
       promotionPlanFingerprint: string;
       reviewBundleFingerprint: string;
@@ -669,6 +670,7 @@ export async function authorizeHoidEditorialBundlePromotion(
     status: "ready-for-maintainer-commit",
     repositoryFullName: request.repositoryFullName,
     pullRequestNumber: request.pullRequestNumber,
+    baseSha: verification.baseSha,
     headSha: verification.headSha,
     promotionPlanFingerprint: verification.promotionPlanFingerprint,
     reviewBundleFingerprint: plan.reviewBundleFingerprint,

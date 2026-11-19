@@ -205,6 +205,24 @@ describe("offline EPUB ingestion core", () => {
       .resolves.toEqual({ status: "rejected", reason: "report-not-issued-here" });
   });
 
+  it("rejects a package source changed during inspection before issuing a candidate", async () => {
+    const fixture = makeFixture();
+    const originalRead = fixture.archive.readEntry.bind(fixture.archive);
+    let changed = false;
+    vi.spyOn(fixture.archive, "readEntry").mockImplementation(async (sourceId, path, maximumBytes) => {
+      const result = await originalRead(sourceId, path, maximumBytes);
+      if (path === "OEBPS/nav.xhtml" && !changed) {
+        changed = true;
+        fixture.contents.set("OEBPS/nav.xhtml", bytes("<nav changed during inspection/>"));
+      }
+      return result;
+    });
+
+    await expect(fixture.service.inspectPackage(fixture.source))
+      .resolves.toEqual({ status: "rejected", reason: "source-changed" });
+    expect(changed).toBe(true);
+  });
+
   it("detects package replacement between package inspection and chapter inspection", async () => {
     const fixture = makeFixture();
     const packageResult = await fixture.service.inspectPackage(fixture.source);

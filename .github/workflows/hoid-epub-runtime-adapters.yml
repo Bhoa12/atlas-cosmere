@@ -1,0 +1,62 @@
+name: Hoid EPUB runtime adapters
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "package.json"
+      - "src/hoid/epubRuntimeAdapters.ts"
+      - "src/hoid/epubRuntimeAdapters.test.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
+      - ".github/workflows/hoid-epub-runtime-adapters.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "src/hoid/epubRuntimeAdapters.ts"
+      - "src/hoid/epubRuntimeAdapters.test.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
+      - ".github/workflows/hoid-epub-runtime-adapters.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  epub-runtime-adapters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test concrete adapters and ingestion regression
+        run: >-
+          npx vitest run
+          src/hoid/epubRuntimeAdapters.test.ts
+          src/hoid/epubIngestion.test.ts
+      - name: Type-check runtime adapters and ingestion
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/epubRuntimeAdapters.ts
+          src/hoid/epubRuntimeAdapters.test.ts
+          src/hoid/epubIngestion.ts
+          src/hoid/epubIngestion.test.ts
+          src/hoid/editionStructure.ts
+          src/hoid/bibliography.ts
+          src/hoid/sourceCoverage.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/readingManifest.ts

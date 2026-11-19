@@ -67,8 +67,8 @@ function validChapter(value: unknown): value is number {
  *
  * source identifies where an original editorial summary was checked.
  * unlock identifies the earliest reader position at which the complete
- * summary is safe to reveal. The unlock must be in the same work and cannot
- * precede the cited source chapter.
+ * summary is safe to reveal. The unlock must be in the same work and strictly
+ * follow the cited source chapter: an open source chapter is never completed.
  */
 export function canonicalEvidenceScope(
   sourceInput: unknown,
@@ -88,7 +88,9 @@ export function canonicalEvidenceScope(
   if (!isKnownHoidSource(sourceBookId) || !isKnownHoidSource(unlockBookId)) return null;
   if (sourceBookId !== unlockBookId) return null;
   if (!validChapter(sourceChapter) || !validChapter(unlockChapter)) return null;
-  if (unlockChapter < sourceChapter) return null;
+  // A chapter-N summary cannot unlock while chapter N is still open. A later
+  // threshold is allowed when an editor chooses a more conservative ceiling.
+  if (unlockChapter <= sourceChapter) return null;
   if (!locatorId || locatorId.length > MAX_LOCATOR_LENGTH) return null;
   if (/[\u0000-\u001F\u007F]/u.test(locatorId)) return null;
 

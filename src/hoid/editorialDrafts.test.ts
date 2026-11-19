@@ -58,6 +58,10 @@ describe("Hoid editorial draft staging", () => {
       "fca6e2195b7b80d51f75e7480f6bccb0040f02952620aca4f66a95ba750955f6",
       "9e2e57a5717d63832ff1bb36014cffdae1870a189507dcc434c5f843c6628f72",
       "adb307b600410e6022e783a0002adcc3187f508292f0c01f14e7e346523af12c",
+      "420948ca6f4486c61b164469da450da1c9f6e4ccc784648f35820b428ebdfab5",
+      "e0e20092570a2bfed23f187586e26104b518b8f877c7522fb82cb6823bd44648",
+      "23234322951dafd172153245fbf57fb1729a9ae88229e7826cccc71d7b32e10e",
+      "206508815f555f56f13121f0979b5f0bb8a0bed2b618679b3c8d356979ee4e3a",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -78,7 +82,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(35);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(39);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -91,7 +95,7 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one through chapter-eleven drafts for the accessible EPUBs", () => {
+  it("stages independently sourced chapter-one through chapter-twelve drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -128,9 +132,13 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-010.kaladin-lirin-surgeon",
       "edgedancer.chapter-011.lift-finds-great-indicium",
       "dawnshard.chapter-011.lopen-crosses-akinah-storm",
+      "tfe.chapter-004.vin-kelsier-crew",
+      "twok.chapter-011.kaladin-returns-to-bridge-four",
+      "edgedancer.chapter-012.lift-gran-indicium-plan",
+      "dawnshard.chapter-012.rysn-arrives-at-akinah",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).toContain(draft.evidenceSource.chapter);
+      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
         chapter: draft.evidenceSource.chapter + 1,
@@ -350,7 +358,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps all chapter-four summaries unavailable until chapter five is completed", () => {
     const chapterFourDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 4);
-    expect(chapterFourDrafts).toHaveLength(3);
+    expect(chapterFourDrafts).toHaveLength(4);
     for (const draft of chapterFourDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 5 });
       expect(draft.review.status).toBe("pending-review");
@@ -406,7 +414,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps the chapter-eleven summaries unavailable until chapter twelve is completed", () => {
     const chapterElevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 11);
-    expect(chapterElevenDrafts).toHaveLength(2);
+    expect(chapterElevenDrafts).toHaveLength(3);
     for (const draft of chapterElevenDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 12 });
       expect(draft.review.status).toBe("pending-review");
@@ -427,6 +435,15 @@ describe("Hoid editorial draft staging", () => {
     expect(chapterNineDrafts).toHaveLength(3);
     for (const draft of chapterNineDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 10 });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
+  it("keeps the chapter-twelve summaries unavailable until chapter thirteen is completed", () => {
+    const chapterTwelveDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 12);
+    expect(chapterTwelveDrafts).toHaveLength(2);
+    for (const draft of chapterTwelveDrafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 13 });
       expect(draft.review.status).toBe("pending-review");
     }
   });

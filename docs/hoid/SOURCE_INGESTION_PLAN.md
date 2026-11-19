@@ -1,4 +1,4 @@
-# Run 165 — Metadata-only source ingestion plan
+# Run 168 — Metadata-only source ingestion plan
 
 ## Purpose
 
@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 35 |
-| Original staged summaries | 35 |
-| Summaries pending review | 35 |
+| Individually inspected chapter documents | 39 |
+| Original staged summaries | 39 |
+| Summaries pending review | 39 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -37,10 +37,10 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
-| El Imperio Final | 4 |
-| El Camino de los Reyes | 11 |
-| Danzante del Filo | 12 |
-| Esquirla del amanecer | 12 |
+| El Imperio Final | 5 |
+| El Camino de los Reyes | 12 |
+| Danzante del Filo | 13 |
+| Esquirla del amanecer | 13 |
 
 The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
@@ -89,6 +89,20 @@ A completed work means only that every numbered unit in its current manifest has
 - src/hoid/sourceIngestionPlan.test.ts asserts task counts, priority, exact continuation chapters, partial safe prefixes, segmentation blockers, relative locator shape, next-chapter unlock and production isolation.
 - hoid-source-ingestion-plan.yml runs the planner, source coverage, locator and manifest regressions with strict TypeScript checking.
 
-## Scope of Run 165
+## Scope of Run 165 (historical)
 
 This run adds the metadata-only planner and tests, then separately uses the explicit local-source inspection process for three available Roshar EPUB chapters. The planner itself does not read source bytes or authorize evidence. The six inspected chapter digests and original summaries are recorded in the sparse allowlist and staging only; no progress is changed, no claim is approved and no production knowledge is written. No EPUB, XHTML, extracted passage or private file URI is committed.
+
+
+## Run 168 — refreshed continuation queue
+
+After inspecting El Imperio Final chapter 4, El Camino de los Reyes chapter 11, Danzante del Filo chapter 12 and Esquirla del amanecer chapter 12, the deterministic continuation queue advances to:
+
+| Work | Next chapter to inspect |
+|---|---:|
+| El Imperio Final | 5 |
+| El Camino de los Reyes | 12 |
+| Danzante del Filo | 13 |
+| Esquirla del amanecer | 13 |
+
+The queue remains metadata-only. Each candidate still requires explicit local EPUB selection, exact edition binding and candidate-only inspection. It does not read sources or authorize evidence by itself.

@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 165 adds The Way of Kings chapters nine-ten and Edgedancer/Dawnshard chapters ten-eleven.
+ * Run 168 adds The Final Empire chapter four, The Way of Kings chapter eleven, and Edgedancer/Dawnshard chapter twelve.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -29,6 +29,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       8: "1f9ad886ddb35ccb723890b8b8b4fd2c8f959182c26e0bef112a01d69736a156",
       9: "c5737b3dc6b37d9bd9166d910f70c2f39f522ceb07123703387b34399e703945",
       10: "9c01e31f6d72a910dc1c742609aaf107eaf63f83bb94b4a681df39c8fc08995d",
+      11: "3198740aafd799096672d6a893b925c08a4f33819219e7769761319eaea97ae5",
     }),
   }),
   edgedancer: Object.freeze({
@@ -46,6 +47,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       9: "3561810a0d4efb150309a41393dd612a8edca55806c98395152e1b88e5e8949d",
       10: "4fe0dc1e86f52d76bcabef23c4b730ba15543db5491559eed44462b4dfbfe6bf",
       11: "1b3d61d87c1a1d7f14f7199996d7751b88c4a1b19f5a2fd808d1bcf8b72bd673",
+      12: "d02ecf9613cb9ae5ff8f95984b2a7bcdf56b19c72e9dcc6f193a1a959150155c",
     }),
   }),
   dawnshard: Object.freeze({
@@ -63,6 +65,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       9: "4ee69a012acd0e528aa63c5ac3f78cd22a0988e168f178606dc48a4691786906",
       10: "0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22",
       11: "c12c49b2ad8813fe5d24894c6be43384e1da23875cf204e4129db9b5f20dddbc",
+      12: "d5d73c0ebaaaeccf2dfbd2f16315aa521b860c043c0b61b971bbce76b7bc8990",
     }),
   }),
   tfe: Object.freeze({
@@ -72,6 +75,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       1: "cfc6a6057a477cfba6e7795d30dca2324a97a5dbdefa86b6500aa437a625844a",
       2: "13604dc85df709443e6cd215a3e1a9deabe8f69f118dcc9823127b82ad486fc1",
       3: "bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7",
+      4: "6b729cfc609f926a4bac5b10f3eb5148a7c8935adde54f51f4ff13b9995b35d7",
     }),
   }),
 });

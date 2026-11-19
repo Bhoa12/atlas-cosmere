@@ -10,6 +10,12 @@ on:
       - "src/hoid/editorialReviewSignatures.ts"
       - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
       - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.test.ts"
+      - "src/hoid/topicAssignmentPromotionAuthority.ts"
+      - "src/hoid/coreferencePromotionAuthority.test.ts"
+      - "src/hoid/coreferencePromotionAuthority.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
       - "src/hoid/githubSourceControlReviewAdapter.ts"
       - "src/hoid/promotionReviewAuthority.test.ts"
       - "src/hoid/githubSourceControlReviewAdapter.test.ts"
@@ -53,12 +59,18 @@ jobs:
           src/hoid/promotionReviewAuthority.test.ts
           src/hoid/githubSourceControlReviewAdapter.test.ts
           src/hoid/signedEditorialBundlePromotionAuthority.test.ts
+          src/hoid/editorialBundlePromotionAuthority.test.ts
+          src/hoid/coreferencePromotionAuthority.test.ts
+          src/hoid/topicAssignmentPromotionAuthority.test.ts
       - name: Type-check trust and review boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/trustRegistryRevisionStore.ts
           src/hoid/signedEditorialBundlePromotionAuthority.ts
+          src/hoid/editorialBundlePromotionAuthority.ts
+          src/hoid/coreferencePromotionAuthority.ts
+          src/hoid/topicAssignmentPromotionAuthority.ts
           src/hoid/editorialReviewSignatures.ts
           src/hoid/promotionReviewAuthority.ts
           src/hoid/githubSourceControlReviewAdapter.ts

@@ -189,7 +189,9 @@ describe("Hoid typed entity follow-up gateway", () => {
   });
 
   it("discards the answer if progress changes while the strict runtime is pending", async () => {
-    let finish: ((value: HoidEvidenceAnswer) => void) | undefined;
+    let finish!: (value: HoidEvidenceAnswer) => void;
+    let markRuntimeStarted!: () => void;
+    const runtimeStarted = new Promise<void>(resolve => { markRuntimeStarted = resolve; });
     const initial = snapshot();
     let current: unknown = initial;
     const projection = projectHoidCursorProgressSnapshot(initial);
@@ -200,7 +202,10 @@ describe("Hoid typed entity follow-up gateway", () => {
     });
     if (!typed) throw new Error("Synthetic context invalid");
     const runtime = {
-      answer: vi.fn(() => new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; })),
+      answer: vi.fn(() => {
+        markRuntimeStarted();
+        return new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; });
+      }),
     };
     const resolver = (progress: unknown, ids: readonly string[]) => {
       const currentProjection = projectHoidCursorProgressSnapshot(progress);
@@ -227,8 +232,9 @@ describe("Hoid typed entity follow-up gateway", () => {
       progress: initial,
       typedContext: typed,
     });
+    await runtimeStarted;
     current = snapshot(5);
-    finish?.(answer);
+    finish(answer);
 
     expect(await pending).toEqual({ status: "unavailable", reason: "progress-changed" });
     expect(runtime.answer).toHaveBeenCalledTimes(1);

@@ -166,7 +166,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("withholds the complete cross-work edge when one source is still locked", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -182,7 +182,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("does not unlock evidence from the chapter currently open", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -201,7 +201,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("respects a later evidence-unlock threshold independently of its source chapter", () => {
     const a = knowledge("synthetic.entity-a", "twok", 2);
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const before = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -250,7 +250,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("allows an explicit whole-work completion to satisfy that work's evidence", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -267,7 +267,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("does not expose claim prose, summaries or aliases in graph results", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -317,7 +317,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("rejects control characters in summaries and approved claim statements", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const invalidSummary = {
       ...a,
       summary: "Resumen con control" + String.fromCharCode(0) + "incrustado.",
@@ -358,7 +358,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("rejects unknown claims and duplicate relation identities", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const unknown = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, "synthetic.missing-claim")]),
       [a, b],
@@ -391,7 +391,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("rejects accessors without executing them", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const raw = {
       schemaVersion: 1,
       relations: [relation("synthetic.edge-ab", a.id, b.id, claim.id)],
@@ -437,7 +437,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("does not call or accept a provider as part of graph construction", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],

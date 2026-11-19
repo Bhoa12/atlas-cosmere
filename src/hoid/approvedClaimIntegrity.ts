@@ -1,6 +1,7 @@
 import type { HoidKnowledgeEntry } from "./catalog";
 import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { getHoidReadingManifest } from "./readingManifest";
+import { canonicalEvidenceScope } from "./evidenceScope";
 import { sha256Hex } from "./sha256";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 
@@ -271,18 +272,21 @@ type EvidenceBindingResult =
 function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindingResult {
   const entry = plainRecord(entryInput);
   if (!entry) return Object.freeze({ status: "invalid", reason: "invalid-entry" });
-  const source = exactRecord(dataValue(entry, "evidenceSource"), ["bookId", "chapter", "locatorId"], ["bookId", "chapter", "locatorId"]);
-  const unlock = exactRecord(dataValue(entry, "evidenceUnlock"), ["bookId", "chapter"], ["bookId", "chapter"]);
-  const first = exactRecord(dataValue(entry, "firstSafeAppearance"), ["bookId", "chapter"], ["bookId", "chapter"]);
-  if (!source || !unlock || !first) return Object.freeze({ status: "invalid", reason: "invalid-scope" });
 
-  const sourceBookId = source.bookId;
-  const sourceChapter = source.chapter;
-  const locatorId = source.locatorId;
-  const unlockBookId = unlock.bookId;
-  const unlockChapter = unlock.chapter;
-  const firstBookId = first.bookId;
-  const firstChapter = first.chapter;
+  // Reuse the canonical spoiler-scope validator rather than maintaining a
+  // second, potentially divergent interpretation of source and unlock fields.
+  const scope = canonicalEvidenceScope(
+    dataValue(entry, "evidenceSource"),
+    dataValue(entry, "evidenceUnlock"),
+  );
+  if (!scope) return Object.freeze({ status: "invalid", reason: "invalid-scope" });
+
+  const first = exactRecord(
+    dataValue(entry, "firstSafeAppearance"),
+    ["bookId", "chapter"],
+    ["bookId", "chapter"],
+  );
+  if (!first) return Object.freeze({ status: "invalid", reason: "invalid-first-appearance" });
   for (const optionalKey of ["provenance", "summary"]) {
     const descriptor = Object.getOwnPropertyDescriptor(entry, optionalKey);
     if (descriptor && (
@@ -290,30 +294,16 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
       descriptor.enumerable !== true
     )) return Object.freeze({ status: "invalid", reason: "invalid-optional-descriptor" });
   }
+
   const kind = dataValue(entry, "kind");
   const aliases = canonicalAliases(dataValue(entry, "aliases"));
   const provenance = dataValue(entry, "provenance");
   const summary = dataValue(entry, "summary");
+  const firstBookId = first.bookId;
+  const firstChapter = first.chapter;
 
   if (!isHoidKnowledgeKind(kind)) return Object.freeze({ status: "invalid", reason: "invalid-kind" });
   if (!aliases) return Object.freeze({ status: "invalid", reason: "invalid-aliases" });
-  if (
-    typeof sourceBookId !== "string" ||
-    sourceBookId !== sourceBookId.trim() ||
-    typeof sourceChapter !== "number" ||
-    !Number.isSafeInteger(sourceChapter) ||
-    sourceChapter < 1 ||
-    typeof locatorId !== "string" ||
-    locatorId.length < 1 ||
-    locatorId.length > 256 ||
-    /[\\u0000-\\u001F\\u007F]/u.test(locatorId)
-  ) return Object.freeze({ status: "invalid", reason: "invalid-source-metadata" });
-  if (
-    unlockBookId !== sourceBookId ||
-    typeof unlockChapter !== "number" ||
-    !Number.isSafeInteger(unlockChapter) ||
-    unlockChapter < sourceChapter
-  ) return Object.freeze({ status: "invalid", reason: "invalid-unlock" });
   if (
     typeof firstBookId !== "string" ||
     firstBookId !== firstBookId.trim() ||
@@ -321,7 +311,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
     typeof firstChapter !== "number" ||
     !Number.isSafeInteger(firstChapter) ||
     firstChapter < 1 ||
-    (firstBookId === sourceBookId && sourceChapter < firstChapter)
+    (firstBookId === scope.sourceBookId && scope.sourceChapter < firstChapter)
   ) return Object.freeze({ status: "invalid", reason: "invalid-first-appearance" });
   if (provenance !== undefined && (typeof provenance !== "string" || !PROVENANCE.has(provenance))) {
     return Object.freeze({ status: "invalid", reason: "invalid-provenance" });
@@ -330,19 +320,17 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
     return Object.freeze({ status: "invalid", reason: "invalid-summary" });
   }
 
-  const manifestResult = getHoidReadingManifest(sourceBookId);
+  const manifestResult = getHoidReadingManifest(scope.sourceBookId);
   if (manifestResult.status !== "ready") return Object.freeze({ status: "invalid", reason: "edition-unavailable" });
   const manifest = manifestResult.manifest;
-  const unit = manifest.units.find(candidate => candidate.chapterNumber === sourceChapter);
-  const unlockUnit = manifest.units.find(candidate => candidate.chapterNumber === unlockChapter);
-  if (!unit || unit.locatorId !== locatorId) return Object.freeze({ status: "invalid", reason: "locator-mismatch" });
-  if (!unlockUnit) return Object.freeze({ status: "invalid", reason: "invalid-unlock" });
+  const unit = manifest.units.find(candidate => candidate.chapterNumber === scope.sourceChapter);
+  if (!unit || unit.locatorId !== scope.locatorId) return Object.freeze({ status: "invalid", reason: "locator-mismatch" });
 
   const documentSha256 = getVerifiedChapterDocumentSha256(
-    sourceBookId,
+    scope.sourceBookId,
     manifest.editionId,
     manifest.navigationSha256,
-    sourceChapter,
+    scope.sourceChapter,
   );
   if (!documentSha256) return Object.freeze({ status: "invalid", reason: "document-unverified" });
 
@@ -354,11 +342,11 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
 
   return Object.freeze({ status: "valid", binding: Object.freeze([
     evidenceId,
-    sourceBookId,
-    sourceChapter,
-    locatorId,
-    unlockBookId,
-    unlockChapter,
+    scope.sourceBookId,
+    scope.sourceChapter,
+    scope.locatorId,
+    scope.unlockBookId,
+    scope.unlockChapter,
     firstBookId,
     firstChapter,
     manifest.editionId,

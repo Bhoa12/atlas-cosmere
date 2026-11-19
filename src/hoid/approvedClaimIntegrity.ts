@@ -240,6 +240,13 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
   const unlockChapter = unlock.chapter;
   const firstBookId = first.bookId;
   const firstChapter = first.chapter;
+  for (const optionalKey of ["provenance", "summary"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(entry, optionalKey);
+    if (descriptor && (
+      !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+      descriptor.enumerable !== true
+    )) return null;
+  }
   const provenance = dataValue(entry, "provenance");
   const summary = dataValue(entry, "summary");
 
@@ -258,6 +265,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     !Number.isSafeInteger(unlockChapter) ||
     unlockChapter < sourceChapter ||
     typeof firstBookId !== "string" ||
+    firstBookId !== firstBookId.trim() ||
     firstBookId.length < 1 ||
     typeof firstChapter !== "number" ||
     !Number.isSafeInteger(firstChapter) ||
@@ -331,7 +339,6 @@ function buildAttestation(
   const entries = knowledgeById(knowledge);
   if (!entries) return Object.freeze({ status: "invalid", reason: "unverified-source" });
 
-  const bindings: readonly unknown[][] = [];
   const mutableBindings: unknown[][] = [];
   for (const evidenceId of core.evidenceIds) {
     const entry = entries.get(evidenceId);
@@ -340,7 +347,9 @@ function buildAttestation(
     if (!binding) return Object.freeze({ status: "invalid", reason: "unverified-source" });
     mutableBindings.push([...binding]);
   }
-  mutableBindings.sort((left, right) => String(left[0]).localeCompare(String(right[0]), "en"));
+  mutableBindings.sort((left, right) =>
+    String(left[0]) < String(right[0]) ? -1 : String(left[0]) > String(right[0]) ? 1 : 0
+  );
   const evidenceSha256 = sha256Hex(JSON.stringify(["hoid-approved-claim-evidence-v1", mutableBindings]));
 
   const statementSha256 = sha256Hex(core.text);
@@ -431,10 +440,12 @@ export function validateHoidApprovedClaimAttestation(
     !SHA_PATTERN.test(reviewRaw.claimSha256)
   ) return Object.freeze({ status: "invalid", reason: "invalid-review" });
 
-  const expected = buildAttestation(core, knowledgeInput, {
-    reviewerId: reviewRaw.reviewerId as string,
-    reviewedAt: reviewRaw.reviewedAt as string,
+  const reviewer = canonicalReviewer({
+    reviewerId: reviewRaw.reviewerId,
+    reviewedAt: reviewRaw.reviewedAt,
   });
+  if (!reviewer) return Object.freeze({ status: "invalid", reason: "invalid-review" });
+  const expected = buildAttestation(core, knowledgeInput, reviewer);
   if (expected.status !== "valid") return expected;
 
   const integrityRaw = exactRecord(

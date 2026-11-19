@@ -2,7 +2,7 @@ import { inflateSync, strFromU8, strToU8 } from "fflate";
 import type { HoidEpubArchiveEntry, HoidEpubArchivePort, HoidEpubCompressionMethod } from "./epubIngestion";
 import {
   createHoidNobleDigestPort,
-  createHoidSaxesXmlPort,
+  createHoidXmldomXmlPort,
 } from "./epubRuntimeAdapters";
 
 export const HOID_EPUB_RANGE_RUNTIME_LIMITS = Object.freeze({
@@ -472,12 +472,12 @@ export function createHoidEpubRangeRuntimePorts(
   resolveSource: HoidEpubRandomAccessSourceResolver,
 ): Readonly<{
   archive: HoidEpubArchivePort;
-  xml: ReturnType<typeof createHoidSaxesXmlPort>;
+  xml: ReturnType<typeof createHoidXmldomXmlPort>;
   digest: ReturnType<typeof createHoidNobleDigestPort>;
 }> {
   return Object.freeze({
     archive: createHoidFflateRangeArchivePort(resolveSource),
-    xml: createHoidSaxesXmlPort(),
+    xml: createHoidXmldomXmlPort(),
     digest: createHoidNobleDigestPort(),
   });
 }

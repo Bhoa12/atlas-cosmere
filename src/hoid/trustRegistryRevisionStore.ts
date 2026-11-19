@@ -2,6 +2,7 @@ import {
   verifyHoidReviewerTrustRegistry,
   type HoidEd25519VerificationPort,
   type HoidReviewerTrustRegistry,
+  type HoidReviewerTrustRegistryVerification,
   type HoidReviewerTrustRootKey,
 } from "./editorialReviewSignatures";
 import {
@@ -192,7 +193,7 @@ export async function persistHoidTrustRegistryMinimumRevision(
     }
     const currentRevision = currentValue as number;
 
-    let verification;
+    let verification: HoidReviewerTrustRegistryVerification;
     try {
       verification = await withStoreTimeout(() => verifyHoidReviewerTrustRegistry(
         registryInput,

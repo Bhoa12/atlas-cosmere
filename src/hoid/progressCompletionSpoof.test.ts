@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHoidEvidenceRuntime } from "./evidenceRuntime";
 import { getHoidReadingManifest } from "./readingManifest";
+import { createHoidApprovedClaimAttestation } from "./approvedClaimIntegrity";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -21,18 +22,18 @@ const knowledge = [{
   summary: "Resumen editorial sintético para una prueba de autorización.",
 }];
 
-const claims = [{
+const claimCore = {
   id: "claim-test-character",
   text: "Afirmación editorial sintética.",
   intent: "explain" as const,
   evidenceIds: ["e-test-character"],
-  review: {
-    status: "approved" as const,
-    origin: "original-editorial" as const,
-    reviewerId: "synthetic-test-reviewer",
-    reviewedAt: "2026-11-16T00:00:00.000Z",
-  },
-}];
+};
+const attestation = createHoidApprovedClaimAttestation(claimCore, knowledge, {
+  reviewerId: "synthetic-test-reviewer",
+  reviewedAt: "2026-11-16T00:00:00.000Z",
+});
+if (attestation.status !== "valid") throw new Error("Synthetic completion-spoof claim attestation failed");
+const claims = [{ ...claimCore, integrity: attestation.integrity, review: attestation.review }];
 
 describe("completion spoofing regression", () => {
   it("does not treat a chapter plus completed=true as permission to reveal the whole work", async () => {

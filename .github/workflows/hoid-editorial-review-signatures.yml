@@ -1,0 +1,56 @@
+name: Hoid editorial review signature trust
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/editorialReviewSignatures.test.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "docs/hoid/EDITORIAL_REVIEW_SIGNATURE_TRUST.md"
+      - ".github/workflows/hoid-editorial-review-signatures.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/editorialReviewSignatures.test.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "docs/hoid/EDITORIAL_REVIEW_SIGNATURE_TRUST.md"
+      - ".github/workflows/hoid-editorial-review-signatures.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  editorial-review-signature-trust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test signed editorial review trust
+        run: >-
+          npx vitest run
+          src/hoid/editorialReviewSignatures.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+      - name: Type-check trust and WebCrypto adapter
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --lib ES2020,DOM
+          src/hoid/editorialReviewSignatures.ts

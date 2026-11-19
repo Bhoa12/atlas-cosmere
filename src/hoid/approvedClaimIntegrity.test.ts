@@ -5,6 +5,8 @@ import {
   validateHoidApprovedClaimAttestation,
 } from "./approvedClaimIntegrity";
 import { getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -60,6 +62,23 @@ function createAttestation(
 }
 
 describe("Hoid approved-claim integrity", () => {
+
+  it("resolves the exact verified edition and XHTML digest for its synthetic source", () => {
+    const manifestResult = getHoidReadingManifest("twok");
+    expect(manifestResult.status).toBe("ready");
+    if (manifestResult.status !== "ready") return;
+    const unit = manifestResult.manifest.units.find(candidate => candidate.chapterNumber === 2);
+    expect(unit?.locatorId).toBe(locator("twok", 2));
+    expect(isHoidKnowledgeKind("character")).toBe(true);
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      manifestResult.manifest.editionId,
+      manifestResult.manifest.navigationSha256,
+      2,
+    )).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+
   it("binds the exact statement, canonical claim, evidence sources and review metadata", () => {
     const claim = createAttestation();
     const result = validateHoidApprovedClaimAttestation(claim, knowledge);

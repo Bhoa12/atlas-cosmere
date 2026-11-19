@@ -177,13 +177,10 @@ describe("Hoid signed remote monotonic trust revision witness", () => {
   it("rejects a mathematically valid receipt signed by an unpinned witness key", async () => {
     const wrongSeed = new Uint8Array(32).fill(9);
     const { port } = makeStore({
-      read: async request => readReceipt(request, {
-        // The helper signs with the wrong key while preserving the pinned key ID.
-      }).constructor === Object
-        ? signReceipt({
-            ...readReceipt(request),
-          }, wrongSeed)
-        : null,
+      read: async request => {
+        const { signatureHex: _ignored, ...unsigned } = readReceipt(request);
+        return signReceipt(unsigned, wrongSeed);
+      },
     });
     await expect(port.readMinimumRevision({ trustDomainId: DOMAIN })).rejects.toThrow();
   });

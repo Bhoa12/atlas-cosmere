@@ -291,6 +291,7 @@ describe("Hoid authorized knowledge graph", () => {
     const uninspected = {
       ...knowledge("synthetic.uninspected", "twok"),
       evidenceSource: { bookId: "twok", chapter: 2, locatorId: unit.locatorId },
+      evidenceUnlock: { bookId: "twok", chapter: 3 },
       firstSafeAppearance: { bookId: "twok", chapter: 2 },
     };
     const result = buildHoidAuthorizedKnowledgeGraph(

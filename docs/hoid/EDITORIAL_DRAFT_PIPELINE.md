@@ -45,7 +45,7 @@ A draft must pass all of the following before it can be considered for productio
 3. Its navigation digest matches the edition manifest.
 4. Its source-document digest exactly matches the sparse SHA-256 allowlist in `verifiedChapterDocuments.ts`, recorded by the offline ingestion step; a merely well-formed but unknown digest is rejected.
 5. Its first appearance, source and unlock are all in the same work for draft schema v1; the first-appearance unit must have an exact locator, and the appearance cannot follow the unlock threshold. Cross-work chronology requires a future separately reviewed schema.
-6. Its unlock threshold is a real unit in the same work and does not precede the source chapter.
+6. Its unlock threshold is a real unit in the same work and strictly follows the source chapter. A chapter-N summary can never unlock at N, even when a reader position is explicitly marked completed; a later threshold is allowed as a more conservative ceiling.
 7. Its summary is original editorial prose and contains no copied source passage.
 8. An independent reviewer checks factual accuracy, completeness, originality and spoiler ceiling.
 9. Only after review may a separate change add a knowledge entry and approved claim to `editorialRegistry.ts`.
@@ -150,3 +150,8 @@ Four additional source documents were inspected from the current Library copies.
 Four original Spanish summaries were added to editorialDrafts.ts. Each is bound to its own work, chapter locator, edition navigation digest, exact document digest and summary digest. All remain pending review. A chapter-N summary stays locked until the reader reaches chapter N+1; the chapter itself is not considered completed merely because it is open.
 
 The new batch raises the staging inventory to 39 summaries backed by 39 individually inspected chapter documents. No production registry, approved claim, graph edge, reading progress or activation receipt was changed. No EPUB, XHTML body, copied passage, extracted text or image is committed.
+
+
+## Run 169 — strict chapter completion boundary
+
+Draft validation now rejects `evidenceUnlock.chapter <= evidenceSource.chapter`. The summary for chapter N is therefore unavailable while N is open; the earliest permitted threshold is a later chapter unit. The rule is enforced by the shared evidence-scope contract and independently by review-packet canonicalization. A later unlock can be used when a stricter editorial ceiling is warranted.

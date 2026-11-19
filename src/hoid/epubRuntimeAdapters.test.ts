@@ -393,6 +393,27 @@ describe("concrete local EPUB runtime adapters", () => {
     ))).rejects.toThrow(/names are not properly nested/i);
   });
 
+  it("allows XML whitespace after a closing tag name but rejects trailing content", async () => {
+    const xml = createHoidXmldomXmlPort();
+    const valid = strToU8(
+      '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
+      '<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>' +
+      '</rootfiles  ></container\n>',
+    );
+    await expect(xml.parseContainerXml(valid)).resolves.toEqual({
+      rootfiles: [{
+        fullPath: "OEBPS/content.opf",
+        mediaType: "application/oebps-package+xml",
+      }],
+    });
+
+    const malformed = strToU8(
+      '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
+      '<rootfiles></rootfiles\njunk></container>',
+    );
+    await expect(xml.parseContainerXml(malformed)).rejects.toThrow();
+  });
+
   it("ignores markup-like text inside comments and CDATA during structural preflight", async () => {
     const xml = createHoidXmldomXmlPort();
     const document = strToU8(

@@ -20,16 +20,6 @@ function approvedClaim(
   return Object.freeze({ ...core, integrity: attestation.integrity, review: attestation.review });
 }
 
-function claimCore(claim: HoidApprovedClaim): HoidApprovedClaimCore {
-  return Object.freeze({
-    id: claim.id,
-    text: claim.text,
-    intent: claim.intent,
-    evidenceIds: claim.evidenceIds,
-    ...(claim.entityIds ? { entityIds: claim.entityIds } : {}),
-  });
-}
-
 const claims: HoidApprovedClaim[] = [
   approvedClaim({
     id: "claim-alpha",

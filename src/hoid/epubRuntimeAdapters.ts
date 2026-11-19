@@ -1,6 +1,7 @@
 import { sha256 } from "@noble/hashes/sha256";
 import { inflateSync, strFromU8, strToU8 } from "fflate";
 import { DOMParser } from "@xmldom/xmldom";
+import { HOID_EPUB_INGESTION_LIMITS } from "./epubIngestion";
 import type {
   HoidEpubArchiveEntry,
   HoidEpubArchivePort,
@@ -15,7 +16,8 @@ import type {
 } from "./epubIngestion";
 
 export const HOID_EPUB_RUNTIME_LIMITS = Object.freeze({
-  maxArchiveBytes: 256 * 1024 * 1024,
+  // Full-buffer mode stays below the larger range-based source budget.
+  maxArchiveBytes: HOID_EPUB_INGESTION_LIMITS.maxBufferedArchiveBytes,
   maxCentralDirectoryBytes: 16 * 1024 * 1024,
   maxArchiveEntries: 50_000,
   maxReadEntryBytes: 64 * 1024 * 1024,

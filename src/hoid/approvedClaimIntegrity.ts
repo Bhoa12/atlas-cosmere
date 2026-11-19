@@ -98,18 +98,21 @@ function exactRecord(
   try {
     const keys = Reflect.ownKeys(record);
     if (keys.some(key => typeof key !== "string" || !allowedKeys.includes(key))) return null;
-    for (const key of requiredKeys) {
-      if (!Object.prototype.hasOwnProperty.call(record, key)) return null;
-    }
+    const result = Object.create(null) as Record<string, unknown>;
     for (const key of keys) {
+      if (typeof key !== "string") return null;
       const descriptor = Object.getOwnPropertyDescriptor(record, key);
       if (
         !descriptor ||
         !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
         descriptor.enumerable !== true
       ) return null;
+      result[key] = descriptor.value;
     }
-    return record;
+    for (const key of requiredKeys) {
+      if (!Object.prototype.hasOwnProperty.call(result, key)) return null;
+    }
+    return result;
   } catch {
     return null;
   }

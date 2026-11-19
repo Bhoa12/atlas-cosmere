@@ -333,6 +333,13 @@ export function createHoidTrustRevisionWitnessServer(
     throw new Error("Trust witness server dependency unavailable");
   }
 
+  const readStoreMethod = readStore;
+  const compareStoreMethod = compareStore;
+  const authorizeClientMethod = authorizeClient;
+  const claimReplayMethod = claimReplay;
+  const signMethod = sign;
+  const readClockMethod = readClock;
+
   async function issueReceipt(
     request: CanonicalRequest,
     outcome: HoidTrustRevisionWitnessReceiptUnsigned["outcome"],
@@ -359,7 +366,7 @@ export function createHoidTrustRevisionWitnessServer(
 
     let signature: unknown;
     try {
-      signature = await withTimeout(() => sign(Object.freeze({
+      signature = await withTimeout(() => signMethod(Object.freeze({
         keyId: pinnedConfiguration.keyId,
         message,
       })));
@@ -405,7 +412,7 @@ export function createHoidTrustRevisionWitnessServer(
 
       let authorized: unknown;
       try {
-        authorized = await withTimeout(() => authorizeClient(Object.freeze({
+        authorized = await withTimeout(() => authorizeClientMethod(Object.freeze({
           clientId,
           trustDomainId: pinnedConfiguration.trustDomainId,
           operation: request.operation,
@@ -418,7 +425,7 @@ export function createHoidTrustRevisionWitnessServer(
       const retainUntil = new Date(nowMs + REPLAY_RETENTION_MS).toISOString();
       let claimed: unknown;
       try {
-        claimed = await withTimeout(() => claimReplay(Object.freeze({
+        claimed = await withTimeout(() => claimReplayMethod(Object.freeze({
           clientId,
           trustDomainId: pinnedConfiguration.trustDomainId,
           requestNonceHex: request.requestNonceHex,
@@ -433,7 +440,7 @@ export function createHoidTrustRevisionWitnessServer(
       if (request.operation === "read-minimum-revision") {
         let observed: unknown;
         try {
-          observed = await withTimeout(() => readStore(Object.freeze({
+          observed = await withTimeout(() => readStoreMethod(Object.freeze({
             trustDomainId: pinnedConfiguration.trustDomainId,
           })));
         } catch {
@@ -447,7 +454,7 @@ export function createHoidTrustRevisionWitnessServer(
 
       let storeResult: unknown;
       try {
-        storeResult = await withTimeout(() => compareStore(Object.freeze({
+        storeResult = await withTimeout(() => compareStoreMethod(Object.freeze({
           trustDomainId: pinnedConfiguration.trustDomainId,
           expectedRevision: request.expectedRevision,
           nextRevision: request.nextRevision,

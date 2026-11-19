@@ -246,7 +246,7 @@ describe("Hoid knowledge graph queries and explanation planning", () => {
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
-    const rendered = renderHoidExplanationPlan(result.plan, f.claims, f.completed);
+    const rendered = renderHoidExplanationPlan(result.plan, f.knowledgeItems, f.claims, f.completed);
     expect(rendered.status).toBe("ready");
     if (rendered.status === "ready") {
       expect(rendered.text).toBe([f.ab.text, f.bc.text].join("\n\n"));
@@ -267,7 +267,7 @@ describe("Hoid knowledge graph queries and explanation planning", () => {
       { ...f.ab, text: "Afirmación falsa sustituida para la prueba." },
       f.bc,
     ];
-    expect(renderHoidExplanationPlan(result.plan, substituted, f.completed))
+    expect(renderHoidExplanationPlan(result.plan, f.knowledgeItems, substituted, f.completed))
       .toEqual({ status: "unavailable", reason: "invalid-claims" });
   });
 
@@ -284,7 +284,7 @@ describe("Hoid knowledge graph queries and explanation planning", () => {
       { bookId: "edgedancer", chapter: 2 },
       { bookId: "dawnshard", chapter: 2 },
     ]);
-    expect(renderHoidExplanationPlan(result.plan, f.claims, changed))
+    expect(renderHoidExplanationPlan(result.plan, f.knowledgeItems, f.claims, changed))
       .toEqual({ status: "unavailable", reason: "stale-progress" });
   });
 
@@ -296,9 +296,9 @@ describe("Hoid knowledge graph queries and explanation planning", () => {
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
-    expect(renderHoidExplanationPlan({ ...result.plan }, f.claims, f.completed))
+    expect(renderHoidExplanationPlan({ ...result.plan }, f.knowledgeItems, f.claims, f.completed))
       .toEqual({ status: "unavailable", reason: "untrusted-plan" });
-    expect(renderHoidExplanationPlan(result.plan, [null], f.completed))
+    expect(renderHoidExplanationPlan(result.plan, f.knowledgeItems, [null], f.completed))
       .toEqual({ status: "unavailable", reason: "invalid-claims" });
   });
 

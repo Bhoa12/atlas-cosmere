@@ -261,6 +261,7 @@ describe("Hoid topic assignment promotion authority", () => {
     );
     expect(result.status).toBe("ready-for-maintainer-commit");
     if (result.status !== "ready-for-maintainer-commit") return;
+    expect(result.baseSha).toBe("b".repeat(40));
     expect(result.authenticatedAssignmentReviewerIds).toEqual(["reviewer-1"]);
     expect(result.approvalReviewerIds).toEqual(["reviewer-1"]);
     expect(result.promotionAllowed).toBe(false);

@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 39 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 43 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 39 | Original editorial summaries exist in staging |
-| Summaries pending review | 39 | None of those summaries is approved for production |
+| Original staged chapter summaries | 43 | Original editorial summaries exist in staging |
+| Summaries pending review | 43 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -33,7 +33,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `tfe` | El Imperio Final | 38 | 4 | 4 | Numeric chapters |
+| `tfe` | El Imperio Final | 38 | 5 | 5 | Numeric chapters |
 | `woa` | El Pozo de la Ascensión | 59 | 0 | 0 | Numeric chapters |
 | `hoa` | El Héroe de las Eras | 82 | 0 | 0 | Numeric chapters |
 | `aol` | Aleación de ley | 20 | 0 | 0 | Numeric chapters |
@@ -55,13 +55,13 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 11 | 11 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 12 | 12 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
 | `sawt` | Viento y Verdad | 11 | 0 | 0 | Only the safe numeric prefix through chapter 11 is locator-backed; chapter numbers 12 and 14 are ambiguous |
-| `edgedancer` | Danzante del Filo | 20 | 12 | 12 | Numeric chapters |
-| `dawnshard` | Esquirla del amanecer | 19 | 12 | 12 | Numeric chapters |
+| `edgedancer` | Danzante del Filo | 20 | 13 | 13 | Numeric chapters |
+| `dawnshard` | Esquirla del amanecer | 19 | 13 | 13 | Numeric chapters |
 
 ## Interpretation rules
 
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 39 inspected documents, 39 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 43 inspected documents, 43 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -91,7 +91,7 @@ Run 165 materialized the three unique Roshar EPUBs currently present in the Libr
 
 For each source, the navigation-document digest matched the edition-bound value already recorded in the repository. Each target was confirmed in the EPUB OPF manifest and spine before its exact XHTML bytes were SHA-256 fingerprinted. Six original Spanish summaries were added to staging with the next-chapter unlock boundary. All remain pending review.
 
-The current Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected in this run. The existing Cosmere catalogue and navigation metadata remain structural records only.
+At the time of Run 165, the Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected in that run. The existing Cosmere catalogue and navigation metadata remain structural records only.
 
 No EPUB, XHTML body, copied passage, image, extracted text or private device URI is committed. The report contains work metadata, counts and chapter numbers only.
 
@@ -110,3 +110,23 @@ Four additional chapter bodies were inspected from the current Library copies. F
 Four original Spanish summaries were added to staging. All remain pending review; no production registry, approved-claim registry or activation receipt was changed. The staging inventory now contains 39 summaries backed by 39 individually inspected chapter documents. The 24-work catalogue and 1,106 verified navigation locators are unchanged.
 
 No EPUB bytes, XHTML bodies, copied passages, images, extracted prose or private file paths were committed.
+
+
+## Run 170 — four additional chapter documents
+
+The Library copies of `cosmere.epub` and the three Roshar EPUBs were re-opened for this batch. Each ZIP passed CRC validation. The recorded navigation-document SHA-256 was rechecked, and every target was resolved from navigation, matched to the OPF manifest and confirmed in the reading spine before the original XHTML bytes were fingerprinted.
+
+| Work | Chapter | Relative XHTML target | Document SHA-256 | Completed-through watermark | Minimum open cursor |
+|---|---:|---|---|---:|---:|
+| El Imperio Final | 5 | EPUB/books/b000001/OEBPS/Text/005.xhtml | ec48d5ed29ede0760a63d913fcc71d79c908d879fe62841fe6cbfc64d90676d8 | 5 | 6 |
+| El Camino de los Reyes | 12 | OEBPS/Text/L1-032.xhtml | 1f220d29b388c67834fb11d21fdb120407d1220531d735f946c00cc26223e838 | 12 | 13 |
+| Danzante del Filo | 13 | OEBPS/Text/013.xhtml | 341ffa8144efe7c054d92bbedd54246889a92b268db7b62118f6b651095a516d | 13 | 14 |
+| Esquirla del amanecer | 13 | OEBPS/Text/13.xhtml | e0a97fb4d28b90b99169e6afcdf4fbd3e42b67c1ff5b0c61e0cb4aad6405544c | 13 | 14 |
+
+The four navigation digests remain the registered edition values: Cosmere `85c53b4a…`, Roshar omnibus `08280d2a…`, Edgedancer `5b98fb80…` and Dawnshard `8ae9931d…`. All four targets matched their exact edition navigation entries, manifest items and spine entries.
+
+Four original Spanish summaries were added to staging with summary digests and exact edition-bound provenance. All remain pending review. The current inventory is 43 inspected chapter documents and 43 staged summaries across the same four works. Production knowledge remains empty; no approved claim or activation receipt was added.
+
+The evidence watermark is the completed-through chapter N. The open reader cursor must reach N+1. The cursor/evidence integration regression tests this boundary for all four new drafts and confirms that progress in another book cannot unlock them.
+
+No EPUB bytes, XHTML bodies, copied passages, extracted prose, images or private file paths were committed.

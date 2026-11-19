@@ -41,7 +41,7 @@ function progressFingerprint(snapshot: unknown): string {
 function knowledge(
   id: string,
   bookId: string,
-  unlockChapter = 2,
+  unlockChapter = 1,
   provenance: "verified" | "limited" | "unavailable" = "verified",
   kind: HoidKnowledgeKind = "character",
 ) {
@@ -129,8 +129,8 @@ describe("Hoid authorized knowledge graph", () => {
       [a, b],
       [claim],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(result.status).toBe("ready");
@@ -142,16 +142,16 @@ describe("Hoid authorized knowledge graph", () => {
   });
 
   it("preserves phenomenon as a distinct authorized graph-node kind", () => {
-    const phenomenon = knowledge("synthetic.phenomenon", "twok", 2, "verified", "phenomenon");
-    const character = knowledge("synthetic.character", "edgedancer", 2, "verified", "character");
+    const phenomenon = knowledge("synthetic.phenomenon", "twok", 1, "verified", "phenomenon");
+    const character = knowledge("synthetic.character", "edgedancer", 1, "verified", "character");
     const claim = approvedClaim("synthetic.claim-phenomenon", [phenomenon.id, character.id], [phenomenon, character]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-phenomenon", phenomenon.id, character.id, claim.id)]),
       [phenomenon, character],
       [claim],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(result.status).toBe("ready");
@@ -171,7 +171,7 @@ describe("Hoid authorized knowledge graph", () => {
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
       [claim],
-      progress([{ bookId: "twok", chapter: 3 }]),
+      progress([{ bookId: "twok", chapter: 2 }]),
     );
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -208,7 +208,7 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([
         { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     const after = buildHoidAuthorizedKnowledgeGraph(
@@ -217,7 +217,7 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([
         { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(before.status).toBe("ready");
@@ -236,8 +236,8 @@ describe("Hoid authorized knowledge graph", () => {
       [a, b, support],
       [claim],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(result.status).toBe("ready");
@@ -257,7 +257,7 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([
         { bookId: "twok", completed: true },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(result.status).toBe("ready");
@@ -273,8 +273,8 @@ describe("Hoid authorized knowledge graph", () => {
       [a, b],
       [claim],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     const serialized = JSON.stringify(result);
@@ -291,7 +291,6 @@ describe("Hoid authorized knowledge graph", () => {
     const uninspected = {
       ...knowledge("synthetic.uninspected", "twok"),
       evidenceSource: { bookId: "twok", chapter: 2, locatorId: unit.locatorId },
-      evidenceUnlock: { bookId: "twok", chapter: 3 },
       firstSafeAppearance: { bookId: "twok", chapter: 2 },
     };
     const result = buildHoidAuthorizedKnowledgeGraph(
@@ -304,7 +303,7 @@ describe("Hoid authorized knowledge graph", () => {
   });
 
   it("rejects knowledge that is not explicitly marked as verified", () => {
-    const limited = knowledge("synthetic.limited", "twok", 2, "limited");
+    const limited = knowledge("synthetic.limited", "twok", 1, "limited");
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([]),
       [limited],
@@ -369,8 +368,8 @@ describe("Hoid authorized knowledge graph", () => {
       [a, b],
       [tampered],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-claims" });
@@ -444,9 +443,9 @@ describe("Hoid authorized knowledge graph", () => {
       [c, b, a],
       [claimTwo, claimOne],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
-        { bookId: "dawnshard", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
+        { bookId: "dawnshard", chapter: 2 },
       ]),
     );
     expect(result.status).toBe("ready");
@@ -464,8 +463,8 @@ describe("Hoid authorized knowledge graph", () => {
       [a, b],
       [claim],
       progress([
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ]),
     );
     expect(result.status).toBe("ready");

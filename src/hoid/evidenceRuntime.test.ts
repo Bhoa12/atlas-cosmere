@@ -321,6 +321,18 @@ describe("HoidEvidenceRuntime", () => {
     if (invalid.status === "abstain") expect(invalid.reason).toBe("invalid-progress");
   });
 
+
+  it("rejects a previously attested claim when its evidence metadata changes", () => {
+    const changedKnowledge = knowledge.map(entry => entry.id === "e-alpha"
+      ? { ...entry, aliases: ["Alias cambiado después de la revisión"] }
+      : entry);
+    expect(createHoidEvidenceRuntime({
+      knowledge: changedKnowledge,
+      claims: [claims[0]],
+      selector: null,
+    })).toBeNull();
+  });
+
   it("rejects an editorial claim that cites an unknown evidence identifier", () => {
     const invalidRuntime = createHoidEvidenceRuntime({
       knowledge,

@@ -130,6 +130,7 @@ export type HoidEpubInspectionRejection =
   | "source-read-failed"
   | "digest-invalid"
   | "report-not-issued-here"
+  | "source-changed"
   | "chapter-not-in-navigation"
   | "chapter-not-xhtml"
   | "chapter-size-limit"
@@ -331,7 +332,11 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
       "uncompressedSize", "encrypted",
     ])) reject("invalid-archive-entry");
 
-    const path = canonicalArchivePath(raw.path);
+    if (raw.kind !== "file" && raw.kind !== "directory" && raw.kind !== "symlink") reject("invalid-archive-entry");
+    const rawPath = raw.kind === "directory" && typeof raw.path === "string" && raw.path.endsWith("/")
+      ? raw.path.slice(0, -1)
+      : raw.path;
+    const path = canonicalArchivePath(rawPath);
     if (path === null) reject("unsafe-archive-path");
     if (
       !Number.isSafeInteger(raw.ordinal) ||
@@ -346,8 +351,7 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     ) reject("invalid-archive-entry");
 
     if (raw.kind === "symlink") reject("unsafe-archive-path");
-    if (raw.kind === "directory" && raw.path.endsWith("/")) reject("unsafe-archive-path");
-    if (raw.kind === "file" && raw.path.endsWith("/")) reject("unsafe-archive-path");
+    if (raw.kind === "file" && typeof raw.path === "string" && raw.path.endsWith("/")) reject("unsafe-archive-path");
     if (raw.encrypted) reject("encrypted-entry");
     if (raw.compressionMethod === "unsupported") reject("unsupported-compression");
 
@@ -396,6 +400,16 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
   ) reject("mimetype-invalid");
 
   return byPath;
+}
+
+function archiveInventoryText(entries: ReadonlyMap<string, HoidEpubArchiveEntry>): string {
+  return [...entries.values()]
+    .sort((left, right) => left.ordinal - right.ordinal)
+    .map(entry => [
+      entry.ordinal, entry.path, entry.kind, entry.compressionMethod,
+      entry.compressedSize, entry.uncompressedSize, entry.encrypted ? 1 : 0,
+    ].join("\\t"))
+    .join("\\n");
 }
 
 function requireFile(
@@ -487,6 +501,7 @@ function normalizePackage(value: unknown, packagePath: string): NormalizedPackag
 
   const manifestById = new Map<string, Readonly<{ path: string; mediaType: string; properties: readonly string[] }>>();
   const manifestByPath = new Map<string, Readonly<{ id: string; mediaType: string }>>();
+  const foldedManifestPaths = new Set<string>();
   for (const raw of value.manifestItems) {
     if (!exactDataRecord(raw, ["id", "href", "mediaType", "properties"])) reject("manifest-invalid");
     if (
@@ -497,7 +512,8 @@ function normalizePackage(value: unknown, packagePath: string): NormalizedPackag
       raw.properties.some(property => !isBoundedString(property, 128))
     ) reject("manifest-invalid");
     const path = resolveHoidEpubHref(packagePath, raw.href);
-    if (path === null || manifestById.has(raw.id) || manifestByPath.has(path)) reject("manifest-invalid");
+    if (path === null || manifestById.has(raw.id) || manifestByPath.has(path) || foldedManifestPaths.has(path.toLowerCase())) reject("manifest-invalid");
+    foldedManifestPaths.add(path.toLowerCase());
     const mediaType = raw.mediaType.toLowerCase();
     manifestById.set(raw.id, Object.freeze({ path, mediaType, properties: Object.freeze([...raw.properties]) }));
     manifestByPath.set(path, Object.freeze({ id: raw.id, mediaType }));
@@ -548,7 +564,8 @@ function flattenNavigation(
   nodes: unknown,
   basePath: string,
   manifest: ReadonlyMap<string, Readonly<{ id: string; mediaType: string }>>,
-): Readonly<{ count: number; xhtmlPaths: ReadonlySet<string> }> {
+): Readonly<{ count: number; navigationPaths: ReadonlySet<string>; xhtmlPaths: ReadonlySet<string> }> {
+  const navigationPaths = new Set<string>();
   const xhtmlPaths = new Set<string>();
   let count = 0;
 
@@ -569,6 +586,7 @@ function flattenNavigation(
       if (path === null) reject("navigation-target-unresolved");
       const item = manifest.get(path);
       if (item === undefined) reject("navigation-target-unresolved");
+      navigationPaths.add(path);
       if (item.mediaType === XHTML_MEDIA_TYPE) xhtmlPaths.add(path);
       visit(raw.children, depth + 1);
     }
@@ -576,7 +594,7 @@ function flattenNavigation(
 
   visit(nodes, 0);
   if (count === 0) reject("navigation-invalid");
-  return Object.freeze({ count, xhtmlPaths });
+  return Object.freeze({ count, navigationPaths, xhtmlPaths });
 }
 
 async function digestBytes(digest: HoidEpubDigestPort, bytes: Uint8Array): Promise<string> {
@@ -594,6 +612,7 @@ async function digestText(digest: HoidEpubDigestPort, value: string): Promise<st
 type PackageState = Readonly<{
   source: HoidEpubSourceDescriptor;
   report: HoidEpubPackageInspectionCandidate;
+  packagePath: string;
   navigationPath: string;
   navigationTargets: ReadonlySet<string>;
   xhtmlTargets: ReadonlySet<string>;
@@ -644,6 +663,10 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         reject("package-invalid");
       }
       const normalized = normalizePackage(parsedPackage, packagePath);
+      for (const [manifestPath] of normalized.manifestByPath) {
+        const manifestEntry = entries.get(manifestPath);
+        if (manifestEntry === undefined || manifestEntry.kind !== "file") reject("manifest-invalid");
+      }
       const navigationEntry = requireFile(entries, normalized.navigationPath);
       const navigationBytes = await readCheckedEntry(
         dependencies.archive, source.sourceId, navigationEntry, HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,
@@ -657,13 +680,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       }
       const flattened = flattenNavigation(navigation, normalized.navigationPath, normalized.manifestByPath);
 
-      const inventory = [...entries.values()]
-        .sort((left, right) => left.ordinal - right.ordinal)
-        .map(entry => [
-          entry.ordinal, entry.path, entry.kind, entry.compressionMethod,
-          entry.compressedSize, entry.uncompressedSize, entry.encrypted ? 1 : 0,
-        ].join("\t"))
-        .join("\n");
+      const inventory = archiveInventoryText(entries);
       const [inventorySha, packageSha, navigationSha] = await Promise.all([
         digestText(dependencies.digest, inventory),
         digestBytes(dependencies.digest, packageBytes),
@@ -702,8 +719,9 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       states.set(report, Object.freeze({
         source,
         report,
+        packagePath,
         navigationPath: normalized.navigationPath,
-        navigationTargets: new Set([...flattened.xhtmlPaths]),
+        navigationTargets: flattened.navigationPaths,
         xhtmlTargets: flattened.xhtmlPaths,
         manifestByPath: normalized.manifestByPath,
       }));
@@ -737,6 +755,27 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       if (manifestItem === undefined || manifestItem.mediaType !== XHTML_MEDIA_TYPE) reject("chapter-not-xhtml");
 
       const entries = normalizeArchiveEntries(await dependencies.archive.listEntries(state.source.sourceId));
+      const currentInventorySha = await digestText(dependencies.digest, archiveInventoryText(entries));
+      if (currentInventorySha !== state.report.archiveInventorySha256) reject("source-changed");
+
+      const currentPackageEntry = requireFile(entries, state.packagePath);
+      const currentPackageBytes = await readCheckedEntry(
+        dependencies.archive, state.source.sourceId, currentPackageEntry,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+      );
+      if (await digestBytes(dependencies.digest, currentPackageBytes) !== state.report.packageDocumentSha256) {
+        reject("source-changed");
+      }
+
+      const currentNavigationEntry = requireFile(entries, state.navigationPath);
+      const currentNavigationBytes = await readCheckedEntry(
+        dependencies.archive, state.source.sourceId, currentNavigationEntry,
+        HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,
+      );
+      if (await digestBytes(dependencies.digest, currentNavigationBytes) !== state.report.navigationDocumentSha256) {
+        reject("source-changed");
+      }
+
       const entry = entries.get(path);
       if (entry === undefined || entry.kind !== "file") reject("chapter-not-in-navigation");
       if (entry.uncompressedSize > HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes) reject("chapter-size-limit");

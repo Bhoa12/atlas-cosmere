@@ -40,7 +40,8 @@ export type HoidEpubArchiveEntry = Readonly<{
   path: string;
   /** Physical local-header order in the ZIP stream, not central-directory iteration order. */
   ordinal: number;
-  localHeaderExtraFieldLength: number;
+  /** null means this random-access adapter has not read the local header yet. */
+  localHeaderExtraFieldLength: number | null;
   kind: HoidEpubEntryKind;
   compressionMethod: HoidEpubCompressionMethod;
   compressedSize: number;
@@ -355,8 +356,10 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     if (
       !Number.isSafeInteger(raw.ordinal) ||
       (raw.ordinal as number) < 0 ||
-      !Number.isSafeInteger(raw.localHeaderExtraFieldLength) ||
-      (raw.localHeaderExtraFieldLength as number) < 0 ||
+      !(raw.localHeaderExtraFieldLength === null || (
+        Number.isSafeInteger(raw.localHeaderExtraFieldLength) &&
+        (raw.localHeaderExtraFieldLength as number) >= 0
+      )) ||
       !Number.isSafeInteger(raw.compressedSize) ||
       (raw.compressedSize as number) < 0 ||
       !Number.isSafeInteger(raw.uncompressedSize) ||
@@ -392,7 +395,7 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     byPath.set(path, Object.freeze({
       path,
       ordinal: raw.ordinal as number,
-      localHeaderExtraFieldLength: raw.localHeaderExtraFieldLength as number,
+      localHeaderExtraFieldLength: raw.localHeaderExtraFieldLength as number | null,
       kind: raw.kind,
       compressionMethod: raw.compressionMethod,
       compressedSize,
@@ -425,7 +428,9 @@ function archiveInventoryText(entries: ReadonlyMap<string, HoidEpubArchiveEntry>
   return [...entries.values()]
     .sort((left, right) => left.ordinal - right.ordinal)
     .map(entry => [
-      entry.ordinal, entry.path, entry.localHeaderExtraFieldLength, entry.kind, entry.compressionMethod,
+      entry.ordinal, entry.path,
+      entry.localHeaderExtraFieldLength === null ? "unknown" : entry.localHeaderExtraFieldLength,
+      entry.kind, entry.compressionMethod,
       entry.compressedSize, entry.uncompressedSize, entry.encrypted ? 1 : 0,
     ].join("\\t"))
     .join("\\n");

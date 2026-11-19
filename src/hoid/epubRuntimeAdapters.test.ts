@@ -384,6 +384,15 @@ describe("concrete local EPUB runtime adapters", () => {
     await expect(xml.parseContainerXml(strToU8(manyNodes))).rejects.toThrow(/node/i);
   });
 
+  it("rejects mismatched XML tag names even when the total depth would balance", async () => {
+    const xml = createHoidXmldomXmlPort();
+    await expect(xml.parseContainerXml(strToU8(
+      '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
+      '<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>' +
+      '</wrong></rootfiles></container>',
+    ))).rejects.toThrow(/names are not properly nested/i);
+  });
+
   it("ignores markup-like text inside comments and CDATA during structural preflight", async () => {
     const xml = createHoidXmldomXmlPort();
     const document = strToU8(

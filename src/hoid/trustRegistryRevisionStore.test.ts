@@ -218,4 +218,29 @@ describe("Hoid rollback-resistant trust registry revision store", () => {
     expect(store.value).toBe(2);
     expect(sourceControlPort.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
   });
+
+  it("rejects a compare-and-set that claims success without durable read-back", async () => {
+    const store = memoryStore(1);
+    store.compareAndSetMinimumRevision.mockResolvedValue(true);
+    const result = await persistHoidTrustRegistryMinimumRevision(
+      registry(2), rootKey, verifier, NOW, DOMAIN, store,
+    );
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "revision-store-not-durable",
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+  });
+
+  it("rejects non-boolean compare-and-set results", async () => {
+    const store = memoryStore(1);
+    store.compareAndSetMinimumRevision.mockResolvedValue(undefined);
+    const result = await persistHoidTrustRegistryMinimumRevision(
+      registry(2), rootKey, verifier, NOW, DOMAIN, store,
+    );
+    expect(result).toMatchObject({ status: "blocked", reason: "revision-store-invalid" });
+  });
+
+
 });

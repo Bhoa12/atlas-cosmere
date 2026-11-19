@@ -22,7 +22,7 @@ type StoreFailureReason = Extract<
 export type HoidCursorCoordinatorResult =
   | Readonly<{
       status: "ready";
-      operation: "loaded" | "migrated" | "updated" | "unchanged";
+      operation: "loaded" | "migrated" | "refreshed" | "updated" | "unchanged";
       snapshot: HoidCursorProgressSnapshot;
     }>
   | Readonly<{ status: "conflict"; snapshot: HoidCursorProgressSnapshot }>
@@ -155,6 +155,45 @@ export class HoidCursorProgressCoordinator {
     });
     this.initialization = pending;
     return pending;
+  }
+
+  /**
+   * Reload the durable store instead of trusting the coordinator's in-memory
+   * snapshot. Conversation and recommendation gateways use this at both sides
+   * of asynchronous work so another coordinator or app window cannot leave
+   * spoiler authorization bound to a stale cursor.
+   */
+  refresh(): Promise<HoidCursorCoordinatorResult> {
+    return this.serialize(async () => {
+      try {
+        if (this.initialization) await this.initialization;
+        const loaded = await this.store.load();
+        if (loaded.status === "unavailable") {
+          this.snapshot = null;
+          this.initialization = null;
+          return Object.freeze({ status: "unavailable" as const, reason: loaded.reason });
+        }
+
+        const validation = validateHoidCursorProgressSnapshot(loaded.snapshot);
+        if (validation.status !== "valid") {
+          this.snapshot = null;
+          this.initialization = null;
+          return Object.freeze({ status: "unavailable" as const, reason: "corrupt-v2" as const });
+        }
+
+        this.snapshot = validation.snapshot;
+        this.initialization = null;
+        return Object.freeze({
+          status: "ready" as const,
+          operation: "refreshed" as const,
+          snapshot: validation.snapshot,
+        });
+      } catch {
+        this.snapshot = null;
+        this.initialization = null;
+        return Object.freeze({ status: "unavailable" as const, reason: "storage-error" as const });
+      }
+    });
   }
 
   /** Advance to a later validated cursor. It can never move a reader backwards. */

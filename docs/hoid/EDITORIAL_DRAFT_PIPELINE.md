@@ -109,8 +109,28 @@ Each href was checked against the edition TOC, OPF manifest and spine. The origi
 
 Three original Spanish summaries were added to staging. The `twok` chapter-eight summary unlocks after chapter nine is completed; the `edgedancer` and `dawnshard` chapter-nine summaries unlock after chapter ten is completed. All three remain `pending-review`.
 
-The current staging inventory contains 29 original summaries backed by 29 individually inspected chapter documents: `twok` chapters 1–8, `edgedancer` and `dawnshard` chapters 1–9, and `tfe` chapters 1–3. No production registry entry was added.
+The current staging inventory contains 32 original summaries backed by 32 individually inspected chapter documents: `twok` chapters 1–9, `edgedancer` and `dawnshard` chapters 1–10, and `tfe` chapters 1–3. No production registry entry was added.
 
-The Library listing also exposes the private `cosmere.epub`, but this iteration did not materialize or inspect its chapter bodies. Its previously verified navigation metadata remains catalogue/structure data only. No new Cosmere chapter summary is claimed.
+The Run 124 Library listing exposed `cosmere.epub`, but the current Run 165 Library listing does not include it. No new Cosmere chapter body was available for inspection in this run, and no new Cosmere chapter summary is claimed.
 
 See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md` for the exact source metadata and document digests.
+
+
+## Run 165 — Roshar chapter-nine through chapter-eleven ingestion
+
+Six chapter bodies were inspected from the three current Library EPUBs. The existing navigation digests matched the edition manifests, and each exact relative href was confirmed in the OPF manifest and reading spine before the original XHTML bytes were hashed.
+
+| Work | Chapter | Relative XHTML target | Document SHA-256 | Future unlock |
+|---|---:|---|---|---:|
+| El Camino de los Reyes | 9 | OEBPS/Text/L1-023.xhtml | c5737b3dc6b37d9bd9166d910f70c2f39f522ceb07123703387b34399e703945 | 10 |
+| El Camino de los Reyes | 10 | OEBPS/Text/L1-024.xhtml | 9c01e31f6d72a910dc1c742609aaf107eaf63f83bb94b4a681df39c8fc08995d | 11 |
+| Danzante del Filo | 10 | OEBPS/Text/010.xhtml | 4fe0dc1e86f52d76bcabef23c4b730ba15543db5491559eed44462b4dfbfe6bf | 11 |
+| Danzante del Filo | 11 | OEBPS/Text/011.xhtml | 1b3d61d87c1a1d7f14f7199996d7751b88c4a1b19f5a2fd808d1bcf8b72bd673 | 12 |
+| Esquirla del amanecer | 10 | OEBPS/Text/10.xhtml | 0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22 | 11 |
+| Esquirla del amanecer | 11 | OEBPS/Text/11.xhtml | c12c49b2ad8813fe5d24894c6be43384e1da23875cf204e4129db9b5f20dddbc | 12 |
+
+Six original Spanish summaries are staged with exact edition, locator, document and summary digests. All six remain pending review. The chapter-ten and chapter-eleven summaries remain locked until the reader reaches the following chapter.
+
+The current staging inventory contains 35 summaries backed by 35 individually inspected chapter documents. The current Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected. No EPUB bytes, XHTML bodies, copied passages or images were committed.
+
+See docs/hoid/ROSHAR_CHAPTER_NINE_TEN_INGESTION.md and docs/hoid/ROSHAR_CHAPTER_TEN_ELEVEN_INGESTION.md for the exact source metadata.

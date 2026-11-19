@@ -150,9 +150,9 @@ describe("Hoid complete editorial review bundle", () => {
     expect(second.status).toBe("ready-for-review");
     if (first.status !== "ready-for-review" || second.status !== "ready-for-review") return;
     expect(first.manifest).toEqual(second.manifest);
-    expect(first.manifest.packets).toHaveLength(47);
+    expect(first.manifest.packets).toHaveLength(53);
     expect(first.manifest.counts).toEqual({
-      summaries: 29,
+      summaries: 35,
       atomicClaims: 1,
       entities: 14,
       relationships: 3,

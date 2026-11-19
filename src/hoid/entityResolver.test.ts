@@ -125,6 +125,17 @@ describe("Hoid spoiler-aware entity resolution", () => {
     expect(createHoidEvidenceRuntime({ knowledge: [entry], claims: [], selector: null })).not.toBeNull();
   });
 
+  it("accepts valid knowledge metadata when no alias disclosure records are supplied", () => {
+    const entry = knowledge("synthetic.knowledge-only", ["Knowledge Only"]);
+    const result = resolveWithAliasEvidence(
+      [entry],
+      [],
+      progress([{ bookId: "twok", chapter: 3 }]),
+      { text: "Knowledge Only" },
+    );
+    expect(result).toMatchObject({ status: "ready", resolution: "not-found" });
+  });
+
   it("resolves an exact authorized alias and returns source metadata only", () => {
     const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
     const result = resolveHoidAuthorizedEntities(

@@ -201,6 +201,7 @@ describe("Hoid atomic editorial claim drafts", () => {
       evidence: [{
         ...item,
         source: { bookId: "twok", chapter: 2, locatorId: chapterTwoLocator },
+        unlock: { bookId: "twok", chapter: 3 },
       }],
     }).status).toBe("invalid");
   });

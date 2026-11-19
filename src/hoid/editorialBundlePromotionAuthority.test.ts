@@ -321,6 +321,7 @@ describe("Hoid complete editorial bundle promotion authority", () => {
     );
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
+      baseSha: request.expectedBaseSha,
       reviewBundleFingerprint: plan.reviewBundleFingerprint,
       receiptsFingerprint: plan.receiptsFingerprint,
       protectedReviewVerified: true,

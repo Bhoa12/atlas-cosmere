@@ -156,6 +156,14 @@ function archiveFor(bytes: Uint8Array) {
 }
 
 describe("concrete local EPUB runtime adapters", () => {
+  it("rejects shared-memory source buffers when the runtime supports them", async () => {
+    if (typeof SharedArrayBuffer === "undefined") return;
+    const shared = new SharedArrayBuffer(makeZip().byteLength);
+    const sharedBytes = new Uint8Array(shared);
+    const archive = createHoidFflateArchivePort(() => sharedBytes);
+    await expect(archive.listEntries("fixture")).rejects.toThrow(/unavailable/);
+  });
+
   it("indexes physical ZIP entries and preserves the EPUB mimetype constraints", async () => {
     const archive = archiveFor(makeZip());
     const entries = await archive.listEntries("fixture");

@@ -254,8 +254,8 @@ describe("offline EPUB ingestion core", () => {
     fixture.entries.splice(1, 0, Object.freeze({
       path: "META-INF/",
       ordinal: 1,
-      kind: "directory",
-      compressionMethod: "stored",
+      kind: "directory" as const,
+      compressionMethod: "stored" as const,
       compressedSize: 0,
       uncompressedSize: 0,
       encrypted: false,
@@ -309,7 +309,7 @@ describe("offline EPUB ingestion core", () => {
       spineTocId: "ncx",
     };
     fixture.xml.parsePackageDocument = vi.fn(async () => epub2Package);
-    fixture.xml.parseNavigationDocument = vi.fn(async (_data: Uint8Array, format) => {
+    fixture.xml.parseNavigationDocument = vi.fn(async (_data: Uint8Array, format: "epub3-nav" | "epub2-ncx") => {
       expect(format).toBe("epub2-ncx");
       return navigation;
     });

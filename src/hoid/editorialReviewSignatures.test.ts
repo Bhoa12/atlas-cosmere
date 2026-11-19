@@ -138,6 +138,7 @@ describe("Hoid cryptographic editorial review trust", () => {
       rootKey,
       createFakeVerifier(),
       now,
+      1,
     );
     expect(result).toEqual({
       status: "verified",
@@ -145,6 +146,17 @@ describe("Hoid cryptographic editorial review trust", () => {
       keyCount: 1,
       expiresAt: "2026-12-01T00:00:00.000Z",
     });
+  });
+
+  it("rejects a correctly signed registry older than the persisted minimum revision", async () => {
+    const registry = createRegistry();
+    expect(await verifyHoidReviewerTrustRegistry(
+      registry,
+      rootKey,
+      createFakeVerifier(),
+      now,
+      4,
+    )).toEqual({ status: "invalid", reason: "registry-rollback" });
   });
 
   it("rejects a trust registry whose root signature was changed", async () => {
@@ -158,6 +170,7 @@ describe("Hoid cryptographic editorial review trust", () => {
       rootKey,
       createFakeVerifier(),
       now,
+      1,
     )).toEqual({ status: "invalid", reason: "registry-signature-invalid" });
   });
 
@@ -168,6 +181,7 @@ describe("Hoid cryptographic editorial review trust", () => {
       rootKey,
       createFakeVerifier(),
       now,
+      1,
     )).status).toBe("invalid");
 
     const future = createRegistry();
@@ -176,6 +190,7 @@ describe("Hoid cryptographic editorial review trust", () => {
       rootKey,
       createFakeVerifier(),
       now,
+      1,
     )).status).toBe("invalid");
 
     const longLived = createRegistry();
@@ -184,6 +199,7 @@ describe("Hoid cryptographic editorial review trust", () => {
       rootKey,
       createFakeVerifier(),
       now,
+      1,
     )).toEqual({ status: "invalid", reason: "registry-lifetime-exceeded" });
   });
 
@@ -192,6 +208,7 @@ describe("Hoid cryptographic editorial review trust", () => {
     const signature = createClaimSignature(registry);
     const result = await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, context, signature, registry, rootKey, createFakeVerifier(), now,
+      3,
     );
     expect(result).toMatchObject({
       status: "verified",
@@ -213,9 +230,11 @@ describe("Hoid cryptographic editorial review trust", () => {
     const changedPlan = { ...context, promotionPlanFingerprint: "e".repeat(64) };
     expect((await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, changedHead, signature, registry, rootKey, createFakeVerifier(), now,
+      3,
     )).status).toBe("invalid");
     expect((await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, changedPlan, signature, registry, rootKey, createFakeVerifier(), now,
+      3,
     )).status).toBe("invalid");
   });
 
@@ -224,6 +243,7 @@ describe("Hoid cryptographic editorial review trust", () => {
     const signature = createClaimSignature(registry);
     expect(await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, context, signature, registry, rootKey, createFakeVerifier(), now,
+      3,
     )).toEqual({ status: "invalid", reason: "reviewer-key-mismatch" });
   });
 
@@ -235,6 +255,7 @@ describe("Hoid cryptographic editorial review trust", () => {
     expect((await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, context, createClaimSignature(revoked), revoked,
       rootKey, createFakeVerifier(), now,
+      3,
     )).reason).toBe("key-revoked");
 
     const expired = createRegistry({
@@ -243,6 +264,7 @@ describe("Hoid cryptographic editorial review trust", () => {
     expect((await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, context, createClaimSignature(expired), expired,
       rootKey, createFakeVerifier(), now,
+      3,
     )).reason).toBe("key-not-current");
 
     const otherRepository = createRegistry({
@@ -251,6 +273,7 @@ describe("Hoid cryptographic editorial review trust", () => {
     expect((await verifyHoidApprovedClaimReviewSignature(
       claim, knowledge, context, createClaimSignature(otherRepository), otherRepository,
       rootKey, createFakeVerifier(), now,
+      3,
     )).reason).toBe("repository-not-authorized");
   });
 
@@ -260,6 +283,7 @@ describe("Hoid cryptographic editorial review trust", () => {
     const changed = { ...claim, text: "Texto alterado tras la revisión." };
     expect(await verifyHoidApprovedClaimReviewSignature(
       changed, knowledge, context, signature, registry, rootKey, createFakeVerifier(), now,
+      3,
     )).toEqual({ status: "invalid", reason: "invalid-claim" });
   });
 
@@ -270,12 +294,14 @@ describe("Hoid cryptographic editorial review trust", () => {
       rootKey,
       createFakeVerifier(),
       now,
+      1,
     )).status).toBe("invalid");
     expect(await verifyHoidReviewerTrustRegistry(
       registry,
       rootKey,
       {},
       now,
+      1,
     )).toEqual({ status: "invalid", reason: "verifier-unavailable" });
   });
 

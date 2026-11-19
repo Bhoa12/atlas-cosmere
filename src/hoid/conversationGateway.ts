@@ -97,6 +97,8 @@ export type HoidConversationGatewayConfig = Readonly<{
   runtime: HoidConversationRuntime;
   /** Must return the coordinator's latest authoritative v2 snapshot. */
   getCurrentProgress: () => unknown;
+  /** Optional durable read-through used before and after async answer work. */
+  refreshCurrentProgress?: () => unknown | Promise<unknown>;
   /** Optional test seam; production defaults to reviewed local coreference evidence. */
   resolveCoreference?: (
     question: string,
@@ -110,6 +112,13 @@ export type HoidConversationGatewayConfig = Readonly<{
   /** Optional trusted local graph route; production composition supplies it by default. */
   relationshipGateway?: Pick<HoidRelationshipGateway, "answer"> | null;
 }>;
+
+async function readCurrentProgress(config: HoidConversationGatewayConfig): Promise<unknown> {
+  if (typeof config.refreshCurrentProgress === "function") {
+    return await config.refreshCurrentProgress();
+  }
+  return config.getCurrentProgress();
+}
 
 const REQUEST_KEYS = ["question", "progress", "intent", "context", "typedContext"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
@@ -534,7 +543,7 @@ export class HoidConversationGateway {
 
     let currentBefore: unknown;
     try {
-      currentBefore = this.config.getCurrentProgress();
+      currentBefore = await readCurrentProgress(this.config);
     } catch {
       return unavailable("invalid-progress");
     }
@@ -579,7 +588,7 @@ export class HoidConversationGateway {
 
       let currentAfterTypedFollowUp: unknown;
       try {
-        currentAfterTypedFollowUp = this.config.getCurrentProgress();
+        currentAfterTypedFollowUp = await readCurrentProgress(this.config);
       } catch {
         return unavailable("invalid-progress");
       }
@@ -694,7 +703,7 @@ export class HoidConversationGateway {
 
       let currentAfterRelationship: unknown;
       try {
-        currentAfterRelationship = this.config.getCurrentProgress();
+        currentAfterRelationship = await readCurrentProgress(this.config);
       } catch {
         return unavailable("invalid-progress");
       }
@@ -745,7 +754,7 @@ export class HoidConversationGateway {
 
       let currentAfterCoreference: unknown;
       try {
-        currentAfterCoreference = this.config.getCurrentProgress();
+        currentAfterCoreference = await readCurrentProgress(this.config);
       } catch {
         return unavailable("invalid-progress");
       }
@@ -819,7 +828,7 @@ export class HoidConversationGateway {
 
     let currentAfter: unknown;
     try {
-      currentAfter = this.config.getCurrentProgress();
+      currentAfter = await readCurrentProgress(this.config);
     } catch {
       return unavailable("invalid-progress");
     }
@@ -852,7 +861,7 @@ export class HoidConversationGateway {
 
     let currentBefore: unknown;
     try {
-      currentBefore = this.config.getCurrentProgress();
+      currentBefore = await readCurrentProgress(this.config);
     } catch {
       return unavailableReadingContext("invalid-progress");
     }
@@ -869,7 +878,7 @@ export class HoidConversationGateway {
 
     let currentAfter: unknown;
     try {
-      currentAfter = this.config.getCurrentProgress();
+      currentAfter = await readCurrentProgress(this.config);
     } catch {
       return unavailableReadingContext("invalid-progress");
     }
@@ -906,7 +915,7 @@ export class HoidConversationGateway {
 
     let currentBefore: unknown;
     try {
-      currentBefore = this.config.getCurrentProgress();
+      currentBefore = await readCurrentProgress(this.config);
     } catch {
       return unavailableRecommendation("invalid-progress");
     }
@@ -930,7 +939,7 @@ export class HoidConversationGateway {
 
     let currentAfter: unknown;
     try {
-      currentAfter = this.config.getCurrentProgress();
+      currentAfter = await readCurrentProgress(this.config);
     } catch {
       return unavailableRecommendation("invalid-progress");
     }
@@ -968,7 +977,8 @@ export function createHoidConversationGateway(
     config.runtime === null ||
     typeof config.runtime !== "object" ||
     typeof config.runtime.answer !== "function" ||
-    typeof config.getCurrentProgress !== "function"
+    typeof config.getCurrentProgress !== "function" ||
+    (config.refreshCurrentProgress !== undefined && typeof config.refreshCurrentProgress !== "function")
   ) return null;
   const relationshipGateway = config.relationshipGateway === undefined
     ? (() => {

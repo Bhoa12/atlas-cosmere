@@ -238,7 +238,7 @@ function canonicalPacket(value: unknown): HoidEditorialReviewPacket | null {
     !/^[a-f0-9]{64}$/.test(raw.sourceDocumentSha256) ||
     typeof source.chapter !== "number" || !Number.isSafeInteger(source.chapter) || source.chapter < 1 ||
     typeof unlock.chapter !== "number" || !Number.isSafeInteger(unlock.chapter) || unlock.chapter < 1 ||
-    source.bookId !== unlock.bookId || unlock.chapter <= source.chapter ||
+    source.bookId !== unlock.bookId || unlock.chapter < source.chapter ||
     typeof source.locatorId !== "string" || source.locatorId.length > 256 ||
     /[\u0000-\u001f\u007f]/u.test(source.locatorId) ||
     typeof source.editionId !== "string" || source.editionId.length > 128 ||

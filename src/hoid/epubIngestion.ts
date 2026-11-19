@@ -38,7 +38,9 @@ export type HoidEpubSourceDescriptor = Readonly<{
 
 export type HoidEpubArchiveEntry = Readonly<{
   path: string;
+  /** Physical local-header order in the ZIP stream, not central-directory iteration order. */
   ordinal: number;
+  localHeaderExtraFieldLength: number;
   kind: HoidEpubEntryKind;
   compressionMethod: HoidEpubCompressionMethod;
   compressedSize: number;
@@ -340,7 +342,7 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
 
   for (const raw of value) {
     if (!exactDataRecord(raw, [
-      "path", "ordinal", "kind", "compressionMethod", "compressedSize",
+      "path", "ordinal", "localHeaderExtraFieldLength", "kind", "compressionMethod", "compressedSize",
       "uncompressedSize", "encrypted",
     ])) reject("invalid-archive-entry");
 
@@ -353,6 +355,8 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     if (
       !Number.isSafeInteger(raw.ordinal) ||
       (raw.ordinal as number) < 0 ||
+      !Number.isSafeInteger(raw.localHeaderExtraFieldLength) ||
+      (raw.localHeaderExtraFieldLength as number) < 0 ||
       !Number.isSafeInteger(raw.compressedSize) ||
       (raw.compressedSize as number) < 0 ||
       !Number.isSafeInteger(raw.uncompressedSize) ||
@@ -388,6 +392,7 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     byPath.set(path, Object.freeze({
       path,
       ordinal: raw.ordinal as number,
+      localHeaderExtraFieldLength: raw.localHeaderExtraFieldLength as number,
       kind: raw.kind,
       compressionMethod: raw.compressionMethod,
       compressedSize,
@@ -408,6 +413,7 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     firstFile === undefined ||
     firstFile.path !== "mimetype" ||
     firstFile.compressionMethod !== "stored" ||
+    firstFile.localHeaderExtraFieldLength !== 0 ||
     firstFile.compressedSize !== 20 ||
     firstFile.uncompressedSize !== 20
   ) reject("mimetype-invalid");
@@ -419,7 +425,7 @@ function archiveInventoryText(entries: ReadonlyMap<string, HoidEpubArchiveEntry>
   return [...entries.values()]
     .sort((left, right) => left.ordinal - right.ordinal)
     .map(entry => [
-      entry.ordinal, entry.path, entry.kind, entry.compressionMethod,
+      entry.ordinal, entry.path, entry.localHeaderExtraFieldLength, entry.kind, entry.compressionMethod,
       entry.compressedSize, entry.uncompressedSize, entry.encrypted ? 1 : 0,
     ].join("\\t"))
     .join("\\n");

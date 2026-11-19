@@ -1,0 +1,64 @@
+name: Hoid trust registry revision store
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
+      - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.ts"
+      - "src/hoid/promotionReviewAuthority.test.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.test.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.test.ts"
+      - "docs/hoid/TRUST_REGISTRY_REVISION_STORAGE.md"
+      - ".github/workflows/hoid-trust-registry-revision-store.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
+      - "src/hoid/promotionReviewAuthority.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.ts"
+      - "src/hoid/promotionReviewAuthority.test.ts"
+      - "src/hoid/githubSourceControlReviewAdapter.test.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.test.ts"
+      - "docs/hoid/TRUST_REGISTRY_REVISION_STORAGE.md"
+      - ".github/workflows/hoid-trust-registry-revision-store.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trust-registry-revision-store:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test monotonic storage and protected review regressions
+        run: >-
+          npx vitest run
+          src/hoid/trustRegistryRevisionStore.test.ts
+          src/hoid/promotionReviewAuthority.test.ts
+          src/hoid/githubSourceControlReviewAdapter.test.ts
+          src/hoid/signedEditorialBundlePromotionAuthority.test.ts
+      - name: Type-check trust and review boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/trustRegistryRevisionStore.ts
+          src/hoid/signedEditorialBundlePromotionAuthority.ts
+          src/hoid/editorialReviewSignatures.ts
+          src/hoid/promotionReviewAuthority.ts
+          src/hoid/githubSourceControlReviewAdapter.ts

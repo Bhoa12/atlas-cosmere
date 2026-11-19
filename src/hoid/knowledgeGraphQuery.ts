@@ -15,10 +15,12 @@ export type HoidKnowledgeGraphPath = Readonly<{
   nodeIds: readonly string[];
   edges: readonly HoidKnowledgeGraphEdge[];
 }>;
-import { HOID_APPROVED_CLAIMS } from "./editorialRegistry";
+import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import type { HoidApprovedClaim } from "./evidenceRuntime";
+import type { HoidKnowledgeEntry } from "./catalog";
 import { sha256Hex } from "./sha256";
+import { validateHoidApprovedClaimAttestation } from "./approvedClaimIntegrity";
 
 export type HoidKnowledgeGraphQuery = Readonly<{
   fromId: string;
@@ -120,8 +122,6 @@ const MAX_PATHS = 10;
 const DEFAULT_PATHS = 3;
 const MAX_QUERY_EXPANSIONS = 4_096;
 const MAX_CLAIMS = 512;
-const MAX_EVIDENCE_IDS = 16;
-const MAX_CLAIM_TEXT_LENGTH = 4_000;
 const trustedPlans = new WeakSet<object>();
 
 function canonicalRecord(
@@ -458,65 +458,25 @@ export function createProductionHoidExplanationPlan(
   return planFromQuery(query, result);
 }
 
-function canonicalApprovedClaims(value: unknown): readonly HoidApprovedClaim[] | null {
+function canonicalApprovedClaims(
+  value: unknown,
+  knowledge: readonly HoidKnowledgeEntry[],
+): readonly HoidApprovedClaim[] | null {
   const items = canonicalDenseArray(value, MAX_CLAIMS);
   if (!items) return null;
   const result: HoidApprovedClaim[] = [];
   const seen = new Set<string>();
 
   for (const item of items) {
-    const record = canonicalRecord(item, ["id", "text", "intent", "evidenceIds", "review"]);
-    if (!record || Object.keys(record).length !== 5) return null;
-    const id = record.id;
-    const text = record.text;
-    const intent = record.intent;
+    const validation = validateHoidApprovedClaimAttestation(item, knowledge);
+    if (validation.status !== "valid") return null;
+    const claim = validation.claim;
     if (
-      !validId(id) ||
-      seen.has(id) ||
-      typeof text !== "string" ||
-      text !== text.trim() ||
-      text.length < 1 ||
-      text.length > MAX_CLAIM_TEXT_LENGTH ||
-      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text) ||
-      (intent !== "explain" && intent !== "context")
+      seen.has(claim.id) ||
+      (claim.intent !== "explain" && claim.intent !== "context")
     ) return null;
-
-    const evidenceIds = canonicalDenseArray(record.evidenceIds, MAX_EVIDENCE_IDS);
-    if (
-      !evidenceIds ||
-      evidenceIds.length < 2 ||
-      !evidenceIds.every(value => validId(value)) ||
-      new Set(evidenceIds).size !== evidenceIds.length
-    ) return null;
-
-    const review = canonicalRecord(record.review, ["status", "origin", "reviewerId", "reviewedAt"]);
-    if (!review || Object.keys(review).length !== 4) return null;
-    const reviewerId = review.reviewerId;
-    const reviewedAt = review.reviewedAt;
-    if (
-      review.status !== "approved" ||
-      review.origin !== "original-editorial" ||
-      typeof reviewerId !== "string" ||
-      !reviewerId.trim() ||
-      reviewerId.length > 128 ||
-      typeof reviewedAt !== "string"
-    ) return null;
-    const timestamp = Date.parse(reviewedAt);
-    if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString() !== reviewedAt) return null;
-
-    result.push(Object.freeze({
-      id,
-      text,
-      intent,
-      evidenceIds: Object.freeze([...(evidenceIds as readonly string[])].sort()),
-      review: Object.freeze({
-        status: "approved",
-        origin: "original-editorial",
-        reviewerId: reviewerId.trim(),
-        reviewedAt,
-      }),
-    }));
-    seen.add(id);
+    result.push(claim);
+    seen.add(claim.id);
   }
   return Object.freeze(result);
 }
@@ -541,6 +501,7 @@ function citationIsUnlocked(
  */
 export function renderHoidExplanationPlan(
   planInput: unknown,
+  knowledgeInput: unknown,
   claimsInput: unknown,
   progressInput: unknown,
 ): HoidRenderedExplanation {
@@ -558,7 +519,9 @@ export function renderHoidExplanationPlan(
     fingerprintHoidCursorProgressProjection(projection) !== plan.progressFingerprint
   ) return Object.freeze({ status: "unavailable", reason: "stale-progress" });
 
-  const claims = canonicalApprovedClaims(claimsInput);
+  const knowledge = canonicalDenseArray(knowledgeInput, 512) as readonly HoidKnowledgeEntry[] | null;
+  if (!knowledge) return Object.freeze({ status: "unavailable", reason: "invalid-claims" });
+  const claims = canonicalApprovedClaims(claimsInput, knowledge);
   if (!claims) return Object.freeze({ status: "unavailable", reason: "invalid-claims" });
   const byId = new Map(claims.map(claim => [claim.id, claim]));
   const segments: HoidRenderedExplanationSegment[] = [];
@@ -603,5 +566,10 @@ export function renderProductionHoidExplanationPlan(
   planInput: unknown,
   progressInput: unknown,
 ): HoidRenderedExplanation {
-  return renderHoidExplanationPlan(planInput, HOID_APPROVED_CLAIMS, progressInput);
+  return renderHoidExplanationPlan(
+    planInput,
+    HOID_EDITORIAL_KNOWLEDGE,
+    HOID_APPROVED_CLAIMS,
+    progressInput,
+  );
 }

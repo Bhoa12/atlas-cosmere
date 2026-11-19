@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
 import {
+  buildHoidReviewerTrustRegistrySigningMessage,
+  type HoidReviewerTrustRegistry,
+  type HoidReviewerTrustRootKey,
+} from "./editorialReviewSignatures";
+import { persistHoidTrustRegistryMinimumRevision } from "./trustRegistryRevisionStore";
+import {
   buildHoidTrustRevisionWitnessReceiptSigningMessage,
   createHoidRemoteTrustRegistryRevisionStorePort,
   type HoidTrustRevisionWitnessCompareAndSetRequest,
@@ -292,6 +298,75 @@ describe("Hoid signed remote monotonic trust revision witness", () => {
       ...valid,
       extra: true,
     })).toBeNull();
+  });
+
+
+  it("composes with the existing monotonic coordinator using a separately signed registry and witness", async () => {
+    const rootSeed = new Uint8Array(32).fill(11);
+    const reviewerSeed = new Uint8Array(32).fill(13);
+    const rootKey: HoidReviewerTrustRootKey = {
+      keyId: "editorial-root",
+      publicKeyHex: hex(ed25519.getPublicKey(rootSeed)),
+    };
+    const unsignedRegistry = {
+      schemaVersion: 1 as const,
+      revision: 2,
+      issuedAt: "2026-11-19T12:00:00.000Z",
+      expiresAt: "2026-11-20T00:00:00.000Z",
+      keys: [{
+        keyId: "reviewer-key",
+        reviewerId: "reviewer-one",
+        algorithm: "Ed25519" as const,
+        publicKeyHex: hex(ed25519.getPublicKey(reviewerSeed)),
+        status: "active" as const,
+        validFrom: "2026-01-01T00:00:00.000Z",
+        validUntil: "2027-01-01T00:00:00.000Z",
+        revokedAt: null,
+        allowedRepositoryFullNames: ["Bhoa12/atlas-cosmere"],
+      }],
+    };
+    const registryMessage = buildHoidReviewerTrustRegistrySigningMessage(unsignedRegistry);
+    if (!registryMessage) throw new Error("Invalid signed-registry fixture");
+    const registry: HoidReviewerTrustRegistry = {
+      ...unsignedRegistry,
+      rootSignature: {
+        algorithm: "Ed25519",
+        keyId: rootKey.keyId,
+        signatureHex: hex(ed25519.sign(new TextEncoder().encode(registryMessage), rootSeed)),
+      },
+    };
+
+    let minimumRevision = 1;
+    const store = makeStore({
+      read: async request => readReceipt(request, { observedRevision: minimumRevision }),
+      compare: async request => {
+        if (minimumRevision === request.expectedRevision) {
+          minimumRevision = request.nextRevision;
+          return casReceipt(request, "advanced", minimumRevision);
+        }
+        if (minimumRevision === request.nextRevision) {
+          return casReceipt(request, "already-applied", minimumRevision);
+        }
+        return casReceipt(request, "conflict", minimumRevision);
+      },
+    });
+
+    const result = await persistHoidTrustRegistryMinimumRevision(
+      registry,
+      rootKey,
+      createHoidNobleEd25519VerificationPort(),
+      NOW,
+      DOMAIN,
+      store.port,
+    );
+    expect(result).toMatchObject({
+      status: "persisted",
+      trustDomainId: DOMAIN,
+      registryRevision: 2,
+      minimumRevision: 2,
+      advanced: true,
+    });
+    expect(minimumRevision).toBe(2);
   });
 
   it("fails closed when the witness transport is unavailable", async () => {

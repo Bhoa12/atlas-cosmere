@@ -14,7 +14,7 @@ Every target passed all of these checks:
 4. The target matched exactly one OPF manifest item.
 5. The manifest item was present in the reading spine.
 6. The original XHTML bytes were SHA-256 fingerprinted.
-7. The summary was written in original Spanish prose and assigned an unlock threshold of chapter N+1.
+7. The summary was written in original Spanish prose and assigned a completed-through evidence watermark of chapter N; the reader cursor must reach chapter N+1.
 
 | Work | Source asset | Edition | Navigation SHA-256 | Chapter | Relative XHTML target | Document SHA-256 | Unlock |
 |---|---|---|---|---:|---|---|---:|

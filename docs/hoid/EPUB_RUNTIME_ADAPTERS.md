@@ -99,4 +99,4 @@ Chapter inspection continues to revalidate the inventory and package-defining do
 
 ## Remaining integration
 
-The next step is an Expo-compatible local file provider (picker, cache URI and bounded byte/range reads), followed by device testing on Android and iOS. No real private EPUB has been inspected by this run.
+The Expo local provider, bounded range reader and reader-facing import panel are now implemented. A separate local metadata-only audit of four private EPUBs confirmed their ZIP integrity and registered navigation digests; see `EXPLICIT_EPUB_IMPORT_UI.md`. That audit did not execute the TypeScript adapter against those files or inspect chapter XHTML. Android/iOS device testing and an end-to-end TypeScript runtime audit against the local files remain outstanding.

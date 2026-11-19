@@ -6,6 +6,7 @@ import {
 } from "./cursorEvidenceRuntime";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry } from "./catalog";
+import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -32,38 +33,40 @@ const knowledge: HoidKnowledgeEntry[] = [
     id: "e-beta",
     aliases: ["Personaje Beta"],
     kind: "character",
-    firstSafeAppearance: { bookId: "wor", chapter: 3 },
-    evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
-    evidenceUnlock: { bookId: "wor", chapter: 3 },
+    firstSafeAppearance: { bookId: "edgedancer", chapter: 3 },
+    evidenceSource: { bookId: "edgedancer", chapter: 3, locatorId: locator("edgedancer", 3) },
+    evidenceUnlock: { bookId: "edgedancer", chapter: 3 },
     provenance: "verified",
     summary: "Resumen editorial sintético de prueba sobre Personaje Beta.",
   },
 ];
 
-const review: HoidApprovedClaim["review"] = {
-  status: "approved",
-  origin: "original-editorial",
+const reviewer = Object.freeze({
   reviewerId: "cursor-runtime-test",
   reviewedAt: "2026-11-17T00:00:00.000Z",
-};
+});
+
+function approvedClaim(core: HoidApprovedClaimCore): HoidApprovedClaim {
+  const attestation = createHoidApprovedClaimAttestation(core, knowledge, reviewer);
+  if (attestation.status !== "valid") throw new Error("Cursor fixture claim attestation failed: " + attestation.reason);
+  return Object.freeze({ ...core, integrity: attestation.integrity, review: attestation.review });
+}
 
 const claims: HoidApprovedClaim[] = [
-  {
+  approvedClaim({
     id: "claim-alpha",
     text: "Afirmación editorial sintética sobre Personaje Alfa.",
     intent: "explain",
     evidenceIds: ["e-alpha"],
     entityIds: ["e-alpha"],
-    review,
-  },
-  {
+  }),
+  approvedClaim({
     id: "claim-cross-book",
     text: "Relación sintética que requiere las dos evidencias.",
     intent: "explain",
     evidenceIds: ["e-alpha", "e-beta"],
     entityIds: ["e-alpha", "e-beta"],
-    review,
-  },
+  }),
 ];
 
 function cursor(bookId: string, chapter: number) {
@@ -166,7 +169,7 @@ describe("HoidCursorEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       progress: snapshot([
         { bookId: "twok", cursor: cursor("twok", 3) },
-        { bookId: "wor", cursor: cursor("wor", 4) },
+        { bookId: "edgedancer", cursor: cursor("edgedancer", 4) },
       ], 2),
     });
     expect(unlocked.status).toBe("authorized");
@@ -295,7 +298,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     const facade = createHoidCursorEvidenceRuntime(runtime);
     const progress = snapshot([
       { bookId: "twok", cursor: cursor("twok", 3), order: 1 },
-      { bookId: "wor", cursor: cursor("wor", 4), order: 2 },
+      { bookId: "edgedancer", cursor: cursor("edgedancer", 4), order: 2 },
     ], 2);
 
     const result = await facade.answer({

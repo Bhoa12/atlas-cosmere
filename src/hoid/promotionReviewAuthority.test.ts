@@ -181,6 +181,7 @@ describe("Hoid protected source-control review authority", () => {
       status: "ready-for-maintainer-commit",
       repositoryFullName: request.repositoryFullName,
       pullRequestNumber: request.pullRequestNumber,
+      baseSha: BASE_SHA,
       headSha: HEAD_SHA,
       approvalReviewerIds: ["code-owner", "second-reviewer"],
       requiredApprovals: 2,

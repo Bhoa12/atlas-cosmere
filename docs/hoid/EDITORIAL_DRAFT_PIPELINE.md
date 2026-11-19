@@ -131,7 +131,7 @@ Six chapter bodies were inspected from the three current Library EPUBs. The exis
 
 Six original Spanish summaries are staged with exact edition, locator, document and summary digests. All six remain pending review. The chapter-ten and chapter-eleven summaries remain locked until the reader reaches the following chapter.
 
-The current staging inventory contains 39 summaries backed by 39 individually inspected chapter documents. The current Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected. No EPUB bytes, XHTML bodies, copied passages or images were committed.
+The current staging inventory contains 39 summaries backed by 39 individually inspected chapter documents. At the time of Run 165, the Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected. No EPUB bytes, XHTML bodies, copied passages or images were committed.
 
 See docs/hoid/ROSHAR_CHAPTER_NINE_TEN_INGESTION.md and docs/hoid/ROSHAR_CHAPTER_TEN_ELEVEN_INGESTION.md for the exact source metadata.
 
@@ -155,3 +155,21 @@ The new batch raises the staging inventory to 39 summaries backed by 39 individu
 ## Run 169 — chapter unlock coordinate system
 
 For a summary sourced from chapter N, the evidence unlock watermark is N (completed through N). The reader's open cursor must advance to N+1. Do not store N+1 in `evidenceUnlock`: that field is not the open cursor and doing so delays the summary until after chapter N+1 is completed.
+
+
+## Run 170 — Cosmere and Roshar source expansion
+
+The current Library listing contained `cosmere.epub`, the Roshar omnibus, and the standalone EPUBs for Danzante del Filo and Esquirla del amanecer. The four navigation-document digests matched their edition-bound allowlist values. Each target was resolved from the navigation document, matched to exactly one OPF manifest item, confirmed in the reading spine, and fingerprinted from its original XHTML bytes.
+
+| Work | Chapter | Relative XHTML target | Document SHA-256 | Evidence watermark | Minimum open cursor |
+|---|---:|---|---|---:|---:|
+| El Imperio Final | 5 | EPUB/books/b000001/OEBPS/Text/005.xhtml | ec48d5ed29ede0760a63d913fcc71d79c908d879fe62841fe6cbfc64d90676d8 | 5 | 6 |
+| El Camino de los Reyes | 12 | OEBPS/Text/L1-032.xhtml | 1f220d29b388c67834fb11d21fdb120407d1220531d735f946c00cc26223e838 | 12 | 13 |
+| Danzante del Filo | 13 | OEBPS/Text/013.xhtml | 341ffa8144efe7c054d92bbedd54246889a92b268db7b62118f6b651095a516d | 13 | 14 |
+| Esquirla del amanecer | 13 | OEBPS/Text/13.xhtml | e0a97fb4d28b90b99169e6afcdf4fbd3e42b67c1ff5b0c61e0cb4aad6405544c | 13 | 14 |
+
+Four original Spanish summaries were added to `editorialDrafts.ts` with exact summary SHA-256 values, edition-bound locators and source-document digests. They are `tfe.chapter-005.kelsier-venture-atium`, `twok.chapter-012.adolin-abismoid-hunt`, `edgedancer.chapter-013.lift-emperor-decree` and `dawnshard.chapter-013.lopen-akinah-landing`.
+
+All four remain pending independent editorial review. For source chapter N, the evidence watermark is N and the reader's open cursor must reach N+1. A cursor at N still leaves that chapter's summary locked. The integration regression also proves that another work's progress cannot unlock the evidence.
+
+The staging inventory now contains 43 original summaries backed by 43 individually inspected chapter documents. Production knowledge, approved claims and activation receipts remain unchanged. No EPUB, XHTML body, copied passage, extracted source prose, image or private file path was committed.

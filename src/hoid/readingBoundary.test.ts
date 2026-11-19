@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { HoidKnowledgeEntry } from "./catalog";
+import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
+import { isEvidenceUnlocked } from "./evidenceScope";
 import { createHoidReadingCursor } from "./readingManifest";
 import {
   isChapterBeyondCompletedReadingBoundary,
@@ -142,4 +145,58 @@ describe("Hoid reader spoiler boundary", () => {
 
     expect(result).toBeNull();
   });
+  it("keeps each Run 170 summary locked at its source cursor and unlocks it at the next cursor", () => {
+    const ids = new Set([
+      "tfe.chapter-005.kelsier-venture-atium",
+      "twok.chapter-012.adolin-abismoid-hunt",
+      "edgedancer.chapter-013.lift-emperor-decree",
+      "dawnshard.chapter-013.lopen-akinah-landing",
+    ]);
+    const drafts = HOID_EDITORIAL_DRAFTS.filter(draft => ids.has(draft.id));
+    expect(drafts).toHaveLength(4);
+
+    for (const draft of drafts) {
+      const source = draft.evidenceSource;
+      expect(draft.evidenceUnlock).toEqual({
+        bookId: source.bookId,
+        chapter: source.chapter,
+      });
+      const entry: HoidKnowledgeEntry = {
+        id: draft.id,
+        aliases: [...draft.aliases],
+        kind: draft.kind,
+        firstSafeAppearance: { ...draft.firstSafeAppearance },
+        evidenceSource: { ...source },
+        evidenceUnlock: { ...draft.evidenceUnlock },
+        summary: draft.summary,
+      };
+
+      const sourceCursor = projectHoidCursorPositionToBoundary({
+        bookId: source.bookId,
+        cursor: cursor(source.bookId, source.chapter),
+      });
+      expect(sourceCursor?.safeReadingPosition?.chapter).toBe(source.chapter - 1);
+      expect(isEvidenceUnlocked(
+        entry,
+        sourceCursor?.safeReadingPosition ? [sourceCursor.safeReadingPosition] : [],
+      )).toBe(false);
+
+      const nextCursor = projectHoidCursorPositionToBoundary({
+        bookId: source.bookId,
+        cursor: cursor(source.bookId, source.chapter + 1),
+      });
+      expect(nextCursor?.safeReadingPosition?.chapter).toBe(source.chapter);
+      if (!nextCursor?.safeReadingPosition) throw new Error("Falta la posición completada de prueba");
+      expect(isEvidenceUnlocked(entry, [nextCursor.safeReadingPosition])).toBe(true);
+
+      const otherBookId = source.bookId === "tfe" ? "twok" : "tfe";
+      const otherCursor = projectHoidCursorPositionToBoundary({
+        bookId: otherBookId,
+        cursor: cursor(otherBookId, source.chapter + 1),
+      });
+      if (!otherCursor?.safeReadingPosition) throw new Error("Falta la posición del otro libro");
+      expect(isEvidenceUnlocked(entry, [otherCursor.safeReadingPosition])).toBe(false);
+    }
+  });
+
 });

@@ -38,7 +38,7 @@ describe("Hoid editorial review packets", () => {
   it("builds a deterministic packet for each pending source-backed draft", () => {
     expect(built.status).toBe("ready");
     if (built.status !== "ready") return;
-    expect(built.packets).toHaveLength(39);
+    expect(built.packets).toHaveLength(43);
     expect(built.packets.map(item => item.draftId)).toEqual([
       "dawnshard.chapter-001.akinah-expedition",
       "dawnshard.chapter-002.rysn-navani-akinah-mission",

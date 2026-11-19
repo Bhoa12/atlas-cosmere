@@ -11,6 +11,8 @@ on:
       - "src/hoid/epubRangeRuntimeAdapters.ts"
       - "src/hoid/epubImportSelection.ts"
       - "src/hoid/epubImportSelection.test.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
@@ -21,6 +23,7 @@ on:
       - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
+      - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
   pull_request:
     paths:
@@ -30,6 +33,8 @@ on:
       - "src/hoid/epubRangeRuntimeAdapters.ts"
       - "src/hoid/epubImportSelection.ts"
       - "src/hoid/epubImportSelection.test.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
@@ -40,6 +45,7 @@ on:
       - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
+      - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
 
 permissions:
@@ -58,12 +64,13 @@ jobs:
       - name: Verify Expo SDK dependency compatibility
         run: npx expo install --check
       - name: Inspect XML parser dependency tree
-        run: npm ls @xmldom/xmldom
+        run: npm ls @xmldom/xmldom --all
       - name: Test XML adapter, edition binding and ingestion
         run: >-
           npx vitest run
           src/hoid/epubRuntimeAdapters.test.ts
           src/hoid/epubImportSelection.test.ts
+          src/hoid/epubImportLifecycle.test.ts
           src/hoid/epubIngestion.test.ts
       - name: Strictly type-check platform and UI boundaries
         run: >-
@@ -73,6 +80,8 @@ jobs:
           src/hoid/epubRuntimeAdapters.test.ts
           src/hoid/epubRangeRuntimeAdapters.ts
           src/hoid/epubImportSelection.ts
+          src/hoid/epubImportLifecycle.ts
+          src/hoid/epubImportLifecycle.test.ts
           src/hoid/epubImportSelection.test.ts
           src/hoid/epubIngestion.ts
           src/hoid/editionStructure.ts

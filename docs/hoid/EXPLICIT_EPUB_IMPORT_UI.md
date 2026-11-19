@@ -24,6 +24,7 @@ The binding is built by `createHoidEpubSourceDescriptor(sourceId, workId, editio
 - Ambiguous works retain their existing progress policies: White Sand volumes remain unsegmented, Elantris and Viento y Verdad retain their safe numeric prefixes, and Arcanum remains a section collection.
 - Source IDs and file URIs are ephemeral. The panel releases its active source on unmount and offers an explicit release action.
 - No EPUB bytes, XHTML body, private URI or extracted prose is sent to GitHub or a language provider.
+- Asynchronous picker and inspection completions are guarded by `createHoidImportLifecycleGuard()`: stale results after unmount or a newer operation are discarded, and a picker result that arrives after unmount is released immediately.
 
 ## XML parser migration
 

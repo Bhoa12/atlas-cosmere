@@ -58,7 +58,7 @@ jobs:
       - name: Verify Expo SDK dependency compatibility
         run: npx expo install --check
       - name: Inspect XML parser dependency tree
-        run: npm ls @xmldom/xmldom saxes
+        run: npm ls @xmldom/xmldom
       - name: Test XML adapter, edition binding and ingestion
         run: >-
           npx vitest run

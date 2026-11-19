@@ -19,11 +19,12 @@ export const HOID_TOPIC_ASSIGNMENT_ACTIVATION_RECEIPT_PATH =
   "src/hoid/topicAssignmentActivationReceipt.ts";
 
 export type HoidTopicAssignmentActivationReceipt = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: 2;
   repositoryFullName: string;
   pullRequestNumber: number;
   targetBranch: "main";
   promotionManifestPath: typeof HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH;
+  reviewedBaseSha: string;
   reviewedHeadSha: string;
   mergeCommitSha: string;
   promotionPlanFingerprint: string;
@@ -90,6 +91,7 @@ const AUTHORIZATION_KEYS = new Set([
   "repositoryFullName",
   "pullRequestNumber",
   "baseRef",
+  "baseSha",
   "headRef",
   "headSha",
   "promotionPlanFingerprint",
@@ -123,6 +125,8 @@ const RECEIPT_KEYS = new Set([
   "pullRequestNumber",
   "targetBranch",
   "promotionManifestPath",
+  "reviewedBaseSha",
+  "reviewedBaseSha",
   "reviewedHeadSha",
   "mergeCommitSha",
   "promotionPlanFingerprint",
@@ -216,7 +220,9 @@ type CanonicalAuthorization = Readonly<{
   repositoryFullName: string;
   pullRequestNumber: number;
   baseRef: "main";
+  baseSha: string;
   headRef: string;
+  baseSha: string;
   headSha: string;
   promotionPlanFingerprint: string;
   assignmentFingerprint: string;
@@ -236,9 +242,13 @@ function canonicalAuthorization(value: unknown): CanonicalAuthorization | null {
     !Number.isSafeInteger(raw.pullRequestNumber) ||
     (raw.pullRequestNumber as number) < 1 ||
     raw.baseRef !== HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH ||
+    typeof raw.baseSha !== "string" ||
+    !COMMIT_SHA_PATTERN.test(raw.baseSha) ||
     typeof raw.headRef !== "string" ||
     !REF_PATTERN.test(raw.headRef) ||
     raw.headRef === HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH ||
+    typeof raw.baseSha !== "string" ||
+    !COMMIT_SHA_PATTERN.test(raw.baseSha) ||
     typeof raw.headSha !== "string" ||
     !COMMIT_SHA_PATTERN.test(raw.headSha) ||
     typeof raw.promotionPlanFingerprint !== "string" ||
@@ -268,6 +278,7 @@ function canonicalAuthorization(value: unknown): CanonicalAuthorization | null {
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     baseRef: HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH,
+    baseSha: raw.baseSha,
     headRef: raw.headRef,
     headSha: raw.headSha,
     promotionPlanFingerprint: raw.promotionPlanFingerprint,
@@ -320,6 +331,7 @@ function canonicalMergedSnapshot(value: unknown): CanonicalMergedSnapshot | null
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     baseRef: HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH,
+    baseSha: raw.baseSha,
     headRef: raw.headRef,
     headSha: raw.headSha,
     mergeCommitSha: raw.mergeCommitSha,
@@ -332,12 +344,13 @@ function receiptFingerprint(
   receipt: Omit<HoidTopicAssignmentActivationReceipt, "receiptFingerprint">,
 ): string {
   return sha256Hex(JSON.stringify([
-    "hoid-topic-assignment-activation-v1",
+    "hoid-topic-assignment-activation-v2",
     receipt.schemaVersion,
     receipt.repositoryFullName,
     receipt.pullRequestNumber,
     receipt.targetBranch,
     receipt.promotionManifestPath,
+    receipt.reviewedBaseSha,
     receipt.reviewedHeadSha,
     receipt.mergeCommitSha,
     receipt.promotionPlanFingerprint,
@@ -356,13 +369,15 @@ function canonicalReceipt(value: unknown): HoidTopicAssignmentActivationReceipt 
   const raw = canonicalRecord(value, RECEIPT_KEYS);
   if (
     !raw ||
-    raw.schemaVersion !== 1 ||
+    raw.schemaVersion !== 2 ||
     typeof raw.repositoryFullName !== "string" ||
     !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
     !Number.isSafeInteger(raw.pullRequestNumber) ||
     (raw.pullRequestNumber as number) < 1 ||
     raw.targetBranch !== HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH ||
     raw.promotionManifestPath !== HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH ||
+    typeof raw.reviewedBaseSha !== "string" ||
+    !COMMIT_SHA_PATTERN.test(raw.reviewedBaseSha) ||
     typeof raw.reviewedHeadSha !== "string" ||
     !COMMIT_SHA_PATTERN.test(raw.reviewedHeadSha) ||
     typeof raw.mergeCommitSha !== "string" ||
@@ -394,11 +409,12 @@ function canonicalReceipt(value: unknown): HoidTopicAssignmentActivationReceipt 
   ) return null;
 
   const base = Object.freeze({
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     targetBranch: HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH,
     promotionManifestPath: HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
+    reviewedBaseSha: raw.reviewedBaseSha,
     reviewedHeadSha: raw.reviewedHeadSha,
     mergeCommitSha: raw.mergeCommitSha,
     promotionPlanFingerprint: raw.promotionPlanFingerprint,
@@ -461,11 +477,12 @@ export function buildHoidTopicAssignmentActivationReceipt(
   });
 
   const base = Object.freeze({
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     repositoryFullName: authorization.repositoryFullName,
     pullRequestNumber: authorization.pullRequestNumber,
     targetBranch: HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH,
     promotionManifestPath: HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
+    reviewedBaseSha: authorization.baseSha,
     reviewedHeadSha: merged.headSha,
     mergeCommitSha: merged.mergeCommitSha,
     promotionPlanFingerprint: authorization.promotionPlanFingerprint,
@@ -495,11 +512,12 @@ export function validateHoidTopicAssignmentActivationReceipt(
   if (!receipt) return Object.freeze({ status: "invalid", reason: "invalid-receipt" });
 
   const base = Object.freeze({
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     repositoryFullName: receipt.repositoryFullName,
     pullRequestNumber: receipt.pullRequestNumber,
     targetBranch: receipt.targetBranch,
     promotionManifestPath: receipt.promotionManifestPath,
+    reviewedBaseSha: receipt.reviewedBaseSha,
     reviewedHeadSha: receipt.reviewedHeadSha,
     mergeCommitSha: receipt.mergeCommitSha,
     promotionPlanFingerprint: receipt.promotionPlanFingerprint,

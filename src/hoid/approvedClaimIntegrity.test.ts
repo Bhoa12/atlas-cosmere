@@ -71,6 +71,7 @@ describe("Hoid approved-claim integrity", () => {
     expect(result.claim.integrity.evidenceSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(result.claim.integrity.reviewSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(result.claim.review.claimSha256).toBe(result.claim.integrity.claimSha256);
+    expect(result.claim.review.evidenceSha256).toBe(result.claim.integrity.evidenceSha256);
     expect(JSON.stringify(result.claim.integrity)).not.toContain(core.text);
   });
 
@@ -87,6 +88,17 @@ describe("Hoid approved-claim integrity", () => {
     const claim = createAttestation();
     const changedKnowledge = knowledge.map(entry => entry.id === "e-alpha"
       ? { ...entry, evidenceUnlock: { bookId: "twok", chapter: 4 } }
+      : entry);
+    expect(validateHoidApprovedClaimAttestation(claim, changedKnowledge)).toEqual({
+      status: "invalid",
+      reason: "integrity-mismatch",
+    });
+  });
+
+  it("binds entity kind, aliases, provenance and original summary metadata", () => {
+    const claim = createAttestation();
+    const changedKnowledge = knowledge.map(entry => entry.id === "e-alpha"
+      ? { ...entry, aliases: ["Alias sustituido"] }
       : entry);
     expect(validateHoidApprovedClaimAttestation(claim, changedKnowledge)).toEqual({
       status: "invalid",

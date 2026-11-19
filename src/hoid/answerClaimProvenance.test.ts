@@ -6,6 +6,44 @@ import { presentHoidEvidenceAnswer } from "./answerPresentation";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 const updatedAt = "2026-11-19T07:00:00.000Z";
+
+function locator(bookId: string, chapter: number): string {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") throw new Error("Test manifest unavailable");
+  const unit = result.manifest.units.find(item => item.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Test locator unavailable");
+  return unit.locatorId;
+}
+
+function cursor(bookId: string, chapter: number) {
+  const result = createHoidReadingCursor(bookId, chapter);
+  if (result.status !== "ready") throw new Error("Test cursor unavailable");
+  return result.cursor;
+}
+
+const knowledge: HoidKnowledgeEntry[] = [
+  {
+    id: "e-alpha",
+    aliases: ["Personaje Alfa"],
+    kind: "character",
+    firstSafeAppearance: { bookId: "twok", chapter: 2 },
+    evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
+    evidenceUnlock: { bookId: "twok", chapter: 2 },
+    provenance: "verified",
+    summary: "Resumen sintético de prueba para Personaje Alfa.",
+  },
+  {
+    id: "e-beta",
+    aliases: ["Personaje Beta"],
+    kind: "character",
+    firstSafeAppearance: { bookId: "edgedancer", chapter: 3 },
+    evidenceSource: { bookId: "edgedancer", chapter: 3, locatorId: locator("edgedancer", 3) },
+    evidenceUnlock: { bookId: "edgedancer", chapter: 3 },
+    provenance: "verified",
+    summary: "Resumen sintético de prueba para Personaje Beta.",
+  },
+];
+
 const reviewer = Object.freeze({
   reviewerId: "synthetic-reviewer",
   reviewedAt: "2026-11-18T12:00:00.000Z",

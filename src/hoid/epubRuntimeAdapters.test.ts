@@ -4,7 +4,7 @@ import {
   createHoidEpubRuntimePorts,
   createHoidFflateArchivePort,
   createHoidNobleDigestPort,
-  createHoidSaxesXmlPort,
+  createHoidXmldomXmlPort,
 } from "./epubRuntimeAdapters";
 
 const CONTAINER_XML = strToU8(
@@ -285,7 +285,7 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("parses EPUB container and OPF metadata with namespace-aware XML", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     await expect(xml.parseContainerXml(CONTAINER_XML)).resolves.toEqual({
       rootfiles: [{
         fullPath: "OEBPS/content.opf",
@@ -310,7 +310,7 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("parses nested EPUB 3 navigation without returning chapter bodies", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     const result = await xml.parseNavigationDocument(NAV_XML, "epub3-nav");
     expect(result).toEqual([
       { label: "Chapter One", href: "chapter.xhtml#one", children: [] },
@@ -324,7 +324,7 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("parses EPUB 2 NCX navigation", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     await expect(xml.parseNavigationDocument(NCX_XML, "epub2-ncx")).resolves.toEqual([
       {
         label: "Part One",
@@ -335,7 +335,7 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("rejects DTDs, external entity declarations and malformed XML", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     await expect(xml.parseContainerXml(strToU8(
       '<!DOCTYPE container [<!ENTITY x SYSTEM "file:///etc/passwd">]><container/>',
     ))).rejects.toThrow(/DTD/);
@@ -343,14 +343,14 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("validates XHTML root and namespace without returning narrative text", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     await expect(xml.validateXhtml(XHTML)).resolves.toBe(true);
     await expect(xml.validateXhtml(strToU8("<html><body>not XHTML</body></html>"))).resolves.toBe(false);
     await expect(xml.validateXhtml(strToU8("<html xmlns='http://www.w3.org/1999/xhtml'><body>"))).resolves.toBe(false);
   });
 
   it("rejects an XML declaration that claims a non-UTF-8 encoding", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     const declaredUtf16 = strToU8(
       '<?xml version="1.0" encoding="UTF-16"?>' +
       '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles/></container>',
@@ -359,7 +359,7 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("accepts a valid UTF-8 BOM without weakening byte validation", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     const bom = Uint8Array.from([0xef, 0xbb, 0xbf]);
     const withBom = new Uint8Array(bom.byteLength + CONTAINER_XML.byteLength);
     withBom.set(bom);
@@ -370,7 +370,7 @@ describe("concrete local EPUB runtime adapters", () => {
   });
 
   it("rejects XML with invalid UTF-8 bytes", async () => {
-    const xml = createHoidSaxesXmlPort();
+    const xml = createHoidXmldomXmlPort();
     await expect(xml.parseContainerXml(Uint8Array.from([0x3c, 0x63, 0x80, 0x3e])))
       .rejects.toThrow(/UTF-8/);
   });

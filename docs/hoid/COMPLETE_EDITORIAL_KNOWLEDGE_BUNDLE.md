@@ -6,11 +6,11 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 39 original chapter summaries;
+- 43 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 35 distinct edition-bound source documents.
+- 43 distinct edition-bound source documents.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -91,3 +91,19 @@ Four chapter bodies were inspected from the current Library EPUB copies after re
 Four original Spanish summaries are staged with exact edition-bound locators, document digests and summary digests. Their completed-through evidence watermarks are chapters 4, 11, 12 and 12; their reader cursors must reach chapters 5, 12, 13 and 13 respectively. All four remain pending independent review and are excluded from the production registry.
 
 The staging manifest now contains 57 records across 39 distinct chapter-body documents: 39 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Production remains empty; no activation receipt is created. No EPUB bytes, XHTML bodies, source passages or images are committed.
+
+
+## Run 170 — four additional source-backed summaries
+
+Four more original summaries were staged after inspecting the current Library copies of the four source editions. The exact chapter XHTML targets were re-resolved through the registered navigation digests, matched to the OPF manifests and reading spines, and fingerprinted independently.
+
+The new source records are:
+
+- El Imperio Final chapter 5 — EPUB/books/b000001/OEBPS/Text/005.xhtml — ec48d5ed29ede0760a63d913fcc71d79c908d879fe62841fe6cbfc64d90676d8;
+- El Camino de los Reyes chapter 12 — OEBPS/Text/L1-032.xhtml — 1f220d29b388c67834fb11d21fdb120407d1220531d735f946c00cc26223e838;
+- Danzante del Filo chapter 13 — OEBPS/Text/013.xhtml — 341ffa8144efe7c054d92bbedd54246889a92b268db7b62118f6b651095a516d;
+- Esquirla del amanecer chapter 13 — OEBPS/Text/13.xhtml — e0a97fb4d28b90b99169e6afcdf4fbd3e42b67c1ff5b0c61e0cb4aad6405544c.
+
+The completed-through evidence watermarks are 5, 12, 13 and 13. Their minimum open reader cursors are 6, 13, 14 and 14. All four summaries remain pending review.
+
+The current metadata-only manifest contains 61 records across 43 distinct chapter-body documents: 43 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its structural status is not editorial approval. Production remains empty and no activation receipt is created. No EPUB bytes, XHTML bodies, source passages or images are committed.

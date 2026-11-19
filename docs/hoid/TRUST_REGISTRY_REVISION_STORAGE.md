@@ -15,7 +15,7 @@ El port expone dos operaciones por dominio de confianza:
 
 Un compare-and-set correcto solo puede devolver `true` cuando el valor almacenado coincide exactamente con `expectedRevision`, `nextRevision` es estrictamente mayor y el nuevo valor ya es durable. Las operaciones deben ser atómicas y linealizables dentro de cada `trustDomainId`.
 
-El núcleo rechaza puertos con métodos ausentes, getters, valores no booleanos, revisiones inválidas y errores de almacenamiento.
+El núcleo rechaza puertos con métodos ausentes, getters, valores no booleanos, revisiones inválidas y errores de almacenamiento. `trustDomainId` debe ser una constante de configuración controlada por el host y vinculada a un dominio de confianza estable (repositorio y autoridad raíz); nunca debe proceder de una petición del usuario, un proveedor lingüístico o datos del paquete. Cambiarlo requiere una migración de confianza explícita, no crear un dominio nuevo para eludir una revisión mínima.
 
 ## Bootstrap explícito
 

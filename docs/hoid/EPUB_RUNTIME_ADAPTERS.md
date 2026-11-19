@@ -5,7 +5,7 @@
 Run 147 supplies concrete, provider-neutral implementations for the three ports used by `createHoidEpubIngestionService()`:
 
 - `HoidEpubArchivePort` via a bounded ZIP reader backed by `fflate` raw DEFLATE.
-- `HoidEpubXmlPort` via namespace-aware, strict XML parsing with `saxes`.
+- `HoidEpubXmlPort` via namespace-aware XML DOM parsing with `@xmldom/xmldom@0.9.12`.
 - `HoidEpubDigestPort` via SHA-256 from `@noble/hashes`.
 
 `createHoidEpubRuntimePorts(resolveSourceBytes)` composes these adapters. The resolver receives only an opaque source ID and is intended to return bytes from a locally selected source. It does not receive a path, URL or provider credential. The adapter itself makes no network calls; the caller remains responsible for supplying a local-only resolver.
@@ -47,9 +47,13 @@ ZIP64, multi-disk archives, encrypted entries, legacy non-ASCII filename encodin
 
 ## XML profile
 
-`saxes@6.0.0` parses XML with namespace processing and strict well-formedness checks. DTD and entity declarations are rejected before parsing, and the parser is never given a resolver for external resources. Only the five predefined XML entities are accepted by the parser.
+`@xmldom/xmldom@0.9.12` parses XML into a namespace-aware DOM. The adapter rejects DTD and entity declarations before parsing, supplies no external-resource resolver, and configures `onError` to fail on warnings, errors and fatal errors. A bounded lexical preflight counts element nodes and nesting depth before DOM allocation. Only UTF-8 XML is accepted; UTF-16 and legacy encodings are rejected instead of being guessed.
 
-The adapter currently supports UTF-8 XML. UTF-16 and legacy encodings are rejected instead of being guessed.
+The parser is a platform-edge implementation behind `HoidEpubXmlPort`; the ingestion core does not import it. The pinned 0.9.12 release is the maintained scoped package, not the deprecated unscoped `xmldom` package. Reassess the pin and its advisories before upgrades. The upstream project documents support for the latest two minor lines and publishes security fixes; the release and policy links are recorded below.
+
+- Package: https://www.npmjs.com/package/@xmldom/xmldom
+- Release 0.9.12: https://github.com/xmldom/xmldom/releases/tag/0.9.12
+- Security policy: https://github.com/xmldom/xmldom/security
 
 The XML adapter returns only the metadata required by the ingestion core:
 
@@ -60,7 +64,7 @@ The XML adapter returns only the metadata required by the ingestion core:
 
 It does not return XHTML body text, paragraphs, dialogue or chapter contents. Text is processed transiently only to obtain OPF metadata and navigation labels.
 
-The Saxes project is archived upstream. It has no known direct advisories in the package database at the time of this implementation, but its maintenance status is a tracked risk. The XML port isolates the parser so a maintained replacement can be introduced without changing the ingestion core.
+The parser is not a streaming SAX implementation; DOM allocation is bounded by the 12 MiB XML input limit plus the preflight node/depth limits. The adapter is replaceable through the XML port, so a future parser change does not alter the ingestion core.
 
 ## SHA-256
 

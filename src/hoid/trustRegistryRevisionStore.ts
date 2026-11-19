@@ -175,6 +175,7 @@ export async function persistHoidTrustRegistryMinimumRevision(
   }
 
   let writeAttempted = false;
+  let advancedDuringCall = false;
   for (let attempt = 0; attempt < MAX_CAS_ATTEMPTS; attempt += 1) {
     let currentValue: unknown;
     try {
@@ -207,7 +208,7 @@ export async function persistHoidTrustRegistryMinimumRevision(
         trustDomainId,
         registryRevision: verification.revision,
         minimumRevision: currentRevision,
-        advanced: false,
+        advanced: advancedDuringCall,
       });
     }
 
@@ -228,6 +229,7 @@ export async function persistHoidTrustRegistryMinimumRevision(
     if (typeof compareResult !== "boolean") return blocked("revision-store-invalid");
     if (compareResult) {
       writeAttempted = true;
+      advancedDuringCall = true;
       continue;
     }
   }

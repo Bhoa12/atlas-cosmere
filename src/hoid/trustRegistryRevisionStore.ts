@@ -45,7 +45,8 @@ export type HoidTrustRegistryRevisionPersistence =
         | "revision-store-invalid"
         | "revision-store-not-durable"
         | "revision-store-conflict"
-        | "trust-registry-invalid";
+        | "trust-registry-invalid"
+        | "trust-registry-verification-timeout";
       verificationReason?: string;
       promotionAllowed: false;
       productionWritePerformed: false;
@@ -191,13 +192,18 @@ export async function persistHoidTrustRegistryMinimumRevision(
     }
     const currentRevision = currentValue as number;
 
-    const verification = await verifyHoidReviewerTrustRegistry(
-      registryInput,
-      rootKeyInput,
-      verifierInput,
-      nowInput,
-      currentRevision,
-    );
+    let verification;
+    try {
+      verification = await withStoreTimeout(() => verifyHoidReviewerTrustRegistry(
+        registryInput,
+        rootKeyInput,
+        verifierInput,
+        nowInput,
+        currentRevision,
+      ));
+    } catch {
+      return blocked("trust-registry-verification-timeout");
+    }
     if (verification.status !== "verified") {
       return blocked("trust-registry-invalid", verification.reason);
     }

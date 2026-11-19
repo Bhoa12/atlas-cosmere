@@ -246,10 +246,10 @@ function validateSourceDescriptor(value: unknown): HoidEpubSourceDescriptor | nu
   ) return null;
 
   return Object.freeze({
-    sourceId: value.sourceId,
-    workId: value.workId,
-    editionId: value.editionId,
-    sourceGroup: value.sourceGroup,
+    sourceId: value.sourceId as string,
+    workId: value.workId as string,
+    editionId: value.editionId as string,
+    sourceGroup: value.sourceGroup as HoidEpubSourceGroup,
   });
 }
 
@@ -389,14 +389,15 @@ function normalizeArchiveEntries(value: unknown): ReadonlyMap<string, HoidEpubAr
     if (!ordinals.has(ordinal)) reject("invalid-archive-entry");
   }
 
-  const first = [...byPath.values()].find(entry => entry.ordinal === 0);
+  const firstFile = [...byPath.values()]
+    .filter(entry => entry.kind === "file")
+    .sort((left, right) => left.ordinal - right.ordinal)[0];
   if (
-    first === undefined ||
-    first.path !== "mimetype" ||
-    first.kind !== "file" ||
-    first.compressionMethod !== "stored" ||
-    first.compressedSize !== 20 ||
-    first.uncompressedSize !== 20
+    firstFile === undefined ||
+    firstFile.path !== "mimetype" ||
+    firstFile.compressionMethod !== "stored" ||
+    firstFile.compressedSize !== 20 ||
+    firstFile.uncompressedSize !== 20
   ) reject("mimetype-invalid");
 
   return byPath;

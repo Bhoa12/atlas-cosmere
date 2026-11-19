@@ -66,13 +66,20 @@ export type HoidRevisionBoundSignedPromotionResult =
     }>
   | Readonly<{
       status: "blocked";
-      reason: "trust-registry-revision-blocked" | "editorial-promotion-blocked";
-      trustFailure?: Extract<HoidTrustRegistryRevisionPersistence, { status: "blocked" }>;
-      authorization?: Extract<HoidSignedEditorialBundlePromotionAuthorization, { status: "blocked" }>;
-      trustDomainId?: string;
-      trustRegistryRevision?: number;
-      minimumRegistryRevision?: number;
+      reason: "trust-registry-revision-blocked";
+      trustFailure: Extract<HoidTrustRegistryRevisionPersistence, { status: "blocked" }>;
       minimumRevisionPersisted: false;
+      promotionAllowed: false;
+      productionWritePerformed: false;
+    }>
+  | Readonly<{
+      status: "blocked";
+      reason: "editorial-promotion-blocked";
+      authorization: Extract<HoidSignedEditorialBundlePromotionAuthorization, { status: "blocked" }>;
+      trustDomainId: string;
+      trustRegistryRevision: number;
+      minimumRegistryRevision: number;
+      minimumRevisionPersisted: true;
       promotionAllowed: false;
       productionWritePerformed: false;
     }>;
@@ -208,18 +215,19 @@ export async function persistHoidTrustRegistryMinimumRevision(
     if (verification.status !== "verified") {
       return blocked("trust-registry-invalid", verification.reason);
     }
+    const registryRevision = verification.revision;
 
-    if (verification.revision === currentRevision) {
+    if (registryRevision === currentRevision) {
       return Object.freeze({
         status: "persisted",
         trustDomainId,
-        registryRevision: verification.revision,
+        registryRevision,
         minimumRevision: currentRevision,
         advanced: advancedDuringCall,
       });
     }
 
-    if (writeAttempted && currentRevision < verification.revision) {
+    if (writeAttempted && currentRevision < registryRevision) {
       return blocked("revision-store-not-durable");
     }
 
@@ -228,7 +236,7 @@ export async function persistHoidTrustRegistryMinimumRevision(
       compareResult = await withStoreTimeout(() => compareAndSetMinimumRevision(Object.freeze({
         trustDomainId,
         expectedRevision: currentRevision,
-        nextRevision: verification.revision,
+        nextRevision: registryRevision,
       })));
     } catch {
       return blocked("revision-store-unavailable");

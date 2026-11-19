@@ -52,7 +52,7 @@ function record() {
         navigationSha256: manifest.manifest.navigationSha256,
         documentSha256,
       },
-      unlock: { bookId: "tfe", chapter: 2 },
+      unlock: { bookId: "tfe", chapter: 1 },
     }],
     review: {
       status: "approved" as const,

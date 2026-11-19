@@ -86,7 +86,8 @@ export type HoidSignedEditorialBundlePromotionAuthorization =
         | "invalid-signature-batch"
         | "signature-verification-failed"
         | "signature-verification-timeout"
-        | "invalid-progress-snapshot";
+        | "invalid-progress-snapshot"
+        | "insufficient-signed-reviewers";
       verificationReason?: string;
       promotionAllowed: false;
       productionWritePerformed: false;
@@ -363,6 +364,10 @@ export function buildHoidEditorialReviewPacketSigningMessage(
     request.expectedBaseRef,
     request.expectedHeadRef,
     request.expectedHeadSha,
+    request.minimumApprovals,
+    request.requireCodeOwnerReview,
+    request.requireDismissStaleReviews,
+    request.requireEnforcedAdmins,
     request.promotionManifestPath,
     planValidation.plan.fingerprint,
     planValidation.plan.reviewBundleFingerprint,
@@ -575,6 +580,11 @@ export async function authorizeHoidSignedEditorialBundlePromotion(
       message,
       signatureHex: signature.signatureHex,
     }));
+  }
+
+  const distinctSignedReviewers = new Set(signatureRequests.map(item => item.reviewerId));
+  if (distinctSignedReviewers.size < request.minimumApprovals) {
+    return blocked("insufficient-signed-reviewers");
   }
 
   const verification = await verifyWithTimeout(() => verifyHoidReviewerBoundPayloadSignatures(

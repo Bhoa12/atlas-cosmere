@@ -61,13 +61,13 @@ El firmante es una herramienta externa controlada por el revisor, idealmente con
 - Una clave revocada se rechaza aunque la firma sea matemáticamente válida.
 - Una firma está ligada al HEAD exacto; cualquier commit posterior exige una nueva revisión y firma.
 
-## Límite de integración
+## Integración y límites de producción
 
-Run 155 implementa contratos, canonicalización, validación del registro raíz, verificación Ed25519 inyectable y pruebas con fixtures sintéticas. No instala ni genera claves privadas, no crea un registro real de revisores y no activa firmas de producción.
+Run 155 implementa los contratos, la canonicalización, la validación del registro raíz y el adaptador Ed25519 inyectable. Run 156 conecta una firma por paquete editorial —resumen, afirmación atómica, entidad y relación— con la autoridad protegida de GitHub y el progreso SQLite. Run 157 añade persistencia monotónica de la revisión mínima y vincula las firmas al SHA exacto de la rama base y al SHA exacto de HEAD mediante el contrato de revisión schema v2.
 
-La promoción editorial existente sigue siendo conservadora: el gate actual comprueba las revisiones protegidas de GitHub y el progreso autoritativo, pero todavía no consume este nuevo lote de firmas. Antes de conectar ambas capas debe existir una raíz pública aprobada fuera de banda, un registro firmado de revisores y un adaptador de verificación Ed25519 probado en el runtime móvil o en el servicio de mantenimiento.
+La promoción sigue siendo conservadora. El gate devuelve únicamente `ready-for-maintainer-commit`; `promotionAllowed` y `productionWritePerformed` permanecen en `false`. No instala ni genera claves privadas, no crea un registro real de revisores y no escribe el conocimiento editorial de producción.
 
-Hasta entonces, ninguna afirmación recibe autoridad de producción por el mero hecho de pasar las pruebas sintéticas de este módulo.
+Antes de producción deben existir una raíz pública aprobada fuera de banda, un registro firmado real, claves de revisores protegidas, un adaptador Ed25519 probado en el host y un `HoidTrustRegistryRevisionStorePort` durable, resistente a rollback y con compare-and-set linealizable. El bootstrap de la revisión mínima debe realizarse fuera de banda; el núcleo rechaza dominios no inicializados. Las pruebas sintéticas no equivalen a una configuración real de confianza.
 
 ## Validación
 

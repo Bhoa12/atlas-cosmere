@@ -262,7 +262,7 @@ function canonicalAliases(value: unknown): readonly string[] | null {
 
 export type HoidEvidenceBindingInspection =
   | Readonly<{ status: "valid" }>
-  | Readonly<{ status: "invalid"; reason: "invalid-entry" | "invalid-scope" | "invalid-metadata" | "invalid-kind" | "invalid-aliases" | "invalid-source-metadata" | "invalid-unlock" | "invalid-first-appearance" | "invalid-provenance" | "invalid-summary" | "edition-unavailable" | "locator-mismatch" | "document-unverified" | "first-appearance-unverified" }>;
+  | Readonly<{ status: "invalid"; reason: "invalid-entry" | "invalid-scope" | "invalid-metadata" | "invalid-optional-descriptor" | "invalid-kind" | "invalid-aliases" | "invalid-source-metadata" | "invalid-unlock" | "invalid-first-appearance" | "invalid-provenance" | "invalid-summary" | "edition-unavailable" | "locator-mismatch" | "document-unverified" | "first-appearance-unverified" }>;
 
 type EvidenceBindingResult =
   | Readonly<{ status: "valid"; binding: readonly unknown[] }>
@@ -288,7 +288,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
     if (descriptor && (
       !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
       descriptor.enumerable !== true
-    )) return Object.freeze({ status: "invalid", reason: "invalid-metadata" });
+    )) return Object.freeze({ status: "invalid", reason: "invalid-optional-descriptor" });
   }
   const kind = dataValue(entry, "kind");
   const aliases = canonicalAliases(dataValue(entry, "aliases"));
@@ -336,7 +336,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
   const unit = manifest.units.find(candidate => candidate.chapterNumber === sourceChapter);
   const unlockUnit = manifest.units.find(candidate => candidate.chapterNumber === unlockChapter);
   if (!unit || unit.locatorId !== locatorId) return Object.freeze({ status: "invalid", reason: "locator-mismatch" });
-  if (!unlockUnit) return Object.freeze({ status: "invalid", reason: "invalid-metadata" });
+  if (!unlockUnit) return Object.freeze({ status: "invalid", reason: "invalid-unlock" });
 
   const documentSha256 = getVerifiedChapterDocumentSha256(
     sourceBookId,

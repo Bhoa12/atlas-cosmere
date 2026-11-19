@@ -61,7 +61,7 @@ export const HoidEpubImportPanel: React.FC = () => {
   useEffect(() => () => {
     const sourceId = sourceIdRef.current;
     sourceIdRef.current = null;
-    if (sourceId !== null) void epubRuntime.provider.release(sourceId);
+    if (sourceId !== null) void epubRuntime.provider.release(sourceId).catch(() => undefined);
   }, []);
 
   const pickEpub = async () => {
@@ -81,9 +81,14 @@ export const HoidEpubImportPanel: React.FC = () => {
 
       const previousSourceId = sourceIdRef.current;
       sourceIdRef.current = result.source.sourceId;
-      if (previousSourceId !== null) await epubRuntime.provider.release(previousSourceId);
-
       setPickedSource(result.source);
+      if (previousSourceId !== null) {
+        try {
+          await epubRuntime.provider.release(previousSourceId);
+        } catch {
+          // The newly selected source remains tracked; stale cache cleanup is best-effort.
+        }
+      }
       setSelectedChoice(null);
       setCandidate(null);
       setMessage("Archivo local seleccionado. Ahora debes elegir explícitamente la obra y su edición registrada.");
@@ -137,6 +142,8 @@ export const HoidEpubImportPanel: React.FC = () => {
     setBusy(true);
     try {
       if (sourceId !== null) await epubRuntime.provider.release(sourceId);
+    } catch {
+      setMessage("La fuente dejó de estar disponible; se ha liberado su referencia local.");
     } finally {
       setPickedSource(null);
       setSelectedChoice(null);

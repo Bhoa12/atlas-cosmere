@@ -12,6 +12,7 @@ La nueva capa no sustituye la autoridad existente. Primero verifica las firmas y
 
 - repositorio, número de PR y ramas base/propuesta;
 - SHA exacto del HEAD propuesto;
+- quorum mínimo de aprobaciones y requisitos de Code Owner, descarte de revisiones obsoletas y enforcement de administradores;
 - ruta del manifiesto de promoción;
 - fingerprint del plan, paquete de conocimiento, bundle de revisión y lote de recibos;
 - revisión y fingerprint del progreso de lectura;
@@ -54,7 +55,7 @@ La app lectora no firma. El host inyecta el verificador criptográfico y aporta 
 
 ## Identidad del revisor
 
-Los IDs del recibo deben utilizar el mismo espacio de identidad estable que el adaptador de GitHub. Se recomienda un ID inmutable de usuario de GitHub, no un login mutable. Además de la firma Ed25519, la autoridad existente exige que cada revisor de recibo aparezca entre las aprobaciones autenticadas del mismo PR y HEAD.
+Los IDs del recibo deben utilizar el mismo espacio de identidad estable que el adaptador de GitHub. Se recomienda un ID inmutable de usuario de GitHub, no un login mutable. Además de la firma Ed25519, el gate exige que el número de revisores distintos que han firmado recibos alcance el quorum solicitado. La autoridad existente exige también que cada revisor de recibo aparezca entre las aprobaciones autenticadas del mismo PR y HEAD. Un segundo aprobador genérico no sustituye a la diversidad de revisores que han firmado el paquete editorial.
 
 ## Límites de producción
 

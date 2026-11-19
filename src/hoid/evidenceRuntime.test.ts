@@ -6,6 +6,7 @@ import {
 } from "./evidenceRuntime";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { getHoidReadingManifest } from "./readingManifest";
+import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -30,9 +31,9 @@ const knowledge: HoidKnowledgeEntry[] = [
     id: "e-beta",
     aliases: ["Personaje Beta"],
     kind: "character",
-    firstSafeAppearance: { bookId: "wor", chapter: 3 },
-    evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
-    evidenceUnlock: { bookId: "wor", chapter: 3 },
+    firstSafeAppearance: { bookId: "edgedancer", chapter: 3 },
+    evidenceSource: { bookId: "edgedancer", chapter: 3, locatorId: locator("edgedancer", 3) },
+    evidenceUnlock: { bookId: "edgedancer", chapter: 3 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Personaje Beta.",
   },
@@ -48,38 +49,52 @@ const knowledge: HoidKnowledgeEntry[] = [
   },
 ];
 
-const review: HoidApprovedClaim["review"] = {
-  status: "approved",
-  origin: "original-editorial",
+const reviewer = Object.freeze({
   reviewerId: "editorial-test",
   reviewedAt: "2026-11-16T06:00:00.000Z",
-};
+});
+
+function approvedClaim(
+  core: HoidApprovedClaimCore,
+  sourceKnowledge: readonly HoidKnowledgeEntry[] = knowledge,
+): HoidApprovedClaim {
+  const attestation = createHoidApprovedClaimAttestation(core, sourceKnowledge, reviewer);
+  if (attestation.status !== "valid") throw new Error("Synthetic approved claim could not be attested: " + attestation.reason);
+  return Object.freeze({ ...core, integrity: attestation.integrity, review: attestation.review });
+}
+
+function claimCore(claim: HoidApprovedClaim): HoidApprovedClaimCore {
+  return Object.freeze({
+    id: claim.id,
+    text: claim.text,
+    intent: claim.intent,
+    evidenceIds: claim.evidenceIds,
+    ...(claim.entityIds ? { entityIds: claim.entityIds } : {}),
+  });
+}
 
 const claims: HoidApprovedClaim[] = [
-  {
+  approvedClaim({
     id: "claim-alpha",
     text: "Afirmación editorial aprobada sobre Personaje Alfa.",
     intent: "explain",
     evidenceIds: ["e-alpha"],
     entityIds: ["e-alpha"],
-    review,
-  },
-  {
+  }),
+  approvedClaim({
     id: "claim-cross-book",
     text: "Relación editorial aprobada que requiere ambas evidencias.",
     intent: "explain",
     evidenceIds: ["e-alpha", "e-beta"],
     entityIds: ["e-alpha", "e-beta"],
-    review,
-  },
-  {
+  }),
+  approvedClaim({
     id: "claim-limited",
     text: "Esta afirmación no debe quedar disponible.",
     intent: "explain",
     evidenceIds: ["e-limited"],
     entityIds: ["e-limited"],
-    review,
-  },
+  }),
 ];
 
 function createRuntime(
@@ -147,7 +162,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ],
     });
 
@@ -159,7 +174,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ],
     });
 
@@ -172,12 +187,12 @@ describe("HoidEvidenceRuntime", () => {
 
   it("requires every cross-book evidence summary to reach its own unlock chapter", async () => {
     const scopedKnowledge = knowledge.map(entry => entry.id === "e-beta"
-      ? { ...entry, evidenceUnlock: { bookId: "wor", chapter: 4 } }
+      ? { ...entry, evidenceUnlock: { bookId: "edgedancer", chapter: 4 } }
       : entry);
     const selector = vi.fn(async () => ["claim-cross-book"]);
     const runtime = createHoidEvidenceRuntime({
       knowledge: scopedKnowledge,
-      claims: [claims[1]],
+      claims: [approvedClaim(claimCore(claims[1]), scopedKnowledge)],
       selector: { selectClaims: selector },
     });
 
@@ -185,7 +200,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ],
     });
     expect(oneChapterShort.status).toBe("abstain");
@@ -196,7 +211,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 4 },
+        { bookId: "edgedancer", chapter: 4 },
       ],
     });
     expect(bothUnlocked.status).toBe("authorized");
@@ -314,7 +329,6 @@ describe("HoidEvidenceRuntime", () => {
         text: "Afirmación sintética.",
         intent: "explain",
         evidenceIds: ["missing-evidence"],
-        review,
       }],
       selector: null,
     });
@@ -349,7 +363,7 @@ describe("HoidEvidenceRuntime", () => {
     const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createHoidEvidenceRuntime({
       knowledge: delayedKnowledge,
-      claims: [claims[0]],
+      claims: [approvedClaim(claimCore(claims[0]), delayedKnowledge)],
       selector: { selectClaims: selector },
     });
 
@@ -464,7 +478,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ],
       entityIds: ["e-alpha", "e-beta"],
     });
@@ -475,7 +489,8 @@ describe("HoidEvidenceRuntime", () => {
   });
 
   it("does not expose legacy unscoped claims to an entity-scoped query", async () => {
-    const { entityIds: _ignored, ...unscopedClaim } = claims[0];
+    const { entityIds: _ignored, ...unscopedCore } = claimCore(claims[0]);
+    const unscopedClaim = approvedClaim(unscopedCore);
     const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createHoidEvidenceRuntime({
       knowledge,

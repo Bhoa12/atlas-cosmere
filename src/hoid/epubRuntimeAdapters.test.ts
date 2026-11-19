@@ -247,6 +247,17 @@ describe("concrete local EPUB runtime adapters", () => {
     await expect(xml.validateXhtml(strToU8("<html xmlns='http://www.w3.org/1999/xhtml'><body>"))).resolves.toBe(false);
   });
 
+  it("accepts a valid UTF-8 BOM without weakening byte validation", async () => {
+    const xml = createHoidSaxesXmlPort();
+    const bom = Uint8Array.from([0xef, 0xbb, 0xbf]);
+    const withBom = new Uint8Array(bom.byteLength + CONTAINER_XML.byteLength);
+    withBom.set(bom);
+    withBom.set(CONTAINER_XML, bom.byteLength);
+    await expect(xml.parseContainerXml(withBom)).resolves.toMatchObject({
+      rootfiles: [{ fullPath: "OEBPS/content.opf" }],
+    });
+  });
+
   it("rejects XML with invalid UTF-8 bytes", async () => {
     const xml = createHoidSaxesXmlPort();
     await expect(xml.parseContainerXml(Uint8Array.from([0x3c, 0x63, 0x80, 0x3e])))

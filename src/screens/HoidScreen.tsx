@@ -25,6 +25,7 @@ import {
   createHoidTopicInterestRecommendationGateway,
 } from '../hoid/topicInterestRecommendationsGateway';
 import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAnswerPort';
+import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
 import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
 import {
   canCommitHoidProgressScopedResponse,
@@ -483,6 +484,8 @@ export const HoidScreen: React.FC = () => {
           </Text>
         </View>
       </View>
+
+      <HoidEpubImportPanel />
 
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>

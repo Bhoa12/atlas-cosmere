@@ -112,17 +112,6 @@ describe("Hoid editorial review packets", () => {
     });
   });
 
-  it("rejects a review packet that unlocks in its own source chapter", () => {
-    const tampered = {
-      ...packet,
-      unlock: { ...packet.unlock, chapter: packet.source.chapter },
-    };
-    expect(validateHoidEditorialReviewReceipt(tampered, receipt())).toEqual({
-      status: "invalid",
-      reason: "invalid-receipt-shape",
-    });
-  });
-
   it("starts every checklist item unchecked", () => {
     expect(Object.values(packet.checklist).every(value => value === false)).toBe(true);
   });

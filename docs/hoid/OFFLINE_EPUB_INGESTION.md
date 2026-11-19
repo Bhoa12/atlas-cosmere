@@ -28,6 +28,7 @@ createHoidEpubIngestionService() returns two operations:
    - validates the package version, unique identifier, language, manifest IDs/hrefs/media types, spine references and navigation document;
    - resolves every manifest href relative to the OPF and every navigation href relative to the navigation document, without URL/network access;
    - verifies that manifest and navigation targets exist in the archive;
+   - requires the raw navigation-document digest to match the exact edition navigation digest already recorded for that catalogue work;
    - emits archive-inventory, mimetype, container, package-document, navigation-document and source fingerprints.
 
 2. inspectChapterDocument(packageCandidate, navigationHref):
@@ -63,7 +64,7 @@ Adapter requirements: the ZIP implementation must validate local-header consiste
 
 ## Trust and promotion boundary
 
-Every result is marked candidate-only. Its declared edition ID is supplied by the caller; it is not independently authenticated by the EPUB itself.
+Every result is marked candidate-only. The declared work ID, source group and edition ID must match the canonical bibliography/edition policy, and the raw navigation digest must match that edition's recorded digest. This binds the package navigation to the known edition, but it does not authenticate every chapter body or make a chapter candidate editorially approved.
 
 A candidate fingerprint is an integrity binding, not a signature or editorial approval. The report is not accepted by HoidEvidenceRuntime, does not create a verified locator and does not populate verifiedChapterDocuments.ts.
 

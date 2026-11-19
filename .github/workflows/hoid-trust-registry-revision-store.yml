@@ -84,6 +84,7 @@ jobs:
           src/hoid/editorialBundlePromotionAuthority.ts
           src/hoid/coreferencePromotionAuthority.ts
           src/hoid/topicAssignmentPromotionAuthority.ts
+          src/hoid/topicAssignmentActivation.ts
           src/hoid/editorialReviewSignatures.ts
           src/hoid/promotionReviewAuthority.ts
           src/hoid/githubSourceControlReviewAdapter.ts

@@ -159,6 +159,17 @@ describe("Hoid cryptographic editorial review trust", () => {
     )).toEqual({ status: "invalid", reason: "registry-rollback" });
   });
 
+  it("requires a valid persisted minimum registry revision", async () => {
+    const registry = createRegistry();
+    expect(await verifyHoidReviewerTrustRegistry(
+      registry,
+      rootKey,
+      createFakeVerifier(),
+      now,
+      0,
+    )).toEqual({ status: "invalid", reason: "invalid-minimum-revision" });
+  });
+
   it("rejects a trust registry whose root signature was changed", async () => {
     const registry = createRegistry();
     const tampered = {

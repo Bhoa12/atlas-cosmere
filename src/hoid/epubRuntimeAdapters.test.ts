@@ -341,6 +341,15 @@ describe("concrete local EPUB runtime adapters", () => {
     await expect(xml.validateXhtml(strToU8("<html xmlns='http://www.w3.org/1999/xhtml'><body>"))).resolves.toBe(false);
   });
 
+  it("rejects an XML declaration that claims a non-UTF-8 encoding", async () => {
+    const xml = createHoidSaxesXmlPort();
+    const declaredUtf16 = strToU8(
+      '<?xml version="1.0" encoding="UTF-16"?>' +
+      '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles/></container>',
+    );
+    await expect(xml.parseContainerXml(declaredUtf16)).rejects.toThrow(/UTF-8/);
+  });
+
   it("accepts a valid UTF-8 BOM without weakening byte validation", async () => {
     const xml = createHoidSaxesXmlPort();
     const bom = Uint8Array.from([0xef, 0xbb, 0xbf]);

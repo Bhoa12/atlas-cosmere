@@ -44,6 +44,6 @@ Las pruebas cubren:
 La interfaz debe seguir presentando el cursor como «capítulo actual/en curso». Si en el futuro se añade una acción explícita «he terminado este capítulo», debe introducirse como una operación distinta y versionada; no debe reinterpretarse silenciosamente el significado del cursor existente.
 
 
-## Evidence unlock metadata
+## Evidence unlock coordinates
 
-The cursor policy is also enforced in source metadata: for evidence citing chapter N, `evidenceUnlock.chapter` must be strictly greater than N. A chapter-N summary cannot unlock while N is the current/open chapter. A later threshold is permitted as a stricter editorial ceiling. Explicit whole-work completion only authorizes otherwise valid evidence; it does not repair malformed or same-chapter provenance.
+The v2 cursor stores the open chapter N. Its safe projection exposes `completedThroughChapter = N-1`. Evidence unlock thresholds use this completed-through coordinate, not the open-cursor coordinate. Thus a summary sourced from chapter N stores unlock chapter N and becomes available when the reader advances to cursor N+1. Same-number source and unlock chapters are correct; values below the source chapter are rejected.

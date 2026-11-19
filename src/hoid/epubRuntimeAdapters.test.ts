@@ -414,6 +414,27 @@ describe("concrete local EPUB runtime adapters", () => {
     await expect(xml.parseContainerXml(malformed)).rejects.toThrow();
   });
 
+  it("accepts every XML whitespace character after closing tag names", async () => {
+    const xml = createHoidXmldomXmlPort();
+    const prefix =
+      '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
+      '<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>';
+    const suffix = "</rootfiles></container>";
+    for (const whitespace of [" ", "\t", "\r", "\n", "\r\n"]) {
+      const document = strToU8(prefix + "</rootfiles" + whitespace + "></container>");
+      await expect(xml.parseContainerXml(document)).resolves.toEqual({
+        rootfiles: [{
+          fullPath: "OEBPS/content.opf",
+          mediaType: "application/oebps-package+xml",
+        }],
+      });
+    }
+    await expect(xml.parseContainerXml(strToU8(
+      prefix + "</rootfiles\\njunk></container>",
+    ))).rejects.toThrow();
+    void suffix;
+  });
+
   it("ignores markup-like text inside comments and CDATA during structural preflight", async () => {
     const xml = createHoidXmldomXmlPort();
     const document = strToU8(

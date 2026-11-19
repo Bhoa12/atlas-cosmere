@@ -115,7 +115,6 @@ describe("Hoid GitHub source-control review adapter", () => {
       repositoryFullName: request.repositoryFullName,
       pullRequestNumber: request.pullRequestNumber,
       baseSha: BASE_SHA,
-      baseSha: BASE_SHA,
       headSha: HEAD_SHA,
       promotionPlanFingerprint: PLAN_FINGERPRINT,
     });

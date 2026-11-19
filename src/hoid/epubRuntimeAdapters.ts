@@ -470,7 +470,7 @@ type XmlElement = {
   uri: string;
   attributes: XmlAttribute[];
   children: XmlElement[];
-  text: string;
+  content: Array<string | XmlElement>;
 };
 
 function decodeXml(bytes: Uint8Array): string {
@@ -510,10 +510,11 @@ function parseXmlTree(bytes: Uint8Array): XmlElement {
         value: attribute.value,
       }))) as unknown as XmlAttribute[],
       children: [],
-      text: "",
+      content: [],
     };
     if (stack.length > 0) {
       stack[stack.length - 1].children.push(node);
+      stack[stack.length - 1].content.push(node);
     } else if (root === null) {
       root = node;
     } else {
@@ -522,11 +523,11 @@ function parseXmlTree(bytes: Uint8Array): XmlElement {
     stack.push(node);
   });
   parser.on("text", text => {
-    if (stack.length > 0) stack[stack.length - 1].text += text;
+    if (stack.length > 0) stack[stack.length - 1].content.push(text);
     else if (text.trim().length > 0) parseError = new Error("Text appears outside the XML root");
   });
   parser.on("cdata", text => {
-    if (stack.length > 0) stack[stack.length - 1].text += text;
+    if (stack.length > 0) stack[stack.length - 1].content.push(text);
     else if (text.trim().length > 0) parseError = new Error("CDATA appears outside the XML root");
   });
   parser.on("closetag", () => {
@@ -574,7 +575,7 @@ function attribute(node: XmlElement, local: string, uri = ""): string | null {
 }
 
 function textContent(node: XmlElement): string {
-  return node.text + node.children.map(textContent).join("");
+  return node.content.map(part => typeof part === "string" ? part : textContent(part)).join("");
 }
 
 function normalizedLabel(value: string): string {

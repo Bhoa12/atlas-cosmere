@@ -13,6 +13,7 @@ import {
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const EXPECTED_NAVIGATION_SHA256 = "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee";
 
 function bytes(value: string): Uint8Array {
   return encoder.encode(value);
@@ -54,7 +55,7 @@ const navigation: readonly HoidEpubNavigationNode[] = [
   },
 ];
 
-function makeFixture() {
+function makeFixture(navigationSha256 = EXPECTED_NAVIGATION_SHA256) {
   const contents = new Map<string, Uint8Array>([
     ["mimetype", bytes("application/epub+zip")],
     ["META-INF/container.xml", bytes("<container/>")],
@@ -93,7 +94,10 @@ function makeFixture() {
   };
 
   const digestPort: HoidEpubDigestPort = {
-    sha256: vi.fn(async (data: Uint8Array) => digest(decoder.decode(data))),
+    sha256: vi.fn(async (data: Uint8Array) => {
+      const decoded = decoder.decode(data);
+      return decoded === "<nav/>" || decoded === "<ncx/>" ? navigationSha256 : digest(decoded);
+    }),
     sha256Utf8: vi.fn(async (value: string) => digest(value)),
   };
 
@@ -120,6 +124,7 @@ describe("offline EPUB ingestion core", () => {
       workId: "tfe",
       declaredEditionId: "cosmere-epub-merged-v1",
       sourceGroup: "cosmere.epub",
+      editionBinding: "catalogue-navigation-digest-match",
       packageVersion: "3.0",
       title: "Obra sintética de prueba",
       language: "es",
@@ -144,6 +149,12 @@ describe("offline EPUB ingestion core", () => {
     expect(getHoidSourceCoverageReport()).toEqual(before);
     expect(before.editorial.productionKnowledgeEntryCount).toBe(0);
     expect(before.editorial.approvedClaimCount).toBe(0);
+  });
+
+  it("rejects a navigation document that does not match the catalogue edition fingerprint", async () => {
+    const fixture = makeFixture("0".repeat(64));
+    await expect(fixture.service.inspectPackage(fixture.source))
+      .resolves.toEqual({ status: "rejected", reason: "edition-navigation-mismatch" });
   });
 
   it("inspects one navigation-backed XHTML body and returns only its digest", async () => {

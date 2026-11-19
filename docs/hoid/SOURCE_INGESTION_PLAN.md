@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 32 |
-| Original staged summaries | 32 |
-| Summaries pending review | 32 |
+| Individually inspected chapter documents | 35 |
+| Original staged summaries | 35 |
+| Summaries pending review | 35 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -38,9 +38,9 @@ The current continuation candidates are:
 | Work | Next chapter to inspect |
 |---|---:|
 | El Imperio Final | 4 |
-| El Camino de los Reyes | 10 |
-| Danzante del Filo | 11 |
-| Esquirla del amanecer | 11 |
+| El Camino de los Reyes | 11 |
+| Danzante del Filo | 12 |
+| Esquirla del amanecer | 12 |
 
 The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
@@ -91,4 +91,4 @@ A completed work means only that every numbered unit in its current manifest has
 
 ## Scope of Run 165
 
-This run adds the metadata-only planner and tests, then separately uses the explicit local-source inspection process for three available Roshar EPUB chapters. The planner itself does not read source bytes or authorize evidence. The three inspected chapter digests and original summaries are recorded in the sparse allowlist and staging only; no progress is changed, no claim is approved and no production knowledge is written. No EPUB, XHTML, extracted passage or private file URI is committed.
+This run adds the metadata-only planner and tests, then separately uses the explicit local-source inspection process for three available Roshar EPUB chapters. The planner itself does not read source bytes or authorize evidence. The six inspected chapter digests and original summaries are recorded in the sparse allowlist and staging only; no progress is changed, no claim is approved and no production knowledge is written. No EPUB, XHTML, extracted passage or private file URI is committed.

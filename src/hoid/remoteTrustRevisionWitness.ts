@@ -347,14 +347,18 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
     message: string;
     signatureHex: string;
   }>(options.verifier, "verify");
-  if (!readTransport || !compareTransport || !createNonce || !readClock || !verify) {
+  if (!readTransport || !compareTransport || !createNonce || !readClock || !verify || !configuration) {
     throw new Error("Remote trust witness adapter dependency unavailable");
   }
+  const pinnedConfiguration = configuration;
+  const createNonceMethod = createNonce;
+  const readClockMethod = readClock;
+  const verifyMethod = verify;
 
   const usedNonces = new Set<string>();
 
   async function nextNonce(): Promise<string> {
-    const value = await createNonce();
+    const value = await createNonceMethod();
     if (typeof value !== "string" || !HEX_32_PATTERN.test(value) || usedNonces.has(value)) {
       throw new Error("Invalid or reused trust witness nonce");
     }
@@ -366,7 +370,7 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
   }
 
   function currentTime(): string {
-    const value = readClock();
+    const value = readClockMethod();
     if (!isoTimestamp(value)) throw new Error("Invalid trust witness clock");
     return value;
   }
@@ -382,9 +386,9 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
     const message = buildHoidTrustRevisionWitnessReceiptSigningMessage(unsigned);
     if (
       !message ||
-      raw.witnessId !== configuration.witnessId ||
-      raw.keyId !== configuration.keyId ||
-      raw.trustDomainId !== configuration.trustDomainId ||
+      raw.witnessId !== pinnedConfiguration.witnessId ||
+      raw.keyId !== pinnedConfiguration.keyId ||
+      raw.trustDomainId !== pinnedConfiguration.trustDomainId ||
       raw.operation !== expected.operation ||
       raw.requestNonceHex !== expected.requestNonceHex ||
       raw.expectedRevision !== expected.expectedRevision ||
@@ -406,8 +410,8 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
 
     let valid = false;
     try {
-      const verificationResult: unknown = await verify({
-        publicKeyHex: configuration.publicKeyHex,
+      const verificationResult: unknown = await verifyMethod({
+        publicKeyHex: pinnedConfiguration.publicKeyHex,
         message,
         signatureHex: raw.signatureHex,
       });
@@ -424,15 +428,15 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
   return Object.freeze({
     async readMinimumRevision(input: Readonly<{ trustDomainId: string }>): Promise<unknown> {
       const raw = exactRecord(input, ["trustDomainId"]);
-      if (!raw || raw.trustDomainId !== configuration.trustDomainId) {
+      if (!raw || raw.trustDomainId !== pinnedConfiguration.trustDomainId) {
         throw new Error("Trust witness domain mismatch");
       }
       const requestNonceHex = await nextNonce();
       const request: HoidTrustRevisionWitnessReadRequest = Object.freeze({
         schemaVersion: 1,
         operation: "read-minimum-revision",
-        witnessId: configuration.witnessId,
-        trustDomainId: configuration.trustDomainId,
+        witnessId: pinnedConfiguration.witnessId,
+        trustDomainId: pinnedConfiguration.trustDomainId,
         requestNonceHex,
       });
       const response = await readTransport(request);

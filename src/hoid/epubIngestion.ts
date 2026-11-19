@@ -511,14 +511,18 @@ function normalizePackage(value: unknown, packagePath: string): NormalizedPackag
       !isBoundedString(raw.id, 256) ||
       !isBoundedString(raw.href, 4096) ||
       !isBoundedString(raw.mediaType, 128) ||
-      !denseArray(raw.properties, 64) ||
-      raw.properties.some(property => !isBoundedString(property, 128))
+      !denseArray(raw.properties, 64)
     ) reject("manifest-invalid");
+    const properties: string[] = [];
+    for (const property of raw.properties) {
+      if (!isBoundedString(property, 128)) reject("manifest-invalid");
+      properties.push(property);
+    }
     const path = resolveHoidEpubHref(packagePath, raw.href);
     if (path === null || manifestById.has(raw.id) || manifestByPath.has(path) || foldedManifestPaths.has(path.toLowerCase())) reject("manifest-invalid");
     foldedManifestPaths.add(path.toLowerCase());
     const mediaType = raw.mediaType.toLowerCase();
-    manifestById.set(raw.id, Object.freeze({ path, mediaType, properties: Object.freeze([...raw.properties]) }));
+    manifestById.set(raw.id, Object.freeze({ path, mediaType, properties: Object.freeze(properties) }));
     manifestByPath.set(path, Object.freeze({ id: raw.id, mediaType }));
   }
 

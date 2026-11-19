@@ -227,7 +227,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
   });
 
   it("rejects evidence from a chapter whose body was not individually inspected", () => {
-    const uninspected = evidence("synthetic.coref-uninspected", "tfe", 9, 9);
+    const uninspected = evidence("synthetic.coref-uninspected", "tfe", 9, 10);
     const reading = progress([{ bookId: "tfe", chapter: 10 }]);
     const result = resolve("¿Y ella?", reading, [
       record("synthetic.coref.ella", "synthetic.entity-b", "ella", [uninspected]),
@@ -330,7 +330,7 @@ describe("Hoid reviewed, spoiler-scoped coreference", () => {
 
   it("rejects a registry containing an uninspected document", () => {
     const invalid = [record("synthetic.coref.uninspected", "synthetic.entity-b", "ella", [
-      evidence("synthetic.coref.uninspected-evidence", "tfe", 9, 9),
+      evidence("synthetic.coref.uninspected-evidence", "tfe", 9, 10),
     ])];
     expect(auditHoidCoreferenceRegistry(invalid)).toEqual({ status: "invalid" });
   });

@@ -8,7 +8,7 @@ Run 147 supplies concrete, provider-neutral implementations for the three ports 
 - `HoidEpubXmlPort` via namespace-aware, strict XML parsing with `saxes`.
 - `HoidEpubDigestPort` via SHA-256 from `@noble/hashes`.
 
-`createHoidEpubRuntimePorts(resolveSourceBytes)` composes these adapters. The resolver receives only an opaque source ID and must return the bytes of a locally selected source. It does not accept a path, URL, remote fetch function, or provider credential.
+`createHoidEpubRuntimePorts(resolveSourceBytes)` composes these adapters. The resolver receives only an opaque source ID and is intended to return bytes from a locally selected source. It does not receive a path, URL or provider credential. The adapter itself makes no network calls; the caller remains responsible for supplying a local-only resolver.
 
 This is a byte-source adapter, not yet an Expo file-picker integration. The future picker/storage layer must pass bytes into the resolver without uploading the EPUB or persisting its narrative contents in Git.
 
@@ -39,7 +39,7 @@ Runtime limits:
 | XML nodes | 100,000 |
 | XML depth | 256 |
 
-ZIP64, multi-disk archives, encrypted entries, legacy non-ASCII filename encodings and compression methods other than stored/DEFLATE fail closed. The adapter preallocates the exact bounded output buffer before calling raw `inflateSync`; it never asks fflate to enumerate or extract the ZIP.
+ZIP64, multi-disk archives, encrypted entries, legacy non-ASCII filename encodings and compression methods other than stored/DEFLATE fail closed. The adapter preallocates a bounded output buffer one byte larger than the declared uncompressed size. That sentinel detects output-size mismatches without allowing the inflater to grow its buffer. It never asks fflate to enumerate or extract the ZIP.
 
 ### Dependency security note
 

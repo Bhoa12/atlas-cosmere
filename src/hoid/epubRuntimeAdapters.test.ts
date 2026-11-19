@@ -73,6 +73,84 @@ function writeU32(bytes: Uint8Array, offset: number, value: number): void {
   new DataView(bytes.buffer, bytes.byteOffset + offset, 4).setUint32(0, value, true);
 }
 
+function crc32Fixture(bytes: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ ((crc & 1) === 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
+  const total = parts.reduce((sum, part) => sum + part.byteLength, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    result.set(part, offset);
+    offset += part.byteLength;
+  }
+  return result;
+}
+
+function makeDescriptorZip(withSignature: boolean): Uint8Array {
+  const name = strToU8("mimetype");
+  const data = strToU8("application/epub+zip");
+  const checksum = crc32Fixture(data);
+  const local = new Uint8Array(30 + name.byteLength);
+  writeU32(local, 0, 0x04034b50);
+  writeU16(local, 4, 20);
+  writeU16(local, 6, 0x0008);
+  writeU16(local, 8, 0);
+  writeU32(local, 14, 0);
+  writeU32(local, 18, 0);
+  writeU32(local, 22, 0);
+  writeU16(local, 26, name.byteLength);
+  writeU16(local, 28, 0);
+  local.set(name, 30);
+
+  const descriptor = new Uint8Array(withSignature ? 16 : 12);
+  let descriptorOffset = 0;
+  if (withSignature) {
+    writeU32(descriptor, 0, 0x08074b50);
+    descriptorOffset = 4;
+  }
+  writeU32(descriptor, descriptorOffset, checksum);
+  writeU32(descriptor, descriptorOffset + 4, data.byteLength);
+  writeU32(descriptor, descriptorOffset + 8, data.byteLength);
+
+  const central = new Uint8Array(46 + name.byteLength);
+  writeU32(central, 0, 0x02014b50);
+  writeU16(central, 4, 0x0314);
+  writeU16(central, 6, 20);
+  writeU16(central, 8, 0x0008);
+  writeU16(central, 10, 0);
+  writeU32(central, 16, checksum);
+  writeU32(central, 20, data.byteLength);
+  writeU32(central, 24, data.byteLength);
+  writeU16(central, 28, name.byteLength);
+  writeU16(central, 30, 0);
+  writeU16(central, 32, 0);
+  writeU16(central, 34, 0);
+  writeU32(central, 38, 0);
+  writeU32(central, 42, 0);
+  central.set(name, 46);
+
+  const centralOffset = local.byteLength + data.byteLength + descriptor.byteLength;
+  const end = new Uint8Array(22);
+  writeU32(end, 0, 0x06054b50);
+  writeU16(end, 4, 0);
+  writeU16(end, 6, 0);
+  writeU16(end, 8, 1);
+  writeU16(end, 10, 1);
+  writeU32(end, 12, central.byteLength);
+  writeU32(end, 16, centralOffset);
+  writeU16(end, 20, 0);
+  return concatBytes([local, data, descriptor, central, end]);
+}
+
 function archiveFor(bytes: Uint8Array) {
   return createHoidFflateArchivePort(sourceId => sourceId === "fixture" ? bytes : null);
 }
@@ -100,6 +178,22 @@ describe("concrete local EPUB runtime adapters", () => {
       .resolves.toEqual(strToU8("application/epub+zip"));
     await expect(archive.readEntry("fixture", "OEBPS/chapter.xhtml", 4096))
       .resolves.toEqual(XHTML);
+  });
+
+  it("supports signed and signatureless ZIP data descriptors", async () => {
+    for (const withSignature of [true, false]) {
+      const archive = archiveFor(makeDescriptorZip(withSignature));
+      const entries = await archive.listEntries("fixture");
+      expect(entries[0]).toMatchObject({
+        path: "mimetype",
+        ordinal: 0,
+        localHeaderExtraFieldLength: 0,
+        compressedSize: 20,
+        uncompressedSize: 20,
+      });
+      await expect(archive.readEntry("fixture", "mimetype", 64))
+        .resolves.toEqual(strToU8("application/epub+zip"));
+    }
   });
 
   it("returns null for missing paths and directory entries", async () => {

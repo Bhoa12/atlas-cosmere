@@ -37,6 +37,10 @@ La configuración contiene:
 
 `verifyHoidTrustedHostRevisionStore()` comprueba que la revisión persistida ya existe y es igual o superior al suelo provisionado. No repara un almacén vacío ni reduce una revisión.
 
+## Composición del host con la autoridad de promoción
+
+`authorizeHoidTrustedHostSignedEditorialBundlePromotion()` une el bootstrap fijado por el host, la comprobación del suelo persistido y la autoridad de promoción firmada de Run 156/157. El repositorio solicitado debe coincidir con la constante de configuración del host y estar dentro del allowlist provisionado. La clave raíz y el `trustDomainId` proceden exclusivamente del bootstrap validado; no se aceptan overrides del usuario o del proveedor. El flujo avanza la revisión monotónica solo después de autenticar el registro raíz y después ejecuta el gate de firmas, GitHub y progreso. La autorización resultante sigue siendo `ready-for-maintainer-commit`; no escribe conocimiento ni fusiona el PR.
+
 ## Por qué SecureStore no es el ancla monotónica
 
 No se añade un adaptador de `expo-secure-store` para la revisión mínima. La documentación oficial de Expo advierte que SecureStore no debe tratarse como única fuente de verdad para datos críticos; además, el comportamiento de persistencia difiere entre Android y iOS y existen escenarios de reinstalación/restauración que deben tratarse expresamente.

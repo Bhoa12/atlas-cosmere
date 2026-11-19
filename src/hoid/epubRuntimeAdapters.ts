@@ -528,6 +528,7 @@ function preflightXmlStructure(xml: string): void {
   let cursor = 0;
   let depth = 0;
   let nodeCount = 0;
+  const tagStack: string[] = [];
 
   while (cursor < xml.length) {
     const open = xml.indexOf("<", cursor);
@@ -554,6 +555,14 @@ function preflightXmlStructure(xml: string): void {
     if (xml.startsWith("</", open)) {
       const close = xml.indexOf(">", open + 2);
       if (close < 0) throw new Error("XML closing tag is unterminated");
+      const rawName = xml.slice(open + 2, close);
+      const closingName = rawName.trim();
+      if (
+        closingName !== rawName ||
+        !/^[A-Za-z_][A-Za-z0-9._-]*(?::[A-Za-z_][A-Za-z0-9._-]*)?$/.test(closingName)
+      ) throw new Error("XML closing tag name is invalid");
+      const expectedName = tagStack.pop();
+      if (expectedName !== closingName) throw new Error("XML element names are not properly nested");
       depth -= 1;
       if (depth < 0) throw new Error("XML closing tag has no open element");
       cursor = close + 1;
@@ -580,6 +589,14 @@ function preflightXmlStructure(xml: string): void {
     }
     if (close < 0 || quote !== null) throw new Error("XML start tag is unterminated");
 
+    const nameStart = open + 1;
+    let nameEnd = nameStart;
+    while (nameEnd < close && !/[\s/>]/.test(xml[nameEnd])) nameEnd += 1;
+    const openingName = xml.slice(nameStart, nameEnd);
+    if (!/^[A-Za-z_][A-Za-z0-9._-]*(?::[A-Za-z_][A-Za-z0-9._-]*)?$/.test(openingName)) {
+      throw new Error("XML opening tag name is invalid");
+    }
+
     nodeCount += 1;
     if (nodeCount > HOID_EPUB_RUNTIME_LIMITS.maxXmlNodes) {
       throw new Error("XML structural node limit exceeded");
@@ -590,11 +607,15 @@ function preflightXmlStructure(xml: string): void {
     }
     let last = close - 1;
     while (last > open && /\s/.test(xml[last])) last -= 1;
-    if (xml[last] === "/") depth -= 1;
+    if (xml[last] === "/") {
+      depth -= 1;
+    } else {
+      tagStack.push(openingName);
+    }
     cursor = close + 1;
   }
 
-  if (depth !== 0) throw new Error("XML element nesting is incomplete");
+  if (depth !== 0 || tagStack.length !== 0) throw new Error("XML element nesting is incomplete");
 }
 
 function localNameOf(node: Readonly<{

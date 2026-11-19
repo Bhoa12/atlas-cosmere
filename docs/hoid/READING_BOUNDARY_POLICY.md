@@ -42,3 +42,8 @@ Las pruebas cubren:
 ## Limitación
 
 La interfaz debe seguir presentando el cursor como «capítulo actual/en curso». Si en el futuro se añade una acción explícita «he terminado este capítulo», debe introducirse como una operación distinta y versionada; no debe reinterpretarse silenciosamente el significado del cursor existente.
+
+
+## Evidence unlock metadata
+
+The cursor policy is also enforced in source metadata: for evidence citing chapter N, `evidenceUnlock.chapter` must be strictly greater than N. A chapter-N summary cannot unlock while N is the current/open chapter. A later threshold is permitted as a stricter editorial ceiling. Explicit whole-work completion only authorizes otherwise valid evidence; it does not repair malformed or same-chapter provenance.

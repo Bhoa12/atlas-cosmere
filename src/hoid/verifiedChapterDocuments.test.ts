@@ -112,8 +112,8 @@ describe("verified EPUB chapter document fingerprints", () => {
       5,
     )).toBe("3aefc41eadb2b580c80d738552b3d10e1f93fd7c8755cf98b824e6922a9df515");
     expect(getVerifiedChapterDocumentCount("twok")).toBe(10);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
   });
 
   it("returns the three individually inspected Mistborn chapter digests", () => {
@@ -155,8 +155,8 @@ describe("verified EPUB chapter document fingerprints", () => {
       11,
     )).toBeNull();
     expect(getVerifiedChapterDocumentCount("twok")).toBe(10);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
     expect(getVerifiedChapterDocumentCount("unknown-work")).toBe(0);
   });
 
@@ -180,8 +180,8 @@ describe("verified EPUB chapter document fingerprints", () => {
       7,
     )).toBe("c2d2eb939495f883a1d507a42728ca3f39b561534e6984de56af574872066aaf");
     expect(getVerifiedChapterDocumentCount("twok")).toBe(10);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
   });
 
   it("rejects malformed input", () => {
@@ -210,8 +210,8 @@ describe("verified EPUB chapter document fingerprints", () => {
       6,
     )).toBe("4025cf190a6b7d6e17d66036705f6aa1f16f3194b3964a29ea4aa77249a3bc3b");
     expect(getVerifiedChapterDocumentCount("twok")).toBe(10);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
   });
 
   it("returns the newly inspected TFE chapter three and Roshar chapter-eight digests", () => {
@@ -219,8 +219,8 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentSha256("edgedancer", "edgedancer-epub-v1", "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517", 8)).toBe("3b6e7ed84bcd4b08908f0f022edfc127b2dca223d834dc8841359fcb3ecbe095");
     expect(getVerifiedChapterDocumentSha256("dawnshard", "dawnshard-epub-v1", "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075", 8)).toBe("04cf11bf2784a7cc8b01cc226cb403744860f72cf8715bc8c2724f1e2c860a25");
     expect(getVerifiedChapterDocumentCount("tfe")).toBe(3);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
   });
 
 
@@ -244,8 +244,8 @@ describe("verified EPUB chapter document fingerprints", () => {
       9,
     )).toBe("4ee69a012acd0e528aa63c5ac3f78cd22a0988e168f178606dc48a4691786906");
     expect(getVerifiedChapterDocumentCount("twok")).toBe(10);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
   });
 
   it("returns the newly inspected Roshar chapter-nine and chapter-ten digests", () => {
@@ -267,7 +267,7 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       10,
     )).toBe("0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22");
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(10);
     expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(11);
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(11);
   });

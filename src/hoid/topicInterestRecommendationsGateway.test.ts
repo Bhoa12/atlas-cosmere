@@ -127,4 +127,40 @@ describe("Hoid topic-interest recommendation gateway", () => {
       reason: "invalid-progress",
     });
   });
+
+  it("uses the durable refresh port before evaluating selected topic recommendations", async () => {
+    const initial = snapshot(3, 7);
+    const newer = snapshot(4, 8);
+    const refreshCurrentProgress = vi.fn(async () => newer);
+    const gateway = createHoidTopicInterestRecommendationGateway({
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress,
+    });
+    if (!gateway) throw new Error("Gateway unavailable");
+
+    const result = await gateway.recommend({
+      progress: initial,
+      context: context(initial),
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "progress-changed" });
+    expect(refreshCurrentProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when the durable progress refresh cannot read SQLite", async () => {
+    const initial = snapshot(3, 7);
+    const refreshCurrentProgress = vi.fn(async () => null);
+    const gateway = createHoidTopicInterestRecommendationGateway({
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress,
+    });
+    if (!gateway) throw new Error("Gateway unavailable");
+
+    const result = await gateway.recommend({
+      progress: initial,
+      context: context(initial),
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-progress" });
+    expect(refreshCurrentProgress).toHaveBeenCalledTimes(1);
+  });
+
 });

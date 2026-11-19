@@ -130,9 +130,9 @@ describe("Hoid editorial entity identity staging", () => {
     expect(vin?.identity).toEqual({ status: "resolved", canonicalLabel: "Vin" });
     expect(kelsier?.identity).toEqual({ status: "resolved", canonicalLabel: "Kelsier" });
     expect(vin?.evidence[0].source).toMatchObject({ bookId: "tfe", chapter: 1 });
-    expect(vin?.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 2 });
+    expect(vin?.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 1 });
     expect(kelsier?.evidence[0].source).toMatchObject({ bookId: "tfe", chapter: 2 });
-    expect(kelsier?.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 3 });
+    expect(kelsier?.evidence[0].unlock).toEqual({ bookId: "tfe", chapter: 2 });
     expect(vin && "aliases" in vin).toBe(false);
     expect(kelsier && "aliases" in kelsier).toBe(false);
     expect(vin?.review.status).toBe("pending-review");
@@ -149,13 +149,13 @@ describe("Hoid editorial entity identity staging", () => {
     expect(packet?.identity.status).toBe("unresolved");
   });
 
-  it("binds each identity dossier to an inspected chapter and the next-chapter unlock threshold", () => {
+  it("binds each identity dossier to a completed-through source chapter watermark", () => {
     for (const draft of HOID_EDITORIAL_ENTITY_DRAFTS) {
       expect(validateHoidEditorialEntityDraft(draft).status).toBe("valid");
       expect(draft.evidence).toHaveLength(1);
       expect(draft.evidence[0].unlock).toEqual({
         bookId: draft.evidence[0].source.bookId,
-        chapter: draft.evidence[0].source.chapter + 1,
+        chapter: draft.evidence[0].source.chapter,
       });
       expect(draft.evidence[0].sourceIntegrity.documentSha256).toMatch(/^[a-f0-9]{64}$/);
     }
@@ -191,7 +191,12 @@ describe("Hoid editorial entity identity staging", () => {
     );
     expect(chapterFourOpen.status).toBe("ready");
     if (chapterFourOpen.status !== "ready") return;
-    expect(chapterFourOpen.evaluations.every(item => item.status === "withheld")).toBe(true);
+    expect(chapterFourOpen.evaluations.find(item => item.entityId === "twok.shallan")?.status).toBe("eligible-for-review");
+    expect(chapterFourOpen.evaluations.find(item => item.entityId === "twok.kaladin")).toMatchObject({
+      status: "withheld",
+      reason: "evidence-locked",
+      missingRequirements: [{ bookId: "twok", chapter: 4 }],
+    });
 
     const chapterFiveOpen = evaluateHoidEditorialEntityDrafts(
       HOID_EDITORIAL_ENTITY_DRAFTS,
@@ -200,11 +205,7 @@ describe("Hoid editorial entity identity staging", () => {
     expect(chapterFiveOpen.status).toBe("ready");
     if (chapterFiveOpen.status !== "ready") return;
     expect(chapterFiveOpen.evaluations.find(item => item.entityId === "twok.shallan")?.status).toBe("eligible-for-review");
-    expect(chapterFiveOpen.evaluations.find(item => item.entityId === "twok.kaladin")).toMatchObject({
-      status: "withheld",
-      reason: "evidence-locked",
-      missingRequirements: [{ bookId: "twok", chapter: 5 }],
-    });
+    expect(chapterFiveOpen.evaluations.find(item => item.entityId === "twok.kaladin")?.status).toBe("eligible-for-review");
     expect(chapterFiveOpen.evaluations.find(item => item.entityId === "edgedancer.unnamed-girl")).toMatchObject({
       status: "withheld",
       reason: "identity-unresolved",

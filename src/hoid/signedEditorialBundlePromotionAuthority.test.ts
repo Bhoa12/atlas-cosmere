@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
+import { authorizeHoidTrustedHostSignedEditorialBundlePromotion } from "./trustedHostPromotionAuthority";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { HOID_EDITORIAL_CLAIM_DRAFTS } from "./editorialClaimDrafts";
 import { HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
@@ -33,6 +34,7 @@ import type {
 const NOW = "2026-11-19T10:00:00.000Z";
 const REVIEWED_AT = "2026-11-18T02:00:00.000Z";
 const REPOSITORY = "Bhoa12/atlas-cosmere";
+const TRUST_DOMAIN = "atlas-cosmere-production";
 const rootKey = Object.freeze({ keyId: "root-2026", publicKeyHex: "11".repeat(32) });
 
 function testSignature(message: string): string {
@@ -441,6 +443,43 @@ function buildRealCryptoFixture() {
   });
 }
 
+
+function createRealHostPorts(rootKey: HoidReviewerTrustRootKey) {
+  let revision = 1;
+  const revisionStore = {
+    get value() { return revision; },
+    readMinimumRevision: vi.fn(async (input: { trustDomainId: string }) =>
+      input.trustDomainId === TRUST_DOMAIN ? revision : null
+    ),
+    compareAndSetMinimumRevision: vi.fn(async (input: {
+      trustDomainId: string;
+      expectedRevision: number;
+      nextRevision: number;
+    }) => {
+      if (
+        input.trustDomainId !== TRUST_DOMAIN ||
+        revision !== input.expectedRevision ||
+        input.nextRevision <= input.expectedRevision
+      ) return false;
+      revision = input.nextRevision;
+      return true;
+    }),
+  };
+  const bootstrapPort = {
+    readPinnedConfiguration: vi.fn(async () => Object.freeze({
+      schemaVersion: 1 as const,
+      configurationId: "atlas-production-root-2026",
+      trustDomainId: TRUST_DOMAIN,
+      rootKey,
+      minimumRegistryRevision: 1,
+      allowedRepositoryFullNames: Object.freeze([REPOSITORY]),
+      provisionedAt: "2026-11-18T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
+    })),
+  };
+  return { revisionStore, bootstrapPort };
+}
+
 describe("Hoid signed editorial bundle promotion", () => {
   it("requires a valid signature for every packet before protected review", async () => {
     const fixture = buildFixture();
@@ -593,27 +632,42 @@ describe("Hoid signed editorial bundle promotion", () => {
     const fixture = buildRealCryptoFixture();
     const source = sourceControlPort();
     const progress = progressPort();
-    const result = await authorizeHoidSignedEditorialBundlePromotion(
-      fixture.plan,
-      fixture.context,
+    const host = createRealHostPorts(fixture.rootKey);
+    const result = await authorizeHoidTrustedHostSignedEditorialBundlePromotion({
+      plan: fixture.plan,
+      context: fixture.context,
       request,
-      fixture.signatureBatch,
-      fixture.registry,
-      fixture.rootKey,
-      fixture.verifier,
-      NOW,
-      1,
-      initialProgress,
-      source,
-      progress,
-    );
+      signatureBatch: fixture.signatureBatch,
+      trustRegistry: fixture.registry,
+      verifier: fixture.verifier,
+      now: NOW,
+      revisionStore: host.revisionStore,
+      progressSnapshot: initialProgress,
+      sourceControlPort: source,
+      progressPort: progress,
+      bootstrapPort: host.bootstrapPort,
+      expectedRepositoryFullName: REPOSITORY,
+    });
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
-      verifiedReceiptCount: fixture.signatureBatch.signatures.length,
-      trustRegistryRevision: 3,
+      configuredMinimumRegistryRevision: 1,
+      persistedMinimumRegistryRevision: 3,
+      authorization: {
+        status: "ready-for-maintainer-commit",
+        minimumRevisionPersisted: true,
+        trustRegistryRevision: 3,
+        authorization: {
+          status: "ready-for-maintainer-commit",
+          verifiedReceiptCount: fixture.signatureBatch.signatures.length,
+          trustRegistryRevision: 3,
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        },
+      },
       promotionAllowed: false,
       productionWritePerformed: false,
     });
+    expect(host.revisionStore.value).toBe(3);
     const allReceipts = [
       ...fixture.receipts.summaries,
       ...fixture.receipts.claims,
@@ -633,26 +687,39 @@ describe("Hoid signed editorial bundle promotion", () => {
     signatures[signatures.length - 1] = Object.freeze({ ...last, signatureHex: "0".repeat(128) });
     const source = sourceControlPort();
     const progress = progressPort();
-    const result = await authorizeHoidSignedEditorialBundlePromotion(
-      fixture.plan,
-      fixture.context,
+    const host = createRealHostPorts(fixture.rootKey);
+    const result = await authorizeHoidTrustedHostSignedEditorialBundlePromotion({
+      plan: fixture.plan,
+      context: fixture.context,
       request,
-      Object.freeze({ ...fixture.signatureBatch, signatures: Object.freeze(signatures) }),
-      fixture.registry,
-      fixture.rootKey,
-      fixture.verifier,
-      NOW,
-      1,
-      initialProgress,
-      source,
-      progress,
-    );
+      signatureBatch: Object.freeze({ ...fixture.signatureBatch, signatures: Object.freeze(signatures) }),
+      trustRegistry: fixture.registry,
+      verifier: fixture.verifier,
+      now: NOW,
+      revisionStore: host.revisionStore,
+      progressSnapshot: initialProgress,
+      sourceControlPort: source,
+      progressPort: progress,
+      bootstrapPort: host.bootstrapPort,
+      expectedRepositoryFullName: REPOSITORY,
+    });
     expect(result).toMatchObject({
       status: "blocked",
-      reason: "signature-verification-failed",
+      reason: "signed-editorial-promotion-blocked",
+      promotion: {
+        status: "blocked",
+        reason: "editorial-promotion-blocked",
+        authorization: {
+          status: "blocked",
+          reason: "signature-verification-failed",
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        },
+      },
       promotionAllowed: false,
       productionWritePerformed: false,
     });
+    expect(host.revisionStore.value).toBe(3);
     expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
     expect(progress.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
   });

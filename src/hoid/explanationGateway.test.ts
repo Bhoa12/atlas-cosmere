@@ -102,7 +102,7 @@ function fixture() {
     createPlan: (snapshot, query) => createHoidExplanationPlan(
       definition, knowledgeItems, claims, snapshot, query,
     ),
-    renderPlan: (plan, snapshot) => renderHoidExplanationPlan(plan, claims, snapshot),
+    renderPlan: (plan, snapshot) => renderHoidExplanationPlan(plan, knowledgeItems, claims, snapshot),
   });
   const query = Object.freeze({ fromId: a.id, toId: c.id, maxDepth: 2 });
   return { a, b, c, claims, completed, changed, engine, query };

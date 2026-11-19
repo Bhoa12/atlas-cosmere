@@ -126,6 +126,7 @@ export type HoidPromotionCommitAuthorization =
       status: "ready-for-maintainer-commit";
       repositoryFullName: string;
       pullRequestNumber: number;
+      baseSha: string;
       headSha: string;
       promotionPlanFingerprint: string;
       approvalReviewerIds: readonly string[];
@@ -708,6 +709,7 @@ export async function authorizeHoidPromotionCommit(
     status: "ready-for-maintainer-commit",
     repositoryFullName: request.repositoryFullName,
     pullRequestNumber: request.pullRequestNumber,
+    baseSha: verification.baseSha,
     headSha: verification.headSha,
     promotionPlanFingerprint: verification.promotionPlanFingerprint,
     approvalReviewerIds: verification.approvalReviewerIds,

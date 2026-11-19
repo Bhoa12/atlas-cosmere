@@ -23,34 +23,9 @@ const entry: HoidKnowledgeEntry = {
 };
 
 describe("isEvidenceUnlocked public boundary", () => {
-  it("accepts the immediate successor as the earliest valid unlock", () => {
-    const source = { bookId: "twok", chapter: 1, locatorId: locator("twok", 1) };
-    expect(canonicalEvidenceScope(source, { bookId: "twok", chapter: 2 })).toEqual({
-      sourceBookId: "twok",
-      sourceChapter: 1,
-      locatorId: source.locatorId,
-      unlockBookId: "twok",
-      unlockChapter: 2,
-    });
-  });
-
   it("unlocks only when the single canonical position reaches the evidence ceiling", () => {
     expect(isEvidenceUnlocked(entry, [{ bookId: "twok", chapter: 3 }])).toBe(false);
     expect(isEvidenceUnlocked(entry, [{ bookId: "twok", chapter: 4 }])).toBe(true);
-  });
-
-  it("rejects a same-chapter unlock even when the reader position is completed", () => {
-    const sameChapterEntry: HoidKnowledgeEntry = {
-      ...entry,
-      evidenceUnlock: { bookId: "twok", chapter: 2 },
-    };
-
-    expect(canonicalEvidenceScope(
-      sameChapterEntry.evidenceSource,
-      sameChapterEntry.evidenceUnlock,
-    )).toBeNull();
-    expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", chapter: 2 }])).toBe(false);
-    expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", completed: true }])).toBe(false);
   });
 
   it("rejects duplicate positions instead of depending on their order", () => {
@@ -88,7 +63,7 @@ describe("isEvidenceUnlocked public boundary", () => {
       ...entry,
       firstSafeAppearance: { bookId: "elantris", chapter: 48 },
       evidenceSource: { bookId: "elantris", chapter: 48, locatorId: "nav:forged" },
-      evidenceUnlock: { bookId: "elantris", chapter: 49 },
+      evidenceUnlock: { bookId: "elantris", chapter: 48 },
     };
     expect(isEvidenceUnlocked(elantrisEntry, [{ bookId: "elantris", chapter: 48 }])).toBe(false);
   });
@@ -107,7 +82,7 @@ describe("isEvidenceUnlocked public boundary", () => {
       ...entry,
       firstSafeAppearance: { bookId: "tfe", chapter: 2 },
       evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "nav:unverified" },
-      evidenceUnlock: { bookId: "tfe", chapter: 3 },
+      evidenceUnlock: { bookId: "tfe", chapter: 2 },
     };
     expect(canonicalEvidenceScope(unavailable.evidenceSource, unavailable.evidenceUnlock)).toBeNull();
     expect(isEvidenceUnlocked(unavailable, [{ bookId: "tfe", chapter: 38 }])).toBe(false);

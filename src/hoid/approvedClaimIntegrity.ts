@@ -260,7 +260,7 @@ function canonicalAliases(value: unknown): readonly string[] | null {
   }
 }
 
-type HoidEvidenceBindingInspection =
+export type HoidEvidenceBindingInspection =
   | Readonly<{ status: "valid" }>
   | Readonly<{ status: "invalid"; reason: "invalid-entry" | "invalid-scope" | "invalid-metadata" | "edition-unavailable" | "locator-mismatch" | "document-unverified" | "first-appearance-unverified" }>;
 

@@ -1112,7 +1112,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 12 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
-      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404ac67ce604bf00025",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
       documentSha256: "3198740aafd799096672d6a893b925c08a4f33819219e7769761319eaea97ae5",
     }),
     summaryIntegrity: Object.freeze({ sha256: "e0e20092570a2bfed23f187586e26104b518b8f877c7522fb82cb6823bd44648" }),

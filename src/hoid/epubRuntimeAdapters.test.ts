@@ -167,6 +167,22 @@ describe("concrete local EPUB runtime adapters", () => {
     await expect(archiveFor(bytes).readEntry("fixture", "OEBPS/chapter.xhtml", 4096)).rejects.toThrow();
   });
 
+  it("rejects DEFLATE output larger than the declared uncompressed size", async () => {
+    const bytes = makeZip();
+    const name = strToU8("OEBPS/chapter.xhtml");
+    const localNameOffset = findSequence(bytes, name);
+    const centralNameOffset = findSequence(bytes, name, localNameOffset + name.byteLength);
+    const localOffset = localNameOffset - 30;
+    const centralOffset = centralNameOffset - 46;
+    writeU32(bytes, localOffset + 14, 0);
+    writeU32(bytes, localOffset + 22, 0);
+    writeU32(bytes, centralOffset + 16, 0);
+    writeU32(bytes, centralOffset + 24, 0);
+
+    await expect(archiveFor(bytes).readEntry("fixture", "OEBPS/chapter.xhtml", 4096))
+      .rejects.toThrow();
+  });
+
   it("parses EPUB container and OPF metadata with namespace-aware XML", async () => {
     const xml = createHoidSaxesXmlPort();
     await expect(xml.parseContainerXml(CONTAINER_XML)).resolves.toEqual({

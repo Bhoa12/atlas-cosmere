@@ -1011,6 +1011,73 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   })
+
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-010.kaladin-lirin-surgeon",
+    kind: "event",
+    aliases: Object.freeze(["Kal aprende cirugía con Lirin", "debate de Kal y Lirin sobre honor y guerra"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 10 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 10,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-024.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 11 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "9c01e31f6d72a910dc1c742609aaf107eaf63f83bb94b4a681df39c8fc08995d",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "fca6e2195b7b80d51f75e7480f6bccb0040f02952620aca4f66a95ba750955f6" }),
+    summary: "En un recuerdo de nueve años antes, Kal, de diez años, ayuda a su padre Lirin a tratar a Sani, una joven cuya mano ha quedado gravemente dañada. Kal aprende a mantener la calma durante una intervención y presencia la amputación de un dedo para salvar el resto de la mano. Tras la operación, Lirin cuestiona el deseo de Kal de convertirse en soldado y defiende que la función de un cirujano es salvar vidas, no quitarlas. Kal intenta argumentar que los soldados también protegen, pero su padre rechaza esa justificación y le propone formarse como cirujano en Kharbranth cuando tenga edad suficiente. El capítulo establece el conflicto temprano de Kal entre la vocación de sanar que su padre ve en él y su ideal de honor militar.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-011.lift-finds-great-indicium",
+    kind: "event",
+    aliases: Object.freeze(["Lift localiza el Gran Indicium"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 11 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 11,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/011.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 12 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "1b3d61d87c1a1d7f14f7199996d7751b88c4a1b19f5a2fd808d1bcf8b72bd673",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "9e2e57a5717d63832ff1bb36014cffdae1870a189507dcc434c5f843c6628f72" }),
+    summary: "Wyndle intenta explicar a Lift que su vínculo implica aceptar las Palabras, ideas vivas que permiten avanzar en su entrenamiento. Lift, sin embargo, sigue centrada en su propósito inmediato: impedir que Oscuridad ejecute a otra persona. En un jardín de la ciudad, razona que la cultura local registra y conserva información, así que busca un lugar donde se archiven los escritos. Negocia con una mujer a cambio de información y recibe la indicación del Gran Indicium, un edificio que parece reunir los registros de la ciudad. El capítulo muestra cómo Lift utiliza su observación práctica y su conocimiento de las costumbres locales para encontrar una pista, mientras evita abordar directamente el siguiente paso de su vínculo con Wyndle.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-011.lopen-crosses-akinah-storm",
+    kind: "event",
+    aliases: Object.freeze(["Lopen atraviesa la tormenta de Akinah"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 11 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 11,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/11.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 12 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "c12c49b2ad8813fe5d24894c6be43384e1da23875cf204e4129db9b5f20dddbc",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "adb307b600410e6022e783a0002adcc3187f508292f0c01f14e7e346523af12c" }),
+    summary: "El Vela Errante entra en la tormenta que rodea Akinah. Lopen observa cómo los marineros maniobran el barco mediante remos, velas reducidas y fabriales para avanzar hacia el centro del fenómeno. Cuando Turlm cae por la borda, Lopen se lanza al agua y lo rescata con sus vínculos, pero durante la travesía detecta una criatura oscura que parece acechar el barco y que podría drenar la luz tormentosa. Tras atravesar la zona de mayor violencia, la tormenta amaina de forma abrupta y la tripulación alcanza aguas tranquilas. Al final, la isla de Akinah aparece ante ellos entre formaciones rocosas, confirmando que el destino de la expedición existe.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  })
 ]);
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

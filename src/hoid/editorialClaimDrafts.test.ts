@@ -12,7 +12,7 @@ import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManife
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import type { HoidKnowledgeKind } from "./catalog";
 
-function evidence(bookId: string, chapter = 1, unlockChapter = chapter) {
+function evidence(bookId: string, chapter = 1, unlockChapter = chapter + 1) {
   const result = getHoidReadingManifest(bookId);
   if (result.status !== "ready") throw new Error("Manifest de prueba no disponible");
   const unit = result.manifest.units.find(item => item.chapterNumber === chapter);
@@ -87,14 +87,14 @@ describe("Hoid atomic editorial claim drafts", () => {
       evidence("edgedancer"),
     ]);
     const partial = evaluateHoidEditorialClaimDrafts([value], progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
     ]));
     expect(partial.status).toBe("ready");
     if (partial.status !== "ready") return;
     expect(partial.evaluations[0].status).toBe("withheld");
     if (partial.evaluations[0].status === "withheld") {
       expect(partial.evaluations[0].missingRequirements).toEqual([
-        { bookId: "edgedancer", chapter: 1 },
+        { bookId: "edgedancer", chapter: 2 },
       ]);
     }
   });
@@ -105,8 +105,8 @@ describe("Hoid atomic editorial claim drafts", () => {
       evidence("edgedancer"),
     ]);
     const result = evaluateHoidEditorialClaimDrafts([value], progress([
-      { bookId: "twok", chapter: 2 },
-      { bookId: "edgedancer", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
+      { bookId: "edgedancer", chapter: 3 },
     ]));
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -120,7 +120,7 @@ describe("Hoid atomic editorial claim drafts", () => {
   it("does not expose claim text in eligibility results", () => {
     const value = draft("synthetic.no-text", [evidence("twok")]);
     const result = evaluateHoidEditorialClaimDrafts([value], progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
     ]));
     expect(JSON.stringify(result)).not.toContain(value.statement);
   });
@@ -128,7 +128,7 @@ describe("Hoid atomic editorial claim drafts", () => {
   it("does not promote a staging claim into the production registry", () => {
     const value = draft("synthetic.no-promotion", [evidence("twok")]);
     evaluateHoidEditorialClaimDrafts([value], progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
     ]));
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
@@ -259,7 +259,7 @@ describe("Hoid atomic editorial claim drafts", () => {
       reason: "invalid-draft",
     });
     expect(evaluateHoidEditorialClaimDrafts([valid, invalid], progress([
-      { bookId: "twok", chapter: 2 },
+      { bookId: "twok", chapter: 3 },
     ]))).toEqual({ status: "unavailable", reason: "invalid-claims" });
   });
 

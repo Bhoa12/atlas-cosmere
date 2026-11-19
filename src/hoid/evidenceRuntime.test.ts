@@ -414,7 +414,7 @@ describe("HoidEvidenceRuntime", () => {
 
   it("rejects unknown source works and malformed chapter locators", () => {
     const unknownSource = knowledge.map(entry => entry.id === "e-alpha"
-      ? { ...entry, evidenceSource: { bookId: "unknown-work", chapter: 2, locatorId: "x" }, evidenceUnlock: { bookId: "unknown-work", chapter: 2 } }
+      ? { ...entry, evidenceSource: { bookId: "unknown-work", chapter: 2, locatorId: "x" }, evidenceUnlock: { bookId: "unknown-work", chapter: 3 } }
       : entry);
     expect(createHoidEvidenceRuntime({ knowledge: unknownSource, claims, selector: null })).toBeNull();
 

@@ -232,6 +232,10 @@ function knowledgeById(value: unknown): ReadonlyMap<string, unknown> | null {
 function canonicalAliases(value: unknown): readonly string[] | null {
   try {
     if (!Array.isArray(value) || value.length < 1 || value.length > 64) return null;
+    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+
     const aliases: string[] = [];
     const seen = new Set<string>();
     for (let index = 0; index < value.length; index += 1) {
@@ -247,11 +251,20 @@ function canonicalAliases(value: unknown): readonly string[] | null {
         alias !== alias.trim() ||
         alias.length < 1 ||
         alias.length > 256 ||
-        /[\\u0000-\\u001F\\u007F]/u.test(alias) ||
+        /[\u0000-\u001F\u007F]/u.test(alias) ||
         seen.has(alias)
       ) return null;
       seen.add(alias);
       aliases.push(alias);
+    }
+
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (
+        typeof key !== "string" ||
+        !/^(0|[1-9][0-9]*)$/.test(key) ||
+        Number(key) >= value.length
+      ) return null;
     }
     return Object.freeze(aliases.sort());
   } catch {

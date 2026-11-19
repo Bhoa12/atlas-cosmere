@@ -352,6 +352,26 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([]),
     );
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-definition" });
+  });
+
+  it("rejects a claim whose statement no longer matches its source-bound attestation", () => {
+    const a = knowledge("synthetic.entity-a", "twok");
+    const b = knowledge("synthetic.entity-b", "edgedancer");
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
+    const tampered = Object.freeze({
+      ...claim,
+      text: claim.text + " Texto añadido después de la revisión.",
+    });
+    const result = buildHoidAuthorizedKnowledgeGraph(
+      definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
+      [a, b],
+      [tampered],
+      progress([
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
+      ]),
+    );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-claims" });
   });
 

@@ -18,6 +18,7 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import { sha256Hex } from "./sha256";
+import { validateHoidApprovedClaimAttestation } from "./approvedClaimIntegrity";
 
 export type HoidKnowledgeGraphPredicate =
   | "related-to"
@@ -88,9 +89,7 @@ const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const MAX_NODES = 512;
 const MAX_CLAIMS = 512;
 const MAX_RELATIONS = 1_024;
-const MAX_EVIDENCE_IDS = 16;
 const MAX_SUMMARY_LENGTH = 4_000;
-const MAX_CLAIM_TEXT_LENGTH = 4_000;
 
 function canonicalRecord(
   value: unknown,
@@ -241,7 +240,7 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
 
 function canonicalClaims(
   value: unknown,
-  knowledgeIds: ReadonlySet<string>,
+  knowledge: readonly HoidKnowledgeEntry[],
 ): readonly HoidApprovedClaim[] | null {
   const rawClaims = canonicalDenseArray(value, 0, MAX_CLAIMS);
   if (!rawClaims) return null;
@@ -249,55 +248,15 @@ function canonicalClaims(
   const claims: HoidApprovedClaim[] = [];
   const seen = new Set<string>();
   for (const raw of rawClaims) {
-    const record = canonicalRecord(raw, ["id", "text", "intent", "evidenceIds", "review"]);
-    const id = record?.id;
-    if (!record || !validId(id) || seen.has(id)) return null;
-    const text = typeof record.text === "string" ? record.text : "";
-    const intent = record.intent;
+    const validation = validateHoidApprovedClaimAttestation(raw, knowledge);
+    if (validation.status !== "valid") return null;
+    const claim = validation.claim;
     if (
-      !text || text !== text.trim() || text.length > MAX_CLAIM_TEXT_LENGTH ||
-      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text)
+      seen.has(claim.id) ||
+      (claim.intent !== "explain" && claim.intent !== "context")
     ) return null;
-    if (intent !== "explain" && intent !== "context") return null;
-
-    const evidenceIds = canonicalDenseArray(record.evidenceIds, 2, MAX_EVIDENCE_IDS);
-    if (!evidenceIds || !evidenceIds.every(item =>
-      typeof item === "string" && validId(item) && knowledgeIds.has(item)
-    )) return null;
-    const evidence = evidenceIds as readonly string[];
-    if (new Set(evidence).size !== evidence.length) return null;
-
-    const review = canonicalRecord(record.review, ["status", "origin", "reviewerId", "reviewedAt"]);
-    const reviewerId = review?.reviewerId;
-    const reviewedAt = review?.reviewedAt;
-    if (
-      !review ||
-      review.status !== "approved" ||
-      review.origin !== "original-editorial" ||
-      typeof reviewerId !== "string" ||
-      !reviewerId.trim() ||
-      reviewerId.length > 128 ||
-      typeof reviewedAt !== "string"
-    ) return null;
-    const reviewedAtMs = Date.parse(reviewedAt);
-    if (
-      !Number.isFinite(reviewedAtMs) ||
-      new Date(reviewedAtMs).toISOString() !== reviewedAt
-    ) return null;
-
-    claims.push(Object.freeze({
-      id,
-      text,
-      intent,
-      evidenceIds: Object.freeze([...evidence].sort()),
-      review: Object.freeze({
-        status: "approved",
-        origin: "original-editorial",
-        reviewerId: reviewerId.trim(),
-        reviewedAt,
-      }),
-    }));
-    seen.add(id);
+    claims.push(claim);
+    seen.add(claim.id);
   }
   return Object.freeze(claims);
 }
@@ -409,9 +368,7 @@ export function buildHoidAuthorizedKnowledgeGraph(
 
   const knowledge = canonicalKnowledge(knowledgeInput);
   if (!knowledge) return unavailable("invalid-knowledge");
-  const knowledgeIds = new Set(knowledge.map(entry => entry.id));
-
-  const claims = canonicalClaims(claimsInput, knowledgeIds);
+  const claims = canonicalClaims(claimsInput, knowledge);
   if (!claims) return unavailable("invalid-claims");
 
   // Reuse the production runtime's complete contract validator. This is a

@@ -33,6 +33,8 @@ on:
       - "src/hoid/epubRangeRuntimeAdapters.ts"
       - "src/hoid/epubImportSelection.ts"
       - "src/hoid/epubImportSelection.test.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
@@ -43,6 +45,7 @@ on:
       - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
+      - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
 
 permissions:
@@ -90,5 +93,4 @@ jobs:
           src/hoid/expoLocalEpubProvider.ts
           src/hoid/expoLocalEpubPlatform.ts
           src/components/HoidEpubImportPanel.tsx
-          src/screens/HoidScreen.tsx
           src/screens/HoidScreen.tsx

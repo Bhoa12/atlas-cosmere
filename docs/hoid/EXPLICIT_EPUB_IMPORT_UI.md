@@ -27,7 +27,7 @@ The binding is built by `createHoidEpubSourceDescriptor(sourceId, workId, editio
 
 ## XML parser migration
 
-The archived Saxes dependency is replaced by the pinned `@xmldom/xmldom@0.9.12` package behind the existing XML port. DTD and entity declarations are rejected before parsing, all parser warnings/errors fail closed, and a lexical preflight enforces XML byte, node-count and nesting-depth limits before DOM construction. The parser remains replaceable without changing the provider-neutral ingestion core.
+The inactive, long-unreleased Saxes dependency is replaced by the pinned `@xmldom/xmldom@0.9.12` package behind the existing XML port. DTD and entity declarations are rejected before parsing, all parser warnings/errors fail closed, and a lexical preflight enforces XML byte, node-count and nesting-depth limits before DOM construction. The parser remains replaceable without changing the provider-neutral ingestion core.
 
 ## Validation
 

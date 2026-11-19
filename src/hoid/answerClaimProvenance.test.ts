@@ -28,7 +28,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     kind: "character",
     firstSafeAppearance: { bookId: "twok", chapter: 2 },
     evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
-    evidenceUnlock: { bookId: "twok", chapter: 3 },
+    evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "verified",
     summary: "Resumen sintético de prueba para Personaje Alfa.",
   },
@@ -38,7 +38,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     kind: "character",
     firstSafeAppearance: { bookId: "edgedancer", chapter: 3 },
     evidenceSource: { bookId: "edgedancer", chapter: 3, locatorId: locator("edgedancer", 3) },
-    evidenceUnlock: { bookId: "edgedancer", chapter: 4 },
+    evidenceUnlock: { bookId: "edgedancer", chapter: 3 },
     provenance: "verified",
     summary: "Resumen sintético de prueba para Personaje Beta.",
   },
@@ -98,8 +98,8 @@ describe("Hoid per-claim evidence provenance", () => {
     const answer = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 4 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
       ],
     });
 
@@ -112,7 +112,7 @@ describe("Hoid per-claim evidence provenance", () => {
       { claimId: "claim-beta", text: claims[1].text, evidenceIds: ["e-beta"] },
     ]);
 
-    const presentation = presentHoidEvidenceAnswer(answer, progress(4, 5));
+    const presentation = presentHoidEvidenceAnswer(answer, progress(3, 4));
     expect(presentation.status).toBe("ready");
     if (presentation.status !== "ready") return;
     expect(presentation.segments?.map(segment => ({
@@ -139,8 +139,8 @@ describe("Hoid per-claim evidence provenance", () => {
     const answer = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 3 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ],
     });
     expect(answer.status).toBe("blocked");
@@ -154,7 +154,7 @@ describe("Hoid per-claim evidence provenance", () => {
       kind: "concept",
       firstSafeAppearance: { bookId: "twok", chapter: 2 },
       evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
-      evidenceUnlock: { bookId: "twok", chapter: 3 },
+      evidenceUnlock: { bookId: "twok", chapter: 2 },
       provenance: "verified",
       summary: "Resumen sintético de prueba " + String(index + 1) + ".",
     }));
@@ -180,7 +180,7 @@ describe("Hoid per-claim evidence provenance", () => {
     expect(runtime).not.toBeNull();
     const answer = await runtime!.answer({
       question: "¿Qué sabes de Concepto Alfa?",
-      reading: [{ bookId: "twok", chapter: 3 }],
+      reading: [{ bookId: "twok", chapter: 2 }],
     });
     expect(answer.status).toBe("blocked");
     expect(answer.reason).toBe("invalid-selection");

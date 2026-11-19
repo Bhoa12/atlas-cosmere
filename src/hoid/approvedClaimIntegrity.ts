@@ -309,6 +309,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     typeof firstChapter !== "number" ||
     !Number.isSafeInteger(firstChapter) ||
     firstChapter < 1 ||
+    (firstBookId === sourceBookId && sourceChapter < firstChapter) ||
     (provenance !== undefined && (typeof provenance !== "string" || !PROVENANCE.has(provenance))) ||
     typeof summary !== "string" ||
     summary.trim().length < 1 ||

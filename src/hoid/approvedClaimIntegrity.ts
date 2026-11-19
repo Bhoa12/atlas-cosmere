@@ -1,4 +1,5 @@
 import type { HoidKnowledgeEntry } from "./catalog";
+import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { getHoidReadingManifest } from "./readingManifest";
 import { sha256Hex } from "./sha256";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
@@ -20,6 +21,7 @@ export type HoidApprovedClaimReview = Readonly<{
   reviewedAt: string;
   /** Binds the review record to the exact canonical runtime claim. */
   claimSha256: string;
+  evidenceSha256: string;
 }>;
 
 export type HoidApprovedClaimIntegrity = Readonly<{
@@ -225,6 +227,36 @@ function knowledgeById(value: unknown): ReadonlyMap<string, unknown> | null {
   }
 }
 
+function canonicalAliases(value: unknown): readonly string[] | null {
+  try {
+    if (!Array.isArray(value) || value.length < 1 || value.length > 64) return null;
+    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+    const aliases: string[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true ||
+        typeof descriptor.value !== "string" ||
+        descriptor.value !== descriptor.value.trim() ||
+        descriptor.value.length < 1 ||
+        descriptor.value.length > 256 ||
+        /[\\u0000-\\u001F\\u007F]/u.test(descriptor.value) ||
+        seen.has(descriptor.value)
+      ) return null;
+      seen.add(descriptor.value);
+      aliases.push(descriptor.value);
+    }
+    return Object.freeze(aliases.sort());
+  } catch {
+    return null;
+  }
+}
+
 function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unknown[] | null {
   const entry = plainRecord(entryInput);
   if (!entry) return null;
@@ -247,10 +279,14 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
       descriptor.enumerable !== true
     )) return null;
   }
+  const kind = dataValue(entry, "kind");
+  const aliases = canonicalAliases(dataValue(entry, "aliases"));
   const provenance = dataValue(entry, "provenance");
   const summary = dataValue(entry, "summary");
 
   if (
+    !isHoidKnowledgeKind(kind) ||
+    !aliases ||
     typeof sourceBookId !== "string" ||
     sourceBookId !== sourceBookId.trim() ||
     typeof sourceChapter !== "number" ||
@@ -271,7 +307,9 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     !Number.isSafeInteger(firstChapter) ||
     firstChapter < 1 ||
     (provenance !== undefined && (typeof provenance !== "string" || !PROVENANCE.has(provenance))) ||
-    (summary !== undefined && (typeof summary !== "string" || summary.length > MAX_TEXT))
+    typeof summary !== "string" ||
+    summary.trim().length < 1 ||
+    summary.length > MAX_TEXT
   ) return null;
 
   const manifestResult = getHoidReadingManifest(sourceBookId);
@@ -306,8 +344,10 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): readonly unkn
     manifest.editionId,
     manifest.navigationSha256,
     documentSha256,
+    kind,
+    sha256Hex(JSON.stringify(aliases)),
     provenance ?? null,
-    typeof summary === "string" ? sha256Hex(summary.trim()) : null,
+    sha256Hex(summary.trim()),
   ]);
 }
 
@@ -368,6 +408,7 @@ function buildAttestation(
     reviewer.reviewerId,
     reviewer.reviewedAt,
     claimSha256,
+    evidenceSha256,
   ]));
 
   const integrity: HoidApprovedClaimIntegrity = Object.freeze({
@@ -383,6 +424,7 @@ function buildAttestation(
     reviewerId: reviewer.reviewerId,
     reviewedAt: reviewer.reviewedAt,
     claimSha256,
+    evidenceSha256,
   });
   return Object.freeze({ status: "valid", integrity, review });
 }
@@ -429,8 +471,8 @@ export function validateHoidApprovedClaimAttestation(
 
   const reviewRaw = exactRecord(
     raw.review,
-    ["status", "origin", "reviewerId", "reviewedAt", "claimSha256"],
-    ["status", "origin", "reviewerId", "reviewedAt", "claimSha256"],
+    ["status", "origin", "reviewerId", "reviewedAt", "claimSha256", "evidenceSha256"],
+    ["status", "origin", "reviewerId", "reviewedAt", "claimSha256", "evidenceSha256"],
   );
   if (
     !reviewRaw ||
@@ -465,6 +507,7 @@ export function validateHoidApprovedClaimAttestation(
     !SHA_PATTERN.test(integrityRaw.evidenceSha256) ||
     !SHA_PATTERN.test(integrityRaw.reviewSha256) ||
     reviewRaw.claimSha256 !== expected.review.claimSha256 ||
+    reviewRaw.evidenceSha256 !== expected.review.evidenceSha256 ||
     integrityRaw.statementSha256 !== expected.integrity.statementSha256 ||
     integrityRaw.claimSha256 !== expected.integrity.claimSha256 ||
     integrityRaw.evidenceSha256 !== expected.integrity.evidenceSha256 ||

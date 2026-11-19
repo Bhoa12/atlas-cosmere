@@ -439,11 +439,12 @@ export function createHoidFflateArchivePort(
         }
         output = compressed.slice();
       } else if (entry.compressionCode === 8) {
+        if (compressed.byteLength === 0) throw new Error("DEFLATE member is empty");
         try {
-          const target = new Uint8Array(entry.publicEntry.uncompressedSize);
-          output = entry.publicEntry.uncompressedSize === 0
-            ? inflateSync(compressed)
-            : inflateSync(compressed, { out: target });
+          // One sentinel byte detects output that exceeds the size declared in
+          // the central directory without allowing the inflater to grow its buffer.
+          const target = new Uint8Array(entry.publicEntry.uncompressedSize + 1);
+          output = inflateSync(compressed, { out: target });
         } catch {
           throw new Error("DEFLATE member could not be decompressed");
         }

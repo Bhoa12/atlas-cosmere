@@ -60,8 +60,11 @@ jobs:
           npx tsc --noEmit --strict --target ES2020
           --module ESNext --moduleResolution bundler --skipLibCheck
           src/hoid/cursorProgressCoordinator.ts
+          src/hoid/cursorProgressCoordinator.test.ts
           src/hoid/conversationGateway.ts
+          src/hoid/conversationGateway.progressRefresh.test.ts
           src/hoid/topicInterestRecommendationsGateway.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/evidenceRuntime.ts
           src/hoid/answerPresentation.ts

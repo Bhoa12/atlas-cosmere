@@ -401,12 +401,12 @@ describe("HoidCursorProgressCoordinator", () => {
     await first.advance("tfe", cursor("tfe", 7));
 
     const originalLoad = store.load.bind(store);
-    let releaseLoad: (() => void) | null = null;
-    let markLoadStarted: (() => void) | null = null;
+    let releaseLoad!: () => void;
+    let markLoadStarted!: () => void;
     const loadGate = new Promise<void>(resolve => { releaseLoad = resolve; });
     const loadStarted = new Promise<void>(resolve => { markLoadStarted = resolve; });
     store.load = async () => {
-      markLoadStarted?.();
+      markLoadStarted();
       await loadGate;
       return originalLoad();
     };
@@ -416,7 +416,7 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(second.getSnapshot()).toBeNull();
 
     const concurrentInitialize = second.initialize();
-    releaseLoad?.();
+    releaseLoad();
     const [refreshed, initialized] = await Promise.all([refreshing, concurrentInitialize]);
 
     expect(refreshed).toMatchObject({

@@ -597,10 +597,15 @@ function preflightXmlStructure(xml: string): void {
   if (depth !== 0) throw new Error("XML element nesting is incomplete");
 }
 
-function localNameOf(node: Readonly<{ localName?: string | null; nodeName: string }>): string {
+function localNameOf(node: Readonly<{
+  localName?: string | null;
+  nodeName?: string;
+  name?: string;
+}>): string {
   if (typeof node.localName === "string" && node.localName.length > 0) return node.localName;
-  const separator = node.nodeName.lastIndexOf(":");
-  return separator < 0 ? node.nodeName : node.nodeName.slice(separator + 1);
+  const qualifiedName = node.nodeName ?? node.name ?? "";
+  const separator = qualifiedName.lastIndexOf(":");
+  return separator < 0 ? qualifiedName : qualifiedName.slice(separator + 1);
 }
 
 function parseXmlTree(bytes: Uint8Array): XmlElement {

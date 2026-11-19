@@ -101,7 +101,7 @@ function makeFixture() {
   const source = Object.freeze({
     sourceId: "fixture-source",
     workId: "tfe",
-    editionId: "fixture-edition",
+    editionId: "cosmere-epub-merged-v1",
     sourceGroup: "cosmere.epub" as const,
   });
 
@@ -118,7 +118,7 @@ describe("offline EPUB ingestion core", () => {
     expect(result.candidate).toMatchObject({
       status: "candidate-only",
       workId: "tfe",
-      declaredEditionId: "fixture-edition",
+      declaredEditionId: "cosmere-epub-merged-v1",
       sourceGroup: "cosmere.epub",
       packageVersion: "3.0",
       title: "Obra sintética de prueba",
@@ -161,7 +161,7 @@ describe("offline EPUB ingestion core", () => {
     expect(chapterResult.candidate).toMatchObject({
       status: "candidate-only",
       workId: "tfe",
-      declaredEditionId: "fixture-edition",
+      declaredEditionId: "cosmere-epub-merged-v1",
       navigationHref: "Text/chapter-1.xhtml#chapter-1",
       byteLength: fixture.contents.get("OEBPS/Text/chapter-1.xhtml")!.byteLength,
     });
@@ -219,13 +219,29 @@ describe("offline EPUB ingestion core", () => {
     )).resolves.toEqual({ status: "rejected", reason: "source-changed" });
   });
 
+  it("rejects work, source-group or edition declarations outside the canonical catalogue", async () => {
+    const fixture = makeFixture();
+    await expect(fixture.service.inspectPackage({
+      ...fixture.source,
+      workId: "unknown-work",
+    })).resolves.toEqual({ status: "rejected", reason: "invalid-source-descriptor" });
+    await expect(fixture.service.inspectPackage({
+      ...fixture.source,
+      sourceGroup: "roshar-epubs",
+    })).resolves.toEqual({ status: "rejected", reason: "invalid-source-descriptor" });
+    await expect(fixture.service.inspectPackage({
+      ...fixture.source,
+      editionId: "wrong-edition",
+    })).resolves.toEqual({ status: "rejected", reason: "invalid-source-descriptor" });
+  });
+
   it("rejects source descriptors with getters without evaluating them", async () => {
     const fixture = makeFixture();
     let getterCalled = false;
     const descriptor = Object.defineProperties({}, {
       sourceId: { enumerable: true, get: () => { getterCalled = true; return "fixture-source"; } },
       workId: { enumerable: true, value: "tfe" },
-      editionId: { enumerable: true, value: "fixture-edition" },
+      editionId: { enumerable: true, value: "cosmere-epub-merged-v1" },
       sourceGroup: { enumerable: true, value: "cosmere.epub" },
     });
     await expect(fixture.service.inspectPackage(descriptor))

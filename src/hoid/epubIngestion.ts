@@ -1,3 +1,6 @@
+import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { getHoidEditionProgressPolicy } from "./editionStructure";
+
 /**
  * Offline EPUB inspection core.
  *
@@ -246,6 +249,11 @@ function validateSourceDescriptor(value: unknown): HoidEpubSourceDescriptor | nu
     !/^[A-Za-z0-9._:-]+$/.test(value.editionId) ||
     (value.sourceGroup !== "cosmere.epub" && value.sourceGroup !== "roshar-epubs")
   ) return null;
+
+  const catalogueWork = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === value.workId);
+  if (catalogueWork === undefined || catalogueWork.sourceGroup !== value.sourceGroup) return null;
+  const editionPolicy = getHoidEditionProgressPolicy(catalogueWork.id);
+  if (editionPolicy.kind === "unknown" || editionPolicy.editionId !== value.editionId) return null;
 
   return Object.freeze({
     sourceId: value.sourceId as string,

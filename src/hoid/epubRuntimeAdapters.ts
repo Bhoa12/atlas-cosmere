@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha256";
 import { inflateSync, strFromU8, strToU8 } from "fflate";
-import { SaxesParser, type SaxesTagNS } from "saxes";
+import { DOMParser } from "@xmldom/xmldom";
 import type {
   HoidEpubArchiveEntry,
   HoidEpubArchivePort,
@@ -497,72 +497,196 @@ function decodeXml(bytes: Uint8Array): string {
   return xml;
 }
 
+type DomAttributeLike = Readonly<{
+  name: string;
+  localName?: string | null;
+  namespaceURI?: string | null;
+  value: string;
+}>;
+
+type DomNodeLike = Readonly<{
+  nodeType: number;
+  nodeName: string;
+  localName?: string | null;
+  namespaceURI?: string | null;
+  nodeValue?: string | null;
+  childNodes: Readonly<{ length: number; item(index: number): DomNodeLike | null }>;
+  attributes?: Readonly<{ length: number; item(index: number): DomAttributeLike | null }>;
+}>;
+
+type DomDocumentLike = DomNodeLike & Readonly<{
+  documentElement?: DomNodeLike | null;
+  doctype?: unknown | null;
+}>;
+
+/**
+ * Bound structural work before constructing a DOM. DTD/entity declarations
+ * have already been rejected by decodeXml; comments, CDATA and processing
+ * instructions are skipped without treating their contents as markup.
+ */
+function preflightXmlStructure(xml: string): void {
+  let cursor = 0;
+  let depth = 0;
+  let nodeCount = 0;
+
+  while (cursor < xml.length) {
+    const open = xml.indexOf("<", cursor);
+    if (open < 0) break;
+
+    if (xml.startsWith("<!--", open)) {
+      const close = xml.indexOf("-->", open + 4);
+      if (close < 0) throw new Error("XML comment is unterminated");
+      cursor = close + 3;
+      continue;
+    }
+    if (xml.startsWith("<![CDATA[", open)) {
+      const close = xml.indexOf("]]>", open + 9);
+      if (close < 0) throw new Error("XML CDATA section is unterminated");
+      cursor = close + 3;
+      continue;
+    }
+    if (xml.startsWith("<?", open)) {
+      const close = xml.indexOf("?>", open + 2);
+      if (close < 0) throw new Error("XML processing instruction is unterminated");
+      cursor = close + 2;
+      continue;
+    }
+    if (xml.startsWith("</", open)) {
+      const close = xml.indexOf(">", open + 2);
+      if (close < 0) throw new Error("XML closing tag is unterminated");
+      depth -= 1;
+      if (depth < 0) throw new Error("XML closing tag has no open element");
+      cursor = close + 1;
+      continue;
+    }
+    if (xml.startsWith("<!", open)) {
+      throw new Error("XML declarations other than comments and CDATA are forbidden");
+    }
+
+    let quote: "'" | '"' | null = null;
+    let close = -1;
+    for (let index = open + 1; index < xml.length; index += 1) {
+      const character = xml[index];
+      if (quote !== null) {
+        if (character === quote) quote = null;
+      } else if (character === "'" || character === '"') {
+        quote = character;
+      } else if (character === ">") {
+        close = index;
+        break;
+      } else if (character === "<") {
+        throw new Error("XML start tag contains an unescaped opening bracket");
+      }
+    }
+    if (close < 0 || quote !== null) throw new Error("XML start tag is unterminated");
+
+    nodeCount += 1;
+    if (nodeCount > HOID_EPUB_RUNTIME_LIMITS.maxXmlNodes) {
+      throw new Error("XML structural node limit exceeded");
+    }
+    depth += 1;
+    if (depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth) {
+      throw new Error("XML structural depth limit exceeded");
+    }
+    let last = close - 1;
+    while (last > open && /\s/.test(xml[last])) last -= 1;
+    if (xml[last] === "/") depth -= 1;
+    cursor = close + 1;
+  }
+
+  if (depth !== 0) throw new Error("XML element nesting is incomplete");
+}
+
+function localNameOf(node: Readonly<{ localName?: string | null; nodeName: string }>): string {
+  if (typeof node.localName === "string" && node.localName.length > 0) return node.localName;
+  const separator = node.nodeName.lastIndexOf(":");
+  return separator < 0 ? node.nodeName : node.nodeName.slice(separator + 1);
+}
+
 function parseXmlTree(bytes: Uint8Array): XmlElement {
   const xml = decodeXml(bytes);
-  const parser = new SaxesParser({ xmlns: true, position: false });
-  const stack: XmlElement[] = [];
-  let root: XmlElement | null = null;
-  let nodeCount = 0;
-  let parseError: Error | null = null;
-  let doctypeSeen = false;
+  preflightXmlStructure(xml);
 
-  parser.on("error", error => { parseError = error; });
-  parser.on("doctype", () => { doctypeSeen = true; });
-  parser.on("opentag", (tag: SaxesTagNS) => {
-    nodeCount += 1;
-    if (nodeCount > HOID_EPUB_RUNTIME_LIMITS.maxXmlNodes || stack.length >= HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth) {
-      throw new Error("XML structural limit exceeded");
-    }
-    const node: XmlElement = {
-      local: tag.local,
-      uri: tag.uri,
-      attributes: Object.freeze(Object.values(tag.attributes).map(attribute => Object.freeze({
-        name: attribute.name,
-        local: attribute.local,
-        uri: attribute.uri,
-        value: attribute.value,
-      }))) as unknown as XmlAttribute[],
-      children: [],
-      content: [],
-    };
-    if (stack.length > 0) {
-      stack[stack.length - 1].children.push(node);
-      stack[stack.length - 1].content.push(node);
-    } else if (root === null) {
-      root = node;
-    } else {
-      throw new Error("XML document has multiple roots");
-    }
-    stack.push(node);
-  });
-  parser.on("text", text => {
-    if (stack.length > 0) stack[stack.length - 1].content.push(text);
-    else if (text.trim().length > 0) parseError = new Error("Text appears outside the XML root");
-  });
-  parser.on("cdata", text => {
-    if (stack.length > 0) stack[stack.length - 1].content.push(text);
-    else if (text.trim().length > 0) parseError = new Error("CDATA appears outside the XML root");
-  });
-  parser.on("closetag", () => {
-    if (stack.length === 0) {
-      parseError = new Error("XML closing tag is unmatched");
-      return;
-    }
-    stack.pop();
-  });
-
+  let document: DomDocumentLike | undefined;
   try {
-    parser.write(xml).close();
+    const parser = new DOMParser({
+      // Treat warnings as failures too: EPUB package metadata must be well-formed.
+      onError: (level, message) => {
+        throw new Error("XML " + level + ": " + message);
+      },
+    });
+    document = parser.parseFromString(xml, "application/xml") as unknown as DomDocumentLike | undefined;
   } catch {
     throw new Error("XML document is malformed or exceeds structural limits");
   }
 
-  if (parseError !== null || doctypeSeen || root === null || stack.length !== 0) {
-    throw new Error("XML document is malformed or uses a forbidden DTD");
+  if (document === undefined || document === null || document.doctype != null) {
+    throw new Error("XML document is missing or uses a forbidden DTD");
   }
-  return root;
-}
+  const root = document.documentElement;
+  if (root === undefined || root === null || root.nodeType !== 1) {
+    throw new Error("XML document has no root element");
+  }
 
+  for (let index = 0; index < document.childNodes.length; index += 1) {
+    const child = document.childNodes.item(index);
+    if (child !== null && child.nodeType === 3 && (child.nodeValue ?? "").trim().length > 0) {
+      throw new Error("Text appears outside the XML root");
+    }
+  }
+
+  let nodeCount = 0;
+  const convertElement = (node: DomNodeLike, depth: number): XmlElement => {
+    if (node.nodeType !== 1 || depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth) {
+      throw new Error("XML element structure is invalid");
+    }
+    nodeCount += 1;
+    if (nodeCount > HOID_EPUB_RUNTIME_LIMITS.maxXmlNodes) {
+      throw new Error("XML structural node limit exceeded");
+    }
+
+    const attributes: XmlAttribute[] = [];
+    const rawAttributes = node.attributes;
+    if (rawAttributes !== undefined) {
+      for (let index = 0; index < rawAttributes.length; index += 1) {
+        const item = rawAttributes.item(index);
+        if (item === null) throw new Error("XML attribute collection is inconsistent");
+        attributes.push(Object.freeze({
+          name: item.name,
+          local: localNameOf(item),
+          uri: item.namespaceURI ?? "",
+          value: item.value,
+        }));
+      }
+    }
+
+    const children: XmlElement[] = [];
+    const content: Array<string | XmlElement> = [];
+    for (let index = 0; index < node.childNodes.length; index += 1) {
+      const child = node.childNodes.item(index);
+      if (child === null) throw new Error("XML child collection is inconsistent");
+      if (child.nodeType === 1) {
+        const element = convertElement(child, depth + 1);
+        children.push(element);
+        content.push(element);
+      } else if (child.nodeType === 3 || child.nodeType === 4) {
+        content.push(child.nodeValue ?? "");
+      } else if (child.nodeType === 5) {
+        throw new Error("XML entity references are forbidden");
+      }
+    }
+
+    return {
+      local: localNameOf(node),
+      uri: node.namespaceURI ?? "",
+      attributes,
+      children,
+      content,
+    };
+  };
+
+  return convertElement(root, 1);
+}
 function directChildren(node: XmlElement, local: string, uri: string): readonly XmlElement[] {
   return node.children.filter(child => child.local === local && child.uri === uri);
 }
@@ -663,7 +787,7 @@ function parseEpub2Navigation(root: XmlElement): readonly HoidEpubNavigationNode
   return Object.freeze(result);
 }
 
-export function createHoidSaxesXmlPort(): HoidEpubXmlPort {
+export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
   return Object.freeze({
     async parseContainerXml(bytes: Uint8Array): Promise<HoidEpubContainerDocument> {
       const root = parseXmlTree(bytes);
@@ -772,7 +896,7 @@ export function createHoidEpubRuntimePorts(resolveSourceBytes: HoidEpubByteSourc
 }> {
   return Object.freeze({
     archive: createHoidFflateArchivePort(resolveSourceBytes),
-    xml: createHoidSaxesXmlPort(),
+    xml: createHoidXmldomXmlPort(),
     digest: createHoidNobleDigestPort(),
   });
 }

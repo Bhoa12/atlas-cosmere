@@ -8,6 +8,8 @@ import {
 } from "./entityResolver";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry, HoidKnowledgeKind } from "./catalog";
+import { canonicalEvidenceScope } from "./evidenceScope";
+import { createHoidEvidenceRuntime } from "./evidenceRuntime";
 
 const NOW = "2026-11-17T12:00:00.000Z";
 
@@ -117,6 +119,12 @@ function aliasEvidenceItem(
 }
 
 describe("Hoid spoiler-aware entity resolution", () => {
+  it("accepts a chapter-one source with a chapter-two unlock at both authorization boundaries", () => {
+    const entry = knowledge("synthetic.successor-boundary", ["Successor Boundary"]);
+    expect(canonicalEvidenceScope(entry.evidenceSource, entry.evidenceUnlock)).not.toBeNull();
+    expect(createHoidEvidenceRuntime({ knowledge: [entry], claims: [], selector: null })).not.toBeNull();
+  });
+
   it("resolves an exact authorized alias and returns source metadata only", () => {
     const entry = knowledge("synthetic.entity-a", ["Synthetic Entity"]);
     const result = resolveHoidAuthorizedEntities(

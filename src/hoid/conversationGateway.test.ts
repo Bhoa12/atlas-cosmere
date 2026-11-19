@@ -83,9 +83,14 @@ describe("HoidConversationGateway", () => {
 
   it("discards the entire answer if progress changes while the runtime is pending", async () => {
     let finish: ((value: HoidEvidenceAnswer) => void) | undefined;
+    let markRuntimeStarted: (() => void) | undefined;
+    const runtimeStarted = new Promise<void>(resolve => { markRuntimeStarted = resolve; });
     const initial = snapshot(3);
     const runtime = {
-      answer: vi.fn(() => new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; })),
+      answer: vi.fn(() => {
+        markRuntimeStarted?.();
+        return new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; });
+      }),
     };
     let current: unknown = initial;
     const gateway = createHoidConversationGateway({
@@ -95,6 +100,7 @@ describe("HoidConversationGateway", () => {
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
     const pending = gateway.answer({ question: "Pregunta sintética", progress: initial });
+    await runtimeStarted;
     current = snapshot(4);
     finish?.(answer);
 
@@ -285,11 +291,16 @@ describe("HoidConversationGateway", () => {
 
   it("discards recommendations if progress changes while the recommender is pending", async () => {
     let finish: ((value: unknown) => void) | undefined;
+    let markRecommenderStarted: (() => void) | undefined;
+    const recommenderStarted = new Promise<void>(resolve => { markRecommenderStarted = resolve; });
     const initial = snapshot(3);
     let current: unknown = initial;
     const runtime = {
       answer: vi.fn(async () => answer),
-      recommend: vi.fn(() => new Promise(resolve => { finish = resolve; })),
+      recommend: vi.fn(() => {
+        markRecommenderStarted?.();
+        return new Promise(resolve => { finish = resolve; });
+      }),
     };
     const gateway = createHoidConversationGateway({
       runtime,
@@ -298,6 +309,7 @@ describe("HoidConversationGateway", () => {
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
     const pending = gateway.recommend({ progress: initial, limit: 1 });
+    await recommenderStarted;
     current = snapshot(4);
     finish?.({ status: "ready", items: [tfeRecommendation] });
 
@@ -831,8 +843,13 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     const { context, projection } = contextAndProgress(initial);
     let current: unknown = initial;
     let finish: ((value: HoidEvidenceAnswer) => void) | undefined;
+    let markRuntimeStarted: (() => void) | undefined;
+    const runtimeStarted = new Promise<void>(resolve => { markRuntimeStarted = resolve; });
     const runtime = {
-      answer: vi.fn(() => new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; })),
+      answer: vi.fn(() => {
+        markRuntimeStarted?.();
+        return new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; });
+      }),
     };
     const gateway = createHoidConversationGateway({
       runtime,
@@ -848,6 +865,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
     const pending = gateway.answer({ question: "¿Y ella?", progress: initial, context });
+    await runtimeStarted;
     current = snapshot(4);
     finish?.(answer);
     expect(await pending).toEqual({ status: "unavailable", reason: "progress-changed" });

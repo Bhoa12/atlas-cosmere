@@ -352,7 +352,7 @@ describe("Hoid authorized knowledge graph", () => {
       [claim],
       progress([]),
     );
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-claims" });
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-definition" });
   });
 
   it("rejects a claim whose statement no longer matches its source-bound attestation", () => {

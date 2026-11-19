@@ -1,0 +1,70 @@
+name: Hoid remote trust witness service
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/remoteTrustRevisionWitness.ts"
+      - "src/hoid/remoteTrustRevisionWitness.test.ts"
+      - "src/hoid/remoteTrustRevisionWitnessService.ts"
+      - "src/hoid/remoteTrustRevisionWitnessService.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "docs/hoid/REMOTE_TRUST_REVISION_WITNESS.md"
+      - "docs/hoid/REMOTE_TRUST_REVISION_WITNESS_SERVICE.md"
+      - ".github/workflows/hoid-remote-trust-revision-witness-service.yml"
+  pull_request:
+    paths:
+      - "src/hoid/remoteTrustRevisionWitness.ts"
+      - "src/hoid/remoteTrustRevisionWitness.test.ts"
+      - "src/hoid/remoteTrustRevisionWitnessService.ts"
+      - "src/hoid/remoteTrustRevisionWitnessService.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "docs/hoid/REMOTE_TRUST_REVISION_WITNESS.md"
+      - "docs/hoid/REMOTE_TRUST_REVISION_WITNESS_SERVICE.md"
+      - ".github/workflows/hoid-remote-trust-revision-witness-service.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remote-trust-witness-service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 20.19 for Noble Curves v2
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify pinned Ed25519 dependency
+        run: npm ls @noble/curves --all
+      - name: Test server, client and monotonic trust protocol
+        run: >-
+          npx vitest run
+          src/hoid/remoteTrustRevisionWitnessService.test.ts
+          src/hoid/remoteTrustRevisionWitness.test.ts
+          src/hoid/trustRegistryRevisionStore.test.ts
+          src/hoid/trustedHostBootstrap.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
+      - name: Strictly type-check witness service and client boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module ESNext --moduleResolution bundler --skipLibCheck
+          src/hoid/remoteTrustRevisionWitnessService.ts
+          src/hoid/remoteTrustRevisionWitnessService.test.ts
+          src/hoid/remoteTrustRevisionWitness.ts
+          src/hoid/remoteTrustRevisionWitness.test.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/trustRegistryRevisionStore.ts
+          src/hoid/trustedHostBootstrap.ts
+          src/hoid/trustedHostPromotionAuthority.ts
+          src/hoid/editorialReviewSignatures.ts
+          src/hoid/sha256.ts

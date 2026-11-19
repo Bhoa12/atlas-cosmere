@@ -57,6 +57,8 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Verify Expo SDK dependency compatibility
         run: npx expo install --check
+      - name: Inspect XML parser dependency tree
+        run: npm ls @xmldom/xmldom saxes
       - name: Test XML adapter, edition binding and ingestion
         run: >-
           npx vitest run

@@ -3,6 +3,7 @@ import {
   validateHoidApprovedClaimAttestation,
   type HoidApprovedClaim,
 } from "./approvedClaimIntegrity";
+import { sha256Hex } from "./sha256";
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,126}$/i;
 const SHA_PATTERN = /^[a-f0-9]{64}$/;
@@ -122,6 +123,7 @@ export type HoidApprovedClaimSignatureVerification =
         | "trust-root-invalid"
         | "registry-not-current"
         | "registry-rollback"
+        | "invalid-minimum-revision"
         | "key-not-found"
         | "key-revoked"
         | "key-not-current"
@@ -608,7 +610,9 @@ export async function verifyHoidApprovedClaimReviewSignature(
             ? "registry-not-current"
             : registryValidation.reason === "registry-rollback"
               ? "registry-rollback"
-              : "trust-root-invalid",
+              : registryValidation.reason === "invalid-minimum-revision"
+                ? "invalid-minimum-revision"
+                : "trust-root-invalid",
     );
   }
 

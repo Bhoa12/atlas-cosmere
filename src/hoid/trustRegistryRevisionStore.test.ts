@@ -45,12 +45,14 @@ function registry(revision = 2): HoidReviewerTrustRegistry {
 
 function memoryStore(initial: number | null): HoidTrustRegistryRevisionStorePort & {
   value: number | null;
+  setValue(value: number | null): void;
   readMinimumRevision: ReturnType<typeof vi.fn>;
   compareAndSetMinimumRevision: ReturnType<typeof vi.fn>;
 } {
   const state = { value: initial };
   return {
     get value() { return state.value; },
+    setValue(value: number | null) { state.value = value; },
     readMinimumRevision: vi.fn(async () => state.value),
     compareAndSetMinimumRevision: vi.fn(async (input: {
       trustDomainId: string;
@@ -119,7 +121,7 @@ describe("Hoid rollback-resistant trust registry revision store", () => {
   it("converges when another verifier atomically advances the same revision first", async () => {
     const store = memoryStore(1);
     store.compareAndSetMinimumRevision.mockImplementationOnce(async () => {
-      store.value = 2;
+      store.setValue(2);
       return false;
     });
     const result = await persistHoidTrustRegistryMinimumRevision(
@@ -136,7 +138,7 @@ describe("Hoid rollback-resistant trust registry revision store", () => {
   it("rejects a concurrent higher revision rather than accepting an older registry", async () => {
     const store = memoryStore(1);
     store.compareAndSetMinimumRevision.mockImplementationOnce(async () => {
-      store.value = 3;
+      store.setValue(3);
       return false;
     });
     const result = await persistHoidTrustRegistryMinimumRevision(

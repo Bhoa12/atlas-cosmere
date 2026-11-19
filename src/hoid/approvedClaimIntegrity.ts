@@ -294,7 +294,12 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
   }
 
   const kind = dataValue(entry, "kind");
-  const aliases = canonicalAliases(dataValue(entry, "aliases"));
+  const aliasesDescriptor = Object.getOwnPropertyDescriptor(entry, "aliases");
+  const aliasesValue = aliasesDescriptor &&
+    Object.prototype.hasOwnProperty.call(aliasesDescriptor, "value")
+    ? aliasesDescriptor.value
+    : undefined;
+  const aliases = canonicalAliases(aliasesValue);
   const provenance = dataValue(entry, "provenance");
   const summary = dataValue(entry, "summary");
   const firstBookId = first.bookId;

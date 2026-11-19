@@ -943,8 +943,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summary: "Rysn recibe de Vstim información que aclara parte del objetivo de la expedición: Akinah tuvo una Puerta Jurada y la misión debe investigar su estado, además de las señales de actividad enemiga. Las conversaciones con Nikli y Cuerda amplían las tradiciones sobre la antigua Aimia, sus artefactos y unas criaturas colectivas vinculadas a tesoros y pruebas; Rysn también considera la posibilidad de que el incidente del santhid fuera una ilusión. Mientras tanto, Rushu estudia una alteración accidental en un fabrial de rubíes parejos causada por aluminio. El experimento permite que la silla de Rysn conserve el movimiento vertical del ancla, pero adquiera desplazamiento horizontal independiente, una posibilidad que le ofrece una perspectiva de mayor autonomía. La emoción de Rysn ante esa mejora contrasta con la inquietud de Nikli, que sospecha que Cuerda podría estar ocultando sus motivos y pide que se investigue antes de continuar.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
-  })
-
+  }),
   Object.freeze({
     schemaVersion: 1,
     id: "twok.chapter-009.kaladin-recruit-death",
@@ -1010,8 +1009,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summary: "Rysn prueba el mecanismo giratorio y el contrapeso que Rushu y Huio han añadido a su silla flotante. La mejora le permite desplazarse por la cubierta con mayor autonomía y sentirse más conectada con la tripulación. Antes de acercarse a Akinah, comprueba que Cuerda desea continuar voluntariamente y escucha que la atraen los tesoros y la posibilidad de demostrar que puede sobrevivir a situaciones aterradoras. Nikli aparece con un saquito de ruinaoscura e intenta incriminar a Cuerda por la muerte de Aullido; Rysn revela que había preparado la situación para comprobar sus sospechas y ordena detenerlo. El registro posterior encuentra más veneno y un recetario con anotaciones inquietantes, lo que refuerza la sospecha de que Nikli planeaba sabotear a la tripulación. Como no puede determinar si posee poderes especiales, Rysn decide apartarlo a él y a Plamry del barco mientras la expedición continúa.",
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
-  })
-
+  }),
   Object.freeze({
     schemaVersion: 1,
     id: "twok.chapter-010.kaladin-lirin-surgeon",

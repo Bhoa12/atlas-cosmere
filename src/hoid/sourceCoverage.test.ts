@@ -119,7 +119,7 @@ describe("Hoid metadata-only source coverage", () => {
 
   it("returns immutable, sorted inspected chapter-number snapshots", () => {
     const numbers = getVerifiedChapterDocumentNumbers("twok");
-    expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     expect(Object.isFrozen(numbers)).toBe(true);
     expect(getVerifiedChapterDocumentNumbers("unknown-work")).toEqual([]);
     expect(Object.isFrozen(getVerifiedChapterDocumentNumbers(null))).toBe(true);

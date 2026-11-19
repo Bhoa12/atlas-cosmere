@@ -162,6 +162,22 @@ describe("Hoid approved-claim integrity", () => {
     });
   });
 
+  it("rejects accessor-backed claim fields without invoking the getter", () => {
+    let invoked = false;
+    const getterClaim = Object.defineProperty({ ...core }, "text", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        throw new Error("must not execute");
+      },
+    });
+    expect(createHoidApprovedClaimAttestation(getterClaim, knowledge, reviewer)).toEqual({
+      status: "invalid",
+      reason: "invalid-claim",
+    });
+    expect(invoked).toBe(false);
+  });
+
   it("rejects unknown evidence IDs and non-canonical claim shapes", () => {
     const unknown = createHoidApprovedClaimAttestation({
       ...core,

@@ -1,5 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
-import { getHoidEditionProgressPolicy } from "./editionStructure";
+import { getHoidEditionProgressPolicy, HOID_EDITION_STRUCTURES } from "./editionStructure";
 
 /**
  * Offline EPUB inspection core.
@@ -132,6 +132,7 @@ export type HoidEpubInspectionRejection =
   | "navigation-target-unresolved"
   | "source-read-failed"
   | "digest-invalid"
+  | "edition-navigation-mismatch"
   | "report-not-issued-here"
   | "source-changed"
   | "chapter-not-in-navigation"
@@ -150,6 +151,7 @@ export type HoidEpubPackageInspectionCandidate = Readonly<{
   workId: string;
   declaredEditionId: string;
   sourceGroup: HoidEpubSourceGroup;
+  editionBinding: "catalogue-navigation-digest-match";
   packageVersion: string;
   title: string;
   language: string;
@@ -703,6 +705,14 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         digestBytes(dependencies.digest, packageBytes),
         digestBytes(dependencies.digest, navigationBytes),
       ]);
+      const expectedEdition = HOID_EDITION_STRUCTURES.find(edition =>
+        edition.editionId === source.editionId &&
+        edition.sourceGroup === source.sourceGroup &&
+        edition.works.some(work => work.workIds.includes(source.workId)),
+      );
+      if (expectedEdition === undefined || navigationSha !== expectedEdition.navigationSha256) {
+        reject("edition-navigation-mismatch");
+      }
       const sourceFingerprint = await digestText(dependencies.digest, JSON.stringify({
         sourceId: source.sourceId,
         workId: source.workId,
@@ -721,6 +731,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         workId: source.workId,
         declaredEditionId: source.editionId,
         sourceGroup: source.sourceGroup,
+        editionBinding: "catalogue-navigation-digest-match",
         packageVersion: normalized.version,
         title: normalized.title,
         language: normalized.language,

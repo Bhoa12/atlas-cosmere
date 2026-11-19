@@ -1,7 +1,8 @@
+import { HOID_EPUB_INGESTION_LIMITS } from "./epubIngestion";
 import type { HoidEpubRandomAccessSource } from "./epubRangeRuntimeAdapters";
 
 export const HOID_EXPO_EPUB_SOURCE_LIMITS = Object.freeze({
-  maxArchiveBytes: 256 * 1024 * 1024,
+  maxArchiveBytes: HOID_EPUB_INGESTION_LIMITS.maxArchiveBytes,
   readChunkBytes: 48 * 1024,
   maxRangeBytes: 16 * 1024 * 1024,
 });

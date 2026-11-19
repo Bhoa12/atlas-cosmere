@@ -944,9 +944,76 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   })
+
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-009.kaladin-recruit-death",
+    kind: "event",
+    aliases: Object.freeze(["muerte del recluta que recuerda a Tien"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 9 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 9,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-023.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 10 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "c5737b3dc6b37d9bd9166d910f70c2f39f522ceb07123703387b34399e703945",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "6dc7e29663c7194cd10a37af3551e1aada86810594ad77e58acaacbdf78c5a0d" }),
+    summary: "Durante una jornada de trabajo en el aserradero, Kaladin conversa con Syl y descubre que los recuerdos de ella sobre su pasado juntos son confusos. La llegada de nuevos reclutas al Puente Cuatro le hace fijarse en un muchacho que le recuerda a Tien. Aunque siente el impulso de protegerlo, la culpa por quienes no pudo salvar lo paraliza. Syl anuncia que debe marcharse porque no soporta seguir observando su sufrimiento y teme perderse si permanece a su lado. En la siguiente carrera, el joven muere y Kaladin queda devastado al encontrar su cuerpo junto al de otro compañero. Esa noche, mientras una alta tormenta golpea el barracón, rompe a llorar por primera vez en un año.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-010.lift-orphanage-reflection",
+    kind: "event",
+    aliases: Object.freeze(["reflexión de Lift en el orfanato"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 10 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 10,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/010.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 11 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "4fe0dc1e86f52d76bcabef23c4b730ba15543db5491559eed44462b4dfbfe6bf",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "5f77dbc0200561d3fd766d92ee01087579d44e56ae3e02e072a9ed9e1628c383" }),
+    summary: "En el parque del orfanato, Lift observa a los niños y discute con Wyndle sobre su salida de Azir. Reconoce que, aunque decía huir de las expectativas del palacio, también temía que las personas llegaran a depender de ella. Cuando conoce a Mik, un niño abandonado que echa de menos a su madre, Lift comparte su comida y trata de acompañarlo, mientras la conversación deja ver su propia dificultad para aceptar el cambio. Más tarde pregunta a un anciano misterioso cómo saber qué hacer con la vida. La respuesta, deliberadamente ambigua, gira en torno a la identidad, el tiempo limitado de las personas y la relación entre cada individuo y la ciudad. El capítulo profundiza en la resistencia de Lift a crecer y en su búsqueda de un propósito propio.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-010.rysn-arrests-nikli",
+    kind: "event",
+    aliases: Object.freeze(["detención de Nikli en el Vela Errante"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 10 }),
+    evidenceSource: Object.freeze({
+      bookId: "dawnshard",
+      chapter: 10,
+      locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/10.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 11 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "dawnshard-epub-v1",
+      navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      documentSha256: "0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "7e2809b9a96a6c6f3c2c1f73ae19c30a5be697917cf09e209d2ba4ee29219125" }),
+    summary: "Rysn prueba el mecanismo giratorio y el contrapeso que Rushu y Huio han añadido a su silla flotante. La mejora le permite desplazarse por la cubierta con mayor autonomía y sentirse más conectada con la tripulación. Antes de acercarse a Akinah, comprueba que Cuerda desea continuar voluntariamente y escucha que la atraen los tesoros y la posibilidad de demostrar que puede sobrevivir a situaciones aterradoras. Nikli aparece con un saquito de ruinaoscura e intenta incriminar a Cuerda por la muerte de Aullido; Rysn revela que había preparado la situación para comprobar sus sospechas y ordena detenerlo. El registro posterior encuentra más veneno y un recetario con anotaciones inquietantes, lo que refuerza la sospecha de que Nikli planeaba sabotear a la tripulación. Como no puede determinar si posee poderes especiales, Rysn decide apartarlo a él y a Plamry del barco mientras la expedición continúa.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  })
 ]);
 
-// Chapter-eight summaries require chapter nine completion; chapter-nine summaries require chapter ten completion.
+// Chapter-N summaries remain locked until the reader reaches chapter N+1.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);
 
 /** Staging-only drafts; never passed to HoidEvidenceRuntime. */

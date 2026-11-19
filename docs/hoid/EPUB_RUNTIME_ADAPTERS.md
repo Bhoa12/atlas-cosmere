@@ -57,6 +57,8 @@ Important limitation: upstream explicitly describes xmldom as a non-validating p
 - Release 0.9.12: https://github.com/xmldom/xmldom/releases/tag/0.9.12
 - Security policy: https://github.com/xmldom/xmldom/security
 
+The application pins `@xmldom/xmldom@0.9.12` directly and uses an npm override for the same exact version so Expo's transitive `@xmldom/xmldom@0.7.13` copy cannot remain in the installed dependency tree. CI inspects the complete tree with `npm ls @xmldom/xmldom --all`.
+
 The XML adapter returns only the metadata required by the ingestion core:
 
 - Container rootfile path and media type.

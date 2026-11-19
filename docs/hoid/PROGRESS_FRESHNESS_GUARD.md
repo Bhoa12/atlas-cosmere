@@ -38,9 +38,11 @@ The original `getCurrentProgress` callback remains available for synchronous loc
 - before capturing the request progress for a user question;
 - before catalogue recommendations;
 - before topic-interest recommendations;
-- before and after gateway work through the injected refresh callback.
+- before and after gateway work through the injected refresh callback;
+- once more immediately before committing an answer to chat state;
+- once more before committing catalogue or topic recommendation results to UI state.
 
-The existing final render-time progress comparison remains in place. Thus the response must match the initial request identity, the durable post-work identity and the latest coordinator snapshot before it is committed to the chat.
+Thus a result must match the initial request identity, the gateway's durable post-work identity and the final UI-commit read. The render-time filter remains as an additional guard for already displayed progress-scoped messages.
 
 ## Consistency rule
 

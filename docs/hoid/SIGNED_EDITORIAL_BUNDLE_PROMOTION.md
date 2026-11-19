@@ -25,7 +25,7 @@ El mensaje no contiene prosa editorial, resúmenes, pasajes, XHTML, EPUB, URI pr
 
 La firma queda ligada al HEAD exacto. Cualquier cambio de commit, paquete, recibo, progreso, revisor, decisión o clave exige una nueva firma.
 
-**Límite explícito:** el contrato actual de revisión protegida expone y verifica el nombre de la rama base, pero no el SHA del commit base. El payload firma el nombre exacto de la rama base y el SHA exacto del HEAD propuesto; no afirma autenticar un SHA base que el adaptador actual no proporciona. Una futura ampliación del contrato de snapshot deberá añadir y verificar ese SHA antes de exigirlo en el payload.
+**Contrato actualizado en Run 157:** la revisión protegida utiliza schema v2 y exige tanto `baseRef` como `baseSha`, además de `headRef` y `headSha`. El adaptador GitHub debe obtener `baseSha` del commit real de la rama base del Pull Request; el núcleo compara ese SHA con `expectedBaseSha`. Los mensajes de firma usan el dominio v2 e incluyen `expectedBaseSha`. Los snapshots schema v1 se rechazan sin fallback.
 
 ## Cobertura completa
 
@@ -68,3 +68,8 @@ La promoción continúa devolviendo `promotionAllowed: false` y `productionWrite
 La revisión editorial y sus firmas no desbloquean contenido para lectores. El gate de progreso por libro/capítulo y la semántica AND de evidencias siguen siendo independientes. No se modifica SQLite, la allowlist de capítulos, los umbrales de desbloqueo ni el registro narrativo de producción.
 
 Solo se firman metadatos, IDs y fingerprints. No se suben EPUBs, XHTML, texto de capítulos, resúmenes protegidos ni pasajes.
+
+
+## Persistencia de la revisión mínima
+
+Run 157 añade `HoidTrustRegistryRevisionStorePort` y `authorizeHoidSignedEditorialBundlePromotionWithRevisionStore()`. El host debe proporcionar almacenamiento durable, resistente a rollback y con compare-and-set linealizable. El núcleo no inicializa automáticamente un dominio sin revisión mínima: el bootstrap es una operación externa controlada. Tras verificar el registro raíz-firmado, la revisión se persiste y se vuelve a leer antes de delegar en la autoridad de promoción. La autoridad vuelve a verificar todas las firmas con la revisión persistida. No se incluye un adaptador de producción para Keychain/Keystore y la escritura editorial sigue desactivada.

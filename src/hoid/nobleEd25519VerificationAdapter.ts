@@ -82,7 +82,6 @@ function canonicalRequest(value: unknown): HoidEd25519VerificationRequest | null
       typeof publicKeyHex !== "string" ||
       !/^[a-f0-9]{64}$/.test(publicKeyHex) ||
       typeof message !== "string" ||
-      message.length < 1 ||
       message.length > 32_768 ||
       typeof signatureHex !== "string" ||
       !/^[a-f0-9]{128}$/.test(signatureHex)

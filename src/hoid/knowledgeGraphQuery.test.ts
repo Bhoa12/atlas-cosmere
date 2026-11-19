@@ -10,6 +10,8 @@ import {
   type HoidKnowledgeGraphRelation,
 } from "./knowledgeGraphQuery";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidApprovedClaimAttestation } from "./approvedClaimIntegrity";
+import type { HoidApprovedClaim } from "./evidenceRuntime";
 
 const NOW = "2026-11-17T11:00:00.000Z";
 
@@ -45,19 +47,25 @@ function knowledge(id: string, bookId: string) {
   };
 }
 
-function claim(id: string, evidenceIds: string[], text = "Afirmación editorial sintética de prueba.") {
-  return {
+function claim(
+  id: string,
+  sourceKnowledge: readonly ReturnType<typeof knowledge>[],
+  text = "Afirmación editorial sintética de prueba.",
+): HoidApprovedClaim {
+  const core = {
     id,
     text,
     intent: "explain" as const,
-    evidenceIds,
-    review: {
-      status: "approved" as const,
-      origin: "original-editorial" as const,
-      reviewerId: "synthetic-reviewer",
-      reviewedAt: NOW,
-    },
+    evidenceIds: sourceKnowledge.map(entry => entry.id),
   };
+  const attestation = createHoidApprovedClaimAttestation(core, sourceKnowledge, {
+    reviewerId: "synthetic-reviewer",
+    reviewedAt: NOW,
+  });
+  if (attestation.status !== "valid") {
+    throw new Error("Query fixture claim attestation failed: " + attestation.reason);
+  }
+  return Object.freeze({ ...core, integrity: attestation.integrity, review: attestation.review });
 }
 
 function relation(id: string, subjectId: string, objectId: string, claimId: string): HoidKnowledgeGraphRelation {
@@ -72,8 +80,8 @@ function fixture() {
   const a = knowledge("synthetic.a", "twok");
   const b = knowledge("synthetic.b", "edgedancer");
   const c = knowledge("synthetic.c", "dawnshard");
-  const ab = claim("synthetic.claim-ab", [a.id, b.id], "Afirmación sintética A conecta con B.");
-  const bc = claim("synthetic.claim-bc", [b.id, c.id], "Afirmación sintética B conecta con C.");
+  const ab = claim("synthetic.claim-ab", [a, b], "Afirmación sintética A conecta con B.");
+  const bc = claim("synthetic.claim-bc", [b, c], "Afirmación sintética B conecta con C.");
   const graph = definition([
     relation("synthetic.edge-ab", a.id, b.id, ab.id),
     relation("synthetic.edge-bc", b.id, c.id, bc.id),
@@ -179,7 +187,7 @@ describe("Hoid knowledge graph queries and explanation planning", () => {
 
   it("caps returned paths and marks the result as truncated only when another path exists", () => {
     const f = fixture();
-    const alternateClaim = claim("synthetic.claim-ac", [f.a.id, f.c.id], "Afirmación sintética alternativa.");
+    const alternateClaim = claim("synthetic.claim-ac", [f.a, f.c], "Afirmación sintética alternativa.");
     const branching = definition([
       relation("synthetic.edge-ab", f.a.id, f.b.id, f.ab.id),
       relation("synthetic.edge-bc", f.b.id, f.c.id, f.bc.id),

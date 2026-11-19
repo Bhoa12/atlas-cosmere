@@ -167,26 +167,27 @@ export class HoidCursorProgressCoordinator {
     return this.serialize(async () => {
       try {
         if (this.initialization) await this.initialization;
-        const loaded = await this.store.load();
-        if (loaded.status === "unavailable") {
-          this.snapshot = null;
-          this.initialization = null;
-          return Object.freeze({ status: "unavailable" as const, reason: loaded.reason });
-        }
 
-        const validation = validateHoidCursorProgressSnapshot(loaded.snapshot);
-        if (validation.status !== "valid") {
-          this.snapshot = null;
-          this.initialization = null;
-          return Object.freeze({ status: "unavailable" as const, reason: "corrupt-v2" as const });
-        }
+        // Clear the cache before the durable read. Concurrent initialize()
+        // calls then join this same in-flight load instead of returning the
+        // stale snapshot that the refresh is replacing.
+        this.snapshot = null;
+        const pending = this.store.load()
+          .then(result => this.acceptLoad(result))
+          .catch(() => {
+            this.snapshot = null;
+            this.initialization = null;
+            return Object.freeze({ status: "unavailable" as const, reason: "storage-error" as const });
+          });
+        this.initialization = pending;
+        const loaded = await pending;
+        if (this.initialization === pending) this.initialization = null;
+        if (loaded.status !== "ready") return loaded;
 
-        this.snapshot = validation.snapshot;
-        this.initialization = null;
         return Object.freeze({
           status: "ready" as const,
           operation: "refreshed" as const,
-          snapshot: validation.snapshot,
+          snapshot: loaded.snapshot,
         });
       } catch {
         this.snapshot = null;

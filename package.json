@@ -30,6 +30,7 @@
   },
   "private": true,
   "overrides": {
-    "csstype": "3.2.3"
+    "csstype": "3.2.3",
+    "@xmldom/xmldom": "0.9.12"
   }
 }

@@ -356,4 +356,79 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(invoked).toBe(false);
   });
 
+
+  it("refreshes a cached snapshot after another coordinator commits to the shared store", async () => {
+    const store = new MemoryCursorStore();
+    const first = new HoidCursorProgressCoordinator(store, fixedNow);
+    const second = new HoidCursorProgressCoordinator(store, fixedNow);
+    await Promise.all([first.initialize(), second.initialize()]);
+
+    await first.advance("tfe", cursor("tfe", 6));
+    expect(second.getSnapshot()?.revision).toBe(0);
+
+    const refreshed = await second.refresh();
+    expect(refreshed).toMatchObject({
+      status: "ready",
+      operation: "refreshed",
+      snapshot: {
+        revision: 1,
+        positions: [{ bookId: "tfe", cursor: { chapterNumber: 6 } }],
+      },
+    });
+    expect(second.getSnapshot()?.revision).toBe(1);
+  });
+
+  it("clears the cached authorization snapshot when a durable refresh becomes unavailable", async () => {
+    const store = new MemoryCursorStore();
+    const { coordinator } = createCoordinator(store);
+    await coordinator.initialize();
+    expect(coordinator.getSnapshot()?.revision).toBe(0);
+
+    store.unavailable = true;
+    expect(await coordinator.refresh()).toEqual({
+      status: "unavailable",
+      reason: "storage-error",
+    });
+    expect(coordinator.getSnapshot()).toBeNull();
+  });
+
+
+  it("makes concurrent initialize calls join an in-flight durable refresh instead of seeing stale progress", async () => {
+    const store = new MemoryCursorStore();
+    const first = new HoidCursorProgressCoordinator(store, fixedNow);
+    const second = new HoidCursorProgressCoordinator(store, fixedNow);
+    await Promise.all([first.initialize(), second.initialize()]);
+    await first.advance("tfe", cursor("tfe", 7));
+
+    const originalLoad = store.load.bind(store);
+    let releaseLoad: (() => void) | null = null;
+    let markLoadStarted: (() => void) | null = null;
+    const loadGate = new Promise<void>(resolve => { releaseLoad = resolve; });
+    const loadStarted = new Promise<void>(resolve => { markLoadStarted = resolve; });
+    store.load = async () => {
+      markLoadStarted?.();
+      await loadGate;
+      return originalLoad();
+    };
+
+    const refreshing = second.refresh();
+    await loadStarted;
+    expect(second.getSnapshot()).toBeNull();
+
+    const concurrentInitialize = second.initialize();
+    releaseLoad?.();
+    const [refreshed, initialized] = await Promise.all([refreshing, concurrentInitialize]);
+
+    expect(refreshed).toMatchObject({
+      status: "ready",
+      operation: "refreshed",
+      snapshot: { revision: 1 },
+    });
+    expect(initialized).toMatchObject({
+      status: "ready",
+      snapshot: { revision: 1 },
+    });
+    expect(second.getSnapshot()?.revision).toBe(1);
+  });
+
 });

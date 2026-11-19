@@ -1,0 +1,76 @@
+name: Hoid progress freshness guard
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/conversationGateway.progressRefresh.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/context/CosmereContext.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/PROGRESS_FRESHNESS_GUARD.md"
+      - ".github/workflows/hoid-progress-freshness-guard.yml"
+  pull_request:
+    paths:
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/conversationGateway.progressRefresh.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/context/CosmereContext.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/PROGRESS_FRESHNESS_GUARD.md"
+      - ".github/workflows/hoid-progress-freshness-guard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  progress-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 20.19
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cursor refresh, answer freshness and recommendations
+        run: >-
+          npx vitest run
+          src/hoid/cursorProgressCoordinator.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/conversationGateway.progressRefresh.test.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
+      - name: Strictly type-check Hoid progress and conversation boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module ESNext --moduleResolution bundler --skipLibCheck
+          src/hoid/cursorProgressCoordinator.ts
+          src/hoid/cursorProgressCoordinator.test.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/conversationGateway.progressRefresh.test.ts
+          src/hoid/topicInterestRecommendationsGateway.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/answerPresentation.ts
+      - name: Type-check React Native progress composition
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node --jsx react --skipLibCheck
+          src/context/CosmereContext.tsx
+          src/screens/HoidScreen.tsx

@@ -49,6 +49,8 @@ export type HoidTopicInterestRecommendationResult =
 export type HoidTopicInterestRecommendationGatewayConfig = Readonly<{
   /** Must return the authoritative SQLite v2 snapshot. */
   getCurrentProgress: () => unknown;
+  /** Optional durable read-through used before and after recommendation composition. */
+  refreshCurrentProgress?: () => unknown | Promise<unknown>;
   /**
    * Trusted local port for rendering already-approved claims. It receives only
    * approved claim IDs and the current progress snapshot, never topic labels,
@@ -100,6 +102,13 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
+async function readCurrentProgress(config: HoidTopicInterestRecommendationGatewayConfig): Promise<unknown> {
+  if (typeof config.refreshCurrentProgress === "function") {
+    return await config.refreshCurrentProgress();
+  }
+  return config.getCurrentProgress();
+}
+
 function unavailable(
   reason: Extract<HoidTopicInterestRecommendationResult, { status: "unavailable" }>["reason"],
 ): HoidTopicInterestRecommendationResult {
@@ -135,7 +144,7 @@ export class HoidTopicInterestRecommendationGateway {
 
     let currentBefore: unknown;
     try {
-      currentBefore = this.config.getCurrentProgress();
+      currentBefore = await readCurrentProgress(this.config);
     } catch {
       return unavailable("invalid-progress");
     }
@@ -193,7 +202,7 @@ export class HoidTopicInterestRecommendationGateway {
 
     let currentAfter: unknown;
     try {
-      currentAfter = this.config.getCurrentProgress();
+      currentAfter = await readCurrentProgress(this.config);
     } catch {
       return unavailable("invalid-progress");
     }
@@ -235,6 +244,7 @@ export function createHoidTopicInterestRecommendationGateway(
     config === null ||
     typeof config !== "object" ||
     typeof config.getCurrentProgress !== "function" ||
+    (config.refreshCurrentProgress !== undefined && typeof config.refreshCurrentProgress !== "function") ||
     (config.answerApprovedClaims !== undefined && typeof config.answerApprovedClaims !== "function")
   ) return null;
   return new HoidTopicInterestRecommendationGateway(config);

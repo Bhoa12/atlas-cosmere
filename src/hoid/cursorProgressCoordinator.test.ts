@@ -356,4 +356,40 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(invoked).toBe(false);
   });
 
+
+  it("refreshes a cached snapshot after another coordinator commits to the shared store", async () => {
+    const store = new MemoryCursorStore();
+    const first = new HoidCursorProgressCoordinator(store, fixedNow);
+    const second = new HoidCursorProgressCoordinator(store, fixedNow);
+    await Promise.all([first.initialize(), second.initialize()]);
+
+    await first.advance("tfe", cursor("tfe", 6));
+    expect(second.getSnapshot()?.revision).toBe(0);
+
+    const refreshed = await second.refresh();
+    expect(refreshed).toMatchObject({
+      status: "ready",
+      operation: "refreshed",
+      snapshot: {
+        revision: 1,
+        positions: [{ bookId: "tfe", cursor: { chapterNumber: 6 } }],
+      },
+    });
+    expect(second.getSnapshot()?.revision).toBe(1);
+  });
+
+  it("clears the cached authorization snapshot when a durable refresh becomes unavailable", async () => {
+    const store = new MemoryCursorStore();
+    const { coordinator } = createCoordinator(store);
+    await coordinator.initialize();
+    expect(coordinator.getSnapshot()?.revision).toBe(0);
+
+    store.unavailable = true;
+    expect(await coordinator.refresh()).toEqual({
+      status: "unavailable",
+      reason: "storage-error",
+    });
+    expect(coordinator.getSnapshot()).toBeNull();
+  });
+
 });

@@ -87,9 +87,9 @@ describe("verified EPUB chapter document fingerprints", () => {
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
       4,
     )).toBe("a283662ad3c34e67db60ec847fd8c4166725361d166a507c95245141ecedfcdb");
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(8);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(10);
   });
 
   it("returns the three individually inspected Roshar chapter-five digests", () => {
@@ -152,7 +152,7 @@ describe("verified EPUB chapter document fingerprints", () => {
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      9,
+      10,
     )).toBeNull();
     expect(getVerifiedChapterDocumentCount("twok")).toBe(8);
     expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
@@ -246,6 +246,30 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentCount("twok")).toBe(8);
     expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(9);
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(9);
+  });
+
+  it("returns the newly inspected Roshar chapter-nine and chapter-ten digests", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      9,
+    )).toBe("c5737b3dc6b37d9bd9166d910f70c2f39f522ceb07123703387b34399e703945");
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      10,
+    )).toBe("4fe0dc1e86f52d76bcabef23c4b730ba15543db5491559eed44462b4dfbfe6bf");
+    expect(getVerifiedChapterDocumentSha256(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      10,
+    )).toBe("0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22");
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(9);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(10);
   });
 
 });

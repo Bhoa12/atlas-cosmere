@@ -376,6 +376,7 @@ describe("offline EPUB ingestion core", () => {
     fixture.entries.push(Object.freeze({
       path: "OEBPS/toc.ncx",
       ordinal: fixture.entries.length,
+      localHeaderExtraFieldLength: 0,
       kind: "file",
       compressionMethod: "deflated",
       compressedSize: Math.max(1, Math.ceil(ncxBytes.byteLength / 2)),

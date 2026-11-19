@@ -468,7 +468,7 @@ describe("Hoid spoiler-aware entity resolution", () => {
     const before = resolveHoidAuthorizedEntities(
       [entity, support],
       progress([
-        { bookId: "twok", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
         { bookId: "edgedancer", chapter: 2 },
       ]),
       { text: "Cross-Work Synthetic Alias" },

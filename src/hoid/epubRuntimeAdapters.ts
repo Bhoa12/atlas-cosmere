@@ -1,5 +1,5 @@
 import { sha256 } from "@noble/hashes/sha256";
-import { inflateSync, strFromU8, strToU8, zipSync } from "fflate";
+import { inflateSync, strFromU8, strToU8 } from "fflate";
 import { SaxesParser, type SaxesTagNS } from "saxes";
 import type {
   HoidEpubArchiveEntry,
@@ -139,14 +139,21 @@ function findEndOfCentralDirectory(bytes: Uint8Array): number {
   throw new Error("ZIP end-of-central-directory record was not found");
 }
 
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = (value >>> 1) ^ ((value & 1) === 1 ? 0xedb88320 : 0);
+    }
+    table[index] = value >>> 0;
+  }
+  return table;
+})();
+
 function crc32(bytes: Uint8Array): number {
   let crc = 0xffffffff;
-  for (const byte of bytes) {
-    crc ^= byte;
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = (crc >>> 1) ^ ((crc & 1) === 1 ? 0xedb88320 : 0);
-    }
-  }
+  for (const byte of bytes) crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
 }
 
@@ -670,6 +677,8 @@ export function createHoidSaxesXmlPort(): HoidEpubXmlPort {
         throw new Error("EPUB package document is incomplete");
       }
 
+      const titleNode = descendants(metadata, "title", DC_NS)[0];
+      const languageNode = descendants(metadata, "language", DC_NS)[0];
       const identifiers = descendants(metadata, "identifier", DC_NS).map(item => Object.freeze({
         id: attribute(item, "id") ?? "",
         value: normalizedLabel(textContent(item)),
@@ -692,8 +701,8 @@ export function createHoidSaxesXmlPort(): HoidEpubXmlPort {
         version: attribute(root, "version") ?? "",
         uniqueIdentifierId: attribute(root, "unique-identifier") ?? "",
         metadata: Object.freeze({
-          title: normalizedLabel(textContent(descendants(metadata, "title", DC_NS)[0] ?? { text: "", children: [] } as XmlElement)),
-          language: normalizedLabel(textContent(descendants(metadata, "language", DC_NS)[0] ?? { text: "", children: [] } as XmlElement)),
+          title: titleNode === undefined ? "" : normalizedLabel(textContent(titleNode)),
+          language: languageNode === undefined ? "" : normalizedLabel(textContent(languageNode)),
           identifiers: Object.freeze(identifiers),
         }),
         manifestItems: Object.freeze(manifestItems),

@@ -38,7 +38,7 @@ describe("Hoid editorial review packets", () => {
   it("builds a deterministic packet for each pending source-backed draft", () => {
     expect(built.status).toBe("ready");
     if (built.status !== "ready") return;
-    expect(built.packets).toHaveLength(32);
+    expect(built.packets).toHaveLength(35);
     expect(built.packets.map(item => item.draftId)).toEqual([
       "dawnshard.chapter-001.akinah-expedition",
       "dawnshard.chapter-002.rysn-navani-akinah-mission",
@@ -50,6 +50,7 @@ describe("Hoid editorial review packets", () => {
       "dawnshard.chapter-008.rysn-dead-santhid",
       "dawnshard.chapter-009.rysn-aluminum-fabrial",
       "dawnshard.chapter-010.rysn-arrests-nikli",
+      "dawnshard.chapter-011.lopen-crosses-akinah-storm",
       "edgedancer.chapter-001.lift-departure",
       "edgedancer.chapter-002.lift-yeddaw-arrival",
       "edgedancer.chapter-003.hauka-grain-cart",
@@ -60,6 +61,7 @@ describe("Hoid editorial review packets", () => {
       "edgedancer.chapter-008.lift-follows-darkness",
       "edgedancer.chapter-009.lift-nale-szeth",
       "edgedancer.chapter-010.lift-orphanage-reflection",
+      "edgedancer.chapter-011.lift-finds-great-indicium",
       "tfe.chapter-001.vin",
       "tfe.chapter-002.kelsier",
       "tfe.chapter-003.vin-kelsier",
@@ -72,6 +74,7 @@ describe("Hoid editorial review packets", () => {
       "twok.chapter-007.shallan-palanaeum-wait",
       "twok.chapter-008.shallan-jasnah-pupil",
       "twok.chapter-009.kaladin-recruit-death",
+      "twok.chapter-010.kaladin-lirin-surgeon",
     ]);
     expect(built.packets.every(item => item.status === "pending-review")).toBe(true);
   });

@@ -14,10 +14,11 @@ export type HoidEditorialPromotionPlanInput = Readonly<{
 }>;
 
 export type HoidPromotionReviewRequest = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: 2;
   repositoryFullName: string;
   pullRequestNumber: number;
   expectedBaseRef: string;
+  expectedBaseSha: string;
   expectedHeadRef: string;
   expectedHeadSha: string;
   promotionManifestPath: string;
@@ -56,12 +57,13 @@ export type HoidPromotionProgressPort = Readonly<{
 }>;
 
 export type HoidProtectedReviewSnapshot = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: 2;
   repositoryFullName: string;
   pullRequestNumber: number;
   state: "open";
   draft: false;
   baseRef: string;
+  baseSha: string;
   headRef: string;
   headSha: string;
   authorId: string;
@@ -93,6 +95,7 @@ export type HoidProtectedReviewVerification =
       approvalReviewerIds: readonly string[];
       requiredApprovals: number;
       verifiedAt: string;
+      baseSha: string;
       headSha: string;
       promotionPlanFingerprint: string;
     }>
@@ -106,6 +109,7 @@ export type HoidProtectedReviewVerification =
         | "pull-request-not-open"
         | "draft-pull-request"
         | "branch-mismatch"
+        | "base-mismatch"
         | "head-mismatch"
         | "promotion-plan-mismatch"
         | "promotion-manifest-mismatch"
@@ -155,6 +159,7 @@ const REQUEST_KEYS = new Set([
   "repositoryFullName",
   "pullRequestNumber",
   "expectedBaseRef",
+  "expectedBaseSha",
   "expectedHeadRef",
   "expectedHeadSha",
   "promotionManifestPath",
@@ -180,6 +185,7 @@ const SNAPSHOT_KEYS = new Set([
   "state",
   "draft",
   "baseRef",
+  "baseSha",
   "headRef",
   "headSha",
   "authorId",
@@ -288,7 +294,7 @@ function canonicalTimestamp(value: unknown): value is string {
 
 function canonicalRequest(value: unknown): CanonicalRequest | null {
   const raw = canonicalRecord(value, REQUEST_KEYS);
-  if (!raw || raw.schemaVersion !== 1) return null;
+  if (!raw || raw.schemaVersion !== 2) return null;
   if (
     typeof raw.repositoryFullName !== "string" ||
     !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
@@ -296,6 +302,8 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
     (raw.pullRequestNumber as number) < 1 ||
     typeof raw.expectedBaseRef !== "string" ||
     !REF_PATTERN.test(raw.expectedBaseRef) ||
+    typeof raw.expectedBaseSha !== "string" ||
+    !SHA_PATTERN.test(raw.expectedBaseSha) ||
     typeof raw.expectedHeadRef !== "string" ||
     !REF_PATTERN.test(raw.expectedHeadRef) ||
     raw.expectedBaseRef === raw.expectedHeadRef ||
@@ -312,10 +320,11 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
   ) return null;
 
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     expectedBaseRef: raw.expectedBaseRef,
+    expectedBaseSha: raw.expectedBaseSha,
     expectedHeadRef: raw.expectedHeadRef,
     expectedHeadSha: raw.expectedHeadSha,
     promotionManifestPath: raw.promotionManifestPath,
@@ -438,13 +447,16 @@ export function verifyHoidProtectedReviewSnapshot(
   }
 
   const raw = canonicalRecord(snapshotInput, SNAPSHOT_KEYS);
-  if (!raw || raw.schemaVersion !== 1) return invalidVerification("invalid-snapshot");
+  if (!raw || raw.schemaVersion !== 2) return invalidVerification("invalid-snapshot");
   if (raw.repositoryFullName !== request.repositoryFullName) return invalidVerification("repository-mismatch");
   if (raw.pullRequestNumber !== request.pullRequestNumber) return invalidVerification("pull-request-mismatch");
   if (raw.state !== "open") return invalidVerification("pull-request-not-open");
   if (raw.draft !== false) return invalidVerification("draft-pull-request");
   if (raw.baseRef !== request.expectedBaseRef || raw.headRef !== request.expectedHeadRef) {
     return invalidVerification("branch-mismatch");
+  }
+  if (raw.baseSha !== request.expectedBaseSha || typeof raw.baseSha !== "string" || !SHA_PATTERN.test(raw.baseSha)) {
+    return invalidVerification("base-mismatch");
   }
   if (raw.headSha !== request.expectedHeadSha || typeof raw.headSha !== "string" || !SHA_PATTERN.test(raw.headSha)) {
     return invalidVerification("head-mismatch");
@@ -540,6 +552,7 @@ export function verifyHoidProtectedReviewSnapshot(
     approvalReviewerIds: Object.freeze(approvals),
     requiredApprovals,
     verifiedAt: raw.verifiedAt,
+    baseSha: raw.baseSha,
     headSha: raw.headSha,
     promotionPlanFingerprint: expectedPlanFingerprintInput,
   });

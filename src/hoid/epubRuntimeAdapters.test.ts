@@ -419,7 +419,6 @@ describe("concrete local EPUB runtime adapters", () => {
     const prefix =
       '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
       '<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>';
-    const suffix = "</rootfiles></container>";
     for (const whitespace of [" ", "\t", "\r", "\n", "\r\n"]) {
       const document = strToU8(prefix + "</rootfiles" + whitespace + "></container>");
       await expect(xml.parseContainerXml(document)).resolves.toEqual({
@@ -430,9 +429,8 @@ describe("concrete local EPUB runtime adapters", () => {
       });
     }
     await expect(xml.parseContainerXml(strToU8(
-      prefix + "</rootfiles\\njunk></container>",
+      prefix + "</rootfiles\njunk></container>",
     ))).rejects.toThrow();
-    void suffix;
   });
 
   it("ignores markup-like text inside comments and CDATA during structural preflight", async () => {

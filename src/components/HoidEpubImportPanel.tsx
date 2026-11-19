@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { createHoidExpoLocalEpubRuntime } from "../hoid/expoLocalEpubPlatform";
+import { createHoidImportLifecycleGuard } from "../hoid/epubImportLifecycle";
 import type { HoidExpoPickedSource } from "../hoid/expoLocalEpubProvider";
 import type { HoidEpubPackageInspectionCandidate } from "../hoid/epubIngestion";
 import {
@@ -57,19 +58,31 @@ export const HoidEpubImportPanel: React.FC = () => {
     "Los EPUB se inspeccionan localmente. El nombre del archivo nunca determina la obra ni la edición.",
   );
   const sourceIdRef = useRef<string | null>(null);
+  const lifecycleRef = useRef(createHoidImportLifecycleGuard());
 
-  useEffect(() => () => {
-    const sourceId = sourceIdRef.current;
-    sourceIdRef.current = null;
-    if (sourceId !== null) void epubRuntime.provider.release(sourceId).catch(() => undefined);
+  useEffect(() => {
+    const lease = lifecycleRef.current.activate();
+    return () => {
+      lifecycleRef.current.deactivate(lease);
+      const sourceId = sourceIdRef.current;
+      sourceIdRef.current = null;
+      if (sourceId !== null) void epubRuntime.provider.release(sourceId).catch(() => undefined);
+    };
   }, []);
 
   const pickEpub = async () => {
     if (busy) return;
+    const operation = lifecycleRef.current.beginOperation();
     setBusy(true);
     setMessage("Esperando la selección del archivo…");
     try {
       const result = await epubRuntime.provider.pickEpub();
+      if (!lifecycleRef.current.isCurrent(operation)) {
+        if (result.status === "selected") {
+          await epubRuntime.provider.release(result.source.sourceId).catch(() => undefined);
+        }
+        return;
+      }
       if (result.status === "cancelled") {
         setMessage("Selección cancelada. No se ha modificado ninguna fuente ni tu progreso.");
         return;
@@ -89,20 +102,24 @@ export const HoidEpubImportPanel: React.FC = () => {
           // The newly selected source remains tracked; stale cache cleanup is best-effort.
         }
       }
+      if (!lifecycleRef.current.isCurrent(operation)) return;
       setSelectedChoice(null);
       setCandidate(null);
       setMessage("Archivo local seleccionado. Ahora debes elegir explícitamente la obra y su edición registrada.");
       setSelectionOpen(true);
     } catch {
-      setMessage("No se ha podido abrir el archivo local. No se enviará a ningún servicio externo.");
+      if (lifecycleRef.current.isCurrent(operation)) {
+        setMessage("No se ha podido abrir el archivo local. No se enviará a ningún servicio externo.");
+      }
     } finally {
-      setBusy(false);
+      if (lifecycleRef.current.isCurrent(operation)) setBusy(false);
     }
   };
 
   const inspectSelectedWork = async (choice: HoidEpubImportChoice) => {
     const source = pickedSource;
     if (source === null || busy || choice.editionId === null) return;
+    const operation = lifecycleRef.current.beginOperation();
 
     const descriptor = createHoidEpubSourceDescriptor(
       source.sourceId,
@@ -121,6 +138,7 @@ export const HoidEpubImportPanel: React.FC = () => {
     setMessage("Verificando ZIP, paquete OPF, navegación y huella de la edición…");
     try {
       const result = await epubRuntime.ingestion.inspectPackage(descriptor);
+      if (!lifecycleRef.current.isCurrent(operation)) return;
       if (result.status === "candidate") {
         setCandidate(result.candidate);
         setMessage(
@@ -130,27 +148,34 @@ export const HoidEpubImportPanel: React.FC = () => {
         setMessage(rejectionMessage(result.reason));
       }
     } catch {
-      setMessage("La inspección ha fallado de forma segura. No se ha creado una vinculación ni se ha modificado el progreso.");
+      if (lifecycleRef.current.isCurrent(operation)) {
+        setMessage("La inspección ha fallado de forma segura. No se ha creado una vinculación ni se ha modificado el progreso.");
+      }
     } finally {
-      setBusy(false);
+      if (lifecycleRef.current.isCurrent(operation)) setBusy(false);
     }
   };
 
   const releaseSource = async () => {
+    const operation = lifecycleRef.current.beginOperation();
     const sourceId = sourceIdRef.current;
     sourceIdRef.current = null;
     setBusy(true);
     try {
       if (sourceId !== null) await epubRuntime.provider.release(sourceId);
     } catch {
-      setMessage("La fuente dejó de estar disponible; se ha liberado su referencia local.");
+      if (lifecycleRef.current.isCurrent(operation)) {
+        setMessage("La fuente dejó de estar disponible; se ha liberado su referencia local.");
+      }
     } finally {
-      setPickedSource(null);
-      setSelectedChoice(null);
-      setCandidate(null);
-      setSelectionOpen(false);
-      setMessage("Fuente local liberada. No se ha guardado su URI ni su contenido.");
-      setBusy(false);
+      if (lifecycleRef.current.isCurrent(operation)) {
+        setPickedSource(null);
+        setSelectedChoice(null);
+        setCandidate(null);
+        setSelectionOpen(false);
+        setMessage("Fuente local liberada. No se ha guardado su URI ni su contenido.");
+        setBusy(false);
+      }
     }
   };
 

@@ -232,8 +232,6 @@ function knowledgeById(value: unknown): ReadonlyMap<string, unknown> | null {
 function canonicalAliases(value: unknown): readonly string[] | null {
   try {
     if (!Array.isArray(value) || value.length < 1 || value.length > 64) return null;
-    const keys = Reflect.ownKeys(value);
-    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
     const aliases: string[] = [];
     const seen = new Set<string>();
     for (let index = 0; index < value.length; index += 1) {
@@ -242,15 +240,18 @@ function canonicalAliases(value: unknown): readonly string[] | null {
         !descriptor ||
         !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
         descriptor.enumerable !== true ||
-        typeof descriptor.value !== "string" ||
-        descriptor.value !== descriptor.value.trim() ||
-        descriptor.value.length < 1 ||
-        descriptor.value.length > 256 ||
-        /[\\u0000-\\u001F\\u007F]/u.test(descriptor.value) ||
-        seen.has(descriptor.value)
+        typeof descriptor.value !== "string"
       ) return null;
-      seen.add(descriptor.value);
-      aliases.push(descriptor.value);
+      const alias = descriptor.value;
+      if (
+        alias !== alias.trim() ||
+        alias.length < 1 ||
+        alias.length > 256 ||
+        /[\\u0000-\\u001F\\u007F]/u.test(alias) ||
+        seen.has(alias)
+      ) return null;
+      seen.add(alias);
+      aliases.push(alias);
     }
     return Object.freeze(aliases.sort());
   } catch {

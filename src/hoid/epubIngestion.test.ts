@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { getHoidSourceCoverageReport } from "./sourceCoverage";
 import {
   createHoidEpubIngestionService,
   resolveHoidEpubHref,
@@ -133,6 +134,16 @@ describe("offline EPUB ingestion core", () => {
     expect(result.candidate).not.toHaveProperty("chapterText");
     expect(result.candidate).not.toHaveProperty("body");
     expect(Object.isFrozen(result.candidate)).toBe(true);
+  });
+
+  it("does not mutate catalogue coverage or production authorization state", async () => {
+    const fixture = makeFixture();
+    const before = getHoidSourceCoverageReport();
+    const result = await fixture.service.inspectPackage(fixture.source);
+    expect(result.status).toBe("candidate");
+    expect(getHoidSourceCoverageReport()).toEqual(before);
+    expect(before.editorial.productionKnowledgeEntryCount).toBe(0);
+    expect(before.editorial.approvedClaimCount).toBe(0);
   });
 
   it("inspects one navigation-backed XHTML body and returns only its digest", async () => {
@@ -286,8 +297,8 @@ describe("offline EPUB ingestion core", () => {
     fixture.entries.unshift(Object.freeze({
       path: "META-INF/",
       ordinal: 0,
-      kind: "directory",
-      compressionMethod: "stored",
+      kind: "directory" as const,
+      compressionMethod: "stored" as const,
       compressedSize: 0,
       uncompressedSize: 0,
       encrypted: false,

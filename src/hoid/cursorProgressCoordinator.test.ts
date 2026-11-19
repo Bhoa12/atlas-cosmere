@@ -392,4 +392,43 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(coordinator.getSnapshot()).toBeNull();
   });
 
+
+  it("makes concurrent initialize calls join an in-flight durable refresh instead of seeing stale progress", async () => {
+    const store = new MemoryCursorStore();
+    const first = new HoidCursorProgressCoordinator(store, fixedNow);
+    const second = new HoidCursorProgressCoordinator(store, fixedNow);
+    await Promise.all([first.initialize(), second.initialize()]);
+    await first.advance("tfe", cursor("tfe", 7));
+
+    const originalLoad = store.load.bind(store);
+    let releaseLoad: (() => void) | null = null;
+    let markLoadStarted: (() => void) | null = null;
+    const loadGate = new Promise<void>(resolve => { releaseLoad = resolve; });
+    const loadStarted = new Promise<void>(resolve => { markLoadStarted = resolve; });
+    store.load = async () => {
+      markLoadStarted?.();
+      await loadGate;
+      return originalLoad();
+    };
+
+    const refreshing = second.refresh();
+    await loadStarted;
+    expect(second.getSnapshot()).toBeNull();
+
+    const concurrentInitialize = second.initialize();
+    releaseLoad?.();
+    const [refreshed, initialized] = await Promise.all([refreshing, concurrentInitialize]);
+
+    expect(refreshed).toMatchObject({
+      status: "ready",
+      operation: "refreshed",
+      snapshot: { revision: 1 },
+    });
+    expect(initialized).toMatchObject({
+      status: "ready",
+      snapshot: { revision: 1 },
+    });
+    expect(second.getSnapshot()?.revision).toBe(1);
+  });
+
 });

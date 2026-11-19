@@ -752,9 +752,9 @@ export type HoidReviewerBoundPayloadSignatureBatchVerification =
       index?: number;
     }>;
 
-const BOUND_PAYLOAD_REQUEST_KEYS = new Set([
+const BOUND_PAYLOAD_REQUEST_KEYS = Object.freeze([
   "repositoryFullName", "reviewerId", "reviewedAt", "keyId", "message", "signatureHex",
-]);
+] as const);
 
 function canonicalBoundPayloadRequest(value: unknown): HoidReviewerBoundPayloadSignatureRequest | null {
   const raw = exactRecord(value, BOUND_PAYLOAD_REQUEST_KEYS);

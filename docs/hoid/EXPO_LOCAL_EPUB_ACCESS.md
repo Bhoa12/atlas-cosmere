@@ -70,7 +70,7 @@ The synthetic tests cover:
 - file-change detection;
 - release cleanup without deleting external provider URIs.
 
-No private EPUB was available to this run. No real source edition was inspected and no coverage or production knowledge record was changed.
+A separate local metadata-only audit checked four private EPUBs against their registered navigation digests; the counts and limitations are recorded in `EXPLICIT_EPUB_IMPORT_UI.md`. This did not execute the TypeScript range adapter against those files or inspect chapter XHTML. No verified-chapter allowlist, progress or production knowledge record was changed.
 
 ## Remaining validation
 

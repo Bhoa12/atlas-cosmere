@@ -1,0 +1,65 @@
+name: Hoid remote trust revision witness
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "package.json"
+      - "src/hoid/remoteTrustRevisionWitness.ts"
+      - "src/hoid/remoteTrustRevisionWitness.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/REMOTE_TRUST_REVISION_WITNESS.md"
+      - ".github/workflows/hoid-remote-trust-revision-witness.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "src/hoid/remoteTrustRevisionWitness.ts"
+      - "src/hoid/remoteTrustRevisionWitness.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/REMOTE_TRUST_REVISION_WITNESS.md"
+      - ".github/workflows/hoid-remote-trust-revision-witness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remote-trust-revision-witness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 20.19 for Noble Curves v2
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify pinned Ed25519 dependency
+        run: npm ls @noble/curves --all
+      - name: Test signed remote witness protocol and monotonic-store integration
+        run: >-
+          npx vitest run
+          src/hoid/remoteTrustRevisionWitness.test.ts
+          src/hoid/trustRegistryRevisionStore.test.ts
+          src/hoid/trustedHostBootstrap.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
+      - name: Strictly type-check remote witness and trust boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module ESNext --moduleResolution bundler --skipLibCheck
+          src/hoid/remoteTrustRevisionWitness.ts
+          src/hoid/remoteTrustRevisionWitness.test.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/trustRegistryRevisionStore.ts
+          src/hoid/trustedHostBootstrap.ts
+          src/hoid/trustedHostPromotionAuthority.ts
+          src/hoid/editorialReviewSignatures.ts
+          src/hoid/sha256.ts

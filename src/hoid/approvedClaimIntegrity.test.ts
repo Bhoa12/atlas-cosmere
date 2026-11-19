@@ -150,7 +150,7 @@ describe("Hoid approved-claim integrity", () => {
     });
   });
 
-  it("rejects a review receipt reference that points at a different claim", () => {
+  it("rejects a review claim fingerprint that points at different content", () => {
     const claim = createAttestation();
     const tampered = {
       ...claim,

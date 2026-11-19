@@ -338,7 +338,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 1,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-012.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 2 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 1 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -360,7 +360,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 1,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/001.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 2 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 1 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -382,7 +382,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 1,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/1.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 2 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 1 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -404,7 +404,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 2,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-013.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 3 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 2 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -426,7 +426,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 2,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/002.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 3 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 2 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -448,7 +448,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 2,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/2.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 3 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 2 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -470,7 +470,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 1,
       locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/001.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 2 }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 1 }),
     sourceIntegrity: Object.freeze({
       editionId: "cosmere-epub-merged-v1",
       navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
@@ -492,7 +492,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 2,
       locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/002.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 3 }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 2 }),
     sourceIntegrity: Object.freeze({
       editionId: "cosmere-epub-merged-v1",
       navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
@@ -514,7 +514,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 3,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-015.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 4 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 3 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -536,7 +536,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 3,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/003.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 4 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 3 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -558,7 +558,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 3,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/3.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 4 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 3 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -580,7 +580,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 4,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-016.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 5 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 4 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -602,7 +602,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 4,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/004.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 5 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 4 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -624,7 +624,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 4,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/4.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 5 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 4 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -646,7 +646,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 5,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-017.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 6 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 5 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -668,7 +668,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 5,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/005.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 6 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 5 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -690,7 +690,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 5,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/5.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 6 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 5 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -713,7 +713,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 6,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-019.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 7 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 6 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -735,7 +735,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 6,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/006.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 7 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 6 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -757,7 +757,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 6,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/6.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 7 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 6 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -780,7 +780,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 7,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-020.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 8 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 7 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -802,7 +802,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 7,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/007.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 8 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 7 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -824,7 +824,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 7,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/7.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 8 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 7 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -843,7 +843,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     aliases: Object.freeze(["encuentro de Vin con Kelsier"]),
     firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 3 }),
     evidenceSource: Object.freeze({ bookId: "tfe", chapter: 3, locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/003.xhtml" }),
-    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 4 }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 3 }),
     sourceIntegrity: Object.freeze({ editionId: "cosmere-epub-merged-v1", navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee", documentSha256: "bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7" }),
     summaryIntegrity: Object.freeze({ sha256: "99b6fd64ff0ed0397a19913b1eb69067584586ad291d92bef9db55ca66776ddb" }),
     summary: "Tras advertir que el Ministerio puede actuar contra la banda, Vin decide marcharse y pide a Ulef que la acompañe. La petición llega a oídos de Camon, que interpreta la huida como una traición y la golpea cuando intenta escapar. Un noble desconocido irrumpe en la guarida y, junto a Dockson, neutraliza la amenaza y explica que la banda estaba a punto de ser descubierta por el Ministerio. El recién llegado se presenta como Kelsier y reconoce que la capacidad que Vin llama Suerte es alomancia. Más tarde, la somete a una prueba con metales: Vin demuestra que puede afectar las emociones en más de una forma y descubre que su potencial supera al de una brumosa corriente. Kelsier le explica que esa combinación la convierte en una nacida de la bruma y le propone comprender el alcance de sus habilidades.",
@@ -857,7 +857,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     aliases: Object.freeze(["seguimiento de Oscuridad en la ciudad"]),
     firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 8 }),
     evidenceSource: Object.freeze({ bookId: "edgedancer", chapter: 8, locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/008.xhtml" }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 9 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 8 }),
     sourceIntegrity: Object.freeze({ editionId: "edgedancer-epub-v1", navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517", documentSha256: "3b6e7ed84bcd4b08908f0f022edfc127b2dca223d834dc8841359fcb3ecbe095" }),
     summaryIntegrity: Object.freeze({ sha256: "860d99d35585b70113785cd3bdfefa44061029cf936bbf67f391133dc7afe399" }),
     summary: "Lift sigue a Oscuridad por la ciudad y presencia cómo detiene a una joven ladrona en el mercado. Cuando la chica, aterrorizada, intenta defenderse con una navaja, Oscuridad la mata y después formaliza el incidente como una ejecución conforme a la ley. Lift intenta devolverle la vida con su maravilla, pero Wyndle le explica que la herida de una hoja esquirlada y el tiempo transcurrido impiden salvarla. Indignada, Lift continúa siguiendo a Oscuridad hasta su alojamiento; usa su poder para ocultarse, entra por una ventana y termina encontrando y comiéndose su desayuno. Wyndle teme que se estén acercando demasiado a alguien peligroso, pero Lift decide que aún deben averiguar qué está haciendo.",
@@ -871,7 +871,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     aliases: Object.freeze(["hallazgo del santhid muerto"]),
     firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 8 }),
     evidenceSource: Object.freeze({ bookId: "dawnshard", chapter: 8, locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/8.xhtml" }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 9 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 8 }),
     sourceIntegrity: Object.freeze({ editionId: "dawnshard-epub-v1", navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075", documentSha256: "04cf11bf2784a7cc8b01cc226cb403744860f72cf8715bc8c2724f1e2c860a25" }),
     summaryIntegrity: Object.freeze({ sha256: "22e54d99273da4757ffa16c70408ecb3c0cce54f1b9ddf5d7dda8279f84be1a5" }),
     summary: "Rysn y la tripulación del Vela Errante descubren el cadáver de un santhid flotando junto al barco. La superstición de los marineros amenaza con obligarlos a regresar, y Rysn sopesa si el hallazgo es un accidente o parte de la intimidación que rodea la misión. En lugar de ceder, reformula el hallazgo como una señal favorable y propone remolcar el cuerpo para darle un funeral digno, conservando el caparazón como testimonio. La capitana Dlrwan respalda la decisión y la tripulación empieza a preparar los garfios. Cuando intentan sujetar el cadáver, este se deshace de forma inesperada en una multitud de pequeños crustáceos, dejando a Rysn sin la explicación que esperaba.",
@@ -889,7 +889,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 8,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-021.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 9 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 8 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -911,7 +911,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 9,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/009.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 10 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 9 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -933,7 +933,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 9,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/9.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 10 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 9 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -955,7 +955,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 9,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-023.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 10 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 9 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -977,7 +977,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 10,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/010.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 11 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 10 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -999,7 +999,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 10,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/10.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 11 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 10 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -1021,7 +1021,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 10,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-024.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 11 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 10 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -1043,7 +1043,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 11,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/011.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 12 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 11 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -1065,7 +1065,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 11,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/11.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 12 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 11 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
@@ -1087,7 +1087,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 4,
       locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/004.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 5 }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 4 }),
     sourceIntegrity: Object.freeze({
       editionId: "cosmere-epub-merged-v1",
       navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
@@ -1109,7 +1109,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 11,
       locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-025.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 12 }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 11 }),
     sourceIntegrity: Object.freeze({
       editionId: "roshar-omnibus-v1",
       navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
@@ -1131,7 +1131,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 12,
       locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/012.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 13 }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 12 }),
     sourceIntegrity: Object.freeze({
       editionId: "edgedancer-epub-v1",
       navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
@@ -1153,7 +1153,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
       chapter: 12,
       locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/12.xhtml",
     }),
-    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 13 }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 12 }),
     sourceIntegrity: Object.freeze({
       editionId: "dawnshard-epub-v1",
       navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",

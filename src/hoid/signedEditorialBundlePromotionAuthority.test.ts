@@ -183,10 +183,11 @@ function progressSnapshot(chapter = 5, revision = 17) {
 
 const initialProgress = progressSnapshot();
 const request: HoidPromotionReviewRequest = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 2,
   repositoryFullName: REPOSITORY,
   pullRequestNumber: 156,
   expectedBaseRef: "feat/hoid-ia-core-run155",
+  expectedBaseSha: "b".repeat(40),
   expectedHeadRef: "feat/hoid-ia-core-run156",
   expectedHeadSha: "a".repeat(40),
   promotionManifestPath: "docs/hoid/editorial-bundle-promotion.json",
@@ -260,12 +261,13 @@ function buildFixture(singleReviewer = false) {
 
 function snapshotFor(fetchRequest: HoidProtectedReviewFetchRequest): HoidProtectedReviewSnapshot {
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: REPOSITORY,
     pullRequestNumber: request.pullRequestNumber,
     state: "open",
     draft: false,
     baseRef: request.expectedBaseRef,
+    baseSha: request.expectedBaseSha,
     headRef: request.expectedHeadRef,
     headSha: request.expectedHeadSha,
     authorId: "pull-request-author",

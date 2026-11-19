@@ -1,0 +1,85 @@
+name: Hoid explicit local EPUB import
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "package.json"
+      - "src/hoid/epubRuntimeAdapters.ts"
+      - "src/hoid/epubRuntimeAdapters.test.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/hoid/epubImportSelection.test.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/expoLocalEpubProvider.ts"
+      - "src/hoid/expoLocalEpubPlatform.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
+      - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
+      - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
+      - ".github/workflows/hoid-explicit-local-epub-import.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "src/hoid/epubRuntimeAdapters.ts"
+      - "src/hoid/epubRuntimeAdapters.test.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/hoid/epubImportSelection.test.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/expoLocalEpubProvider.ts"
+      - "src/hoid/expoLocalEpubPlatform.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/EPUB_RUNTIME_ADAPTERS.md"
+      - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
+      - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
+      - ".github/workflows/hoid-explicit-local-epub-import.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  explicit-local-epub-import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pinned application dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify Expo SDK dependency compatibility
+        run: npx expo install --check
+      - name: Test XML adapter, edition binding and ingestion
+        run: >-
+          npx vitest run
+          src/hoid/epubRuntimeAdapters.test.ts
+          src/hoid/epubImportSelection.test.ts
+          src/hoid/epubIngestion.test.ts
+      - name: Strictly type-check platform and UI boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/epubRuntimeAdapters.ts
+          src/hoid/epubRuntimeAdapters.test.ts
+          src/hoid/epubRangeRuntimeAdapters.ts
+          src/hoid/epubImportSelection.ts
+          src/hoid/epubImportSelection.test.ts
+          src/hoid/epubIngestion.ts
+          src/hoid/editionStructure.ts
+          src/hoid/bibliography.ts
+          src/hoid/sourceCoverage.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/readingManifest.ts
+          src/hoid/expoLocalEpubProvider.ts
+          src/hoid/expoLocalEpubPlatform.ts
+          src/components/HoidEpubImportPanel.tsx
+          src/screens/HoidScreen.tsx

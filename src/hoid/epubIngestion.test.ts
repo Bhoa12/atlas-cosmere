@@ -79,7 +79,7 @@ function makeFixture() {
 
   const archive: HoidEpubArchivePort = {
     listEntries: vi.fn(async () => entries),
-    readEntry: vi.fn(async (_sourceId, path) => contents.get(path) ?? null),
+    readEntry: vi.fn(async (_sourceId: string, path: string, _maximumBytes: number) => contents.get(path) ?? null),
   };
 
   const xml: HoidEpubXmlPort = {
@@ -88,12 +88,12 @@ function makeFixture() {
     })),
     parsePackageDocument: vi.fn(async () => packageDocument),
     parseNavigationDocument: vi.fn(async () => navigation),
-    validateXhtml: vi.fn(async data => decoder.decode(data).startsWith("<html>")),
+    validateXhtml: vi.fn(async (data: Uint8Array) => decoder.decode(data).startsWith("<html>")),
   };
 
   const digestPort: HoidEpubDigestPort = {
-    sha256: vi.fn(async data => digest(decoder.decode(data))),
-    sha256Utf8: vi.fn(async value => digest(value)),
+    sha256: vi.fn(async (data: Uint8Array) => digest(decoder.decode(data))),
+    sha256Utf8: vi.fn(async (value: string) => digest(value)),
   };
 
   const service = createHoidEpubIngestionService({ archive, xml, digest: digestPort });
@@ -265,6 +265,63 @@ describe("offline EPUB ingestion core", () => {
     }
     const result = await fixture.service.inspectPackage(fixture.source);
     expect(result.status).toBe("candidate");
+  });
+
+
+  it("allows a ZIP directory entry before the first file while keeping mimetype first among files", async () => {
+    const fixture = makeFixture();
+    fixture.entries.unshift(Object.freeze({
+      path: "META-INF/",
+      ordinal: 0,
+      kind: "directory",
+      compressionMethod: "stored",
+      compressedSize: 0,
+      uncompressedSize: 0,
+      encrypted: false,
+    }));
+    for (let index = 0; index < fixture.entries.length; index += 1) {
+      fixture.entries[index] = Object.freeze({ ...fixture.entries[index], ordinal: index });
+    }
+    const result = await fixture.service.inspectPackage(fixture.source);
+    expect(result.status).toBe("candidate");
+  });
+
+  it("uses the EPUB 2 NCX fallback only when a valid spine toc id exists", async () => {
+    const fixture = makeFixture();
+    const ncxBytes = bytes("<ncx/>");
+    fixture.contents.set("OEBPS/toc.ncx", ncxBytes);
+    fixture.entries.push(Object.freeze({
+      path: "OEBPS/toc.ncx",
+      ordinal: fixture.entries.length,
+      kind: "file",
+      compressionMethod: "deflated",
+      compressedSize: Math.max(1, Math.ceil(ncxBytes.byteLength / 2)),
+      uncompressedSize: ncxBytes.byteLength,
+      encrypted: false,
+    }));
+    const epub2Package: HoidEpubPackageDocument = {
+      ...packageDocument,
+      version: "2.0",
+      manifestItems: [
+        ...packageDocument.manifestItems.filter(item => item.id !== "nav"),
+        { id: "ncx", href: "toc.ncx", mediaType: "application/x-dtbncx+xml", properties: [] },
+      ],
+      spineTocId: "ncx",
+    };
+    fixture.xml.parsePackageDocument = vi.fn(async () => epub2Package);
+    fixture.xml.parseNavigationDocument = vi.fn(async (_data: Uint8Array, format) => {
+      expect(format).toBe("epub2-ncx");
+      return navigation;
+    });
+    const result = await fixture.service.inspectPackage(fixture.source);
+    expect(result.status).toBe("candidate");
+  });
+
+  it("rejects archive entry paths that attempt to escape the package root", async () => {
+    const fixture = makeFixture();
+    fixture.entries[2] = Object.freeze({ ...fixture.entries[2], path: "../outside.opf" });
+    await expect(fixture.service.inspectPackage(fixture.source))
+      .resolves.toEqual({ status: "rejected", reason: "unsafe-archive-path" });
   });
 
   it("rejects multiple package rootfiles rather than selecting one implicitly", async () => {

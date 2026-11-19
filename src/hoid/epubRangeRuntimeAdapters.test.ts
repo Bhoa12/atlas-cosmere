@@ -11,6 +11,7 @@ function makeZip(): Uint8Array {
     "OEBPS/content.opf": [encoder.encode("<package/>"), { level: 6 }],
     "OEBPS/nav.xhtml": [encoder.encode("<html/>"), { level: 6 }],
     "OEBPS/chapter.xhtml": [encoder.encode("<html><body>fixture</body></html>"), { level: 6 }],
+    "OEBPS/padding.bin": [new Uint8Array(70_000).map((_, index) => (index * 73 + (index >>> 8) * 19) & 0xff), { level: 0 }],
   };
   return zipSync(files);
 }
@@ -28,6 +29,7 @@ function sourceFor(bytes: Uint8Array, calls: Array<Readonly<{ offset: number; le
 describe("range-based EPUB ZIP adapter", () => {
   it("lists entries without loading the whole archive and marks uninspected local extras as unknown", async () => {
     const bytes = makeZip();
+    expect(bytes.byteLength).toBeGreaterThan(22 + 0xffff);
     const calls: Array<Readonly<{ offset: number; length: number }>> = [];
     const archive = createHoidFflateRangeArchivePort(async id => id === "fixture" ? sourceFor(bytes, calls) : null);
     const entries = await archive.listEntries("fixture");

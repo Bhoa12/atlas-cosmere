@@ -27,7 +27,7 @@ The original byte-array resolver remains available for tests and small sources. 
 - read a local header and one compressed member only when that member is requested;
 - decompress one member into a bounded output buffer and verify CRC32.
 
-Expo FileSystem reads each requested range in 48 KiB Base64 chunks. The provider caps one range at 16 MiB; the archive parser caps the central directory at 16 MiB and one compressed member at 64 MiB. The complete EPUB is never materialized as a JavaScript Uint8Array.
+Expo FileSystem reads each requested range in 48 KiB Base64 chunks. The provider caps one range at 16 MiB; the archive parser caps the central directory at 16 MiB and one compressed member at 16 MiB. The complete EPUB is never materialized as a JavaScript Uint8Array.
 
 The ZIP adapter returns localHeaderExtraFieldLength: null for entries whose local header has not yet been inspected. It validates the exact local header before reading that entry. The mimetype local header is inspected during inventory listing and must have no extra field.
 

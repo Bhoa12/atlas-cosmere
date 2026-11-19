@@ -15,6 +15,7 @@ import {
 } from "./promotionReviewAuthority";
 
 const HEAD_SHA = "a".repeat(40);
+const BASE_SHA = "b".repeat(40);
 
 function progressSnapshot(chapter = 5, revision = 17) {
   const cursor = createHoidReadingCursor("twok", chapter);
@@ -55,10 +56,11 @@ function progressPortWith(snapshots: readonly unknown[] = [initialProgress, init
 }
 
 const request: HoidPromotionReviewRequest = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 2,
   repositoryFullName: "Bhoa12/atlas-cosmere",
   pullRequestNumber: 11,
   expectedBaseRef: "feat/hoid-ia-core-run117",
+  expectedBaseSha: BASE_SHA,
   expectedHeadRef: "feat/hoid-ia-core-run118",
   expectedHeadSha: HEAD_SHA,
   promotionManifestPath: "docs/hoid/promotion-plan.json",
@@ -70,12 +72,13 @@ const request: HoidPromotionReviewRequest = Object.freeze({
 
 function snapshotFor(fetchRequest: HoidProtectedReviewFetchRequest): HoidProtectedReviewSnapshot {
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: request.repositoryFullName,
     pullRequestNumber: request.pullRequestNumber,
     state: "open",
     draft: false,
     baseRef: request.expectedBaseRef,
+    baseSha: request.expectedBaseSha,
     headRef: request.expectedHeadRef,
     headSha: request.expectedHeadSha,
     authorId: "pull-request-author",

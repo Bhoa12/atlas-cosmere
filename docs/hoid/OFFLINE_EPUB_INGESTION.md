@@ -28,7 +28,7 @@ createHoidEpubIngestionService() returns two operations:
    - validates the package version, unique identifier, language, manifest IDs/hrefs/media types, spine references and navigation document;
    - resolves every manifest href relative to the OPF and every navigation href relative to the navigation document, without URL/network access;
    - verifies that manifest and navigation targets exist in the archive;
-   - emits archive-inventory, package-document, navigation-document and source fingerprints.
+   - emits archive-inventory, mimetype, container, package-document, navigation-document and source fingerprints.
 
 2. inspectChapterDocument(packageCandidate, navigationHref):
    - accepts only the exact frozen package-candidate object issued by the same service instance;
@@ -57,6 +57,9 @@ The core currently enforces:
 | Spine items | 20,000 |
 
 Unsafe absolute paths, backslashes, traversal beyond the archive root, encoded separators, malformed percent escapes, external URLs, duplicate paths and case-fold collisions are rejected. Ambiguous multiple package rootfiles are rejected rather than silently selecting one.
+
+
+Adapter requirements: the ZIP implementation must validate local-header consistency and CRC32 while decompressing each entry. The XML implementation must disable DTD processing and external entity resolution; parsing is bounded by the byte limits above.
 
 ## Trust and promotion boundary
 

@@ -131,7 +131,7 @@ describe("Hoid trusted host bootstrap", () => {
       readMinimumRevision: vi.fn(async () => 4),
       compareAndSetMinimumRevision: vi.fn(async () => false),
     };
-    const result = await verifyHoidTrustedHostRevisionStore(validation.configuration, store);
+    const result = await verifyHoidTrustedHostRevisionStore(validation.configuration, store, REPOSITORY, NOW);
     expect(result).toEqual({
       status: "ready",
       trustDomainId: "atlas-cosmere-production",
@@ -148,16 +148,16 @@ describe("Hoid trusted host bootstrap", () => {
     expect(await verifyHoidTrustedHostRevisionStore(validation.configuration, {
       readMinimumRevision: async () => null,
       compareAndSetMinimumRevision: async () => false,
-    })).toMatchObject({ status: "blocked", reason: "revision-store-uninitialized" });
+    }, REPOSITORY, NOW)).toMatchObject({ status: "blocked", reason: "revision-store-uninitialized" });
 
     expect(await verifyHoidTrustedHostRevisionStore(validation.configuration, {
       readMinimumRevision: async () => 2,
       compareAndSetMinimumRevision: async () => false,
-    })).toMatchObject({ status: "blocked", reason: "revision-store-rollback" });
+    }, REPOSITORY, NOW)).toMatchObject({ status: "blocked", reason: "revision-store-rollback" });
 
     expect(await verifyHoidTrustedHostRevisionStore(validation.configuration, {
       readMinimumRevision: async () => { throw new Error("offline"); },
       compareAndSetMinimumRevision: async () => false,
-    })).toMatchObject({ status: "blocked", reason: "revision-store-unavailable" });
+    }, REPOSITORY, NOW)).toMatchObject({ status: "blocked", reason: "revision-store-unavailable" });
   });
 });

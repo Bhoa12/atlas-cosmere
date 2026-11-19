@@ -473,4 +473,27 @@ describe("Hoid signed editorial bundle promotion", () => {
       productionWritePerformed: false,
     });
   });
+
+  it("binds each reviewer packet signature to the exact base commit SHA", () => {
+    const fixture = buildFixture();
+    const packet = fixture.plan.packets[0];
+    const arrays: Record<string, readonly any[]> = {
+      summary: fixture.receipts.summaries,
+      "atomic-claim": fixture.receipts.claims,
+      entity: fixture.receipts.entities,
+      relationship: fixture.receipts.relationships,
+    };
+    const receipt = arrays[packet.category].find(item => item.packetId === packet.packetId);
+    const signature = fixture.signatureBatch.signatures[0];
+    const original = buildHoidEditorialReviewPacketSigningMessage(
+      packet, receipt, fixture.plan, request, signature.keyId,
+    );
+    const changedBase = buildHoidEditorialReviewPacketSigningMessage(
+      packet, receipt, fixture.plan, { ...request, expectedBaseSha: "c".repeat(40) }, signature.keyId,
+    );
+    expect(original).not.toBeNull();
+    expect(changedBase).not.toBe(original);
+  });
+
+
 });

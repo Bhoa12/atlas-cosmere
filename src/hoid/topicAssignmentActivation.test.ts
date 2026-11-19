@@ -98,10 +98,11 @@ function promotionPlan() {
 
 function reviewRequest(planFingerprint: string) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 142,
     expectedBaseRef: "main",
+    expectedBaseSha: "b".repeat(40),
     expectedHeadRef: "feat/hoid-ia-core-run142",
     expectedHeadSha: "a".repeat(40),
     promotionManifestPath: HOID_TOPIC_ASSIGNMENT_PROMOTION_MANIFEST_PATH,
@@ -114,12 +115,13 @@ function reviewRequest(planFingerprint: string) {
 
 function protectedReviewSnapshot(planFingerprint: string, reviewerId = "reviewer-1") {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 142,
     state: "open",
     draft: false,
     baseRef: "main",
+    baseSha: "b".repeat(40),
     headRef: "feat/hoid-ia-core-run142",
     headSha: "a".repeat(40),
     authorId: "author-1",
@@ -152,6 +154,7 @@ function authorization(overrides: Record<string, unknown> = {}) {
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 142,
     baseRef: "main",
+    baseSha: "b".repeat(40),
     headRef: "feat/hoid-ia-core-run142",
     headSha: "a".repeat(40),
     promotionPlanFingerprint: "b".repeat(64),
@@ -226,6 +229,8 @@ describe("Hoid topic assignment activation", () => {
     );
     expect(result.status, JSON.stringify(result)).toBe("ready-for-maintainer-receipt");
     if (result.status !== "ready-for-maintainer-receipt") return;
+    expect(result.receipt.schemaVersion).toBe(2);
+    expect(result.receipt.reviewedBaseSha).toBe("b".repeat(40));
     expect(result.receipt.assignmentIds).toEqual(["topic-assignment.alpha"]);
     expect(result.receipt.assignmentReviewerIds).toEqual(["reviewer-1"]);
     expect(result.receipt.approvalReviewerIds).toEqual(["reviewer-1", "reviewer-2"]);

@@ -183,10 +183,11 @@ function progressSnapshot(chapter = 5, revision = 17) {
 
 const initialProgress = progressSnapshot();
 const request: HoidPromotionReviewRequest = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 2,
   repositoryFullName: REPOSITORY,
   pullRequestNumber: 156,
   expectedBaseRef: "feat/hoid-ia-core-run155",
+  expectedBaseSha: "b".repeat(40),
   expectedHeadRef: "feat/hoid-ia-core-run156",
   expectedHeadSha: "a".repeat(40),
   promotionManifestPath: "docs/hoid/editorial-bundle-promotion.json",
@@ -260,12 +261,13 @@ function buildFixture(singleReviewer = false) {
 
 function snapshotFor(fetchRequest: HoidProtectedReviewFetchRequest): HoidProtectedReviewSnapshot {
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: REPOSITORY,
     pullRequestNumber: request.pullRequestNumber,
     state: "open",
     draft: false,
     baseRef: request.expectedBaseRef,
+    baseSha: request.expectedBaseSha,
     headRef: request.expectedHeadRef,
     headSha: request.expectedHeadSha,
     authorId: "pull-request-author",
@@ -354,6 +356,7 @@ describe("Hoid signed editorial bundle promotion", () => {
     const { result, source, progress } = await authorize(fixture);
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
+      baseSha: request.expectedBaseSha,
       verifiedReceiptCount: fixture.plan.packetCount,
       trustRegistryRevision: 1,
       promotionAllowed: false,
@@ -471,4 +474,27 @@ describe("Hoid signed editorial bundle promotion", () => {
       productionWritePerformed: false,
     });
   });
+
+  it("binds each reviewer packet signature to the exact base commit SHA", () => {
+    const fixture = buildFixture();
+    const packet = fixture.plan.packets[0];
+    const arrays: Record<string, readonly any[]> = {
+      summary: fixture.receipts.summaries,
+      "atomic-claim": fixture.receipts.claims,
+      entity: fixture.receipts.entities,
+      relationship: fixture.receipts.relationships,
+    };
+    const receipt = arrays[packet.category].find(item => item.packetId === packet.packetId);
+    const signature = fixture.signatureBatch.signatures[0];
+    const original = buildHoidEditorialReviewPacketSigningMessage(
+      packet, receipt, fixture.plan, request, signature.keyId,
+    );
+    const changedBase = buildHoidEditorialReviewPacketSigningMessage(
+      packet, receipt, fixture.plan, { ...request, expectedBaseSha: "c".repeat(40) }, signature.keyId,
+    );
+    expect(original).not.toBeNull();
+    expect(changedBase).not.toBe(original);
+  });
+
+
 });

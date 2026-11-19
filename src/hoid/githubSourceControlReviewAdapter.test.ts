@@ -10,12 +10,14 @@ import {
 } from "./promotionReviewAuthority";
 
 const HEAD_SHA = "a".repeat(40);
+const BASE_SHA = "b".repeat(40);
 const PLAN_FINGERPRINT = "b".repeat(64);
 const request: HoidProtectedReviewFetchRequest = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 2,
   repositoryFullName: "Bhoa12/atlas-cosmere",
   pullRequestNumber: 123,
   expectedBaseRef: "feat/hoid-ia-core-run122",
+  expectedBaseSha: BASE_SHA,
   expectedHeadRef: "feat/hoid-ia-core-run123",
   expectedHeadSha: HEAD_SHA,
   promotionManifestPath: "docs/hoid/editorial-bundle-promotion.json",
@@ -31,6 +33,7 @@ const reviewRequest: HoidPromotionReviewRequest = Object.freeze({
   repositoryFullName: request.repositoryFullName,
   pullRequestNumber: request.pullRequestNumber,
   expectedBaseRef: request.expectedBaseRef,
+  expectedBaseSha: request.expectedBaseSha,
   expectedHeadRef: request.expectedHeadRef,
   expectedHeadSha: request.expectedHeadSha,
   promotionManifestPath: request.promotionManifestPath,
@@ -46,6 +49,7 @@ function apiWith(overrides: Partial<HoidGitHubReviewApiPort> = {}) {
       state: "open",
       draft: false,
       baseRef: request.expectedBaseRef,
+      baseSha: BASE_SHA,
       headRef: request.expectedHeadRef,
       headSha: HEAD_SHA,
       authorId: "author",
@@ -110,6 +114,7 @@ describe("Hoid GitHub source-control review adapter", () => {
     expect(snapshot).toMatchObject({
       repositoryFullName: request.repositoryFullName,
       pullRequestNumber: request.pullRequestNumber,
+      baseSha: BASE_SHA,
       headSha: HEAD_SHA,
       promotionPlanFingerprint: PLAN_FINGERPRINT,
     });
@@ -229,6 +234,7 @@ describe("Hoid GitHub source-control review adapter", () => {
       state: { enumerable: true, value: "open" },
       draft: { enumerable: true, value: false },
       baseRef: { enumerable: true, value: request.expectedBaseRef },
+      baseSha: { enumerable: true, value: BASE_SHA },
       headRef: { enumerable: true, value: request.expectedHeadRef },
       headSha: { enumerable: true, value: HEAD_SHA },
       authorId: {
@@ -256,4 +262,22 @@ describe("Hoid GitHub source-control review adapter", () => {
       createHoidGitHubSourceControlReviewPort(api).fetchProtectedReviewSnapshot(request),
     ).rejects.toThrow("CODEOWNERS approval identities could not be verified");
   });
+
+  it("fails closed when GitHub omits the exact base commit SHA", async () => {
+    const api = apiWith({
+      getPullRequest: vi.fn(async () => ({
+        state: "open",
+        draft: false,
+        baseRef: request.expectedBaseRef,
+        headRef: request.expectedHeadRef,
+        headSha: HEAD_SHA,
+        authorId: "author",
+      })),
+    });
+    await expect(
+      createHoidGitHubSourceControlReviewPort(api).fetchProtectedReviewSnapshot(request),
+    ).rejects.toThrow("Invalid GitHub pull request response");
+  });
+
+
 });

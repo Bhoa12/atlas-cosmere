@@ -84,3 +84,8 @@ The source-control snapshot names the exact manifest path and its plan fingerpri
 ## Canonical manifest helpers
 
 `buildHoidEditorialPromotionManifest()` serializes the canonical plan fields into a metadata-only manifest with a deterministic fingerprint. `validateHoidEditorialPromotionManifest()` rejects unknown keys, malformed plans and fingerprint mismatches. A source-control adapter should fetch the manifest bytes from the exact PR head, parse them, run this validator and place the resulting fingerprint and exact path in its snapshot.
+
+
+## Vinculación de ambos extremos del Pull Request (schema v2)
+
+Run 157 eleva el contrato del snapshot protegido a schema v2. El request debe aportar `expectedBaseSha` y `expectedHeadSha`; el snapshot debe devolver `baseSha` y `headSha`. El adaptador GitHub obtiene ambos del objeto `base.sha` y `head.sha` del Pull Request. El núcleo rechaza snapshots antiguos, SHA ausentes o discrepancias con `base-mismatch`/`head-mismatch`. Los mensajes Ed25519 de los paquetes incluyen el SHA base esperado y cambian de dominio a v2. Una revisión o firma de schema v1 no se reutiliza.

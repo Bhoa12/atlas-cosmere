@@ -71,10 +71,11 @@ function plan() {
 
 function request(overrides: Record<string, unknown> = {}) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 29,
     expectedBaseRef: "feat/hoid-ia-core-run135",
+    expectedBaseSha: "b".repeat(40),
     expectedHeadRef: "feat/hoid-ia-core-run136",
     expectedHeadSha: "a".repeat(40),
     promotionManifestPath: HOID_COREFERENCE_PROMOTION_MANIFEST_PATH,
@@ -88,12 +89,13 @@ function request(overrides: Record<string, unknown> = {}) {
 
 function snapshot(fingerprint: string, reviewerId = "Reviewer_ABC", overrides: Record<string, unknown> = {}) {
   const base = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 29,
     state: "open",
     draft: false,
     baseRef: "feat/hoid-ia-core-run135",
+    baseSha: "b".repeat(40),
     headRef: "feat/hoid-ia-core-run136",
     headSha: "a".repeat(40),
     authorId: "author-1",
@@ -216,6 +218,7 @@ describe("Hoid coreference promotion authority", () => {
     );
     expect(result.status).toBe("ready-for-maintainer-commit");
     if (result.status === "ready-for-maintainer-commit") {
+      expect(result.baseSha).toBe("b".repeat(40));
       expect(result.authenticatedReviewerIds).toEqual(["Reviewer_ABC"]);
       expect(result.promotionAllowed).toBe(false);
       expect(result.productionWritePerformed).toBe(false);

@@ -14,7 +14,7 @@ Use the existing buildHoidTopicAssignmentPromotionPlan() and authorizeHoidTopicA
 
 The protected-review authority verifies the exact PR head, fixed promotion manifest, effective branch/ruleset protection, approval quorum, stale/dismissed reviews, author exclusion, Code Owner policy and authenticated assignment reviewers. The result is only ready-for-maintainer-commit; it never writes production or merges a PR.
 
-The authorization now carries both assignmentFingerprint and evidenceFingerprint. The latter binds source work, chapter, locator, unlock threshold, edition ID, navigation digest, inspected chapter-document digest and first-safe-appearance document identity.
+The authorization now carries assignmentFingerprint, evidenceFingerprint and the verified base commit SHA as well as the reviewed head SHA. The protected-review request/snapshot uses schema v2 and rejects a missing or mismatched base SHA. The evidence fingerprint binds source work, chapter, locator, unlock threshold, edition ID, navigation digest, inspected chapter-document digest and first-safe-appearance document identity.
 
 ### 2. Post-merge activation receipt
 
@@ -33,7 +33,7 @@ authorizeHoidTopicAssignmentActivation() first calls the existing authorizeHoidT
 - every assignment reviewer is among the authenticated approvals;
 - the approval count meets the verified quorum.
 
-The operation is read-only. It returns ready-for-maintainer-receipt, productionWritePerformed: false. A maintainer must commit the receipt through a separate protected source change. No API in this module writes the production registry or merges a PR.
+The operation is read-only. It returns ready-for-maintainer-receipt, productionWritePerformed: false. The receipt uses schema v2 and records reviewedBaseSha alongside reviewedHeadSha and mergeCommitSha, so the pre-merge base commit remains auditable after the PR is merged. Its fingerprint domain is v2. A maintainer must commit the receipt through a separate protected source change. No API in this module writes the production registry or merges a PR.
 
 ## Stable registry fingerprint
 
@@ -89,3 +89,8 @@ npx vitest run \
 ```
 
 The dedicated workflow also performs strict TypeScript checks through the production recommendation gateway, local approved-claim renderer and HoidScreen.tsx.
+
+
+## Base-commit provenance (Run 157)
+
+The pre-merge authorization now carries `baseSha` from the protected GitHub snapshot. The activation boundary requires that field and copies it into `reviewedBaseSha` in the post-merge receipt. The merged snapshot continues to verify the exact reviewed head and merge commit; it does not infer the original base SHA from the post-merge target branch, which may have advanced. Receipt schema v1 is rejected; only schema v2 with a valid `reviewedBaseSha` is accepted.

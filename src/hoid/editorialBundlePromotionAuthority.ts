@@ -135,6 +135,7 @@ const REQUEST_KEYS = new Set([
   "repositoryFullName",
   "pullRequestNumber",
   "expectedBaseRef",
+  "expectedBaseSha",
   "expectedHeadRef",
   "expectedHeadSha",
   "promotionManifestPath",
@@ -489,13 +490,15 @@ function canonicalRequest(value: unknown): HoidPromotionReviewRequest | null {
   const raw = canonicalRecord(value, REQUEST_KEYS);
   if (
     !raw ||
-    raw.schemaVersion !== 1 ||
+    raw.schemaVersion !== 2 ||
     typeof raw.repositoryFullName !== "string" ||
     !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
     !Number.isSafeInteger(raw.pullRequestNumber) ||
     (raw.pullRequestNumber as number) < 1 ||
     typeof raw.expectedBaseRef !== "string" ||
     !REF_PATTERN.test(raw.expectedBaseRef) ||
+    typeof raw.expectedBaseSha !== "string" ||
+    !COMMIT_SHA_PATTERN.test(raw.expectedBaseSha) ||
     typeof raw.expectedHeadRef !== "string" ||
     !REF_PATTERN.test(raw.expectedHeadRef) ||
     raw.expectedBaseRef === raw.expectedHeadRef ||
@@ -511,10 +514,11 @@ function canonicalRequest(value: unknown): HoidPromotionReviewRequest | null {
     typeof raw.requireEnforcedAdmins !== "boolean"
   ) return null;
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     expectedBaseRef: raw.expectedBaseRef,
+    expectedBaseSha: raw.expectedBaseSha,
     expectedHeadRef: raw.expectedHeadRef,
     expectedHeadSha: raw.expectedHeadSha,
     promotionManifestPath: raw.promotionManifestPath,

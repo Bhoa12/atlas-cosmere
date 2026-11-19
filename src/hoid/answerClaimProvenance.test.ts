@@ -3,67 +3,46 @@ import { createHoidEvidenceRuntime, type HoidApprovedClaim } from "./evidenceRun
 import type { HoidKnowledgeEntry } from "./catalog";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { presentHoidEvidenceAnswer } from "./answerPresentation";
+import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 const updatedAt = "2026-11-19T07:00:00.000Z";
-const review: HoidApprovedClaim["review"] = Object.freeze({
-  status: "approved",
-  origin: "original-editorial",
+const reviewer = Object.freeze({
   reviewerId: "synthetic-reviewer",
   reviewedAt: "2026-11-18T12:00:00.000Z",
 });
 
-function locator(bookId: string, chapter: number): string {
-  const result = getHoidReadingManifest(bookId);
-  if (result.status !== "ready") throw new Error("Test manifest unavailable");
-  const unit = result.manifest.units.find(item => item.chapterNumber === chapter);
-  if (!unit?.locatorId) throw new Error("Test locator unavailable");
-  return unit.locatorId;
+function approvedClaim(
+  core: HoidApprovedClaimCore,
+  sourceKnowledge: readonly HoidKnowledgeEntry[] = knowledge,
+): HoidApprovedClaim {
+  const attestation = createHoidApprovedClaimAttestation(core, sourceKnowledge, reviewer);
+  if (attestation.status !== "valid") throw new Error("Synthetic claim attestation failed: " + attestation.reason);
+  return Object.freeze({ ...core, integrity: attestation.integrity, review: attestation.review });
 }
 
-function cursor(bookId: string, chapter: number) {
-  const result = createHoidReadingCursor(bookId, chapter);
-  if (result.status !== "ready") throw new Error("Test cursor unavailable");
-  return result.cursor;
+function claimCore(claim: HoidApprovedClaim): HoidApprovedClaimCore {
+  return Object.freeze({
+    id: claim.id,
+    text: claim.text,
+    intent: claim.intent,
+    evidenceIds: claim.evidenceIds,
+    ...(claim.entityIds ? { entityIds: claim.entityIds } : {}),
+  });
 }
-
-const knowledge: HoidKnowledgeEntry[] = [
-  {
-    id: "e-alpha",
-    aliases: ["Personaje Alfa"],
-    kind: "character",
-    firstSafeAppearance: { bookId: "twok", chapter: 2 },
-    evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
-    evidenceUnlock: { bookId: "twok", chapter: 2 },
-    provenance: "verified",
-    summary: "Resumen sintético de prueba para Personaje Alfa.",
-  },
-  {
-    id: "e-beta",
-    aliases: ["Personaje Beta"],
-    kind: "character",
-    firstSafeAppearance: { bookId: "wor", chapter: 3 },
-    evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
-    evidenceUnlock: { bookId: "wor", chapter: 3 },
-    provenance: "verified",
-    summary: "Resumen sintético de prueba para Personaje Beta.",
-  },
-];
 
 const claims: HoidApprovedClaim[] = [
-  {
+  approvedClaim({
     id: "claim-alpha",
     text: "Afirmación editorial sintética sobre Personaje Alfa.",
     intent: "explain",
     evidenceIds: ["e-alpha"],
-    review,
-  },
-  {
+  }),
+  approvedClaim({
     id: "claim-beta",
     text: "Afirmación editorial sintética sobre Personaje Beta.",
     intent: "explain",
     evidenceIds: ["e-beta"],
-    review,
-  },
+  }),
 ];
 
 function progress(openChapterA: number, openChapterB: number) {
@@ -72,7 +51,7 @@ function progress(openChapterA: number, openChapterB: number) {
     revision: 7,
     positions: Object.freeze([
       Object.freeze({ bookId: "twok", cursor: cursor("twok", openChapterA) }),
-      Object.freeze({ bookId: "wor", cursor: cursor("wor", openChapterB) }),
+      Object.freeze({ bookId: "edgedancer", cursor: cursor("edgedancer", openChapterB) }),
     ]),
     updatedAt,
   });
@@ -92,7 +71,7 @@ describe("Hoid per-claim evidence provenance", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 3 },
+        { bookId: "edgedancer", chapter: 3 },
       ],
     });
 
@@ -117,7 +96,7 @@ describe("Hoid per-claim evidence provenance", () => {
       })),
     }))).toEqual([
       { claimId: "claim-alpha", evidenceIds: ["e-alpha"], citations: [{ sourceBookId: "twok", chapter: 2 }] },
-      { claimId: "claim-beta", evidenceIds: ["e-beta"], citations: [{ sourceBookId: "wor", chapter: 3 }] },
+      { claimId: "claim-beta", evidenceIds: ["e-beta"], citations: [{ sourceBookId: "edgedancer", chapter: 3 }] },
     ]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
@@ -133,7 +112,7 @@ describe("Hoid per-claim evidence provenance", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "wor", chapter: 2 },
+        { bookId: "edgedancer", chapter: 2 },
       ],
     });
     expect(answer.status).toBe("blocked");
@@ -152,20 +131,18 @@ describe("Hoid per-claim evidence provenance", () => {
       summary: "Resumen sintético de prueba " + String(index + 1) + ".",
     }));
     const manyClaims: HoidApprovedClaim[] = [
-      {
+      approvedClaim({
         id: "claim-one",
         text: "Primera afirmación sintética.",
         intent: "explain",
         evidenceIds: manyKnowledge.slice(0, 9).map(item => item.id),
-        review,
-      },
-      {
+      }, manyKnowledge),
+      approvedClaim({
         id: "claim-two",
         text: "Segunda afirmación sintética.",
         intent: "explain",
         evidenceIds: manyKnowledge.slice(9).map(item => item.id),
-        review,
-      },
+      }, manyKnowledge),
     ];
     const runtime = createHoidEvidenceRuntime({
       knowledge: manyKnowledge,

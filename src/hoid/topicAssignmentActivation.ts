@@ -126,7 +126,6 @@ const RECEIPT_KEYS = new Set([
   "targetBranch",
   "promotionManifestPath",
   "reviewedBaseSha",
-  "reviewedBaseSha",
   "reviewedHeadSha",
   "mergeCommitSha",
   "promotionPlanFingerprint",
@@ -222,7 +221,6 @@ type CanonicalAuthorization = Readonly<{
   baseRef: "main";
   baseSha: string;
   headRef: string;
-  baseSha: string;
   headSha: string;
   promotionPlanFingerprint: string;
   assignmentFingerprint: string;
@@ -247,8 +245,6 @@ function canonicalAuthorization(value: unknown): CanonicalAuthorization | null {
     typeof raw.headRef !== "string" ||
     !REF_PATTERN.test(raw.headRef) ||
     raw.headRef === HOID_TOPIC_ASSIGNMENT_ACTIVATION_TARGET_BRANCH ||
-    typeof raw.baseSha !== "string" ||
-    !COMMIT_SHA_PATTERN.test(raw.baseSha) ||
     typeof raw.headSha !== "string" ||
     !COMMIT_SHA_PATTERN.test(raw.headSha) ||
     typeof raw.promotionPlanFingerprint !== "string" ||

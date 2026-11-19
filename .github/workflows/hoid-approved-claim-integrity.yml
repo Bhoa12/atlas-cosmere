@@ -10,6 +10,8 @@ on:
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/answerClaimProvenance.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
       - "src/hoid/verifiedChapterDocuments.ts"
       - "src/hoid/readingManifest.ts"
       - "src/hoid/editionStructure.ts"
@@ -23,6 +25,8 @@ on:
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/answerClaimProvenance.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
       - "src/hoid/verifiedChapterDocuments.ts"
       - "src/hoid/readingManifest.ts"
       - "src/hoid/editionStructure.ts"
@@ -51,6 +55,7 @@ jobs:
           src/hoid/approvedClaimIntegrity.test.ts
           src/hoid/evidenceRuntime.test.ts
           src/hoid/answerClaimProvenance.test.ts
+          src/hoid/knowledgeGraph.test.ts
       - name: Type-check integrity and runtime boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -61,3 +66,4 @@ jobs:
           src/hoid/readingManifest.ts
           src/hoid/editionStructure.ts
           src/hoid/sha256.ts
+          src/hoid/knowledgeGraph.ts

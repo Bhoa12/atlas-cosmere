@@ -390,18 +390,18 @@ export function createHoidTrustRevisionWitnessServer(
       ) return rejected("unauthenticated");
       const clientId = authenticatedClientIdInput;
 
-      let now: string;
+      let clockValue: unknown;
       try {
-        now = readClock();
+        clockValue = readClock();
       } catch {
         return rejected("clock-unavailable");
       }
+      if (typeof clockValue !== "string") return rejected("clock-unavailable");
+      const now = clockValue;
       const nowMs = Date.parse(now);
-      if (
-        typeof now !== "string" ||
-        !Number.isFinite(nowMs) ||
-        new Date(nowMs).toISOString() !== now
-      ) return rejected("clock-unavailable");
+      if (!Number.isFinite(nowMs) || new Date(nowMs).toISOString() !== now) {
+        return rejected("clock-unavailable");
+      }
 
       let authorized: unknown;
       try {

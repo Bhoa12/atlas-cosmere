@@ -77,7 +77,7 @@ describe("isEvidenceUnlocked public boundary", () => {
       ...entry,
       firstSafeAppearance: { bookId: "elantris", chapter: 48 },
       evidenceSource: { bookId: "elantris", chapter: 48, locatorId: "nav:forged" },
-      evidenceUnlock: { bookId: "elantris", chapter: 48 },
+      evidenceUnlock: { bookId: "elantris", chapter: 49 },
     };
     expect(isEvidenceUnlocked(elantrisEntry, [{ bookId: "elantris", chapter: 48 }])).toBe(false);
   });
@@ -96,7 +96,7 @@ describe("isEvidenceUnlocked public boundary", () => {
       ...entry,
       firstSafeAppearance: { bookId: "tfe", chapter: 2 },
       evidenceSource: { bookId: "tfe", chapter: 2, locatorId: "nav:unverified" },
-      evidenceUnlock: { bookId: "tfe", chapter: 2 },
+      evidenceUnlock: { bookId: "tfe", chapter: 3 },
     };
     expect(canonicalEvidenceScope(unavailable.evidenceSource, unavailable.evidenceUnlock)).toBeNull();
     expect(isEvidenceUnlocked(unavailable, [{ bookId: "tfe", chapter: 38 }])).toBe(false);

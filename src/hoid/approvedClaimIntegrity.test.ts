@@ -199,6 +199,53 @@ describe("Hoid approved-claim integrity", () => {
     expect(invoked).toBe(false);
   });
 
+  it("accepts ordinary aliases and rejects control characters in alias text", () => {
+    expect(inspectHoidApprovedClaimEvidenceBinding("e-alpha", knowledge)).toEqual({ status: "valid" });
+    const changed = knowledge.map(entry => entry.id === "e-alpha"
+      ? { ...entry, aliases: ["Entidad\u0000Alfa"] }
+      : entry);
+    expect(inspectHoidApprovedClaimEvidenceBinding("e-alpha", changed)).toEqual({
+      status: "invalid",
+      reason: "invalid-aliases",
+    });
+  });
+
+  it("rejects alias arrays with non-index properties", () => {
+    const aliases = ["Entidad Alfa"] as string[] & { extra?: string };
+    Object.defineProperty(aliases, "extra", {
+      value: "must not be ignored",
+      enumerable: true,
+    });
+    const changed = knowledge.map(entry => entry.id === "e-alpha"
+      ? { ...entry, aliases }
+      : entry);
+    expect(inspectHoidApprovedClaimEvidenceBinding("e-alpha", changed)).toEqual({
+      status: "invalid",
+      reason: "invalid-aliases",
+    });
+  });
+
+  it("rejects accessor-backed alias indices without invoking the getter", () => {
+    let invoked = false;
+    const aliases = ["Entidad Alfa"];
+    Object.defineProperty(aliases, "0", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        invoked = true;
+        return "Entidad Alfa";
+      },
+    });
+    const changed = knowledge.map(entry => entry.id === "e-alpha"
+      ? { ...entry, aliases }
+      : entry);
+    expect(inspectHoidApprovedClaimEvidenceBinding("e-alpha", changed)).toEqual({
+      status: "invalid",
+      reason: "invalid-aliases",
+    });
+    expect(invoked).toBe(false);
+  });
+
   it("rejects unknown evidence IDs and non-canonical claim shapes", () => {
     const unknown = createHoidApprovedClaimAttestation({
       id: "claim-unknown",

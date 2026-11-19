@@ -129,6 +129,30 @@ describe("Expo local EPUB source provider", () => {
     });
   });
 
+  it("accepts a 280 MiB merged EPUB source within the range-based budget", async () => {
+    const largeSize = 280 * 1024 * 1024;
+    const fixture = makeProvider(new Uint8Array([1]), {
+      pickerResult: {
+        canceled: false,
+        assets: [{ name: "cosmere.epub", uri: "file:///cache/cosmere.epub", size: largeSize }],
+      },
+      fileInfo: {
+        exists: true,
+        isDirectory: false,
+        size: largeSize,
+        modificationTime: 100,
+      },
+    });
+
+    const result = await fixture.provider.pickEpub();
+    expect(HOID_EXPO_EPUB_SOURCE_LIMITS.maxArchiveBytes).toBe(320 * 1024 * 1024);
+    expect(result).toMatchObject({
+      status: "selected",
+      source: { displayName: "cosmere.epub", byteLength: largeSize },
+    });
+    if (result.status === "selected") await fixture.provider.release(result.source.sourceId);
+  });
+
   it("reads large ranges in bounded Base64 chunks", async () => {
     const bytes = new Uint8Array(100_000);
     for (let index = 0; index < bytes.length; index += 1) bytes[index] = index % 251;

@@ -27,7 +27,7 @@ import { sha256Hex } from "./sha256";
 
 const CONTEXT_KEYS = new Set(["reviewManifest", "knowledgeManifest", "source", "receipts"]);
 const REQUEST_KEYS = new Set([
-  "schemaVersion", "repositoryFullName", "pullRequestNumber", "expectedBaseRef",
+  "schemaVersion", "repositoryFullName", "pullRequestNumber", "expectedBaseRef", "expectedBaseSha",
   "expectedHeadRef", "expectedHeadSha", "promotionManifestPath", "minimumApprovals",
   "requireCodeOwnerReview", "requireDismissStaleReviews", "requireEnforcedAdmins",
 ]);
@@ -149,10 +149,11 @@ function canonicalRequest(value: unknown): HoidPromotionReviewRequest | null {
   const raw = canonicalRecord(value, REQUEST_KEYS);
   if (
     !raw ||
-    raw.schemaVersion !== 1 ||
+    raw.schemaVersion !== 2 ||
     typeof raw.repositoryFullName !== "string" || !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
     !Number.isSafeInteger(raw.pullRequestNumber) || (raw.pullRequestNumber as number) < 1 ||
     typeof raw.expectedBaseRef !== "string" || !REF_PATTERN.test(raw.expectedBaseRef) ||
+    typeof raw.expectedBaseSha !== "string" || !COMMIT_PATTERN.test(raw.expectedBaseSha) ||
     typeof raw.expectedHeadRef !== "string" || !REF_PATTERN.test(raw.expectedHeadRef) ||
     raw.expectedBaseRef === raw.expectedHeadRef ||
     typeof raw.expectedHeadSha !== "string" || !COMMIT_PATTERN.test(raw.expectedHeadSha) ||
@@ -164,10 +165,11 @@ function canonicalRequest(value: unknown): HoidPromotionReviewRequest | null {
     typeof raw.requireEnforcedAdmins !== "boolean"
   ) return null;
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     expectedBaseRef: raw.expectedBaseRef,
+    expectedBaseSha: raw.expectedBaseSha,
     expectedHeadRef: raw.expectedHeadRef,
     expectedHeadSha: raw.expectedHeadSha,
     promotionManifestPath: raw.promotionManifestPath,
@@ -358,10 +360,11 @@ export function buildHoidEditorialReviewPacketSigningMessage(
   ) return null;
 
   return JSON.stringify([
-    "hoid-editorial-review-packet-receipt-ed25519-v1",
+    "hoid-editorial-review-packet-receipt-ed25519-v2",
     request.repositoryFullName,
     request.pullRequestNumber,
     request.expectedBaseRef,
+    request.expectedBaseSha,
     request.expectedHeadRef,
     request.expectedHeadSha,
     request.minimumApprovals,

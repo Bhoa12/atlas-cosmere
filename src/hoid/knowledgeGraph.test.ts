@@ -8,7 +8,8 @@ import {
   type HoidKnowledgeGraphRelation,
 } from "./knowledgeGraph";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
-import type { HoidKnowledgeKind } from "./catalog";
+import type { HoidKnowledgeEntry, HoidKnowledgeKind } from "./catalog";
+import { createHoidApprovedClaimAttestation } from "./approvedClaimIntegrity";
 
 const NOW = "2026-11-17T11:00:00.000Z";
 
@@ -60,19 +61,23 @@ function knowledge(
   };
 }
 
-function approvedClaim(id: string, evidenceIds: string[]) {
-  return {
+function approvedClaim(
+  id: string,
+  evidenceIds: string[],
+  sourceKnowledge: readonly HoidKnowledgeEntry[],
+) {
+  const core = {
     id,
     text: "Relación sintética de prueba entre entidades ficticias.",
     intent: "context" as const,
     evidenceIds,
-    review: {
-      status: "approved" as const,
-      origin: "original-editorial" as const,
-      reviewerId: "synthetic-test-reviewer",
-      reviewedAt: NOW,
-    },
   };
+  const attestation = createHoidApprovedClaimAttestation(core, sourceKnowledge, {
+    reviewerId: "synthetic-test-reviewer",
+    reviewedAt: NOW,
+  });
+  if (attestation.status !== "valid") throw new Error("Knowledge graph fixture attestation failed: " + attestation.reason);
+  return { ...core, integrity: attestation.integrity, review: attestation.review };
 }
 
 function relation(
@@ -118,7 +123,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("emits a relation only when both endpoints and all evidence are authorized", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -139,7 +144,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("preserves phenomenon as a distinct authorized graph-node kind", () => {
     const phenomenon = knowledge("synthetic.phenomenon", "twok", 1, "verified", "phenomenon");
     const character = knowledge("synthetic.character", "edgedancer", 1, "verified", "character");
-    const claim = approvedClaim("synthetic.claim-phenomenon", [phenomenon.id, character.id]);
+    const claim = approvedClaim("synthetic.claim-phenomenon", [phenomenon.id, character.id], [phenomenon, character]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-phenomenon", phenomenon.id, character.id, claim.id)]),
       [phenomenon, character],
@@ -225,7 +230,7 @@ describe("Hoid authorized knowledge graph", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
     const support = knowledge("synthetic.support-c", "dawnshard");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id, support.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id, b.id, support.id], [a, b, support]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b, support],
@@ -340,7 +345,7 @@ describe("Hoid authorized knowledge graph", () => {
   it("rejects a relation whose endpoints are not both cited by its approved claim", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
-    const claim = approvedClaim("synthetic.claim-ab", [a.id]);
+    const claim = approvedClaim("synthetic.claim-ab", [a.id], [a, b]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([relation("synthetic.edge-ab", a.id, b.id, claim.id)]),
       [a, b],
@@ -408,8 +413,8 @@ describe("Hoid authorized knowledge graph", () => {
     const a = knowledge("synthetic.entity-a", "twok");
     const b = knowledge("synthetic.entity-b", "edgedancer");
     const c = knowledge("synthetic.entity-c", "dawnshard");
-    const claimOne = approvedClaim("synthetic.claim-one", [a.id, b.id]);
-    const claimTwo = approvedClaim("synthetic.claim-two", [a.id, c.id]);
+    const claimOne = approvedClaim("synthetic.claim-one", [a.id, b.id], [a, b, c]);
+    const claimTwo = approvedClaim("synthetic.claim-two", [a.id, c.id], [a, b, c]);
     const result = buildHoidAuthorizedKnowledgeGraph(
       definition([
         relation("synthetic.edge-z", a.id, c.id, claimTwo.id),

@@ -159,43 +159,49 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
       }
 
       const asset = result.assets[0] as Record<string, unknown> | null;
+      if (asset === null || typeof asset !== "object") {
+        return Object.freeze({ status: "rejected", reason: "invalid-selection" });
+      }
+      const assetUri = typeof asset.uri === "string" && asset.uri.length > 0 && asset.uri.length <= 4096
+        ? asset.uri
+        : null;
       if (
-        asset === null ||
-        typeof asset !== "object" ||
         typeof asset.name !== "string" ||
         asset.name.length === 0 ||
         asset.name.length > 255 ||
         !/\.epub$/i.test(asset.name) ||
-        typeof asset.uri !== "string" ||
-        asset.uri.length === 0 ||
-        asset.uri.length > 4096
-      ) return Object.freeze({ status: "rejected", reason: "unsupported-file" });
+        assetUri === null
+      ) {
+        if (assetUri !== null) await deleteCacheOwnedUri(assetUri);
+        return Object.freeze({ status: "rejected", reason: "unsupported-file" });
+      }
 
       let info: Readonly<{ size: number; modificationTime: number | null }>;
       try {
-        info = await readInfo(asset.uri);
+        info = await readInfo(assetUri);
       } catch {
+        await deleteCacheOwnedUri(assetUri);
         return Object.freeze({ status: "rejected", reason: "file-unavailable" });
       }
       if (info.size > HOID_EXPO_EPUB_SOURCE_LIMITS.maxArchiveBytes) {
-        await deleteCacheOwnedUri(asset.uri);
+        await deleteCacheOwnedUri(assetUri);
         return Object.freeze({ status: "rejected", reason: "file-too-large" });
       }
       if (
         asset.size !== undefined &&
         (typeof asset.size !== "number" || !Number.isSafeInteger(asset.size) || asset.size !== info.size)
       ) {
-        await deleteCacheOwnedUri(asset.uri);
+        await deleteCacheOwnedUri(assetUri);
         return Object.freeze({ status: "rejected", reason: "file-unavailable" });
       }
 
       const sourceId = createSourceId();
       if (typeof sourceId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(sourceId) || sources.has(sourceId)) {
-        await deleteCacheOwnedUri(asset.uri);
+        await deleteCacheOwnedUri(assetUri);
         return Object.freeze({ status: "rejected", reason: "invalid-selection" });
       }
       sources.set(sourceId, Object.freeze({
-        uri: asset.uri,
+        uri: assetUri,
         displayName: asset.name,
         size: info.size,
         modificationTime: info.modificationTime,

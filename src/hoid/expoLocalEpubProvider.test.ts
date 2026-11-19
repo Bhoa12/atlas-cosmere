@@ -104,6 +104,7 @@ describe("Expo local EPUB source provider", () => {
       status: "rejected",
       reason: "unsupported-file",
     });
+    expect(fixture.isDeleted()).toBe(true);
   });
 
   it("rejects files larger than the configured archive bound", async () => {

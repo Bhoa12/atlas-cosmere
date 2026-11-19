@@ -41,7 +41,7 @@ File modification timestamps are not treated as cryptographic proof. The existin
 
 - URI mappings exist only in the provider's in-memory map.
 - No URI, EPUB bytes or chapter body is written to SQLite or Git.
-- release(sourceId) removes the mapping and best-effort deletes only a cache-owned copy.
+- release(sourceId) removes the mapping and best-effort deletes only a cache-owned copy; rejected cache copies are also cleaned up.
 - releaseAll() releases all active selections.
 - The selected filename is display metadata only; it does not establish book identity.
 - The provider does not infer chapter numbers from navigation labels.

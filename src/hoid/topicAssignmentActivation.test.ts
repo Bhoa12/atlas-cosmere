@@ -229,6 +229,8 @@ describe("Hoid topic assignment activation", () => {
     );
     expect(result.status, JSON.stringify(result)).toBe("ready-for-maintainer-receipt");
     if (result.status !== "ready-for-maintainer-receipt") return;
+    expect(result.receipt.schemaVersion).toBe(2);
+    expect(result.receipt.reviewedBaseSha).toBe("b".repeat(40));
     expect(result.receipt.assignmentIds).toEqual(["topic-assignment.alpha"]);
     expect(result.receipt.assignmentReviewerIds).toEqual(["reviewer-1"]);
     expect(result.receipt.approvalReviewerIds).toEqual(["reviewer-1", "reviewer-2"]);

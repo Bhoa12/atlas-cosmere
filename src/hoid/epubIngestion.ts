@@ -157,6 +157,8 @@ export type HoidEpubPackageInspectionCandidate = Readonly<{
   navigationEntryCount: number;
   navigationXhtmlTargetCount: number;
   archiveInventorySha256: string;
+  mimetypeSha256: string;
+  containerDocumentSha256: string;
   packageDocumentSha256: string;
   navigationDocumentSha256: string;
   sourceFingerprint: string;
@@ -640,6 +642,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       );
       const mimetypeText = String.fromCharCode(...mimetypeBytes);
       if (mimetypeText !== MIME_TYPE) reject("mimetype-invalid");
+      const mimetypeSha = await digestBytes(dependencies.digest, mimetypeBytes);
 
       const containerEntry = requireFile(entries, "META-INF/container.xml");
       const containerBytes = await readCheckedEntry(
@@ -651,6 +654,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       } catch {
         reject("container-invalid");
       }
+      const containerSha = await digestBytes(dependencies.digest, containerBytes);
       const packagePath = validateContainer(container);
       const packageEntry = requireFile(entries, packagePath);
       const packageBytes = await readCheckedEntry(
@@ -693,6 +697,8 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         editionId: source.editionId,
         sourceGroup: source.sourceGroup,
         archiveInventorySha256: inventorySha,
+        mimetypeSha256: mimetypeSha,
+        containerDocumentSha256: containerSha,
         packageDocumentSha256: packageSha,
         navigationDocumentSha256: navigationSha,
       }));
@@ -758,6 +764,25 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       const entries = normalizeArchiveEntries(await dependencies.archive.listEntries(state.source.sourceId));
       const currentInventorySha = await digestText(dependencies.digest, archiveInventoryText(entries));
       if (currentInventorySha !== state.report.archiveInventorySha256) reject("source-changed");
+
+      const currentMimetypeEntry = requireFile(entries, "mimetype");
+      const currentMimetypeBytes = await readCheckedEntry(
+        dependencies.archive, state.source.sourceId, currentMimetypeEntry,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+      );
+      if (
+        String.fromCharCode(...currentMimetypeBytes) !== MIME_TYPE ||
+        await digestBytes(dependencies.digest, currentMimetypeBytes) !== state.report.mimetypeSha256
+      ) reject("source-changed");
+
+      const currentContainerEntry = requireFile(entries, "META-INF/container.xml");
+      const currentContainerBytes = await readCheckedEntry(
+        dependencies.archive, state.source.sourceId, currentContainerEntry,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+      );
+      if (await digestBytes(dependencies.digest, currentContainerBytes) !== state.report.containerDocumentSha256) {
+        reject("source-changed");
+      }
 
       const currentPackageEntry = requireFile(entries, state.packagePath);
       const currentPackageBytes = await readCheckedEntry(

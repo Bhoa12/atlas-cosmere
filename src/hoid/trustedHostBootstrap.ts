@@ -266,8 +266,14 @@ export async function loadHoidTrustedHostBootstrap(
     });
   }
   let value: unknown;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    value = await read();
+    value = await Promise.race([
+      Promise.resolve().then(read),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("trusted host bootstrap timeout")), STORE_TIMEOUT_MS);
+      }),
+    ]);
   } catch {
     return Object.freeze({
       status: "blocked",
@@ -275,6 +281,8 @@ export async function loadHoidTrustedHostBootstrap(
       promotionAllowed: false,
       productionWritePerformed: false,
     });
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
   if (value === null || value === undefined) {
     return Object.freeze({

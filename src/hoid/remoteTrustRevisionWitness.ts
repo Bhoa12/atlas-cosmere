@@ -77,6 +77,13 @@ const MAX_CLOCK_SKEW_MS = 30_000;
 const MAX_NONCES_PER_ADAPTER = 4_096;
 const RECEIPT_DOMAIN = "hoid-trust-revision-witness-receipt-ed25519-v1";
 
+type ExpectedReceiptContext = Readonly<{
+  operation: HoidTrustRevisionWitnessReceiptUnsigned["operation"];
+  requestNonceHex: string;
+  expectedRevision: number | null;
+  nextRevision: number | null;
+}>;
+
 function exactRecord(value: unknown, allowedKeys: readonly string[]): Record<string, unknown> | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
@@ -194,13 +201,8 @@ const RECEIPT_UNSIGNED_KEYS = [
   "expiresAt",
 ] as const;
 
-/**
- * Canonical message signed by the remote monotonic witness. The witness
- * service must sign this exact JSON array, including the fresh request nonce.
- */
-export function buildHoidTrustRevisionWitnessReceiptSigningMessage(
-  value: unknown,
-): string | null {
+/** Canonical message signed by the witness, including the fresh request nonce. */
+export function buildHoidTrustRevisionWitnessReceiptSigningMessage(value: unknown): string | null {
   const raw = exactRecord(value, RECEIPT_UNSIGNED_KEYS);
   if (
     !raw ||
@@ -275,58 +277,38 @@ function receiptUnsigned(value: Record<string, unknown>): HoidTrustRevisionWitne
   });
 }
 
-function verifyReceipt(
-  value: unknown,
-  expected: Readonly<{
-    operation: HoidTrustRevisionWitnessReceiptUnsigned["operation"];
-    requestNonceHex: string;
-    expectedRevision: number | null;
-    nextRevision: number | null;
-  }>,
-  configuration: HoidTrustRevisionWitnessConfiguration,
-  now: string,
-  verify: (input: { publicKeyHex: string; message: string; signatureHex: string }) => Promise<boolean>,
-): HoidTrustRevisionWitnessReceiptUnsigned {
-  const raw = exactRecord(value, [...RECEIPT_UNSIGNED_KEYS, "signatureHex"]);
-  if (
-    !raw ||
-    raw.schemaVersion !== 1 ||
-    raw.witnessId !== configuration.witnessId ||
-    raw.keyId !== configuration.keyId ||
-    raw.trustDomainId !== configuration.trustDomainId ||
-    raw.operation !== expected.operation ||
-    raw.requestNonceHex !== expected.requestNonceHex ||
-    raw.expectedRevision !== expected.expectedRevision ||
-    raw.nextRevision !== expected.nextRevision ||
-    typeof raw.signatureHex !== "string" ||
-    !HEX_64_PATTERN.test(raw.signatureHex)
-  ) throw new Error("Invalid trust revision witness receipt");
-
-  const unsigned = receiptUnsigned(raw);
-  const message = buildHoidTrustRevisionWitnessReceiptSigningMessage(unsigned);
-  if (!message) throw new Error("Non-canonical trust revision witness receipt");
-
-  const issuedAt = Date.parse(unsigned.issuedAt);
-  const expiresAt = Date.parse(unsigned.expiresAt);
-  const nowMs = Date.parse(now);
-  if (
-    !isoTimestamp(now) ||
-    issuedAt > nowMs + MAX_CLOCK_SKEW_MS ||
-    expiresAt <= nowMs ||
-    expiresAt <= issuedAt ||
-    expiresAt - issuedAt > MAX_RECEIPT_LIFETIME_MS
-  ) throw new Error("Expired or invalid trust revision witness receipt");
-
-  const valid = verify({
-    publicKeyHex: configuration.publicKeyHex,
-    message,
-    signatureHex: raw.signatureHex,
-  });
-  // The verifier is asynchronous; the caller awaits this promise below.
-  if (valid instanceof Promise) {
-    throw new Error("Internal asynchronous receipt verification misuse");
+function verifyReceiptOutcome(
+  receipt: HoidTrustRevisionWitnessReceiptUnsigned,
+  expected: ExpectedReceiptContext,
+): void {
+  if (expected.operation === "read-minimum-revision") {
+    if (
+      receipt.outcome !== "read" ||
+      receipt.expectedRevision !== null ||
+      receipt.nextRevision !== null
+    ) throw new Error("Invalid trust revision witness read outcome");
+    return;
   }
-  return unsigned;
+
+  if (
+    receipt.expectedRevision !== expected.expectedRevision ||
+    receipt.nextRevision !== expected.nextRevision
+  ) throw new Error("Trust revision witness CAS context mismatch");
+
+  if (receipt.outcome === "advanced" || receipt.outcome === "already-applied") {
+    if (receipt.observedRevision !== expected.nextRevision) {
+      throw new Error("Trust revision witness CAS success mismatch");
+    }
+    return;
+  }
+
+  if (
+    receipt.outcome === "conflict" &&
+    receipt.observedRevision > (expected.expectedRevision as number) &&
+    receipt.observedRevision !== expected.nextRevision
+  ) return;
+
+  throw new Error("Invalid trust revision witness CAS outcome");
 }
 
 /**
@@ -391,7 +373,7 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
 
   async function verifiedReceipt(
     value: unknown,
-    expected: Parameters<typeof verifyReceipt>[1],
+    expected: ExpectedReceiptContext,
     now: string,
   ): Promise<HoidTrustRevisionWitnessReceiptUnsigned> {
     const raw = exactRecord(value, [...RECEIPT_UNSIGNED_KEYS, "signatureHex"]);
@@ -415,6 +397,7 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
     const expiresAt = Date.parse(unsigned.expiresAt);
     const nowMs = Date.parse(now);
     if (
+      !isoTimestamp(now) ||
       issuedAt > nowMs + MAX_CLOCK_SKEW_MS ||
       expiresAt <= nowMs ||
       expiresAt <= issuedAt ||
@@ -423,44 +406,18 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
 
     let valid = false;
     try {
-      valid = await verify({
+      const verificationResult: unknown = await verify({
         publicKeyHex: configuration.publicKeyHex,
         message,
         signatureHex: raw.signatureHex,
-      }) as unknown as boolean;
+      });
+      valid = verificationResult === true;
     } catch {
       valid = false;
     }
-    if (valid !== true) throw new Error("Trust revision witness signature invalid");
+    if (!valid) throw new Error("Trust revision witness signature invalid");
 
-    if (expected.operation === "read-minimum-revision") {
-      if (
-        unsigned.outcome !== "read" ||
-        unsigned.expectedRevision !== null ||
-        unsigned.nextRevision !== null
-      ) throw new Error("Invalid trust revision witness read outcome");
-    } else {
-      if (
-        unsigned.expectedRevision !== expected.expectedRevision ||
-        unsigned.nextRevision !== expected.nextRevision
-      ) throw new Error("Trust revision witness CAS context mismatch");
-      if (
-        unsigned.outcome === "advanced" ||
-        unsigned.outcome === "already-applied"
-      ) {
-        if (unsigned.observedRevision !== expected.nextRevision) {
-          throw new Error("Trust revision witness CAS success mismatch");
-        }
-      } else if (
-        unsigned.outcome === "conflict" &&
-        unsigned.observedRevision > (expected.expectedRevision as number) &&
-        unsigned.observedRevision !== expected.nextRevision
-      ) {
-        // A newer value is authoritative; the caller must read it again.
-      } else {
-        throw new Error("Invalid trust revision witness CAS outcome");
-      }
-    }
+    verifyReceiptOutcome(unsigned, expected);
     return unsigned;
   }
 

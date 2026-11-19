@@ -329,30 +329,21 @@ function resolveReadMinimumRevision(value: unknown): ((input: Readonly<{ trustDo
 export async function verifyHoidTrustedHostRevisionStore(
   configurationInput: unknown,
   storeInput: HoidTrustRegistryRevisionStorePort,
+  expectedRepositoryFullName: string,
+  nowInput: unknown,
 ): Promise<HoidTrustedHostRevisionStoreCheck> {
-  const configuration = exactRecord(configurationInput, [
-    "schemaVersion",
-    "configurationId",
-    "trustDomainId",
-    "rootKey",
-    "minimumRegistryRevision",
-    "allowedRepositoryFullNames",
-    "provisionedAt",
-    "expiresAt",
-  ]);
-  if (
-    !configuration ||
-    configuration.schemaVersion !== 1 ||
-    typeof configuration.trustDomainId !== "string" ||
-    !TRUST_DOMAIN_PATTERN.test(configuration.trustDomainId) ||
-    !Number.isSafeInteger(configuration.minimumRegistryRevision) ||
-    (configuration.minimumRegistryRevision as number) < 1
-  ) return Object.freeze({
+  const validation = validateHoidTrustedHostBootstrapConfiguration(
+    configurationInput,
+    expectedRepositoryFullName,
+    nowInput,
+  );
+  if (validation.status !== "valid") return Object.freeze({
     status: "blocked",
     reason: "invalid-bootstrap",
     promotionAllowed: false,
     productionWritePerformed: false,
   });
+  const configuration = validation.configuration;
   const read = resolveReadMinimumRevision(storeInput);
   if (!read) return Object.freeze({
     status: "blocked",

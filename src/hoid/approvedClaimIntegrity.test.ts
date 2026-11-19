@@ -34,7 +34,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     kind: "concept",
     firstSafeAppearance: { bookId: "edgedancer", chapter: 3 },
     evidenceSource: { bookId: "edgedancer", chapter: 3, locatorId: locator("edgedancer", 3) },
-    evidenceUnlock: { bookId: "edgedancer", chapter: 3 },
+    evidenceUnlock: { bookId: "edgedancer", chapter: 4 },
     provenance: "verified",
     summary: "Resumen editorial sintético Beta.",
   },
@@ -145,7 +145,7 @@ describe("Hoid approved-claim integrity", () => {
       kind: "concept",
       firstSafeAppearance: { bookId: "wor", chapter: 3 },
       evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
-      evidenceUnlock: { bookId: "wor", chapter: 3 },
+      evidenceUnlock: { bookId: "wor", chapter: 4 },
       provenance: "verified",
       summary: "Resumen sintético sin documento XHTML incluido en la allowlist.",
     }];

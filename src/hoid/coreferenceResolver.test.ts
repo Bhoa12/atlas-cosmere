@@ -64,7 +64,7 @@ function record(
   id: string,
   entityId: string,
   form: "él" | "ella",
-  evidenceItems: readonly unknown[] = [evidence("synthetic.coref-evidence." + id, "tfe", 1, 2)],
+  evidenceItems: readonly unknown[] = [evidence("synthetic.coref-evidence." + id, "tfe", 1, 1)],
 ) {
   return {
     id,

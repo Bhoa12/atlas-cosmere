@@ -42,3 +42,8 @@ Las pruebas cubren:
 ## Limitación
 
 La interfaz debe seguir presentando el cursor como «capítulo actual/en curso». Si en el futuro se añade una acción explícita «he terminado este capítulo», debe introducirse como una operación distinta y versionada; no debe reinterpretarse silenciosamente el significado del cursor existente.
+
+
+## Evidence unlock coordinates
+
+The v2 cursor stores the open chapter N. Its safe projection exposes `completedThroughChapter = N-1`. Evidence unlock thresholds use this completed-through coordinate, not the open-cursor coordinate. Thus a summary sourced from chapter N stores unlock chapter N and becomes available when the reader advances to cursor N+1. Same-number source and unlock chapters are correct; values below the source chapter are rejected.

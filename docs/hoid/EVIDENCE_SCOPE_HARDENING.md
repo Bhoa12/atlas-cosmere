@@ -10,7 +10,7 @@ Evidence is unlocked only when exactly one valid progress position exists for th
 
 ## Implementation
 
-The function now delegates progress normalization to `validReadingPositions` before looking up the unlock position. This keeps duplicate handling, chapter bounds, completion semantics, and collection limits aligned with the rest of Hoid input boundary.
+The function now delegates progress normalization to `validEditionBoundReadingPositions` before looking up the unlock position. This keeps duplicate handling, chapter bounds, completion semantics, and collection limits aligned with the rest of Hoid input boundary.
 
 ## Regression coverage
 
@@ -26,3 +26,8 @@ The focused GitHub Actions workflow runs these tests alongside the evidence runt
 ## Source policy
 
 Tests use synthetic metadata only. No EPUB content, source passages, or unverified narrative claims are added.
+
+
+## Run 169 — completed-through watermark
+
+`HoidReadingCursor.chapter` is the currently open chapter. The legacy `ReadingPosition.chapter` and evidence unlock threshold are completed-through values. Therefore evidence sourced from chapter N uses `evidenceUnlock.chapter = N`; it becomes available when the cursor advances to chapter N+1 and the projection records N as completed. A threshold below the source chapter is invalid. A later threshold remains valid as a deliberately stricter editorial ceiling.

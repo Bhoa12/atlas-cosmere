@@ -141,7 +141,7 @@ describe("Hoid editorial draft staging", () => {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
-        chapter: draft.evidenceSource.chapter + 1,
+        chapter: draft.evidenceSource.chapter,
       });
       expect(draft.review.status).toBe("pending-review");
       expect(draft.summary.length).toBeGreaterThan(80);
@@ -170,7 +170,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps the chapter-one summary locked until chapter two is reached", () => {
     expect(validDraft.evidenceSource.chapter).toBe(1);
-    expect(validDraft.evidenceUnlock.chapter).toBe(2);
+    expect(validDraft.evidenceUnlock.chapter).toBe(1);
   });
 
   it("rejects a forged or mismatched navigation locator", () => {
@@ -351,7 +351,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterThreeDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 3);
     expect(chapterThreeDrafts).toHaveLength(4);
     for (const draft of chapterThreeDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 4 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -360,7 +360,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterFourDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 4);
     expect(chapterFourDrafts).toHaveLength(4);
     for (const draft of chapterFourDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 5 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -369,7 +369,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterFiveDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 5);
     expect(chapterFiveDrafts).toHaveLength(3);
     for (const draft of chapterFiveDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 6 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -378,7 +378,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterTwoDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 2);
     expect(chapterTwoDrafts).toHaveLength(4);
     for (const draft of chapterTwoDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 3 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -388,7 +388,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterSevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 7);
     expect(chapterSevenDrafts).toHaveLength(3);
     for (const draft of chapterSevenDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 8 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -397,7 +397,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterSixDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 6);
     expect(chapterSixDrafts).toHaveLength(3);
     for (const draft of chapterSixDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 7 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -406,7 +406,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterEightDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 8);
     expect(chapterEightDrafts).toHaveLength(3);
     for (const draft of chapterEightDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 9 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -416,7 +416,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterElevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 11);
     expect(chapterElevenDrafts).toHaveLength(3);
     for (const draft of chapterElevenDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 12 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -425,7 +425,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterTenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 10);
     expect(chapterTenDrafts).toHaveLength(3);
     for (const draft of chapterTenDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 11 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -434,7 +434,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterNineDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 9);
     expect(chapterNineDrafts).toHaveLength(3);
     for (const draft of chapterNineDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 10 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });
@@ -443,7 +443,7 @@ describe("Hoid editorial draft staging", () => {
     const chapterTwelveDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 12);
     expect(chapterTwelveDrafts).toHaveLength(2);
     for (const draft of chapterTwelveDrafts) {
-      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 13 });
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
   });

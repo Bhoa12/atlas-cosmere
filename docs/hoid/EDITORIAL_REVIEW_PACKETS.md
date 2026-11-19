@@ -51,3 +51,8 @@ Then run the strict TypeScript check in `.github/workflows/hoid-editorial-draft-
 ## Copyright and provenance
 
 Only original editorial prose, bibliographic metadata, opaque locators and cryptographic digests may be committed. If a source passage is unavailable, no summary or fact may be invented and no claim of source inspection may be made.
+
+
+## Run 169 — completed-through evidence threshold
+
+Review-packet unlock chapters use the completed-through coordinate system. A source in chapter N may use unlock chapter N; the summary is available when the v2 cursor advances to N+1. Unlock values earlier than the cited source remain invalid; later values are allowed for a stricter ceiling.

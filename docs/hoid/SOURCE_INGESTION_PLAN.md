@@ -106,3 +106,8 @@ After inspecting El Imperio Final chapter 4, El Camino de los Reyes chapter 11, 
 | Esquirla del amanecer | 13 |
 
 The queue remains metadata-only. Each candidate still requires explicit local EPUB selection, exact edition binding and candidate-only inspection. It does not read sources or authorize evidence by itself.
+
+
+## Cursor versus evidence watermark
+
+`minimumReaderChapter` in an ingestion task is the open cursor chapter N+1. The evidence record stores the completed-through watermark N. Keep these coordinates separate: reaching cursor N+1 completes source chapter N; it does not require completing chapter N+1.

@@ -67,8 +67,8 @@ function validChapter(value: unknown): value is number {
  *
  * source identifies where an original editorial summary was checked.
  * unlock identifies the earliest reader position at which the complete
- * summary is safe to reveal. The unlock must be in the same work and cannot
- * precede the cited source chapter.
+ * summary is safe to reveal. The unlock is a completed-through watermark in
+ * the same work and cannot precede the cited source chapter.
  */
 export function canonicalEvidenceScope(
   sourceInput: unknown,
@@ -88,6 +88,8 @@ export function canonicalEvidenceScope(
   if (!isKnownHoidSource(sourceBookId) || !isKnownHoidSource(unlockBookId)) return null;
   if (sourceBookId !== unlockBookId) return null;
   if (!validChapter(sourceChapter) || !validChapter(unlockChapter)) return null;
+  // ReadingPosition.chapter is completed-through, while a v2 cursor stores
+  // the open chapter. Source chapter N is safe at cursor N+1.
   if (unlockChapter < sourceChapter) return null;
   if (!locatorId || locatorId.length > MAX_LOCATOR_LENGTH) return null;
   if (/[\u0000-\u001F\u007F]/u.test(locatorId)) return null;

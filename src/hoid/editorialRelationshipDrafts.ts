@@ -700,7 +700,7 @@ function evidenceForChapter(bookId: string, chapter: number): HoidEditorialClaim
   if (!unit?.locatorId || !documentSha256) return null;
   return Object.freeze({
     source: Object.freeze({ bookId, chapter, locatorId: unit.locatorId }),
-    unlock: Object.freeze({ bookId, chapter: chapter + 1 }),
+    unlock: Object.freeze({ bookId, chapter }),
     sourceIntegrity: Object.freeze({
       editionId: manifestResult.manifest.editionId,
       navigationSha256: manifestResult.manifest.navigationSha256,

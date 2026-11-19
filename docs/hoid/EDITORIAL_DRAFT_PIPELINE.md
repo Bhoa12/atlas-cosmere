@@ -150,3 +150,8 @@ Four additional source documents were inspected from the current Library copies.
 Four original Spanish summaries were added to editorialDrafts.ts. Each is bound to its own work, chapter locator, edition navigation digest, exact document digest and summary digest. All remain pending review. A chapter-N summary stays locked until the reader reaches chapter N+1; the chapter itself is not considered completed merely because it is open.
 
 The new batch raises the staging inventory to 39 summaries backed by 39 individually inspected chapter documents. No production registry, approved claim, graph edge, reading progress or activation receipt was changed. No EPUB, XHTML body, copied passage, extracted text or image is committed.
+
+
+## Run 169 — chapter unlock coordinate system
+
+For a summary sourced from chapter N, the evidence unlock watermark is N (completed through N). The reader's open cursor must advance to N+1. Do not store N+1 in `evidenceUnlock`: that field is not the open cursor and doing so delays the summary until after chapter N+1 is completed.

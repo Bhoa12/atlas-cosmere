@@ -17,6 +17,8 @@ on:
     paths:
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/editionStructure.ts"
       - "src/hoid/sourceCoverage.ts"
       - "src/hoid/verifiedChapterDocuments.ts"
       - "docs/hoid/OFFLINE_EPUB_INGESTION.md"

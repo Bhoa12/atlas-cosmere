@@ -78,7 +78,7 @@ describe("Hoid conversation gateway durable progress refresh", () => {
     const { gateway } = createGateway(refreshCurrentProgress, answer);
 
     const result = await gateway.answer({
-      question: "¿Qué significa esta expresión?",
+      question: "¿Qué significa zyzzyva?",
       progress: initial,
     });
 
@@ -96,7 +96,7 @@ describe("Hoid conversation gateway durable progress refresh", () => {
     const { gateway } = createGateway(refreshCurrentProgress, answer);
 
     const result = await gateway.answer({
-      question: "¿Qué significa esta expresión?",
+      question: "¿Qué significa zyzzyva?",
       progress: initial,
     });
 
@@ -114,7 +114,7 @@ describe("Hoid conversation gateway durable progress refresh", () => {
     const { gateway } = createGateway(refreshCurrentProgress, answer);
 
     const result = await gateway.answer({
-      question: "¿Qué significa esta expresión?",
+      question: "¿Qué significa zyzzyva?",
       progress: snapshot(4, 7),
     });
 

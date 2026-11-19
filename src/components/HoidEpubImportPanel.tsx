@@ -21,7 +21,7 @@ const epubRuntime = createHoidExpoLocalEpubRuntime();
 const importChoices = getHoidEpubImportChoices();
 
 function sourceGroupLabel(group: HoidEpubImportChoice["sourceGroup"]): string {
-  return group === "cosmere.epub" ? "Cosmere · cosmere.epub" : "Roshar · EPUB individual";
+  return group === "cosmere.epub" ? "Cosmere · cosmere.epub" : "Roshar · fuentes de Roshar";
 }
 
 function progressModeLabel(choice: HoidEpubImportChoice): string {

@@ -1,4 +1,5 @@
 import { inflateSync, strFromU8, strToU8 } from "fflate";
+import { HOID_EPUB_INGESTION_LIMITS } from "./epubIngestion";
 import type { HoidEpubArchiveEntry, HoidEpubArchivePort, HoidEpubCompressionMethod } from "./epubIngestion";
 import {
   createHoidNobleDigestPort,
@@ -6,7 +7,7 @@ import {
 } from "./epubRuntimeAdapters";
 
 export const HOID_EPUB_RANGE_RUNTIME_LIMITS = Object.freeze({
-  maxArchiveBytes: 256 * 1024 * 1024,
+  maxArchiveBytes: HOID_EPUB_INGESTION_LIMITS.maxArchiveBytes,
   maxCentralDirectoryBytes: 16 * 1024 * 1024,
   maxArchiveEntries: 50_000,
   maxCompressedMemberBytes: 16 * 1024 * 1024,

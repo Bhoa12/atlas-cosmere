@@ -21,7 +21,7 @@ No ZIP, XML, filesystem, Expo, Node or cloud SDK is imported by the core. A futu
 createHoidEpubIngestionService() returns two operations:
 
 1. inspectPackage(sourceDescriptor):
-   - validates the opaque source ID, catalogue work ID, declared edition ID and source group;
+   - validates the opaque source ID and resolves the work ID against the canonical bibliography, requiring the exact source group and edition ID from the checked-in edition policy;
    - checks archive entry count, ordinal continuity, path canonicalization, duplicate/case-fold collisions, symlinks, encryption, compression method, per-entry and aggregate expanded sizes, and compression ratio;
    - requires mimetype to be the first file entry, stored without compression, exactly 20 bytes, with content application/epub+zip;
    - reads the fixed META-INF/container.xml entry and requires exactly one supported OPF rootfile;

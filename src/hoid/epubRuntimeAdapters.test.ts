@@ -36,7 +36,7 @@ const NCX_XML = strToU8(
 );
 
 function makeZip(extra: Readonly<Record<string, Uint8Array>> = {}): Uint8Array {
-  const files: Record<string, Uint8Array | [Uint8Array, { level: number }]> = {
+  const files: Parameters<typeof zipSync>[0] = {
     mimetype: [strToU8("application/epub+zip"), { level: 0 }],
     "META-INF/container.xml": CONTAINER_XML,
     "OEBPS/content.opf": PACKAGE_XML,

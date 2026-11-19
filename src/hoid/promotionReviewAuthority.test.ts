@@ -446,4 +446,16 @@ describe("Hoid protected source-control review authority", () => {
       reason: "invalid-snapshot",
     });
   });
+
+  it("rejects a protected snapshot from a different base commit even when the branch name matches", () => {
+    const snapshot = snapshotFor({ ...request, promotionPlanFingerprint: "b".repeat(64) });
+    const result = verifyHoidProtectedReviewSnapshot(
+      request,
+      { ...snapshot, baseSha: "c".repeat(40) },
+      "b".repeat(64),
+    );
+    expect(result).toEqual({ status: "invalid", reason: "base-mismatch" });
+  });
+
+
 });

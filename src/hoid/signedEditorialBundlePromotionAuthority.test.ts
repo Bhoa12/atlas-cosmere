@@ -356,6 +356,7 @@ describe("Hoid signed editorial bundle promotion", () => {
     const { result, source, progress } = await authorize(fixture);
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
+      baseSha: request.expectedBaseSha,
       verifiedReceiptCount: fixture.plan.packetCount,
       trustRegistryRevision: 1,
       promotionAllowed: false,

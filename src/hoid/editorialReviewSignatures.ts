@@ -711,3 +711,187 @@ export function createHoidWebCryptoEd25519VerificationPort(
     },
   });
 }
+
+
+export type HoidReviewerBoundPayloadSignatureRequest = Readonly<{
+  repositoryFullName: string;
+  reviewerId: string;
+  reviewedAt: string;
+  keyId: string;
+  message: string;
+  signatureHex: string;
+}>;
+
+export type HoidReviewerBoundPayloadSignatureBatchVerification =
+  | Readonly<{
+      status: "verified";
+      registryRevision: number;
+      verifiedCount: number;
+      messageFingerprints: readonly string[];
+    }>
+  | Readonly<{
+      status: "invalid";
+      reason:
+        | "invalid-requests"
+        | "invalid-trust-registry"
+        | "invalid-root-key"
+        | "root-key-mismatch"
+        | "registry-not-current"
+        | "registry-lifetime-exceeded"
+        | "registry-rollback"
+        | "invalid-minimum-revision"
+        | "registry-signature-invalid"
+        | "verifier-unavailable"
+        | "cryptographic-verification-failed"
+        | "key-not-found"
+        | "key-revoked"
+        | "key-not-current"
+        | "reviewer-key-mismatch"
+        | "repository-not-authorized"
+        | "signature-invalid";
+      index?: number;
+    }>;
+
+const BOUND_PAYLOAD_REQUEST_KEYS = Object.freeze([
+  "repositoryFullName", "reviewerId", "reviewedAt", "keyId", "message", "signatureHex",
+] as const);
+
+function canonicalBoundPayloadRequest(value: unknown): HoidReviewerBoundPayloadSignatureRequest | null {
+  const raw = exactRecord(value, BOUND_PAYLOAD_REQUEST_KEYS);
+  if (
+    !raw ||
+    typeof raw.repositoryFullName !== "string" ||
+    !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
+    typeof raw.reviewerId !== "string" ||
+    !ID_PATTERN.test(raw.reviewerId) ||
+    !isoTimestamp(raw.reviewedAt) ||
+    typeof raw.keyId !== "string" ||
+    !ID_PATTERN.test(raw.keyId) ||
+    typeof raw.message !== "string" ||
+    raw.message.length < 1 ||
+    raw.message.length > 32_768 ||
+    typeof raw.signatureHex !== "string" ||
+    !/^[a-f0-9]{128}$/.test(raw.signatureHex)
+  ) return null;
+  return Object.freeze({
+    repositoryFullName: raw.repositoryFullName,
+    reviewerId: raw.reviewerId,
+    reviewedAt: raw.reviewedAt,
+    keyId: raw.keyId,
+    message: raw.message,
+    signatureHex: raw.signatureHex,
+  });
+}
+
+/**
+ * Verify a complete set of reviewer-bound payload signatures against one
+ * root-authenticated registry snapshot. The registry root is checked once;
+ * every payload is then checked against its own active reviewer key.
+ *
+ * This is intentionally generic: callers must build a domain-separated,
+ * canonical message that binds the exact packet, receipt and promotion context.
+ */
+export async function verifyHoidReviewerBoundPayloadSignatures(
+  requestsInput: unknown,
+  registryInput: unknown,
+  rootKeyInput: unknown,
+  verifierInput: unknown,
+  nowInput: unknown,
+  minimumRevisionInput: unknown,
+): Promise<HoidReviewerBoundPayloadSignatureBatchVerification> {
+  const rawRequests = denseValues(requestsInput, 2_048);
+  if (!rawRequests || rawRequests.length === 0) {
+    return Object.freeze({ status: "invalid", reason: "invalid-requests" });
+  }
+  const requests: HoidReviewerBoundPayloadSignatureRequest[] = [];
+  for (const raw of rawRequests) {
+    const request = canonicalBoundPayloadRequest(raw);
+    if (!request) return Object.freeze({ status: "invalid", reason: "invalid-requests" });
+    requests.push(request);
+  }
+
+  const registry = canonicalRegistry(registryInput);
+  if (!registry) return Object.freeze({ status: "invalid", reason: "invalid-trust-registry" });
+  const rootKey = canonicalRootKey(rootKeyInput);
+  if (!rootKey) return Object.freeze({ status: "invalid", reason: "invalid-root-key" });
+  if (registry.rootSignature.keyId !== rootKey.keyId) {
+    return Object.freeze({ status: "invalid", reason: "root-key-mismatch" });
+  }
+  if (!isoTimestamp(nowInput)) {
+    return Object.freeze({ status: "invalid", reason: "registry-not-current" });
+  }
+  if (!Number.isSafeInteger(minimumRevisionInput) || (minimumRevisionInput as number) < 1) {
+    return Object.freeze({ status: "invalid", reason: "invalid-minimum-revision" });
+  }
+  if (registry.revision < (minimumRevisionInput as number)) {
+    return Object.freeze({ status: "invalid", reason: "registry-rollback" });
+  }
+
+  const now = Date.parse(nowInput);
+  const issuedAt = Date.parse(registry.issuedAt);
+  const expiresAt = Date.parse(registry.expiresAt);
+  if (expiresAt - issuedAt > MAX_REGISTRY_DAYS * DAY_MS) {
+    return Object.freeze({ status: "invalid", reason: "registry-lifetime-exceeded" });
+  }
+  if (issuedAt > now || expiresAt < now) {
+    return Object.freeze({ status: "invalid", reason: "registry-not-current" });
+  }
+
+  const verify = verifierMethod(verifierInput);
+  if (!verify) return Object.freeze({ status: "invalid", reason: "verifier-unavailable" });
+  const rootOutcome = await verifySignature(verify, {
+    publicKeyHex: rootKey.publicKeyHex,
+    message: registryPayload(registry),
+    signatureHex: registry.rootSignature.signatureHex,
+  });
+  if (rootOutcome === "error") {
+    return Object.freeze({ status: "invalid", reason: "cryptographic-verification-failed" });
+  }
+  if (rootOutcome !== "valid") {
+    return Object.freeze({ status: "invalid", reason: "registry-signature-invalid" });
+  }
+
+  const messageFingerprints: string[] = [];
+  for (let index = 0; index < requests.length; index += 1) {
+    const request = requests[index];
+    const key = registry.keys.find(candidate => candidate.keyId === request.keyId);
+    if (!key) return Object.freeze({ status: "invalid", reason: "key-not-found", index });
+    if (key.status === "revoked" || key.revokedAt !== null) {
+      return Object.freeze({ status: "invalid", reason: "key-revoked", index });
+    }
+    const reviewedAt = Date.parse(request.reviewedAt);
+    if (
+      now < Date.parse(key.validFrom) ||
+      now > Date.parse(key.validUntil) ||
+      reviewedAt < Date.parse(key.validFrom) ||
+      reviewedAt > Date.parse(key.validUntil) ||
+      reviewedAt > now
+    ) return Object.freeze({ status: "invalid", reason: "key-not-current", index });
+    if (key.reviewerId !== request.reviewerId) {
+      return Object.freeze({ status: "invalid", reason: "reviewer-key-mismatch", index });
+    }
+    if (!key.allowedRepositoryFullNames.includes(request.repositoryFullName)) {
+      return Object.freeze({ status: "invalid", reason: "repository-not-authorized", index });
+    }
+
+    const outcome = await verifySignature(verify, {
+      publicKeyHex: key.publicKeyHex,
+      message: request.message,
+      signatureHex: request.signatureHex,
+    });
+    if (outcome === "error") {
+      return Object.freeze({ status: "invalid", reason: "cryptographic-verification-failed", index });
+    }
+    if (outcome !== "valid") {
+      return Object.freeze({ status: "invalid", reason: "signature-invalid", index });
+    }
+    messageFingerprints.push(sha256Hex(request.message));
+  }
+
+  return Object.freeze({
+    status: "verified",
+    registryRevision: registry.revision,
+    verifiedCount: requests.length,
+    messageFingerprints: Object.freeze(messageFingerprints),
+  });
+}

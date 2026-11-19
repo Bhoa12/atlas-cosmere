@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { ed25519 } from "@noble/curves/ed25519.js";
+import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
+import { authorizeHoidTrustedHostSignedEditorialBundlePromotion } from "./trustedHostPromotionAuthority";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { HOID_EDITORIAL_CLAIM_DRAFTS } from "./editorialClaimDrafts";
 import { HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
@@ -14,6 +17,7 @@ import {
   buildHoidReviewerTrustRegistrySigningMessage,
   type HoidReviewerTrustKey,
   type HoidReviewerTrustRegistryUnsigned,
+  type HoidReviewerTrustRootKey,
 } from "./editorialReviewSignatures";
 import { buildHoidEditorialBundlePromotionPlan } from "./editorialBundlePromotionAuthority";
 import {
@@ -30,6 +34,7 @@ import type {
 const NOW = "2026-11-19T10:00:00.000Z";
 const REVIEWED_AT = "2026-11-18T02:00:00.000Z";
 const REPOSITORY = "Bhoa12/atlas-cosmere";
+const TRUST_DOMAIN = "atlas-cosmere-production";
 const rootKey = Object.freeze({ keyId: "root-2026", publicKeyHex: "11".repeat(32) });
 
 function testSignature(message: string): string {
@@ -350,6 +355,131 @@ async function authorize(
   return { result, source, progress };
 }
 
+
+function bytesFromHex(value: string): Uint8Array {
+  return new Uint8Array(value.match(/.{2}/g)?.map(part => Number.parseInt(part, 16)) ?? []);
+}
+
+function hexFromBytes(value: Uint8Array): string {
+  return Array.from(value, byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function buildRealCryptoFixture() {
+  const fixture = buildFixture();
+  const rootSeed = bytesFromHex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+  const codeOwnerSeed = bytesFromHex("4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb");
+  const secondReviewerSeed = bytesFromHex("3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29");
+  const seeds: Readonly<Record<string, Uint8Array>> = Object.freeze({
+    "code-owner": codeOwnerSeed,
+    "second-reviewer": secondReviewerSeed,
+  });
+  const rootKey: HoidReviewerTrustRootKey = Object.freeze({
+    keyId: "root-2026",
+    publicKeyHex: hexFromBytes(ed25519.getPublicKey(rootSeed)),
+  });
+  const keys: readonly HoidReviewerTrustKey[] = Object.freeze(reviewerKeys.map(key => Object.freeze({
+    ...key,
+    publicKeyHex: hexFromBytes(ed25519.getPublicKey(seeds[key.reviewerId])),
+  })));
+  const unsigned: HoidReviewerTrustRegistryUnsigned = Object.freeze({
+    schemaVersion: 1,
+    revision: 3,
+    issuedAt: "2026-11-18T00:00:00.000Z",
+    expiresAt: "2026-12-01T00:00:00.000Z",
+    keys,
+  });
+  const registryMessage = buildHoidReviewerTrustRegistrySigningMessage(unsigned);
+  if (registryMessage === null) throw new Error("Real-crypto trust registry payload unavailable");
+  const registry = Object.freeze({
+    ...unsigned,
+    rootSignature: Object.freeze({
+      algorithm: "Ed25519" as const,
+      keyId: rootKey.keyId,
+      signatureHex: hexFromBytes(ed25519.sign(new TextEncoder().encode(registryMessage), rootSeed)),
+    }),
+  });
+
+  const receiptArrays: Record<string, readonly any[]> = {
+    summary: fixture.receipts.summaries,
+    "atomic-claim": fixture.receipts.claims,
+    entity: fixture.receipts.entities,
+    relationship: fixture.receipts.relationships,
+  };
+  const signatures = fixture.plan.packets.map(packet => {
+    const receipt = receiptArrays[packet.category].find(item => item.packetId === packet.packetId);
+    if (!receipt) throw new Error("Real-crypto packet receipt missing");
+    const reviewerId = receipt.reviewerId as string;
+    const keyId = reviewerId === "code-owner" ? "code-owner-key" : "second-reviewer-key";
+    const seed = seeds[reviewerId];
+    if (!seed) throw new Error("Real-crypto reviewer seed missing");
+    const message = buildHoidEditorialReviewPacketSigningMessage(
+      packet,
+      receipt,
+      fixture.plan,
+      request,
+      keyId,
+    );
+    if (message === null) throw new Error("Real-crypto packet signing message unavailable");
+    return Object.freeze({
+      category: packet.category,
+      packetId: packet.packetId,
+      keyId,
+      signatureHex: hexFromBytes(ed25519.sign(new TextEncoder().encode(message), seed)),
+    });
+  });
+  const signatureBatch: HoidEditorialBundleSignatureBatch = Object.freeze({
+    schemaVersion: 1,
+    reviewBundleFingerprint: fixture.plan.reviewBundleFingerprint,
+    promotionPlanFingerprint: fixture.plan.fingerprint,
+    receiptsFingerprint: fixture.plan.receiptsFingerprint,
+    signatures: Object.freeze(signatures),
+  });
+  return Object.freeze({
+    ...fixture,
+    rootKey,
+    registry,
+    signatureBatch,
+    verifier: createHoidNobleEd25519VerificationPort(),
+  });
+}
+
+
+function createRealHostPorts(rootKey: HoidReviewerTrustRootKey) {
+  let revision = 1;
+  const revisionStore = {
+    get value() { return revision; },
+    readMinimumRevision: vi.fn(async (input: { trustDomainId: string }) =>
+      input.trustDomainId === TRUST_DOMAIN ? revision : null
+    ),
+    compareAndSetMinimumRevision: vi.fn(async (input: {
+      trustDomainId: string;
+      expectedRevision: number;
+      nextRevision: number;
+    }) => {
+      if (
+        input.trustDomainId !== TRUST_DOMAIN ||
+        revision !== input.expectedRevision ||
+        input.nextRevision <= input.expectedRevision
+      ) return false;
+      revision = input.nextRevision;
+      return true;
+    }),
+  };
+  const bootstrapPort = {
+    readPinnedConfiguration: vi.fn(async () => Object.freeze({
+      schemaVersion: 1 as const,
+      configurationId: "atlas-production-root-2026",
+      trustDomainId: TRUST_DOMAIN,
+      rootKey,
+      minimumRegistryRevision: 1,
+      allowedRepositoryFullNames: Object.freeze([REPOSITORY]),
+      provisionedAt: "2026-11-18T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
+    })),
+  };
+  return { revisionStore, bootstrapPort };
+}
+
 describe("Hoid signed editorial bundle promotion", () => {
   it("requires a valid signature for every packet before protected review", async () => {
     const fixture = buildFixture();
@@ -496,5 +626,102 @@ describe("Hoid signed editorial bundle promotion", () => {
     expect(changedBase).not.toBe(original);
   });
 
+
+
+  it("completes a two-reviewer bundle dry run with real Ed25519 signatures", async () => {
+    const fixture = buildRealCryptoFixture();
+    const source = sourceControlPort();
+    const progress = progressPort();
+    const host = createRealHostPorts(fixture.rootKey);
+    const result = await authorizeHoidTrustedHostSignedEditorialBundlePromotion({
+      plan: fixture.plan,
+      context: fixture.context,
+      request,
+      signatureBatch: fixture.signatureBatch,
+      trustRegistry: fixture.registry,
+      verifier: fixture.verifier,
+      now: NOW,
+      revisionStore: host.revisionStore,
+      progressSnapshot: initialProgress,
+      sourceControlPort: source,
+      progressPort: progress,
+      bootstrapPort: host.bootstrapPort,
+      expectedRepositoryFullName: REPOSITORY,
+    });
+    expect(result).toMatchObject({
+      status: "ready-for-maintainer-commit",
+      configuredMinimumRegistryRevision: 1,
+      persistedMinimumRegistryRevision: 3,
+      authorization: {
+        status: "ready-for-maintainer-commit",
+        minimumRevisionPersisted: true,
+        trustRegistryRevision: 3,
+        authorization: {
+          status: "ready-for-maintainer-commit",
+          verifiedReceiptCount: fixture.signatureBatch.signatures.length,
+          trustRegistryRevision: 3,
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        },
+      },
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(host.revisionStore.value).toBe(3);
+    const allReceipts = [
+      ...fixture.receipts.summaries,
+      ...fixture.receipts.claims,
+      ...fixture.receipts.entities,
+      ...fixture.receipts.relationships,
+    ];
+    const reviewers = new Set(allReceipts.map(receipt => receipt.reviewerId));
+    expect(reviewers).toEqual(new Set(["code-owner", "second-reviewer"]));
+    expect(source.fetchProtectedReviewSnapshot).toHaveBeenCalledTimes(1);
+    expect(progress.readAuthoritativeProgressSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks the real-crypto dry run before GitHub when one packet signature is changed", async () => {
+    const fixture = buildRealCryptoFixture();
+    const signatures = [...fixture.signatureBatch.signatures];
+    const last = signatures[signatures.length - 1];
+    signatures[signatures.length - 1] = Object.freeze({ ...last, signatureHex: "0".repeat(128) });
+    const source = sourceControlPort();
+    const progress = progressPort();
+    const host = createRealHostPorts(fixture.rootKey);
+    const result = await authorizeHoidTrustedHostSignedEditorialBundlePromotion({
+      plan: fixture.plan,
+      context: fixture.context,
+      request,
+      signatureBatch: Object.freeze({ ...fixture.signatureBatch, signatures: Object.freeze(signatures) }),
+      trustRegistry: fixture.registry,
+      verifier: fixture.verifier,
+      now: NOW,
+      revisionStore: host.revisionStore,
+      progressSnapshot: initialProgress,
+      sourceControlPort: source,
+      progressPort: progress,
+      bootstrapPort: host.bootstrapPort,
+      expectedRepositoryFullName: REPOSITORY,
+    });
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "signed-editorial-promotion-blocked",
+      promotion: {
+        status: "blocked",
+        reason: "editorial-promotion-blocked",
+        authorization: {
+          status: "blocked",
+          reason: "signature-verification-failed",
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        },
+      },
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(host.revisionStore.value).toBe(3);
+    expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
+    expect(progress.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
+  });
 
 });

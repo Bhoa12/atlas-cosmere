@@ -20,7 +20,8 @@
     "expo-file-system": "~17.0.1",
     "fflate": "0.8.3",
     "@noble/hashes": "1.8.0",
-    "@xmldom/xmldom": "0.9.12"
+    "@xmldom/xmldom": "0.9.12",
+    "@noble/curves": "2.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

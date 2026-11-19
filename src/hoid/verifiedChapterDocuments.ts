@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 168 adds The Final Empire chapter four, The Way of Kings chapter eleven, and Edgedancer/Dawnshard chapter twelve.
+ * Run 168 and Run 170 add four individually inspected chapter documents each across the same four works.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -30,6 +30,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       9: "c5737b3dc6b37d9bd9166d910f70c2f39f522ceb07123703387b34399e703945",
       10: "9c01e31f6d72a910dc1c742609aaf107eaf63f83bb94b4a681df39c8fc08995d",
       11: "3198740aafd799096672d6a893b925c08a4f33819219e7769761319eaea97ae5",
+      12: "1f220d29b388c67834fb11d21fdb120407d1220531d735f946c00cc26223e838",
     }),
   }),
   edgedancer: Object.freeze({
@@ -48,6 +49,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       10: "4fe0dc1e86f52d76bcabef23c4b730ba15543db5491559eed44462b4dfbfe6bf",
       11: "1b3d61d87c1a1d7f14f7199996d7751b88c4a1b19f5a2fd808d1bcf8b72bd673",
       12: "d02ecf9613cb9ae5ff8f95984b2a7bcdf56b19c72e9dcc6f193a1a959150155c",
+      13: "341ffa8144efe7c054d92bbedd54246889a92b268db7b62118f6b651095a516d",
     }),
   }),
   dawnshard: Object.freeze({
@@ -66,6 +68,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       10: "0f5c780ddda44ce97eb36d944182c2ffe80fb86867a00e60fc4143377dd9dd22",
       11: "c12c49b2ad8813fe5d24894c6be43384e1da23875cf204e4129db9b5f20dddbc",
       12: "d5d73c0ebaaaeccf2dfbd2f16315aa521b860c043c0b61b971bbce76b7bc8990",
+      13: "e0a97fb4d28b90b99169e6afcdf4fbd3e42b67c1ff5b0c61e0cb4aad6405544c",
     }),
   }),
   tfe: Object.freeze({
@@ -76,6 +79,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       2: "13604dc85df709443e6cd215a3e1a9deabe8f69f118dcc9823127b82ad486fc1",
       3: "bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7",
       4: "6b729cfc609f926a4bac5b10f3eb5148a7c8935adde54f51f4ff13b9995b35d7",
+      5: "ec48d5ed29ede0760a63d913fcc71d79c908d879fe62841fe6cbfc64d90676d8",
     }),
   }),
 });

@@ -457,7 +457,7 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
       const raw = exactRecord(input, ["trustDomainId", "expectedRevision", "nextRevision"]);
       if (
         !raw ||
-        raw.trustDomainId !== configuration.trustDomainId ||
+        raw.trustDomainId !== pinnedConfiguration.trustDomainId ||
         !Number.isSafeInteger(raw.expectedRevision) ||
         !Number.isSafeInteger(raw.nextRevision) ||
         (raw.expectedRevision as number) < 1 ||
@@ -468,8 +468,8 @@ export function createHoidRemoteTrustRegistryRevisionStorePort(
       const request: HoidTrustRevisionWitnessCompareAndSetRequest = Object.freeze({
         schemaVersion: 1,
         operation: "compare-and-set-minimum-revision",
-        witnessId: configuration.witnessId,
-        trustDomainId: configuration.trustDomainId,
+        witnessId: pinnedConfiguration.witnessId,
+        trustDomainId: pinnedConfiguration.trustDomainId,
         expectedRevision: raw.expectedRevision as number,
         nextRevision: raw.nextRevision as number,
         requestNonceHex,

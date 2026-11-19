@@ -747,12 +747,17 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
 
       for (const document of packageDefiningDocuments) {
         const finalEntry = requireFile(finalEntries, document.path);
-        const finalBytes = await readCheckedEntry(
-          dependencies.archive,
-          source.sourceId,
-          finalEntry,
-          document.maximumBytes,
-        );
+        let finalBytes: Uint8Array;
+        try {
+          finalBytes = await readCheckedEntry(
+            dependencies.archive,
+            source.sourceId,
+            finalEntry,
+            document.maximumBytes,
+          );
+        } catch {
+          reject("source-changed");
+        }
         if (await digestBytes(dependencies.digest, finalBytes) !== document.digest) {
           reject("source-changed");
         }

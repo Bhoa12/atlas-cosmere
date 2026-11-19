@@ -6,11 +6,11 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 32 original chapter summaries;
+- 35 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 32 distinct edition-bound source documents.
+- 35 distinct edition-bound source documents.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -50,9 +50,9 @@ The protected promotion authority still requires a trusted source-control adapte
 
 The current Library copies were rechecked. The eighth numbered chapter in the Roshar omnibus (`twok`) and the ninth numbered chapters in `edgedancer` and `dawnshard` were located in their exact TOCs, matched to OPF manifest entries and confirmed in the spine before hashing. Their document digests are recorded in `verifiedChapterDocuments.ts`.
 
-The staging manifest now contains 50 records across 32 distinct chapter-body documents: 32 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its status remains `ready-for-review`; no summary or dossier is approved by this structural status.
+The staging manifest now contains 53 records across 35 distinct chapter-body documents: 35 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its status remains `ready-for-review`; no summary or dossier is approved by this structural status.
 
-The chapter-eight summary unlocks only after chapter nine is completed. The three chapter-nine summaries unlock only after chapter ten is completed. The two chapter-ten summaries unlock only after chapter eleven is completed. All five remain pending review and are excluded from the production registry.
+The chapter-eight summary unlocks only after chapter nine is completed. The three chapter-nine summaries unlock only after chapter ten is completed. The three chapter-ten summaries unlock only after chapter eleven is completed. The two chapter-eleven summaries unlock only after chapter twelve is completed. All nine remain pending review and are excluded from the production registry.
 
 See `docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md` for exact edition IDs, navigation digests, relative locators and document digests. No EPUB bytes, XHTML bodies or source passages were committed.
 
@@ -68,3 +68,12 @@ The current Library listing contained the Roshar omnibus, Danzante del Filo and 
 Three original Spanish summaries were added to staging. Their unlock thresholds are chapter 10 for El Camino de los Reyes and chapter 11 for each novella. All remain pending review. The production registry, approved-claim registry and topic-assignment activation receipt remain unchanged.
 
 The current Library listing did not include cosmere.epub, so no new Cosmere chapter was inspected. No EPUB bytes, XHTML bodies or source passages were committed.
+
+
+## Run 165 — continued Roshar source expansion
+
+A second read-only pass inspected the next numbered chapter in each of the three available Roshar EPUBs: El Camino de los Reyes chapter 10, Danzante del Filo chapter 11 and Esquirla del amanecer chapter 11. Each target was resolved from the existing TOC, confirmed in the OPF manifest and spine, and SHA-256 fingerprinted. Three additional original Spanish summaries were staged, each unlocking only at chapter 11 or 12 as appropriate. All remain pending review.
+
+The staging inventory now contains 53 metadata-only records across 35 distinct chapter-body documents: 35 summaries, one atomic claim, 14 entity dossiers and three relationship claims. Production remains empty.
+
+See docs/hoid/ROSHAR_CHAPTER_TEN_ELEVEN_INGESTION.md for the exact source metadata. No EPUB bytes, XHTML bodies or source passages were committed.

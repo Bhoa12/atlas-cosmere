@@ -375,6 +375,39 @@ describe("concrete local EPUB runtime adapters", () => {
       .rejects.toThrow(/UTF-8/);
   });
 
+  it("preflights XML node count and depth before constructing the DOM", async () => {
+    const xml = createHoidXmldomXmlPort();
+    const nested = "<x>".repeat(257) + "</x>".repeat(257);
+    await expect(xml.parseContainerXml(strToU8(nested))).rejects.toThrow(/depth/i);
+
+    const manyNodes = "<x/>".repeat(100_001);
+    await expect(xml.parseContainerXml(strToU8(manyNodes))).rejects.toThrow(/node/i);
+  });
+
+  it("ignores markup-like text inside comments and CDATA during structural preflight", async () => {
+    const xml = createHoidXmldomXmlPort();
+    const document = strToU8(
+      '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
+      '<!-- <ignored/> -->' +
+      '<rootfiles><![CDATA[<not-an-element/>]]>' +
+      '<rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>' +
+      '</rootfiles></container>',
+    );
+    await expect(xml.parseContainerXml(document)).resolves.toEqual({
+      rootfiles: [{
+        fullPath: "OEBPS/content.opf",
+        mediaType: "application/oebps-package+xml",
+      }],
+    });
+  });
+
+  it("rejects unbound namespace prefixes instead of accepting a namespace-free tree", async () => {
+    const xml = createHoidXmldomXmlPort();
+    await expect(xml.parseContainerXml(strToU8(
+      "<x:container><x:rootfiles/></x:container>",
+    ))).rejects.toThrow();
+  });
+
   it("calculates standard SHA-256 digests for bytes and UTF-8 text", async () => {
     const digest = createHoidNobleDigestPort();
     const expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";

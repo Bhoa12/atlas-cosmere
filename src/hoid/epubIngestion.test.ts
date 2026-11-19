@@ -71,6 +71,7 @@ function makeFixture(navigationSha256 = EXPECTED_NAVIGATION_SHA256) {
     return Object.freeze({
       path,
       ordinal,
+      localHeaderExtraFieldLength: 0,
       kind: "file" as const,
       compressionMethod: ordinal === 0 ? "stored" as const : "deflated" as const,
       compressedSize: data.byteLength === 20 && ordinal === 0 ? 20 : Math.max(1, Math.ceil(data.byteLength / 2)),
@@ -296,6 +297,16 @@ describe("offline EPUB ingestion core", () => {
     expect(fixture.xml.parseContainerXml).not.toHaveBeenCalled();
   });
 
+  it("rejects an EPUB mimetype local header with an extra field", async () => {
+    const fixture = makeFixture();
+    fixture.entries[0] = Object.freeze({
+      ...fixture.entries[0],
+      localHeaderExtraFieldLength: 4,
+    });
+    await expect(fixture.service.inspectPackage(fixture.source))
+      .resolves.toEqual({ status: "rejected", reason: "mimetype-invalid" });
+  });
+
   it("rejects duplicate archive paths and case-fold collisions", async () => {
     const fixture = makeFixture();
     fixture.entries.push(Object.freeze({
@@ -324,6 +335,7 @@ describe("offline EPUB ingestion core", () => {
     fixture.entries.splice(1, 0, Object.freeze({
       path: "META-INF/",
       ordinal: 1,
+      localHeaderExtraFieldLength: 0,
       kind: "directory" as const,
       compressionMethod: "stored" as const,
       compressedSize: 0,
@@ -343,6 +355,7 @@ describe("offline EPUB ingestion core", () => {
     fixture.entries.unshift(Object.freeze({
       path: "META-INF/",
       ordinal: 0,
+      localHeaderExtraFieldLength: 0,
       kind: "directory" as const,
       compressionMethod: "stored" as const,
       compressedSize: 0,

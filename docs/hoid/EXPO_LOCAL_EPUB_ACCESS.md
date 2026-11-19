@@ -17,6 +17,12 @@ The SDK 51 ReadingOptions contract supports position and length only when encodi
 
 The picker uses copyToCacheDirectory: true, because Expo documents this as the option that makes a picked document immediately readable by FileSystem. The temporary copy is deleted on release only when its URI is beneath the app cache directory. External provider URIs are never deleted.
 
+## Archive size budgets
+
+The range-based local/Expo path accepts archives up to **320 MiB**. This accommodates large merged collections while retaining bounded random-access reads. The ingestion budget remains 512 MiB total uncompressed data, 50,000 entries, 16 MiB central directory, 16 MiB compressed member, 64 MiB uncompressed member and a 200:1 maximum compression ratio.
+
+The legacy byte-array adapter deliberately remains capped at **256 MiB** because it materializes the complete archive in a JavaScript buffer. The Expo UI composes the range-based adapter, not the byte-array adapter. Both limits are sourced from the canonical ingestion budget so the picker and ZIP parser cannot drift apart.
+
 ## Memory model
 
 The original byte-array resolver remains available for tests and small sources. The Expo path uses HoidEpubRandomAccessSource:

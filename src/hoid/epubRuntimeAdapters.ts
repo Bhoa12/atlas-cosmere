@@ -317,17 +317,20 @@ function parseZipArchive(bytes: Uint8Array): ParsedZipArchive {
 
     let recordEnd = dataEnd;
     if (usesDataDescriptor) {
-      let descriptorOffset = dataEnd;
+      const candidates = [dataEnd];
       if (
-        descriptorOffset + 4 <= centralOffset &&
-        readU32(bytes, descriptorOffset) === ZIP_DATA_DESCRIPTOR_SIGNATURE
-      ) descriptorOffset += 4;
-      if (descriptorOffset + 12 > centralOffset) throw new Error("ZIP data descriptor is truncated");
-      if (
-        readU32(bytes, descriptorOffset) !== entry.crc ||
-        readU32(bytes, descriptorOffset + 4) !== entry.compressedSize ||
-        readU32(bytes, descriptorOffset + 8) !== entry.uncompressedSize
-      ) throw new Error("ZIP data descriptor disagrees with the central directory");
+        dataEnd + 4 <= centralOffset &&
+        readU32(bytes, dataEnd) === ZIP_DATA_DESCRIPTOR_SIGNATURE
+      ) candidates.unshift(dataEnd + 4);
+      const descriptorOffset = candidates.find(offset =>
+        offset + 12 <= centralOffset &&
+        readU32(bytes, offset) === entry.crc &&
+        readU32(bytes, offset + 4) === entry.compressedSize &&
+        readU32(bytes, offset + 8) === entry.uncompressedSize,
+      );
+      if (descriptorOffset === undefined) {
+        throw new Error("ZIP data descriptor disagrees with the central directory");
+      }
       recordEnd = descriptorOffset + 12;
     }
 

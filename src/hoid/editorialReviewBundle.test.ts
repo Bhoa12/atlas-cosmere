@@ -131,6 +131,17 @@ function approvedRelationshipReceipt(packet: (typeof packets.relationships)[numb
   };
 }
 
+function expectedApprovedCount(counts: Readonly<{
+  revisionRequiredCount: number;
+  rejectedCount?: number;
+  missingCount?: number;
+}>): number {
+  return manifest.packets.length
+    - counts.revisionRequiredCount
+    - (counts.rejectedCount ?? 0)
+    - (counts.missingCount ?? 0);
+}
+
 function completeReceiptBatch(reviewPackets = packets, reviewFingerprint = manifest.fingerprint) {
   return {
     schemaVersion: 1,
@@ -291,7 +302,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "needs-revision",
-      approvedCount: 45,
+      approvedCount: expectedApprovedCount({ revisionRequiredCount: 2 }),
       revisionRequiredCount: 2,
       rejectedCount: 0,
       missingCount: 0,
@@ -309,7 +320,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "incomplete",
-      approvedCount: 45,
+      approvedCount: expectedApprovedCount({ revisionRequiredCount: 1, missingCount: 1 }),
       revisionRequiredCount: 1,
       missingCount: 1,
     });

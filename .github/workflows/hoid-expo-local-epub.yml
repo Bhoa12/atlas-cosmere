@@ -1,0 +1,68 @@
+name: Hoid Expo local EPUB access
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "package.json"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.test.ts"
+      - "src/hoid/expoLocalEpubProvider.ts"
+      - "src/hoid/expoLocalEpubProvider.test.ts"
+      - "src/hoid/expoLocalEpubPlatform.ts"
+      - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
+      - ".github/workflows/hoid-expo-local-epub.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.test.ts"
+      - "src/hoid/expoLocalEpubProvider.ts"
+      - "src/hoid/expoLocalEpubProvider.test.ts"
+      - "src/hoid/expoLocalEpubPlatform.ts"
+      - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
+      - ".github/workflows/hoid-expo-local-epub.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  expo-local-epub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install SDK 51 dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify Expo SDK package compatibility
+        run: npx expo install --check
+      - name: Test range ZIP and local source provider
+        run: >-
+          npx vitest run
+          src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/expoLocalEpubProvider.test.ts
+          src/hoid/epubIngestion.test.ts
+      - name: Type-check the local ingestion boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/epubRangeRuntimeAdapters.ts
+          src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/expoLocalEpubProvider.ts
+          src/hoid/expoLocalEpubProvider.test.ts
+          src/hoid/expoLocalEpubPlatform.ts
+          src/hoid/epubIngestion.ts
+          src/hoid/epubRuntimeAdapters.ts
+          src/hoid/epubRuntimeAdapters.test.ts
+          src/hoid/epubIngestion.test.ts
+          src/hoid/editionStructure.ts
+          src/hoid/bibliography.ts
+          src/hoid/sourceCoverage.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/readingManifest.ts

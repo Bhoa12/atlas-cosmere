@@ -466,7 +466,7 @@ const RAW_EDITORIAL_CLAIM_DRAFTS: readonly unknown[] = Object.freeze([
     ]),
     integrity: Object.freeze({
       statementSha256: "b2bb4bd4bb7a7d7fd5fbc8145d83d94d51426ba7e12fde779cb905c265767a31",
-      claimSha256: "45d6d2eb657f9ea6056a0b4fb40b355318c0ec3fa7778a0a6b88572ca6583f66",
+      claimSha256: "4bc755045c563fa74ae6bb996ae854283b54e56d1c5f9c9e5d88c63fc6c4ec57",
     }),
     review: Object.freeze({ status: "pending-review" }),
   }),

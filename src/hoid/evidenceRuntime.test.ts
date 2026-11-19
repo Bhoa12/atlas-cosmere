@@ -23,7 +23,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     kind: "character",
     firstSafeAppearance: { bookId: "twok", chapter: 2 },
     evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
-    evidenceUnlock: { bookId: "twok", chapter: 2 },
+    evidenceUnlock: { bookId: "twok", chapter: 3 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Personaje Alfa.",
   },
@@ -33,7 +33,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     kind: "character",
     firstSafeAppearance: { bookId: "edgedancer", chapter: 3 },
     evidenceSource: { bookId: "edgedancer", chapter: 3, locatorId: locator("edgedancer", 3) },
-    evidenceUnlock: { bookId: "edgedancer", chapter: 3 },
+    evidenceUnlock: { bookId: "edgedancer", chapter: 4 },
     provenance: "verified",
     summary: "Resumen editorial original de prueba sobre Personaje Beta.",
   },
@@ -43,7 +43,7 @@ const knowledge: HoidKnowledgeEntry[] = [
     kind: "concept",
     firstSafeAppearance: { bookId: "twok", chapter: 1 },
     evidenceSource: { bookId: "twok", chapter: 1, locatorId: locator("twok", 1) },
-    evidenceUnlock: { bookId: "twok", chapter: 1 },
+    evidenceUnlock: { bookId: "twok", chapter: 2 },
     provenance: "limited",
     summary: "Resumen que todavía no puede utilizarse como evidencia.",
   },
@@ -136,7 +136,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("authorized");
@@ -162,7 +162,7 @@ describe("HoidEvidenceRuntime", () => {
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
         { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
       ],
     });
 
@@ -173,8 +173,8 @@ describe("HoidEvidenceRuntime", () => {
     const unlocked = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 4 },
       ],
     });
 
@@ -210,7 +210,7 @@ describe("HoidEvidenceRuntime", () => {
     const bothUnlocked = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 2 },
+        { bookId: "twok", chapter: 3 },
         { bookId: "edgedancer", chapter: 4 },
       ],
     });
@@ -226,7 +226,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("blocked");
@@ -239,7 +239,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("blocked");
@@ -283,7 +283,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Qué es Concepto limitado?",
-      reading: [{ bookId: "twok", chapter: 1 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -298,7 +298,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -356,7 +356,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -429,7 +429,7 @@ describe("HoidEvidenceRuntime", () => {
 
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
     });
 
     expect(result.status).toBe("abstain");
@@ -489,8 +489,8 @@ describe("HoidEvidenceRuntime", () => {
     const result = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
       reading: [
-        { bookId: "twok", chapter: 2 },
-        { bookId: "edgedancer", chapter: 3 },
+        { bookId: "twok", chapter: 3 },
+        { bookId: "edgedancer", chapter: 4 },
       ],
       entityIds: ["e-alpha", "e-beta"],
     });
@@ -511,7 +511,7 @@ describe("HoidEvidenceRuntime", () => {
     });
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",
-      reading: [{ bookId: "twok", chapter: 2 }],
+      reading: [{ bookId: "twok", chapter: 3 }],
       entityIds: ["e-alpha"],
     });
 
@@ -527,7 +527,7 @@ describe("HoidEvidenceRuntime", () => {
     for (const entityIds of [["missing-entity"], ["e-alpha", "e-alpha"], sparse]) {
       const result = await runtime!.answer({
         question: "¿Quién es Personaje Alfa?",
-        reading: [{ bookId: "twok", chapter: 2 }],
+        reading: [{ bookId: "twok", chapter: 3 }],
         entityIds,
       });
       expect(result.status).toBe("blocked");

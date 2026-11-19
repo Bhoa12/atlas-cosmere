@@ -16,7 +16,7 @@ import {
 } from "./editorialRelationshipDrafts";
 import type { HoidEditorialClaimEvidence } from "./editorialClaimDrafts";
 
-function evidence(bookId: string, chapter = 3, unlockChapter = chapter + 1): HoidEditorialClaimEvidence {
+function evidence(bookId: string, chapter = 3, unlockChapter = chapter): HoidEditorialClaimEvidence {
   const manifestResult = getHoidReadingManifest(bookId);
   if (manifestResult.status !== "ready") throw new Error("Manifest de prueba no disponible");
   const unit = manifestResult.manifest.units.find(item => item.chapterNumber === chapter);
@@ -104,13 +104,13 @@ describe("Hoid multi-entity relationship staging", () => {
     }
   });
 
-  it("binds each relationship to the exact chapter-three source and chapter-four unlock threshold", () => {
+  it("binds each relationship to the exact chapter-three completed-through watermark", () => {
     for (const draft of HOID_EDITORIAL_RELATIONSHIP_DRAFTS) {
       expect(draft.evidence).toHaveLength(1);
       expect(draft.evidence[0].source.chapter).toBe(3);
       expect(draft.evidence[0].unlock).toEqual({
         bookId: draft.evidence[0].source.bookId,
-        chapter: 4,
+        chapter: 3,
       });
       expect(draft.evidence[0].sourceIntegrity.documentSha256).toMatch(/^[a-f0-9]{64}$/);
     }
@@ -133,14 +133,14 @@ describe("Hoid multi-entity relationship staging", () => {
     expect(validateHoidEditorialRelationshipDraft(result.draft).status).toBe("valid");
   });
 
-  it("withholds a relationship while chapter four is open and makes it eligible after chapter four is completed", () => {
+  it("withholds a relationship while chapter three is open and makes it eligible when chapter four is reached", () => {
     const draft = HOID_EDITORIAL_RELATIONSHIP_DRAFTS.find(item => item.id === "twok.relationship.shallan-seeks-jasnah")!;
-    const before = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 4));
+    const before = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 3));
     expect(before.status).toBe("ready");
     if (before.status !== "ready") return;
     expect(before.evaluations[0].status).toBe("withheld");
 
-    const after = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 5));
+    const after = evaluateHoidEditorialRelationshipDrafts([draft], progress("twok", 4));
     expect(after.status).toBe("ready");
     if (after.status !== "ready") return;
     expect(after.evaluations[0].status).toBe("eligible-for-review");
@@ -169,7 +169,7 @@ describe("Hoid multi-entity relationship staging", () => {
     expect(partial.evaluations[0].status).toBe("withheld");
     if (partial.evaluations[0].status === "withheld") {
       expect(partial.evaluations[0].missingRequirements).toEqual([
-        { bookId: "edgedancer", chapter: 4 },
+        { bookId: "edgedancer", chapter: 3 },
       ]);
     }
   });

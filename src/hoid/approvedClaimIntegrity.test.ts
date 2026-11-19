@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HoidKnowledgeEntry } from "./catalog";
 import {
   createHoidApprovedClaimAttestation,
+  inspectHoidApprovedClaimEvidenceBinding,
   validateHoidApprovedClaimAttestation,
 } from "./approvedClaimIntegrity";
 import { getHoidReadingManifest } from "./readingManifest";
@@ -76,6 +77,7 @@ describe("Hoid approved-claim integrity", () => {
       manifestResult.manifest.navigationSha256,
       2,
     )).toMatch(/^[a-f0-9]{64}$/);
+    expect(inspectHoidApprovedClaimEvidenceBinding("e-alpha", knowledge)).toEqual({ status: "valid" });
   });
 
 
@@ -199,7 +201,9 @@ describe("Hoid approved-claim integrity", () => {
 
   it("rejects unknown evidence IDs and non-canonical claim shapes", () => {
     const unknown = createHoidApprovedClaimAttestation({
-      ...core,
+      id: "claim-unknown",
+      text: "Afirmación sintética.",
+      intent: "explain",
       evidenceIds: ["missing-evidence"],
     }, knowledge, reviewer);
     expect(unknown).toEqual({ status: "invalid", reason: "unverified-source" });

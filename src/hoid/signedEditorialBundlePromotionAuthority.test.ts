@@ -17,6 +17,7 @@ import {
 } from "./editorialReviewSignatures";
 import {
   authorizeHoidSignedEditorialBundlePromotion,
+  buildHoidEditorialBundlePromotionPlan,
   buildHoidEditorialReviewPacketSigningMessage,
   type HoidEditorialBundleSignatureBatch,
 } from "./signedEditorialBundlePromotionAuthority";

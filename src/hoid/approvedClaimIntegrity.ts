@@ -122,7 +122,6 @@ function exactRecord(
 function denseIds(value: unknown, maximum: number): readonly string[] | null {
   try {
     if (!Array.isArray(value) || value.length < 1 || value.length > maximum) return null;
-    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
     const keys = Reflect.ownKeys(value);
     if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
 
@@ -202,7 +201,6 @@ function canonicalCore(value: unknown): HoidApprovedClaimCore | null {
 function knowledgeById(value: unknown): ReadonlyMap<string, unknown> | null {
   try {
     if (!Array.isArray(value) || value.length > 512) return null;
-    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
     const keys = Reflect.ownKeys(value);
     if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
 
@@ -234,7 +232,6 @@ function knowledgeById(value: unknown): ReadonlyMap<string, unknown> | null {
 function canonicalAliases(value: unknown): readonly string[] | null {
   try {
     if (!Array.isArray(value) || value.length < 1 || value.length > 64) return null;
-    if (Object.getPrototypeOf(value) !== Array.prototype) return null;
     const keys = Reflect.ownKeys(value);
     if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
     const aliases: string[] = [];

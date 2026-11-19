@@ -263,4 +263,22 @@ describe("Hoid GitHub source-control review adapter", () => {
       createHoidGitHubSourceControlReviewPort(api).fetchProtectedReviewSnapshot(request),
     ).rejects.toThrow("CODEOWNERS approval identities could not be verified");
   });
+
+  it("fails closed when GitHub omits the exact base commit SHA", async () => {
+    const api = apiWith({
+      getPullRequest: vi.fn(async () => ({
+        state: "open",
+        draft: false,
+        baseRef: request.expectedBaseRef,
+        headRef: request.expectedHeadRef,
+        headSha: HEAD_SHA,
+        authorId: "author",
+      })),
+    });
+    await expect(
+      createHoidGitHubSourceControlReviewPort(api).fetchProtectedReviewSnapshot(request),
+    ).rejects.toThrow("Invalid GitHub pull request response");
+  });
+
+
 });

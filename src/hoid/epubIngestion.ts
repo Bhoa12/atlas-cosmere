@@ -217,7 +217,7 @@ function exactDataRecord(value: unknown, keys: readonly string[]): value is Reco
 }
 
 function denseArray(value: unknown, maximumLength: number): value is readonly unknown[] {
-  if (!Array.isArray(value) || value.length > maximumLength) return false;
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype || value.length > maximumLength) return false;
   const keys = Reflect.ownKeys(value);
   if (keys.length !== value.length + 1 || !keys.includes("length")) return false;
   for (let index = 0; index < value.length; index += 1) {

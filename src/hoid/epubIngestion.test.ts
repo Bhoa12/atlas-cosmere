@@ -195,6 +195,19 @@ describe("offline EPUB ingestion core", () => {
     )).resolves.toEqual({ status: "rejected", reason: "source-changed" });
   });
 
+  it("detects container replacement between package inspection and chapter inspection", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    const previous = fixture.contents.get("META-INF/container.xml")!;
+    fixture.contents.set("META-INF/container.xml", new Uint8Array(previous.byteLength).fill(66));
+
+    await expect(fixture.service.inspectChapterDocument(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml",
+    )).resolves.toEqual({ status: "rejected", reason: "source-changed" });
+  });
+
   it("rejects source descriptors with getters without evaluating them", async () => {
     const fixture = makeFixture();
     let getterCalled = false;

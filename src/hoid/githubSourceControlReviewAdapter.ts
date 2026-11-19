@@ -32,6 +32,7 @@ type CanonicalPullRequest = Readonly<{
   state: "open" | "closed";
   draft: boolean;
   baseRef: string;
+  baseSha: string;
   headRef: string;
   headSha: string;
   authorId: string;
@@ -58,6 +59,7 @@ const REQUEST_KEYS = new Set([
   "repositoryFullName",
   "pullRequestNumber",
   "expectedBaseRef",
+  "expectedBaseSha",
   "expectedHeadRef",
   "expectedHeadSha",
   "promotionManifestPath",
@@ -67,7 +69,7 @@ const REQUEST_KEYS = new Set([
   "requireEnforcedAdmins",
   "promotionPlanFingerprint",
 ]);
-const PULL_REQUEST_KEYS = new Set(["state", "draft", "baseRef", "headRef", "headSha", "authorId"]);
+const PULL_REQUEST_KEYS = new Set(["state", "draft", "baseRef", "baseSha", "headRef", "headSha", "authorId"]);
 const REVIEW_KEYS = new Set([
   "reviewId",
   "reviewerId",
@@ -180,13 +182,15 @@ function canonicalRequest(value: unknown): HoidProtectedReviewFetchRequest | nul
   const raw = canonicalRecord(value, REQUEST_KEYS);
   if (
     !raw ||
-    raw.schemaVersion !== 1 ||
+    raw.schemaVersion !== 2 ||
     typeof raw.repositoryFullName !== "string" ||
     !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
     !Number.isSafeInteger(raw.pullRequestNumber) ||
     (raw.pullRequestNumber as number) < 1 ||
     typeof raw.expectedBaseRef !== "string" ||
     !REF_PATTERN.test(raw.expectedBaseRef) ||
+    typeof raw.expectedBaseSha !== "string" ||
+    !SHA_PATTERN.test(raw.expectedBaseSha) ||
     typeof raw.expectedHeadRef !== "string" ||
     !REF_PATTERN.test(raw.expectedHeadRef) ||
     raw.expectedBaseRef === raw.expectedHeadRef ||
@@ -204,10 +208,11 @@ function canonicalRequest(value: unknown): HoidProtectedReviewFetchRequest | nul
     !FINGERPRINT_PATTERN.test(raw.promotionPlanFingerprint)
   ) return null;
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     repositoryFullName: raw.repositoryFullName,
     pullRequestNumber: raw.pullRequestNumber as number,
     expectedBaseRef: raw.expectedBaseRef,
+    expectedBaseSha: raw.expectedBaseSha,
     expectedHeadRef: raw.expectedHeadRef,
     expectedHeadSha: raw.expectedHeadSha,
     promotionManifestPath: raw.promotionManifestPath,
@@ -227,6 +232,8 @@ function canonicalPullRequest(value: unknown): CanonicalPullRequest | null {
     typeof raw.draft !== "boolean" ||
     typeof raw.baseRef !== "string" ||
     !REF_PATTERN.test(raw.baseRef) ||
+    typeof raw.baseSha !== "string" ||
+    !SHA_PATTERN.test(raw.baseSha) ||
     typeof raw.headRef !== "string" ||
     !REF_PATTERN.test(raw.headRef) ||
     typeof raw.headSha !== "string" ||
@@ -239,6 +246,7 @@ function canonicalPullRequest(value: unknown): CanonicalPullRequest | null {
     state: raw.state,
     draft: raw.draft,
     baseRef: raw.baseRef,
+    baseSha: raw.baseSha,
     headRef: raw.headRef,
     headSha: raw.headSha,
     authorId: raw.authorId,
@@ -446,12 +454,13 @@ export function createHoidGitHubSourceControlReviewPort(
       if (!canonicalTimestamp(verifiedAt)) throw new Error("Invalid review verification timestamp");
 
       return Object.freeze({
-        schemaVersion: 1,
+        schemaVersion: 2,
         repositoryFullName: request.repositoryFullName,
         pullRequestNumber: request.pullRequestNumber,
         state: pullRequest.state,
         draft: pullRequest.draft,
         baseRef: pullRequest.baseRef,
+        baseSha: pullRequest.baseSha,
         headRef: pullRequest.headRef,
         headSha: pullRequest.headSha,
         authorId: pullRequest.authorId,

@@ -43,3 +43,7 @@ El registro de producción permanece vacío hasta que la revisión protegida y l
 ## Privacidad
 
 Solo se almacenan huellas, identificadores, metadatos de edición, localizadores y resúmenes originales. No se copia texto EPUB, XHTML, imágenes ni pasajes protegidos.
+
+## Integración con el grafo de conocimiento
+
+El constructor del grafo no reconstruye una afirmación reducida a partir de id, texto y revisión. Valida y conserva el registro completo mediante `validateHoidApprovedClaimAttestation`, incluyendo sus cuatro huellas y su correspondencia exacta con las evidencias. Una afirmación modificada después de la atestación invalida el grafo completo; no se omiten campos de integridad ni se degrada a una validación superficial.

@@ -874,7 +874,7 @@ export async function verifyHoidReviewerBoundPayloadSignatures(
       return Object.freeze({ status: "invalid", reason: "repository-not-authorized", index });
     }
 
-    const outcome = await verify( {
+    const outcome = await verifySignature(verify, {
       publicKeyHex: key.publicKeyHex,
       message: request.message,
       signatureHex: request.signatureHex,

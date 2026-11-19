@@ -53,18 +53,26 @@ export const HoidScreen: React.FC = () => {
   const {
     hoidCursorProgressSnapshot,
     getHoidCursorProgressSnapshot,
+    refreshHoidCursorProgressSnapshot,
     progresoPersistenciaEstado,
   } = useCosmere();
   const progressReaderRef = useRef(getHoidCursorProgressSnapshot);
   progressReaderRef.current = getHoidCursorProgressSnapshot;
+  const progressRefreshRef = useRef(refreshHoidCursorProgressSnapshot);
+  progressRefreshRef.current = refreshHoidCursorProgressSnapshot;
   // Ephemeral ID-only context: never persisted to SQLite, messages or providers.
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
   const conversationGateway = hoidRuntime
-    ? createHoidConversationGateway({ runtime: hoidRuntime, getCurrentProgress: () => progressReaderRef.current() })
+    ? createHoidConversationGateway({
+        runtime: hoidRuntime,
+        getCurrentProgress: () => progressReaderRef.current(),
+        refreshCurrentProgress: () => progressRefreshRef.current(),
+      })
     : null;
   const topicInterestGateway = createHoidTopicInterestRecommendationGateway({
     getCurrentProgress: () => progressReaderRef.current(),
+    refreshCurrentProgress: () => progressRefreshRef.current(),
     ...(topicApprovedClaimAnswerPort
       ? { answerApprovedClaims: topicApprovedClaimAnswerPort }
       : {}),
@@ -121,7 +129,7 @@ export const HoidScreen: React.FC = () => {
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
-    const currentProgress = progressReaderRef.current();
+    const currentProgress = await progressRefreshRef.current();
     if (!currentProgress) return;
     const requestProjection = projectHoidCursorProgressSnapshot(currentProgress);
     if (requestProjection.status !== 'ready') return;
@@ -322,7 +330,7 @@ export const HoidScreen: React.FC = () => {
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready' || !conversationGateway) return;
-    const currentProgress = progressReaderRef.current();
+    const currentProgress = await progressRefreshRef.current();
     if (!currentProgress) {
       setRecomendaciones([]);
       setRecommendationRevision(null);
@@ -396,7 +404,7 @@ export const HoidScreen: React.FC = () => {
       return;
     }
 
-    const currentProgress = progressReaderRef.current();
+    const currentProgress = await progressRefreshRef.current();
     const projection = currentProgress ? projectHoidCursorProgressSnapshot(currentProgress) : null;
     if (!currentProgress || projection?.status !== 'ready') {
       setTopicRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones temáticas.');

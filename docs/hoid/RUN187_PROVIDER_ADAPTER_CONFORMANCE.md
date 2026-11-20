@@ -13,13 +13,14 @@ No se incorpora ningún SDK ni proveedor concreto.
 - La lista de claves de la solicitud impide que progreso bruto, permisos o campos ajenos entren en el payload.
 - La fábrica vuelve a comprobar `AbortSignal` dentro de la microtarea de despacho.
 - El transporte recibe el snapshot original y un contexto congelado que contiene únicamente la señal de esa invocación.
+- Se aplican límites duros al tamaño de la pregunta, número de candidatos, presupuesto agregado, texto de cada afirmación y evidencias por candidato.
 - Los errores síncronos del transporte se convierten en rechazos de promesa; el runtime superior conserva la responsabilidad de clasificarlos y cerrar la consulta.
 
 ## Conformidad mínima para futuros adaptadores
 
 Cada adaptador concreto deberá probar que:
 
-1. Usa `createHoidClaimSelectorAdapter()` o implementa las mismas garantías.
+1. Usa `createHoidClaimSelectorAdapter()` o implementa exactamente las mismas garantías.
 2. No despacha transporte cuando la señal ya está abortada.
 3. Vuelve a comprobar la cancelación justo antes del despacho diferido.
 4. Propaga la misma señal al transporte HTTP/SDK cuando sea compatible.
@@ -34,9 +35,12 @@ La señal es cooperativa. Un transporte que ignore `AbortSignal` puede continuar
 
 La fábrica no autentica al proveedor y no convierte el fingerprint en una credencial. La autorización narrativa y el control de spoilers siguen siendo locales.
 
-## Pruebas
+## Pruebas y CI
 
-`providerAdapter.test.ts` usa transportes sintéticos para comprobar snapshots inmutables, ausencia de progreso bruto, cancelación previa al despacho, propagación durante una operación activa, fingerprint y encapsulación de excepciones.
+- `providerAdapter.test.ts` usa transportes sintéticos para comprobar snapshots inmutables, ausencia de progreso bruto, límites duros, cancelación previa al despacho, propagación durante una operación activa, fingerprint y encapsulación de excepciones.
+- `selectionProtocol.test.ts` cubre el sobre versionado y la validación de la respuesta.
+- `providerTimeout.test.ts` cubre deadline, aborto y resultados tardíos.
+- `.github/workflows/hoid-provider-adapter-conformance.yml` ejecuta esas pruebas y un type-check estricto cada vez que cambia esta frontera.
 
 No se utilizan EPUBs ni texto narrativo protegido.
 

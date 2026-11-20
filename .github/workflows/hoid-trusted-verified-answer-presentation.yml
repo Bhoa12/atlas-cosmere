@@ -1,0 +1,80 @@
+name: Hoid trusted verified answer presentation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.test.ts"
+      - "src/hoid/verifiedAnswerPresentation.ts"
+      - "src/hoid/verifiedAnswerPresentation.test.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/editorialReviewSignatures.test.ts"
+      - "src/hoid/trustedHostBootstrap.ts"
+      - "src/hoid/trustedHostBootstrap.test.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/SAFE_RESPONSE_INTEGRATION.md"
+      - "src/hoid/VERIFIED_ANSWER_PRESENTATION.md"
+      - "src/hoid/TRUSTED_VERIFIED_ANSWER_PRESENTATION.md"
+      - "docs/hoid/RUN196_SIGNED_PRESENTATION_AUTHORITY.md"
+      - ".github/workflows/hoid-trusted-verified-answer-presentation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.test.ts"
+      - "src/hoid/verifiedAnswerPresentation.ts"
+      - "src/hoid/verifiedAnswerPresentation.test.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/editorialReviewSignatures.test.ts"
+      - "src/hoid/trustedHostBootstrap.ts"
+      - "src/hoid/trustedHostBootstrap.test.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustRegistryRevisionStore.test.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/SAFE_RESPONSE_INTEGRATION.md"
+      - "src/hoid/VERIFIED_ANSWER_PRESENTATION.md"
+      - "src/hoid/TRUSTED_VERIFIED_ANSWER_PRESENTATION.md"
+      - "docs/hoid/RUN196_SIGNED_PRESENTATION_AUTHORITY.md"
+      - ".github/workflows/hoid-trusted-verified-answer-presentation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-verified-answer-presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cryptographically trusted presentation
+        run: >-
+          npx vitest run
+          src/hoid/trustedVerifiedAnswerPresentation.test.ts
+          src/hoid/verifiedAnswerPresentation.test.ts
+          src/hoid/editorialReviewSignatures.test.ts
+          src/hoid/trustedHostBootstrap.test.ts
+          src/hoid/trustRegistryRevisionStore.test.ts
+      - name: Type-check trusted presentation boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --lib ES2020,DOM
+          src/hoid/trustedVerifiedAnswerPresentation.ts

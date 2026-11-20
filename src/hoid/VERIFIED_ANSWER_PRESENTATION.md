@@ -4,7 +4,7 @@
 
 presentHoidEvidenceAnswer valida la forma de una respuesta, sus citas, el manifiesto de lectura y el umbral de desbloqueo. No recibe por sí sola el registro local de afirmaciones aprobadas; por tanto, debe tratarse como una frontera estructural de bajo nivel, no como la única autoridad para una integración que acepte objetos externos.
 
-createHoidVerifiedAnswerPresenter añade esa autoridad local.
+createHoidVerifiedAnswerPresenter añade autoridad local de integridad y reconstrucción.
 
 ## Construcción
 
@@ -37,11 +37,27 @@ El texto, las citas o los segmentos suministrados por un proveedor no se muestra
 - El progreso de una obra no desbloquea otra.
 - Un proveedor no puede inventar un ID, reescribir una afirmación ni sustituir su cita.
 - Los datos de configuración se validan y se copian al crear la fábrica; mutaciones posteriores del llamador no cambian el resultado.
-- Los hashes de integridad detectan alteraciones, pero no son firmas digitales ni autentican por sí solos la identidad del revisor.
-- La fábrica valida autorización y procedencia, no la pertinencia semántica respecto de la pregunta. La selección de afirmaciones sigue siendo responsabilidad del runtime local.
+- Los hashes detectan alteraciones, pero no son firmas digitales ni autentican por sí solos la identidad del revisor.
+- La fábrica valida autorización y procedencia, no la pertinencia semántica respecto de la pregunta.
 
-## Integración obligatoria
+## Autoridad criptográfica para producción
 
-Construir la fábrica desde los registros locales de producción, nunca desde una respuesta del proveedor. Pasar a present únicamente el resultado del runtime y el snapshot de progreso vigente. No renderizar directamente answer.text, answer.sources ni answer.segments antes de que la presentación devuelva status ready.
+La fábrica anterior es una frontera de integridad, no una prueba de identidad editorial. Un reviewerId y una atestación SHA-256 pueden ser recreados por código; no deben bastar para habilitar conocimiento de producción.
 
-La ausencia de un registro aprobado, de una huella de capítulo o de una posición inequívoca debe producir abstención. No se infieren capítulos, relaciones ni pasajes ausentes.
+Las integraciones de producción deben construir createHoidTrustedVerifiedAnswerPresenter desde el host confiable. Esta segunda frontera exige:
+
+- bootstrap con raíz pública fijada fuera de banda;
+- trust registry Ed25519 vigente y autorizado para el repositorio;
+- revisión mínima persistida en un almacén durable y resistente a rollback;
+- firma Ed25519 por cada afirmación y contexto exacto de revisión;
+- invalidación si cambia el bootstrap, la revisión persistida o la caducidad.
+
+La promoción del paquete editorial conserva además sus propios requisitos de recibos, múltiples revisores y revisión de GitHub. La verificación de una firma individual no sustituye ese gate.
+
+## Integración
+
+Construir la autoridad desde registros y configuración local del host, nunca desde una respuesta del proveedor. No renderizar answer.text, answer.sources ni answer.segments directamente. La interfaz solo puede mostrar el resultado ready de la autoridad criptográfica y estructural, con el snapshot de progreso vigente.
+
+La ausencia de un registro aprobado, una firma, una huella de capítulo, un bootstrap o un estado de confianza inequívoco debe producir abstención.
+
+La configuración real de confianza, la clave raíz, las claves privadas de revisores y el almacén anti-rollback deben permanecer fuera de la aplicación lectora. No se incluyen claves privadas ni secretos en el repositorio.

@@ -73,6 +73,9 @@ describe("Hoid editorial draft staging", () => {
       "bd377f02682405ed968f5e022d8a5f3bf0e8c3a146d69f555d2f08bfa1d42031",
       "fdec8cae4fd1d295599806966d2cf44826411b61e45829c0b7b077313b6a34e6",
       "4761ba6ed23d300164f61c51775dedba57d7e6d538d42679f3dffe6554e149ae",
+      "425a4b6233aa3b38315517543e7a7992ccc910cd3d13de5d53a1e43a07dcd50b",
+      "bbb171095d991631090ae39f88218a8b9e561492828ee023ede17e4c42c24544",
+      "d83caf4c8c8082df409fc78abc5b69e3f7a96068742d562048806276973fbbc0",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));

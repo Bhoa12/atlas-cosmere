@@ -42,6 +42,10 @@ const BUDGET_KEYS = [
 const CANDIDATE_KEYS = ["id", "text", "evidenceIds"] as const;
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 const CLAIM_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+const MAX_QUESTION_LENGTH = 4_000;
+const MAX_CANDIDATES = 32;
+const MAX_CLAIM_TEXT_LENGTH = 4_000;
+const MAX_CANDIDATE_EVIDENCE_IDS = 32;
 
 function hasExactFrozenDataProperties(
   value: unknown,
@@ -131,6 +135,9 @@ export function isHoidProviderSelectionSnapshot(
     !FINGERPRINT_PATTERN.test(request.requestFingerprint) ||
     typeof request.question !== "string" ||
     request.question.length < 1 ||
+    request.question.length > MAX_QUESTION_LENGTH ||
+    request.question !== request.question.trim() ||
+    /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(request.question) ||
     typeof request.intent !== "string" ||
     !hasExactFrozenDataProperties(request.selectionBudget, BUDGET_KEYS)
   ) return false;
@@ -140,15 +147,19 @@ export function isHoidProviderSelectionSnapshot(
     typeof budget.maxClaims !== "number" ||
     !Number.isSafeInteger(budget.maxClaims) ||
     budget.maxClaims < 1 ||
+    budget.maxClaims > 12 ||
     typeof budget.maxEvidence !== "number" ||
     !Number.isSafeInteger(budget.maxEvidence) ||
     budget.maxEvidence < 1 ||
+    budget.maxEvidence > 16 ||
     typeof budget.maxWorks !== "number" ||
     !Number.isSafeInteger(budget.maxWorks) ||
     budget.maxWorks < 1 ||
+    budget.maxWorks > 4 ||
     typeof budget.maxCharacters !== "number" ||
     !Number.isSafeInteger(budget.maxCharacters) ||
     budget.maxCharacters < 1 ||
+    budget.maxCharacters > 32_000 ||
     typeof budget.minimumWorks !== "number" ||
     !Number.isSafeInteger(budget.minimumWorks) ||
     budget.minimumWorks < 1 ||
@@ -161,6 +172,8 @@ export function isHoidProviderSelectionSnapshot(
   const candidates = request.candidates;
   if (
     !Array.isArray(candidates) ||
+    candidates.length < 1 ||
+    candidates.length > MAX_CANDIDATES ||
     !Object.isFrozen(candidates) ||
     Object.getPrototypeOf(candidates) !== Array.prototype
   ) return false;
@@ -181,7 +194,8 @@ export function isHoidProviderSelectionSnapshot(
       seen.has(candidate.id) ||
       typeof candidate.text !== "string" ||
       candidate.text.length < 1 ||
-      !isFrozenDenseStringArray(candidate.evidenceIds)
+      candidate.text.length > MAX_CLAIM_TEXT_LENGTH ||
+      !isFrozenDenseUniqueEvidenceArray(candidate.evidenceIds)
     ) return false;
     seen.add(candidate.id);
   }
@@ -195,6 +209,18 @@ export function isHoidProviderSelectionSnapshot(
     ) return false;
   }
 
+  return true;
+}
+
+function isFrozenDenseUniqueEvidenceArray(value: unknown): value is readonly string[] {
+  if (!isFrozenDenseStringArray(value) || value.length < 1 || value.length > MAX_CANDIDATE_EVIDENCE_IDS) {
+    return false;
+  }
+  const seen = new Set<string>();
+  for (const id of value) {
+    if (!CLAIM_ID_PATTERN.test(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
   return true;
 }
 

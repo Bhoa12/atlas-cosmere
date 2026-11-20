@@ -8,6 +8,8 @@ Ese umbral solo es válido para mencionar el nombre de una entidad. No es necesa
 
 Además, el contexto atribuía la fuente a `firstSafeAppearance` en vez de al capítulo real de `evidenceSource`.
 
+La prueba de integración también descubrió que `snapshotProviderRequest()` copiaba la proyección de lectura con los campos `chapter` y `completed` simultáneamente. El contrato de progreso exige exactamente una de esas formas; el snapshot quedaba inválido al volver a cruzar una frontera de autorización. Ahora reconstruye la unión discriminada antes de congelarla.
+
 ## Corrección
 
 - Se introduce `isEntityMentionUnlocked()` para expresar el límite de mención.
@@ -16,6 +18,7 @@ Además, el contexto atribuía la fuente a `firstSafeAppearance` en vez de al ca
 - `entriesForContext()` exige `provenance=verified`, resumen no vacío, primera aparición segura y `isEvidenceUnlocked()`.
 - `isEvidenceUnlocked()` valida el localizador de fuente contra el manifiesto exacto y exige alcanzar `evidenceUnlock`.
 - `buildAuthorizedKnowledgeContext()` cita el capítulo real de `evidenceSource`, nunca la primera aparición.
+- `snapshotProviderRequest()` conserva la unión exclusiva de progreso (`{bookId, chapter}` o `{bookId, completed: true}`) en lugar de serializar una proyección ambigua.
 
 ## Pruebas
 
@@ -28,7 +31,9 @@ Cubren:
 - rechazo de progreso duplicado;
 - rechazo de procedencia incompleta;
 - cita del capítulo de evidencia;
-- integración con la frontera heredada de `HoidService`.
+- integración con la frontera heredada de `HoidService`;
+- conservación del contrato de progreso en snapshots parciales y completados;
+- primera aparición posterior al watermark de evidencia: ambas condiciones deben cumplirse.
 
 ## Seguridad y alcance
 

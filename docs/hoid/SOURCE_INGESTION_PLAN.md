@@ -151,3 +151,17 @@ Tras inspeccionar El Imperio Final capítulo 6, El Camino de los Reyes capítulo
 | Esquirla del amanecer | 16 |
 
 En esta ejecución `cosmere.epub` sí estuvo disponible en la biblioteca y su navegación coincidió con la edición registrada. La tarea del plan sigue siendo metadata-only y exige selección local explícita. La inspección candidate-only no escribe texto ni autoriza conocimiento.
+
+
+## Run 176 — cola de continuación actualizada
+
+Tras inspeccionar El Camino de los Reyes capítulo 15, Danzante del Filo capítulo 16 y Esquirla del amanecer capítulo 16, la siguiente cola de continuación es:
+
+| Obra | Próximo capítulo candidato |
+|---|---:|
+| El Imperio Final | 7 |
+| El Camino de los Reyes | 16 |
+| Danzante del Filo | 17 |
+| Esquirla del amanecer | 17 |
+
+La inspección de los tres EPUBs de Roshar confirmó que sus huellas de navegación seguían coincidiendo con las ediciones registradas y que los XHTML previos continuaban teniendo los digests esperados. `cosmere.epub` no apareció en el inventario actual de Library ni en la búsqueda de archivos de conversación; El Imperio Final capítulo 7 no se inspeccionó. El plan permanece metadata-only y no afirma disponibilidad ni autorización.

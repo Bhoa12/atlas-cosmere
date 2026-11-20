@@ -195,3 +195,16 @@ The staging inventory now contains 46 original summaries backed by 46 individual
 Se incorporan cuatro resúmenes originales nuevos, cada uno vinculado a un XHTML concreto mediante edición, huella de navegación, localizador y SHA-256 del documento. Los cuatro permanecen en `pending-review`.
 
 La inspección local devuelve únicamente una huella candidate-only. La allowlist y el staging editorial se actualizan explícitamente, pero ninguna de las dos acciones concede aprobación ni escritura en producción. El umbral sigue siendo capítulo N+1.
+
+
+## Run 176 — tres nuevos resúmenes de capítulo
+
+Los tres nuevos documentos se resolvieron desde las navegaciones registradas, se encontraron en sus manifiestos OPF y reading spines, y se fingerprintaron desde los bytes XHTML originales.
+
+| Obra | Capítulo | XHTML relativo | SHA-256 del documento | SHA-256 del resumen | Watermark | Cursor mínimo |
+|---|---:|---|---|---|---:|---:|
+| El Camino de los Reyes | 15 | `L1-035.xhtml` | `43ff1d4f608fb3ec230923d92edadd09bc3c9606d72d506b547c7be43266f492` | `425a4b6233aa3b38315517543e7a7992ccc910cd3d13de5d53a1e43a07dcd50b` | 15 | 16 |
+| Danzante del Filo | 16 | `Text/016.xhtml` | `d3a247b59d08735b83baa9840ef9e5058cc3f2108c931d66f06d370c4d41a4dd` | `bbb171095d991631090ae39f88218a8b9e561492828ee023ede17e4c42c24544` | 16 | 17 |
+| Esquirla del amanecer | 16 | `Text/16.xhtml` | `d62fefc1ce3e6eab0a0cfa5fa8e08819d5d5a9d3a2b2d12015ffaa9411cd18a2` | `d83caf4c8c8082df409fc78abc5b69e3f7a96068742d562048806276973fbbc0` | 16 | 17 |
+
+Los identificadores son `twok.chapter-015.adolin-aftermath-gavilar-message`, `edgedancer.chapter-016.lift-pursues-skybreakers` y `dawnshard.chapter-016.rysn-mural-acceptance`. Los tres resúmenes permanecen pendientes de revisión independiente. El inventario contiene 53 resúmenes respaldados por 53 documentos inspeccionados. No se ha aprobado ninguna afirmación ni se ha escrito conocimiento en producción.

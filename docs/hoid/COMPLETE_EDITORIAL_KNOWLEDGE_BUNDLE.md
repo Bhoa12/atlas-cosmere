@@ -125,3 +125,10 @@ Se incorporaron cuatro resúmenes originales tras inspeccionar El Imperio Final 
 Los watermarks de evidencia son 6, 14, 15 y 15; los cursores mínimos son 7, 15, 16 y 16. Todos permanecen en `pending-review`.
 
 El manifiesto editorial contiene ahora **68 registros en 50 documentos de capítulo**: 50 resúmenes, una afirmación atómica, 14 expedientes de identidad y tres relaciones. La condición `ready-for-review` no equivale a aprobación. La producción sigue vacía y no existe recibo de activación. No se han añadido EPUBs, XHTML ni pasajes protegidos al repositorio.
+
+
+## Run 176 — tres resúmenes nuevos de Roshar
+
+Se incorporaron tres resúmenes originales respaldados por los EPUBs privados de Roshar: El Camino de los Reyes capítulo 15, Danzante del Filo capítulo 16 y Esquirla del amanecer capítulo 16. Cada uno está ligado a su edición, digest de navegación, localizador XHTML, digest del documento y digest del resumen. Los tres permanecen en `pending-review`.
+
+El manifiesto metadata-only contiene ahora **71 registros en 53 documentos de capítulo**: 53 resúmenes, una afirmación atómica, 14 expedientes de identidad y tres relaciones. `ready-for-review` sigue sin equivaler a aprobación. La producción permanece vacía y no existe recibo de activación. No se han añadido EPUBs, XHTML, pasajes protegidos ni rutas privadas.

@@ -157,3 +157,18 @@ Cuatro resúmenes originales en español se añadieron a staging con SHA-256 pro
 El inventario actualizado es de **50 documentos de capítulo inspeccionados y 50 resúmenes originales pendientes de revisión**, en cuatro obras. El catálogo sigue conteniendo 24 obras y 1.106 localizadores de navegación verificados. No se ha aprobado ninguna afirmación, no hay conocimiento en producción ni recibo de activación.
 
 No se han subido EPUBs, XHTML, texto extraído, pasajes, imágenes ni rutas privadas.
+
+
+## Run 176 — tres nuevos documentos de Roshar
+
+Se inspeccionaron tres capítulos nuevos desde las copias actuales de la biblioteca privada. Los contenedores ZIP superaron CRC; las huellas de navegación coincidieron con las ediciones registradas; cada destino se resolvió desde la navegación, se confirmó en el manifiesto OPF y en el reading spine, y se fingerprintó desde los bytes XHTML originales.
+
+| Obra | Capítulo | XHTML relativo | SHA-256 del documento |
+|---|---:|---|---|
+| El Camino de los Reyes | 15 | `L1-035.xhtml` | `43ff1d4f608fb3ec230923d92edadd09bc3c9606d72d506b547c7be43266f492` |
+| Danzante del Filo | 16 | `Text/016.xhtml` | `d3a247b59d08735b83baa9840ef9e5058cc3f2108c931d66f06d370c4d41a4dd` |
+| Esquirla del amanecer | 16 | `Text/16.xhtml` | `d62fefc1ce3e6eab0a0cfa5fa8e08819d5d5a9d3a2b2d12015ffaa9411cd18a2` |
+
+Se añadieron tres resúmenes originales en español, todos pendientes de revisión. El inventario asciende a **53 documentos de capítulo y 53 resúmenes pendientes**, en cuatro obras. El catálogo conserva 24 obras y 1.106 localizadores. La producción sigue vacía, con cero afirmaciones aprobadas y sin recibo de activación.
+
+La búsqueda actual en Library y archivos de conversación no encontró `cosmere.epub`; por ello El Imperio Final capítulo 7 no se inspeccionó y permanece como candidato de metadatos. No se subieron EPUBs, XHTML, pasajes, imágenes ni rutas privadas.

@@ -27,12 +27,12 @@ describe("Hoid metadata-only source coverage", () => {
     });
     expect(report.chapterBodies).toEqual({
       worksWithInspectedDocuments: 4,
-      totalInspectedChapterDocuments: 53,
+      totalInspectedChapterDocuments: 54,
     });
   });
 
   it("reports only the four works with individually inspected chapter documents", () => {
-    expect(work("tfe").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(work("tfe").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(work("twok").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
     expect(work("edgedancer").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(work("dawnshard").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
@@ -47,14 +47,14 @@ describe("Hoid metadata-only source coverage", () => {
 
     expect(report.editorial).toEqual({
       worksWithStagedSummaries: 4,
-      stagedSummaryCount: 53,
-      pendingReviewSummaryCount: 53,
+      stagedSummaryCount: 54,
+      pendingReviewSummaryCount: 54,
       draftRegistryStatus: "pending-review",
       productionKnowledgeEntryCount: 0,
       approvedClaimCount: 0,
       productionRegistryStatus: "empty",
     });
-    expect(work("tfe").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(work("tfe").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(work("twok").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
     expect(work("edgedancer").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(work("dawnshard").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);

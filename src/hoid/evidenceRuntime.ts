@@ -10,7 +10,7 @@ import { validHoidQuestion } from "./requestValidation";
 import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { guardQuestion } from "./spoilerGuard";
 import { getHoidReadingManifest } from "./readingManifest";
-import type { HoidAnswerRequest, ReadingPosition } from "./types";
+import type { HoidAnswerRequest, HoidAnswerSelectionBudget, ReadingPosition } from "./types";
 import {
   validateHoidApprovedClaimAttestation,
   type HoidApprovedClaim as AttestedHoidApprovedClaim,
@@ -30,6 +30,8 @@ export type HoidClaimSelectionRequest = Readonly<{
   question: string;
   intent: HoidClaimIntent;
   candidates: readonly HoidClaimSelectionCandidate[];
+  /** Closed local budget; the selector cannot raise or reinterpret these limits. */
+  selectionBudget: HoidAnswerSelectionBudget;
 }>;
 
 /**
@@ -89,6 +91,83 @@ const MAX_SELECTION_TIMEOUT_MS = 60_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+const SELECTION_BUDGET_KEYS = [
+  "maxClaims",
+  "maxEvidence",
+  "maxWorks",
+  "maxCharacters",
+  "minimumWorks",
+  "requireSegmentProvenance",
+  "requireCrossWorkSegment",
+] as const;
+
+const DEFAULT_SELECTION_BUDGET: HoidAnswerSelectionBudget = Object.freeze({
+  maxClaims: MAX_SELECTED_CLAIMS,
+  maxEvidence: MAX_SELECTED_EVIDENCE_IDS,
+  maxWorks: 4,
+  maxCharacters: 32_000,
+  minimumWorks: 1,
+  requireSegmentProvenance: false,
+  requireCrossWorkSegment: false,
+});
+
+/** Accept only a closed budget bounded by runtime hard limits. */
+function canonicalSelectionBudget(value: unknown): HoidAnswerSelectionBudget | null {
+  if (value === undefined) return DEFAULT_SELECTION_BUDGET;
+  try {
+    if (!isRecord(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== SELECTION_BUDGET_KEYS.length) return null;
+
+    const record = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof key !== "string" || !(SELECTION_BUDGET_KEYS as readonly string[]).includes(key)) return null;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      record[key] = descriptor.value;
+    }
+    for (const key of SELECTION_BUDGET_KEYS) {
+      if (!Object.prototype.hasOwnProperty.call(record, key)) return null;
+    }
+
+    const maxClaims = record.maxClaims;
+    const maxEvidence = record.maxEvidence;
+    const maxWorks = record.maxWorks;
+    const maxCharacters = record.maxCharacters;
+    const minimumWorks = record.minimumWorks;
+    const requireSegmentProvenance = record.requireSegmentProvenance;
+    const requireCrossWorkSegment = record.requireCrossWorkSegment;
+    if (
+      typeof maxClaims !== "number" || !Number.isSafeInteger(maxClaims) || maxClaims < 1 || maxClaims > MAX_SELECTED_CLAIMS ||
+      typeof maxEvidence !== "number" || !Number.isSafeInteger(maxEvidence) || maxEvidence < 1 || maxEvidence > MAX_SELECTED_EVIDENCE_IDS ||
+      typeof maxWorks !== "number" || !Number.isSafeInteger(maxWorks) || maxWorks < 1 || maxWorks > 4 ||
+      typeof maxCharacters !== "number" || !Number.isSafeInteger(maxCharacters) || maxCharacters < 1 || maxCharacters > 32_000 ||
+      typeof minimumWorks !== "number" || !Number.isSafeInteger(minimumWorks) || minimumWorks < 1 || minimumWorks > maxWorks ||
+      typeof requireSegmentProvenance !== "boolean" ||
+      typeof requireCrossWorkSegment !== "boolean" ||
+      (requireCrossWorkSegment && !requireSegmentProvenance)
+    ) return null;
+
+    return Object.freeze({
+      maxClaims,
+      maxEvidence,
+      maxWorks,
+      maxCharacters,
+      minimumWorks,
+      requireSegmentProvenance,
+      requireCrossWorkSegment,
+    });
+  } catch {
+    return null;
+  }
 }
 
 function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | null {
@@ -355,6 +434,22 @@ export class HoidEvidenceRuntime {
       return blocked("invalid-input", "La pregunta, la intención o el progreso no pueden validarse. Hoid no ampliará el contexto.");
     }
 
+    let rawSelectionBudget: unknown;
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(input, "selectionBudget");
+      if (descriptor && (
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      )) return blocked("invalid-input", "El presupuesto de explicación no puede validarse.");
+      rawSelectionBudget = descriptor?.value;
+    } catch {
+      return blocked("invalid-input", "El presupuesto de explicación no puede validarse.");
+    }
+    const selectionBudget = canonicalSelectionBudget(rawSelectionBudget);
+    if (!selectionBudget) {
+      return blocked("invalid-input", "El presupuesto de explicación no puede validarse.");
+    }
+
     let entityIds: readonly string[] | undefined;
     try {
       const descriptor = Object.getOwnPropertyDescriptor(input, "entityIds");
@@ -407,6 +502,7 @@ export class HoidEvidenceRuntime {
     const selectionRequest: HoidClaimSelectionRequest = Object.freeze({
       question,
       intent,
+      selectionBudget,
       candidates: Object.freeze(candidates.map(claim => Object.freeze({
         id: claim.id,
         text: claim.text,
@@ -422,7 +518,11 @@ export class HoidEvidenceRuntime {
     if (rawSelection === null) {
       return abstain("provider-unavailable", "El selector no está disponible o ha superado el tiempo límite. Hoid no completará la respuesta por su cuenta.");
     }
-    if (!Array.isArray(rawSelection) || rawSelection.length === 0 || rawSelection.length > MAX_SELECTED_CLAIMS) {
+    if (
+      !Array.isArray(rawSelection) ||
+      rawSelection.length === 0 ||
+      rawSelection.length > Math.min(MAX_SELECTED_CLAIMS, selectionBudget.maxClaims)
+    ) {
       return blocked("invalid-selection", "El proveedor devolvió una selección inválida. No se mostrará contenido sin verificar.");
     }
 
@@ -447,10 +547,33 @@ export class HoidEvidenceRuntime {
     }
 
     const evidenceIds = [...new Set(selectedClaims.flatMap(claim => claim.evidenceIds))].sort();
-    if (evidenceIds.length > MAX_SELECTED_EVIDENCE_IDS) {
-      return blocked("invalid-selection", "La respuesta requiere demasiadas evidencias para conservar una trazabilidad completa. Hoid no reducirá las fuentes de forma silenciosa.");
+    if (evidenceIds.length > Math.min(MAX_SELECTED_EVIDENCE_IDS, selectionBudget.maxEvidence)) {
+      return blocked("invalid-selection", "La respuesta supera el presupuesto de evidencias. Hoid no reducirá las fuentes de forma silenciosa.");
     }
     const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
+    const selectedEntries = evidenceIds.map(id => knowledgeById.get(id));
+    if (selectedEntries.some(entry => !entry || !entry.evidenceSource)) {
+      return blocked("invalid-selection", "No se puede reconstruir toda la procedencia documental.");
+    }
+    const selectedWorkIds = new Set(selectedEntries.map(entry => entry!.evidenceSource!.bookId));
+    const selectedText = selectedClaims.map(claim => claim.text).join("\n\n");
+    if (
+      selectedWorkIds.size < selectionBudget.minimumWorks ||
+      selectedWorkIds.size > selectionBudget.maxWorks ||
+      selectedText.length > selectionBudget.maxCharacters
+    ) {
+      return blocked("invalid-selection", "La respuesta supera el presupuesto de profundidad solicitado. Hoid no recortará afirmaciones ni evidencias.");
+    }
+    if (selectionBudget.requireCrossWorkSegment && !selectedClaims.some(claim => {
+      const claimWorkIds = new Set<string>();
+      for (const id of claim.evidenceIds) {
+        const sourceBookId = knowledgeById.get(id)?.evidenceSource?.bookId;
+        if (sourceBookId) claimWorkIds.add(sourceBookId);
+      }
+      return claimWorkIds.size >= 2;
+    })) {
+      return blocked("invalid-selection", "La comparación no tiene una afirmación con procedencia cruzada suficiente.");
+    }
     const sources = evidenceIds.map(id => {
       const entry = knowledgeById.get(id);
       return entry ? evidenceCitationFor(entry) : null;
@@ -463,9 +586,19 @@ export class HoidEvidenceRuntime {
       text: claim.text,
       evidenceIds: Object.freeze([...claim.evidenceIds]),
     }));
+    if (selectionBudget.requireSegmentProvenance && (
+      segments.length !== selectedClaims.length ||
+      segments.some((segment, index) =>
+        segment.claimId !== selectedClaims[index].id ||
+        segment.evidenceIds.length !== selectedClaims[index].evidenceIds.length ||
+        segment.evidenceIds.some((id, evidenceIndex) => id !== selectedClaims[index].evidenceIds[evidenceIndex])
+      )
+    )) {
+      return blocked("invalid-selection", "La selección no conserva la procedencia por afirmación.");
+    }
     return Object.freeze({
       status: "authorized",
-      text: selectedClaims.map(claim => claim.text).join("\n\n"),
+      text: selectedText,
       claimIds: Object.freeze(selectedClaims.map(claim => claim.id)),
       evidenceIds: Object.freeze(evidenceIds),
       sources: Object.freeze(sources as HoidEvidenceCitation[]),

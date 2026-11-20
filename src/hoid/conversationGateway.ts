@@ -1,6 +1,11 @@
 import type { HoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
 import type { HoidClaimIntent, HoidEvidenceAnswer } from "./evidenceRuntime";
 import type { HoidRecommendation } from "./recommendations";
+import {
+  isHoidExplanationDepth,
+  resolveHoidExplanationDepthBudget,
+  type HoidExplanationDepth,
+} from "./explanationDepth";
 import { buildHoidCursorReadingContext, type HoidCursorReadingContext } from "./cursorReadingContext";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
@@ -43,6 +48,7 @@ export type HoidConversationGatewayResult =
   | Readonly<{
       status: "ready";
       answer: HoidEvidenceAnswer;
+      depth: HoidExplanationDepth;
       conversationContext?: HoidConversationContext;
       typedConversationContext?: HoidTypedConversationContext;
       progressRevision: number;
@@ -120,7 +126,7 @@ async function readCurrentProgress(config: HoidConversationGatewayConfig): Promi
   return config.getCurrentProgress();
 }
 
-const REQUEST_KEYS = ["question", "progress", "intent", "context", "typedContext"] as const;
+const REQUEST_KEYS = ["question", "progress", "intent", "context", "typedContext", "depth"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
 const CONTEXT_KEYS = ["progress"] as const;
 const MAX_QUESTION_LENGTH = 4_000;
@@ -131,6 +137,8 @@ function canonicalRequest(value: unknown): Readonly<{
   question: string;
   progress: unknown;
   intent: HoidClaimIntent;
+  depth: HoidExplanationDepth;
+  selectionBudget: NonNullable<ReturnType<typeof resolveHoidExplanationDepthBudget>>;
   context?: unknown;
   typedContext?: unknown;
 }> | null {
@@ -150,10 +158,17 @@ function canonicalRequest(value: unknown): Readonly<{
     return null;
   }
 
+  const depth = record.depth === undefined ? "detailed" : record.depth;
+  if (!isHoidExplanationDepth(depth)) return null;
+  const selectionBudget = resolveHoidExplanationDepthBudget(depth);
+  if (!selectionBudget) return null;
+
   return Object.freeze({
     question,
     progress: record.progress,
     intent,
+    depth,
+    selectionBudget,
     ...(Object.prototype.hasOwnProperty.call(record, "context") ? { context: record.context } : {}),
     ...(Object.prototype.hasOwnProperty.call(record, "typedContext") ? { typedContext: record.typedContext } : {}),
   });
@@ -597,6 +612,7 @@ export class HoidConversationGateway {
           question: request.question,
           progress: request.progress,
           intent: request.intent,
+          selectionBudget: request.selectionBudget,
           entityIds: [typedFollowUp.entityId],
         });
       } catch {
@@ -620,6 +636,7 @@ export class HoidConversationGateway {
       return Object.freeze({
         status: "ready",
         answer,
+        depth: request.depth,
         ...(conversationContext ? { conversationContext } : {}),
         typedConversationContext: typedFollowUp.context,
         progressRevision: requestedProgress.revision,
@@ -746,6 +763,7 @@ export class HoidConversationGateway {
       return Object.freeze({
         status: "ready",
         answer: relationshipAnswer,
+        depth: request.depth,
         conversationContext,
         ...(typedConversationContext ? { typedConversationContext } : {}),
         progressRevision: requestedProgress.revision,
@@ -763,6 +781,7 @@ export class HoidConversationGateway {
           question: request.question,
           progress: request.progress,
           intent: request.intent,
+          selectionBudget: request.selectionBudget,
           entityIds: [coreference.entityId],
         });
       } catch {
@@ -791,6 +810,7 @@ export class HoidConversationGateway {
       return Object.freeze({
         status: "ready",
         answer,
+        depth: request.depth,
         conversationContext: coreference.context,
         ...(typedConversationContext ? { typedConversationContext } : {}),
         progressRevision: requestedProgress.revision,
@@ -837,6 +857,7 @@ export class HoidConversationGateway {
         question: request.question,
         progress: request.progress,
         intent: request.intent,
+        selectionBudget: request.selectionBudget,
         ...(entityIds === undefined ? {} : { entityIds }),
       });
     } catch {
@@ -863,6 +884,7 @@ export class HoidConversationGateway {
     return Object.freeze({
       status: "ready",
       answer,
+      depth: request.depth,
       ...(typedConversationContext ? { typedConversationContext } : {}),
       progressRevision: requestedProgress.revision,
       progressFingerprint: requestedProgress.fingerprint,

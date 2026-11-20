@@ -154,6 +154,155 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
+  it("passes a closed selection budget to the selector and enforces claim limits", async () => {
+    const selectionBudget = Object.freeze({
+      maxClaims: 1,
+      maxEvidence: 4,
+      maxWorks: 2,
+      maxCharacters: 18_000,
+      minimumWorks: 1,
+      requireSegmentProvenance: false,
+      requireCrossWorkSegment: false,
+    });
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.selectionBudget).toEqual(selectionBudget);
+      expect(Object.isFrozen(request.selectionBudget)).toBe(true);
+      return ["claim-alpha", "claim-cross-book"];
+    });
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-selection");
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects evidence and work counts that exceed the requested budget", async () => {
+    const selectionBudget = Object.freeze({
+      maxClaims: 12,
+      maxEvidence: 16,
+      maxWorks: 1,
+      maxCharacters: 24_000,
+      minimumWorks: 1,
+      requireSegmentProvenance: false,
+      requireCrossWorkSegment: false,
+    });
+    const selector = vi.fn(async () => ["claim-cross-book"]);
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-selection");
+  });
+
+  it("rejects text exceeding the requested character budget", async () => {
+    const selectionBudget = Object.freeze({
+      maxClaims: 3,
+      maxEvidence: 4,
+      maxWorks: 2,
+      maxCharacters: 10,
+      minimumWorks: 1,
+      requireSegmentProvenance: false,
+      requireCrossWorkSegment: false,
+    });
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-selection");
+  });
+
+  it("requires a genuinely cross-work selected claim for comparative budgets", async () => {
+    const selectionBudget = Object.freeze({
+      maxClaims: 12,
+      maxEvidence: 16,
+      maxWorks: 4,
+      maxCharacters: 24_000,
+      minimumWorks: 2,
+      requireSegmentProvenance: true,
+      requireCrossWorkSegment: true,
+    });
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa y qué relación tiene con Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-selection");
+  });
+
+  it("accepts a comparative selection only when one claim has cross-work provenance", async () => {
+    const selectionBudget = Object.freeze({
+      maxClaims: 12,
+      maxEvidence: 16,
+      maxWorks: 4,
+      maxCharacters: 24_000,
+      minimumWorks: 2,
+      requireSegmentProvenance: true,
+      requireCrossWorkSegment: true,
+    });
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.selectionBudget).toEqual(selectionBudget);
+      return ["claim-cross-book"];
+    });
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-cross-book"]);
+    expect(result.evidenceIds).toEqual(["e-alpha", "e-beta"]);
+  });
+
+  it("rejects an accessor-backed selection budget without invoking the selector", async () => {
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createRuntime(selector);
+    const selectionBudget = Object.defineProperty({}, "maxClaims", {
+      enumerable: true,
+      get() { throw new Error("must not execute"); },
+    });
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
   it("requires every cross-book evidence position to be reached", async () => {
     const selector = vi.fn(async () => ["claim-cross-book"]);
     const runtime = createRuntime(selector);

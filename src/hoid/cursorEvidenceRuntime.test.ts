@@ -152,6 +152,27 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards the closed selection budget only after validating the cursor snapshot", async () => {
+    const { facade, selector } = createFacade();
+    const selectionBudget = Object.freeze({
+      maxClaims: 3,
+      maxEvidence: 4,
+      maxWorks: 2,
+      maxCharacters: 6_000,
+      minimumWorks: 1,
+      requireSegmentProvenance: false,
+      requireCrossWorkSegment: false,
+    });
+    const result = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
+      selectionBudget,
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(selector).toHaveBeenCalledWith(expect.objectContaining({ selectionBudget }));
+  });
+
   it("requires every cross-work cursor before invoking the selector", async () => {
     const selector = vi.fn(async () => ["claim-cross-book"]);
     const runtime = createHoidEvidenceRuntime({ knowledge, claims: [claims[1]], selector: { selectClaims: selector } });

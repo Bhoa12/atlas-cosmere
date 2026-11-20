@@ -2,6 +2,7 @@ import {
   presentHoidEvidenceAnswer,
   type HoidAnswerPresentation,
 } from "./answerPresentation";
+import type { HoidAnswerSelectionBudget } from "./types";
 
 /**
  * Explanation depth is a deterministic presentation budget, not an
@@ -16,15 +17,7 @@ export const HOID_EXPLANATION_DEPTHS = Object.freeze([
 
 export type HoidExplanationDepth = (typeof HOID_EXPLANATION_DEPTHS)[number];
 
-export type HoidExplanationDepthBudget = Readonly<{
-  maxClaims: number;
-  maxEvidence: number;
-  maxWorks: number;
-  maxCharacters: number;
-  minimumWorks: number;
-  requireSegmentProvenance: boolean;
-  requireCrossWorkSegment: boolean;
-}>;
+export type HoidExplanationDepthBudget = HoidAnswerSelectionBudget;
 
 export const HOID_EXPLANATION_DEPTH_BUDGETS: Readonly<
   Record<HoidExplanationDepth, HoidExplanationDepthBudget>
@@ -88,7 +81,7 @@ export type HoidExplanationResult =
 const WITHHELD_TEXT =
   "Hoid no puede ofrecer una explicación con ese nivel de detalle sin superar los límites de evidencia autorizada.";
 
-function isExplanationDepth(value: unknown): value is HoidExplanationDepth {
+export function isHoidExplanationDepth(value: unknown): value is HoidExplanationDepth {
   return typeof value === "string" &&
     (HOID_EXPLANATION_DEPTHS as readonly string[]).includes(value);
 }
@@ -104,7 +97,7 @@ function withheld(
 export function resolveHoidExplanationDepthBudget(
   depth: unknown,
 ): HoidExplanationDepthBudget | null {
-  if (!isExplanationDepth(depth)) return null;
+  if (!isHoidExplanationDepth(depth)) return null;
   return HOID_EXPLANATION_DEPTH_BUDGETS[depth];
 }
 
@@ -122,7 +115,7 @@ export function presentHoidExplanation(
   depthInput: unknown,
 ): HoidExplanationResult {
   const budget = resolveHoidExplanationDepthBudget(depthInput);
-  if (!budget || !isExplanationDepth(depthInput)) return withheld("invalid-depth");
+  if (!budget || !isHoidExplanationDepth(depthInput)) return withheld("invalid-depth");
 
   const presentation = presentHoidEvidenceAnswer(answer, progress);
   if (presentation.status !== "ready") {

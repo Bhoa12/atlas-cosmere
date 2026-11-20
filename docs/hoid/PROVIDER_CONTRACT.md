@@ -6,7 +6,7 @@ El núcleo de Hoid no depende de un SDK, modelo o servicio concreto. Cualquier i
 
 ## Entrada autorizada
 
-El proveedor recibe únicamente una instantánea creada por Hoid después de completar las fronteras locales de seguridad:
+El proveedor recibe únicamente una instantánea creada por Hoid después de completar las fronteras locales de seguridad. El selector de afirmaciones recibe candidatos ya autorizados y un presupuesto de selección cerrado (máximos de afirmaciones, evidencias, obras y caracteres, además de requisitos comparativos); nunca recibe autoridad para ampliar ese presupuesto:
 
 - identificador de solicitud;
 - pregunta validada;
@@ -26,7 +26,7 @@ La salida del proveedor es no confiable. Antes de mostrarse debe:
 4. respetar el catálogo y los límites de obra y capítulo;
 5. degradarse o rechazarse ante cualquier ambigüedad.
 
-Una respuesta del proveedor nunca constituye autorización para revelar conocimiento.
+Una respuesta del proveedor nunca constituye autorización para revelar conocimiento. La selección se revalida localmente contra el mismo presupuesto y contra la procedencia por capítulo antes de presentarse.
 
 ## Errores y límites temporales
 

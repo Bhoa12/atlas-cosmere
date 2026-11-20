@@ -9,6 +9,7 @@ import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } fr
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidEditorialRuntime } from "./editorialRegistry";
 import { createHoidConversationContext } from "./conversationContext";
+import { HOID_EXPLANATION_DEPTH_BUDGETS } from "./explanationDepth";
 
 const UPDATED_AT = "2026-11-17T14:00:00.000Z";
 
@@ -71,6 +72,48 @@ describe("HoidConversationGateway", () => {
     expect(result.answer).toBe(answer);
     expect(result.progressRevision).toBe(1);
     expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("defaults to detailed depth and forwards its closed selection budget", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({ question: "¿Qué se ha autorizado?", progress: current });
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.depth).toBe("detailed");
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
+    }));
+  });
+
+  it("accepts explicit brief depth and forwards its bounded budget", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Qué se ha autorizado?",
+      progress: current,
+      depth: "brief",
+    });
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.depth).toBe("brief");
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
+    }));
+  });
+
+  it("rejects unsupported explanation depths before invoking the runtime", async () => {
+    const { gateway, runtime } = setup();
+    const result = await gateway.answer({
+      question: "Pregunta sintética",
+      progress: snapshot(3),
+      depth: "unlimited",
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.answer).not.toHaveBeenCalled();
   });
 
   it("does not invoke the runtime when the request snapshot is already stale", async () => {
@@ -424,6 +467,7 @@ describe("HoidConversationGateway", () => {
       question: "¿Hasta dónde he leído?",
       progress: current,
       intent: "context",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
   });
 
@@ -436,6 +480,7 @@ describe("HoidConversationGateway", () => {
       question: "¿Qué significa este concepto?",
       progress: current,
       intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
   });
 
@@ -612,6 +657,7 @@ describe("HoidConversationGateway", () => {
       progress: current,
       intent: "explain",
       entityIds: ["e-alpha", "e-beta"],
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
   });
 
@@ -810,6 +856,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       progress: current,
       intent: "explain",
       entityIds: ["synthetic.entity-beta"],
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
     if (result.status === "ready") expect(result.conversationContext).toEqual(context);

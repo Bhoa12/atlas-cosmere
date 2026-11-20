@@ -16,9 +16,21 @@ export type HoidKnowledgeContextFact = {
   summary: string;
 };
 
+export type HoidAnswerSelectionBudget = Readonly<{
+  maxClaims: number;
+  maxEvidence: number;
+  maxWorks: number;
+  maxCharacters: number;
+  minimumWorks: number;
+  requireSegmentProvenance: boolean;
+  requireCrossWorkSegment: boolean;
+}>;
+
 export type HoidAnswerRequest = {
   question: string;
   reading: readonly ReadingPosition[];
+  /** Closed presentation budget; it cannot widen the authorized evidence set. */
+  selectionBudget?: HoidAnswerSelectionBudget;
   /**
    * Deprecated caller-supplied field. Hoid never forwards this value across
    * the provider boundary; authorized narrative context is built internally

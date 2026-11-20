@@ -167,6 +167,26 @@ describe("Hoid typed entity follow-up gateway", () => {
     });
   });
 
+  it("forwards an explicitly requested comparative budget through a typed entity follow-up", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y esa organización?",
+      progress: current,
+      typedContext: typedContext(current),
+      depth: "comparative",
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Y esa organización?",
+      progress: current,
+      intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.comparative,
+      entityIds: ["synthetic.organization-a"],
+    });
+  });
+
   it("blocks ambiguous categories before entity reauthorization and runtime invocation", async () => {
     const current = snapshot();
     const ambiguous = typedContext(current);

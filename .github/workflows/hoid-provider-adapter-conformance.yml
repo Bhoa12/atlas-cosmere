@@ -1,0 +1,53 @@
+name: Hoid provider adapter conformance
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/providerAdapter.ts"
+      - "src/hoid/providerAdapter.test.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/selectionProtocol.test.ts"
+      - "src/hoid/providerTimeout.ts"
+      - "src/hoid/providerTimeout.test.ts"
+      - ".github/workflows/hoid-provider-adapter-conformance.yml"
+  pull_request:
+    paths:
+      - "src/hoid/providerAdapter.ts"
+      - "src/hoid/providerAdapter.test.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/selectionProtocol.test.ts"
+      - "src/hoid/providerTimeout.ts"
+      - "src/hoid/providerTimeout.test.ts"
+      - ".github/workflows/hoid-provider-adapter-conformance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  provider-adapter-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test provider adapter, protocol and cancellation
+        run: >-
+          npx vitest run
+          src/hoid/providerAdapter.test.ts
+          src/hoid/selectionProtocol.test.ts
+          src/hoid/providerTimeout.test.ts
+      - name: Type-check provider adapter boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/providerAdapter.ts
+          src/hoid/providerAdapter.test.ts
+          src/hoid/selectionProtocol.ts
+          src/hoid/providerTimeout.ts

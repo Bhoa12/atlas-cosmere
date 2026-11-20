@@ -78,6 +78,14 @@ The deterministic continuation queue is now:
 
 The current Library listing contains the Roshar EPUBs used in this run but does not contain `cosmere.epub`. Therefore El Imperio Final chapter 9 remains a metadata-only candidate and was not inspected.
 
+## CI regression found and corrected
+
+The first PR validation run exposed one stale assertion in `cosmereNavigationAudit.test.ts`: it still expected the pre-Run-191 chapter-document counts (15 for El Camino de los Reyes and 16 for each novella). The verified document allowlist correctly returned 16, 17 and 17.
+
+All four affected workflows shared this same assertion; the editorial draft, source-ingestion and core coverage checks passed. The stale expectations were updated to 16 / 17 / 17 in a dedicated test-only commit. No production runtime code or authorization policy was weakened.
+
+The rerun for the final branch head is pending and must pass before this run is considered validated.
+
 ## Validation boundary
 
 The source inspection was performed locally. Only relative archive locators, edition metadata, document digests, original summary prose and summary digests were committed. No EPUB bytes, XHTML body, copied passage, extracted source text, image, private file path or device URI was committed.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createHoidClaimSelectorAdapter,
+  inspectHoidProviderSelectionSnapshot,
   isHoidProviderSelectionSnapshot,
 } from "./providerAdapter";
 import {
@@ -44,6 +45,7 @@ function abortError(): Error {
 describe("Hoid provider-neutral selector adapter", () => {
   it("accepts only immutable protocol snapshots without raw progress", () => {
     const request = createRequest();
+    expect(inspectHoidProviderSelectionSnapshot(request)).toBeNull();
     expect(isHoidProviderSelectionSnapshot(request)).toBe(true);
     expect(Object.isFrozen(request)).toBe(true);
     expect(Object.isFrozen(request.selectionBudget)).toBe(true);

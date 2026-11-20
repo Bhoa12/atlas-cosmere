@@ -6,10 +6,10 @@ import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } fr
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import {
-  presentHoidEvidenceAnswer,
   type HoidPresentedCitation,
   type HoidPresentedSegment,
 } from '../hoid/answerPresentation';
+import { presentHoidExplanation, type HoidExplanationDepth } from '../hoid/explanationDepth';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 import {
   buildHoidCrossBookEvidenceSummary,
@@ -88,6 +88,7 @@ export const HoidScreen: React.FC = () => {
     }
   ]);
   const [input, setInput] = useState('');
+  const [explanationDepth, setExplanationDepth] = useState<HoidExplanationDepth>('detailed');
   const [recomendaciones, setRecomendaciones] = useState<readonly HoidRecommendation[]>([]);
   const [recommendationRevision, setRecommendationRevision] = useState<number | null>(null);
   const [recommendationFingerprint, setRecommendationFingerprint] = useState<string | null>(null);
@@ -229,6 +230,7 @@ export const HoidScreen: React.FC = () => {
           question: textoUsuario,
           progress: currentProgress,
           intent: intentPlan.intent,
+          depth: explanationDepth,
           context: conversationContextRef.current ?? undefined,
           typedContext: typedConversationContextRef.current ?? undefined,
         });
@@ -237,8 +239,9 @@ export const HoidScreen: React.FC = () => {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
           };
-          const presentation = presentHoidEvidenceAnswer(result.answer, currentProgress);
-          if (presentation.status === 'ready') {
+          const explanation = presentHoidExplanation(result.answer, currentProgress, result.depth);
+          if (explanation.status === 'ready') {
+            const presentation = explanation.presentation;
             respuesta = presentation.text;
             citas = presentation.citations;
             segmentos = presentation.segments;
@@ -248,7 +251,7 @@ export const HoidScreen: React.FC = () => {
             conversationContextRef.current = result.conversationContext ?? null;
             typedConversationContextRef.current = result.typedConversationContext ?? null;
           } else {
-            respuesta = presentation.text;
+            respuesta = explanation.text;
             conversationContextRef.current = null;
             typedConversationContextRef.current = null;
           }
@@ -682,17 +685,51 @@ export const HoidScreen: React.FC = () => {
       {cargando && <ActivityIndicator color="#818cf8" style={{ marginVertical: 8 }} />}
 
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Pregúntale a Hoid..."
-          placeholderTextColor="#64748b"
-          value={input}
-          editable={progresoPersistenciaEstado === 'ready'}
-          onChangeText={setInput}
-        />
-        <TouchableOpacity disabled={progresoPersistenciaEstado !== 'ready' || cargando} style={[styles.sendButton, (progresoPersistenciaEstado !== 'ready' || cargando) && styles.disabledButton]} onPress={enviarMensaje}>
-          <Text style={styles.sendButtonText}>➔</Text>
-        </TouchableOpacity>
+        <View style={styles.depthControlHeader}>
+          <Text style={styles.depthLabel}>PROFUNDIDAD DE RESPUESTA</Text>
+          <Text style={styles.depthNote}>La profundidad nunca desbloquea capítulos ni evidencias.</Text>
+        </View>
+        <View style={styles.depthOptions}>
+          {([
+            { value: 'brief', label: 'Breve' },
+            { value: 'detailed', label: 'Detallada' },
+            { value: 'comparative', label: 'Comparativa' },
+          ] as const).map(option => {
+            const selected = explanationDepth === option.value;
+            const disabled = progresoPersistenciaEstado !== 'ready' || cargando;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected, disabled }}
+                disabled={disabled}
+                onPress={() => setExplanationDepth(option.value)}
+                style={[
+                  styles.depthOption,
+                  selected && styles.depthOptionSelected,
+                  disabled && styles.disabledButton,
+                ]}
+              >
+                <Text style={[styles.depthOptionText, selected && styles.depthOptionTextSelected]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Pregúntale a Hoid..."
+            placeholderTextColor="#64748b"
+            value={input}
+            editable={progresoPersistenciaEstado === 'ready'}
+            onChangeText={setInput}
+          />
+          <TouchableOpacity disabled={progresoPersistenciaEstado !== 'ready' || cargando} style={[styles.sendButton, (progresoPersistenciaEstado !== 'ready' || cargando) && styles.disabledButton]} onPress={enviarMensaje}>
+            <Text style={styles.sendButtonText}>➔</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -733,7 +770,16 @@ const styles = StyleSheet.create({
   citationBlock: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#3730a3' },
   citationHeading: { color: '#a5b4fc', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   citationText: { color: '#c7d2fe', fontSize: 10, lineHeight: 15, marginTop: 3 },
-  inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#0f172a', borderTopWidth: 1, borderColor: '#1e293b' },
+  inputContainer: { flexDirection: 'column', padding: 12, backgroundColor: '#0f172a', borderTopWidth: 1, borderColor: '#1e293b' },
+  depthControlHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 },
+  depthLabel: { color: '#c7d2fe', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  depthNote: { color: '#94a3b8', fontSize: 9 },
+  depthOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 7, marginBottom: 9 },
+  depthOption: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: '#475569', backgroundColor: '#111827' },
+  depthOptionSelected: { borderColor: '#818cf8', backgroundColor: '#312e81' },
+  depthOptionText: { color: '#cbd5e1', fontSize: 10 },
+  depthOptionTextSelected: { color: '#ffffff', fontWeight: '700' },
+  inputRow: { flexDirection: 'row', alignItems: 'center' },
   input: { flex: 1, backgroundColor: '#090d16', color: '#ffffff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#334155', fontSize: 13 },
   sendButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   sendButtonText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' }

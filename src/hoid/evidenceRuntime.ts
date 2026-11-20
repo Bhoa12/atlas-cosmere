@@ -3,7 +3,7 @@ import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { canonicalEvidenceScope, evidenceCitationFor, isEvidenceUnlocked, type HoidEvidenceCitation } from "./evidenceScope";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { validatedKnowledge } from "./catalogValidation";
-import { answerWithinTimeout } from "./providerTimeout";
+import { invokeWithProviderDeadline } from "./providerTimeout";
 import { recommendUnstartedSources, type HoidRecommendation } from "./recommendations";
 import { retrieveAuthorized } from "./retrieval";
 import { validHoidQuestion } from "./requestValidation";
@@ -31,8 +31,21 @@ export type HoidApprovedClaim = AttestedHoidApprovedClaim;
  * already-authorized candidate set; final prose is rendered from the local,
  * editorially approved claim registry.
  */
+export type HoidClaimSelectionContext = Readonly<{
+  /** Cooperative cancellation signal; adapters should pass it to their transport. */
+  signal: AbortSignal;
+}>;
+
+export type HoidRuntimeCallOptions = Readonly<{
+  /** Cancels this invocation without changing the reading snapshot or its permissions. */
+  signal?: AbortSignal;
+}>;
+
 export interface HoidClaimSelector {
-  selectClaims(request: HoidClaimSelectionRequest): Promise<unknown>;
+  selectClaims(
+    request: HoidClaimSelectionRequest,
+    context: HoidClaimSelectionContext,
+  ): Promise<unknown>;
 }
 
 export type HoidEvidenceAnswerSegment = Readonly<{
@@ -48,6 +61,7 @@ export type HoidEvidenceAnswer = Readonly<{
     | "reading-position"
     | "no-authorized-evidence"
     | "provider-unavailable"
+    | "request-cancelled"
     | "invalid-selection";
   text: string;
   claimIds: readonly string[];
@@ -294,7 +308,7 @@ function blocked(
 }
 
 function abstain(
-  reason: "no-authorized-evidence" | "provider-unavailable",
+  reason: "no-authorized-evidence" | "provider-unavailable" | "request-cancelled",
   text: string,
 ): HoidEvidenceAnswer {
   return Object.freeze({ status: "abstain", reason, text, claimIds: Object.freeze([]), evidenceIds: Object.freeze([]), sources: Object.freeze([]) });
@@ -413,7 +427,7 @@ export class HoidEvidenceRuntime {
     });
   }
 
-  async answer(input: unknown): Promise<HoidEvidenceAnswer> {
+  async answer(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidEvidenceAnswer> {
     if (!isRecord(input)) {
       return blocked("invalid-input", "La solicitud no tiene un formato válido. Hoid no enviará datos ambiguos a ningún proveedor.");
     }
@@ -503,14 +517,19 @@ export class HoidEvidenceRuntime {
       })),
     });
 
-    const rawSelection = await answerWithinTimeout(
-      Promise.resolve().then(() => this.selector!.selectClaims(selectionRequest)),
+    const invocation = await invokeWithProviderDeadline(
+      signal => this.selector!.selectClaims(selectionRequest, Object.freeze({ signal })),
       this.providerTimeoutMs,
+      options?.signal,
     );
 
-    if (rawSelection === null) {
+    if (invocation.status === "aborted") {
+      return abstain("request-cancelled", "La solicitud se ha cancelado. Hoid no mostrará una respuesta parcial ni reutilizará resultados tardíos.");
+    }
+    if (invocation.status !== "completed") {
       return abstain("provider-unavailable", "El selector no está disponible o ha superado el tiempo límite. Hoid no completará la respuesta por su cuenta.");
     }
+    const rawSelection = invocation.value;
     const selectedIds = parseHoidClaimSelectionResponse(
       rawSelection,
       selectionRequest,

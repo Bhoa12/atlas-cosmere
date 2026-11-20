@@ -25,7 +25,7 @@ function isKnownBook(bookId: string): boolean {
 }
 
 export function buildReadingContext(
-  reading: ReadingPosition[],
+  reading: readonly ReadingPosition[],
 ): readonly Readonly<HoidReadingContextItem>[] {
   const validated = validEditionBoundReadingPositions(reading);
   if (!validated) return Object.freeze([]);

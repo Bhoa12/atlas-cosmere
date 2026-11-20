@@ -62,3 +62,7 @@ No EPUB bytes, XHTML body, extracted source passage, image, device URI or privat
 - Esquirla del amanecer: chapter 18.
 
 These are candidates only. Each future inspection still requires explicit source selection and exact edition verification.
+
+## CI status at publication
+
+The GitHub connector returned no pull-request workflow runs and no combined status checks for the latest branch HEAD during this run. The local source-integrity checks described above passed, but the TypeScript/Vitest suites and GitHub Actions are **not yet verified**. Do not treat the PR as CI-green or merge it until the required workflows complete successfully.

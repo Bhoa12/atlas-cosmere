@@ -102,6 +102,26 @@ describe("catalog entity appearance versus complete-summary unlock", () => {
     expect(context[0].source.chapter).not.toBe(1);
   });
 
+  it("preserves the canonical phenomenon knowledge kind across the provider context boundary", () => {
+    const phenomenon: HoidKnowledgeEntry = {
+      ...entry(),
+      id: "synthetic-phenomenon-summary",
+      kind: "phenomenon",
+    };
+    const catalog = new HoidKnowledgeCatalog([phenomenon]);
+    const reading = [{ bookId: "twok", chapter: 4 }];
+    const context = buildAuthorizedKnowledgeContext(catalog, reading);
+    const snapshot = snapshotProviderRequest({
+      question: "Pregunta sintética.",
+      reading,
+      knowledgeContext: context,
+    }, { includeAuthorizedKnowledgeContext: true });
+
+    expect(context).toHaveLength(1);
+    expect(context[0].kind).toBe("phenomenon");
+    expect(snapshot.knowledgeContext?.[0].kind).toBe("phenomenon");
+  });
+
   it("keeps the legacy provider boundary from receiving a summary before its unlock watermark", async () => {
     let captured: HoidAnswerRequest | undefined;
     const provider: HoidProvider = {

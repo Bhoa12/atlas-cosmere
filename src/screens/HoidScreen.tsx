@@ -63,6 +63,7 @@ export const HoidScreen: React.FC = () => {
   // Ephemeral ID-only context: never persisted to SQLite, messages or providers.
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
+  const answerAbortControllerRef = useRef<AbortController | null>(null);
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({
         runtime: hoidRuntime,
@@ -79,6 +80,7 @@ export const HoidScreen: React.FC = () => {
   });
 
   const [cargando, setCargando] = useState(false);
+  const [canCancelAnswer, setCanCancelAnswer] = useState(false);
   const [cargandoRecomendaciones, setCargandoRecomendaciones] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
@@ -110,6 +112,9 @@ export const HoidScreen: React.FC = () => {
     : null;
 
   useEffect(() => {
+    answerAbortControllerRef.current?.abort();
+    answerAbortControllerRef.current = null;
+    setCanCancelAnswer(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     setRecomendaciones([]);
@@ -123,10 +128,22 @@ export const HoidScreen: React.FC = () => {
     setTopicRecommendationMessage('');
   }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado]);
 
+  useEffect(() => () => {
+    answerAbortControllerRef.current?.abort();
+    answerAbortControllerRef.current = null;
+  }, []);
+
   // Filter immediately during render, then prune stale assistant text from state.
   useEffect(() => {
     setMensajes(previous => pruneStaleHoidMessages(previous, liveProgressScope));
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado]);
+
+  const cancelarRespuesta = () => {
+    const controller = answerAbortControllerRef.current;
+    if (!controller) return;
+    controller.abort();
+    setCanCancelAnswer(false);
+  };
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
@@ -226,6 +243,9 @@ export const HoidScreen: React.FC = () => {
               : 'No puedo verificar el catálogo o el runtime de recomendaciones. No mostraré una lista alternativa.';
         }
       } else {
+        const controller = new AbortController();
+        answerAbortControllerRef.current = controller;
+        setCanCancelAnswer(true);
         const result = await conversationGateway.answer({
           question: textoUsuario,
           progress: currentProgress,
@@ -233,8 +253,13 @@ export const HoidScreen: React.FC = () => {
           depth: explanationDepth,
           context: conversationContextRef.current ?? undefined,
           typedContext: typedConversationContextRef.current ?? undefined,
-        });
-        if (result.status === 'ready') {
+        }, { signal: controller.signal });
+        if (result.status === 'ready' && result.answer.reason === 'request-cancelled') {
+          responseScope = null;
+          respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
+          conversationContextRef.current = null;
+          typedConversationContextRef.current = null;
+        } else if (result.status === 'ready') {
           responseScope = {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
@@ -325,6 +350,8 @@ export const HoidScreen: React.FC = () => {
         texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completaré la respuesta mediante suposiciones.',
       }]);
     } finally {
+      answerAbortControllerRef.current = null;
+      setCanCancelAnswer(false);
       setCargando(false);
     }
   };
@@ -682,7 +709,21 @@ export const HoidScreen: React.FC = () => {
         )}
       />
 
-      {cargando && <ActivityIndicator color="#818cf8" style={{ marginVertical: 8 }} />}
+      {cargando && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 8 }}>
+          <ActivityIndicator color="#818cf8" style={{ marginRight: 12 }} />
+          {canCancelAnswer && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Cancelar respuesta de Hoid"
+              onPress={cancelarRespuesta}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: '#1e293b' }}
+            >
+              <Text style={{ color: '#e2e8f0', fontWeight: '600' }}>Cancelar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <View style={styles.inputContainer}>
         <View style={styles.depthControlHeader}>

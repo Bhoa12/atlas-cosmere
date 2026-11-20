@@ -3,6 +3,7 @@ import {
   createHoidEvidenceRuntime,
   type HoidApprovedClaim,
   type HoidClaimSelectionRequest,
+  type HoidClaimSelectionContext,
 } from "./evidenceRuntime";
 import { createHoidClaimSelectionResponse } from "./selectionProtocol";
 import type { HoidKnowledgeEntry } from "./catalog";
@@ -99,11 +100,17 @@ const claims: HoidApprovedClaim[] = [
 ];
 
 function selectorAdapter(
-  selectClaims: (request: HoidClaimSelectionRequest) => Promise<unknown>,
+  selectClaims: (
+    request: HoidClaimSelectionRequest,
+    context: HoidClaimSelectionContext,
+  ) => Promise<unknown>,
 ) {
   return {
-    selectClaims: async (request: HoidClaimSelectionRequest) => {
-      const result = await selectClaims(request);
+    selectClaims: async (
+      request: HoidClaimSelectionRequest,
+      context: HoidClaimSelectionContext,
+    ) => {
+      const result = await selectClaims(request, context);
       return Array.isArray(result) && result.every(item => typeof item === "string")
         ? createHoidClaimSelectionResponse(request, result as string[])
         : result;
@@ -755,6 +762,64 @@ describe("HoidEvidenceRuntime", () => {
       selector: null,
     });
     expect(invalidRuntime).toBeNull();
+  });
+
+  it("aborts a timed-out provider and ignores a late valid selection", async () => {
+    let providerSignal: AbortSignal | undefined;
+    let capturedRequest: HoidClaimSelectionRequest | undefined;
+    let resolveLate: ((value: unknown) => void) | undefined;
+    const selector = {
+      selectClaims: (request: HoidClaimSelectionRequest, context: HoidClaimSelectionContext) => {
+        capturedRequest = request;
+        providerSignal = context.signal;
+        return new Promise<unknown>(resolve => { resolveLate = resolve; });
+      },
+    };
+    const runtime = createHoidEvidenceRuntime({
+      knowledge,
+      claims,
+      selector,
+      providerTimeoutMs: 5,
+    });
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+    });
+
+    expect(result.status).toBe("abstain");
+    expect(result.reason).toBe("provider-unavailable");
+    expect(providerSignal?.aborted).toBe(true);
+    expect(resolveLate).toBeTypeOf("function");
+    resolveLate?.(createHoidClaimSelectionResponse(capturedRequest!, ["claim-alpha"]));
+    await Promise.resolve();
+    expect(result.status).toBe("abstain");
+    expect(result.text).not.toContain("Afirmación editorial aprobada");
+  });
+
+  it("propagates caller cancellation to the provider and withholds the answer", async () => {
+    const controller = new AbortController();
+    let providerSignal: AbortSignal | undefined;
+    const selector = {
+      selectClaims: (_request: HoidClaimSelectionRequest, context: HoidClaimSelectionContext) => {
+        providerSignal = context.signal;
+        return new Promise<unknown>(() => {});
+      },
+    };
+    const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector, providerTimeoutMs: 1_000 });
+    const pending = runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+    }, { signal: controller.signal });
+
+    await Promise.resolve();
+    expect(providerSignal).toBeDefined();
+    controller.abort();
+    const result = await pending;
+
+    expect(result.status).toBe("abstain");
+    expect(result.reason).toBe("request-cancelled");
+    expect(providerSignal?.aborted).toBe(true);
+    expect(result.text).not.toContain("Afirmación editorial aprobada");
   });
 
 });

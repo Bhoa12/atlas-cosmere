@@ -84,7 +84,7 @@ describe("HoidConversationGateway", () => {
     expect(result.depth).toBe("detailed");
     expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
-    }));
+    }), undefined);
   });
 
   it("accepts explicit brief depth and forwards its bounded budget", async () => {
@@ -101,7 +101,7 @@ describe("HoidConversationGateway", () => {
     expect(result.depth).toBe("brief");
     expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
-    }));
+    }), undefined);
   });
 
   it("rejects unsupported explanation depths before invoking the runtime", async () => {
@@ -468,7 +468,7 @@ describe("HoidConversationGateway", () => {
       progress: current,
       intent: "context",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
-    });
+    }, undefined);
   });
 
   it("defaults an omitted intent to explain for backward compatibility", async () => {
@@ -481,7 +481,7 @@ describe("HoidConversationGateway", () => {
       progress: current,
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
-    });
+    }, undefined);
   });
 
   it("rejects unsupported intents before invoking the runtime", async () => {
@@ -658,7 +658,7 @@ describe("HoidConversationGateway", () => {
       intent: "explain",
       entityIds: ["e-alpha", "e-beta"],
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
-    });
+    }, undefined);
   });
 
   it("rejects malformed matched entity IDs before invoking the strict runtime", async () => {
@@ -857,7 +857,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       intent: "explain",
       entityIds: ["synthetic.entity-beta"],
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
-    });
+    }, undefined);
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
     if (result.status === "ready") expect(result.conversationContext).toEqual(context);
   });
@@ -1097,4 +1097,20 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
     expect(await gateway.recommend({ progress: current, limit: 2 }))
       .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
   });
+  it("forwards caller cancellation options to the strict runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const controller = new AbortController();
+    const result = await gateway.answer({
+      question: "¿Qué se ha autorizado?",
+      progress: current,
+    }, { signal: controller.signal });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith(
+      expect.objectContaining({ question: "¿Qué se ha autorizado?" }),
+      { signal: controller.signal },
+    );
+  });
+
 });

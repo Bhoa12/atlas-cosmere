@@ -1,5 +1,5 @@
 import type { HoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
-import type { HoidClaimIntent, HoidEvidenceAnswer } from "./evidenceRuntime";
+import type { HoidClaimIntent, HoidEvidenceAnswer, HoidRuntimeCallOptions } from "./evidenceRuntime";
 import type { HoidRecommendation } from "./recommendations";
 import {
   isHoidExplanationDepth,
@@ -566,7 +566,7 @@ function canonicalRecommendationResult(
 export class HoidConversationGateway {
   constructor(private readonly config: HoidConversationGatewayConfig) {}
 
-  async answer(input: unknown): Promise<HoidConversationGatewayResult> {
+  async answer(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationGatewayResult> {
     const request = canonicalRequest(input);
     if (!request) return unavailable("invalid-request");
 
@@ -614,7 +614,7 @@ export class HoidConversationGateway {
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: [typedFollowUp.entityId],
-        });
+        }, options);
       } catch {
         return unavailable("runtime-failed");
       }
@@ -783,7 +783,7 @@ export class HoidConversationGateway {
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: [coreference.entityId],
-        });
+        }, options);
       } catch {
         return unavailable("runtime-failed");
       }
@@ -859,7 +859,7 @@ export class HoidConversationGateway {
         intent: request.intent,
         selectionBudget: request.selectionBudget,
         ...(entityIds === undefined ? {} : { entityIds }),
-      });
+      }, options);
     } catch {
       return unavailable("runtime-failed");
     }

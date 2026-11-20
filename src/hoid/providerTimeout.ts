@@ -35,3 +35,81 @@ export async function answerWithinTimeout<T>(
     if (timer !== undefined) clearTimeout(timer);
   }
 }
+
+
+export type ProviderInvocationOutcome<T> =
+  | Readonly<{ status: "completed"; value: T }>
+  | Readonly<{ status: "timeout" }>
+  | Readonly<{ status: "aborted" }>
+  | Readonly<{ status: "failed" }>;
+
+/**
+ * Invoke a provider with a cooperative cancellation signal and a hard caller
+ * deadline. A timeout or caller abort settles Hoid immediately and aborts the
+ * signal. If an adapter ignores AbortSignal, its eventual value is observed
+ * only by this settled promise chain and can never re-enter the answer path.
+ */
+export async function invokeWithProviderDeadline<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  callerSignal?: AbortSignal,
+): Promise<ProviderInvocationOutcome<T>> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return Object.freeze({ status: "failed" });
+  }
+  if (callerSignal?.aborted) {
+    return Object.freeze({ status: "aborted" });
+  }
+
+  const controller = new AbortController();
+  const effectiveTimeoutMs = Math.ceil(timeoutMs);
+
+  return new Promise<ProviderInvocationOutcome<T>>(resolve => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const cleanup = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      try {
+        callerSignal?.removeEventListener("abort", onCallerAbort);
+      } catch {
+        // A malformed host signal must not prevent the invocation from settling.
+      }
+    };
+
+    const finish = (outcome: ProviderInvocationOutcome<T>) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (outcome.status !== "completed" && !controller.signal.aborted) {
+        controller.abort();
+      }
+      resolve(Object.freeze(outcome));
+    };
+
+    const onCallerAbort = () => finish({ status: "aborted" });
+
+    try {
+      callerSignal?.addEventListener("abort", onCallerAbort, { once: true });
+      if (callerSignal?.aborted) {
+        onCallerAbort();
+        return;
+      }
+
+      timer = setTimeout(() => finish({ status: "timeout" }), effectiveTimeoutMs);
+      const nodeTimer = timer as ReturnType<typeof setTimeout> & { unref?: () => void };
+      nodeTimer.unref?.();
+
+      // Deferring invocation ensures the deadline and abort listener are
+      // installed before any adapter code can run.
+      void Promise.resolve()
+        .then(() => operation(controller.signal))
+        .then(
+          value => finish({ status: "completed", value }),
+          () => finish({ status: "failed" }),
+        );
+    } catch {
+      finish({ status: "failed" });
+    }
+  });
+}

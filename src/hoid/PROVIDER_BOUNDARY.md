@@ -78,3 +78,16 @@ El selector utiliza el contrato neutral de selección de afirmaciones, versión 
 La respuesta debe contener exactamente la versión 1, el mismo fingerprint y una lista densa de IDs de afirmaciones. Se rechazan arrays heredados, fingerprints de otra solicitud, versiones desconocidas, propiedades adicionales, getters, IDs duplicados y candidatos no autorizados. Los IDs se vuelven a reconciliar con el conjunto local y el texto se reconstruye desde el registro editorial aprobado.
 
 El fingerprint sirve para correlación y frescura, no como autenticación del proveedor. La autoridad narrativa, el control N+1, la verificación de edición y la procedencia continúan siendo locales. Un adaptador nuevo debe devolver el sobre versionado y no puede convertir el fingerprint en un permiso.
+
+
+## Cancelación cooperativa y resultados tardíos
+
+El selector recibe un contexto de invocación separado del payload narrativo:
+
+- signal: AbortSignal propiedad del runtime para esa llamada concreta.
+
+El runtime inicia la operación únicamente después de instalar el deadline y los listeners de cancelación. Si vence el timeout o el llamante cancela la consulta, aborta la señal y cierra la invocación con un resultado tipado. La cancelación del llamante se presenta como request-cancelled; el timeout o el fallo del adaptador se presentan como indisponibilidad del proveedor.
+
+Los adaptadores HTTP deben transmitir la señal a su transporte cuando este admita cancelación. Si un adaptador ignora la señal, Hoid no puede garantizar que el trabajo remoto se detenga físicamente; sí garantiza que una resolución posterior queda fuera de la ruta de presentación y no puede autorizar ni mostrar una respuesta tardía.
+
+La señal no contiene progreso, permisos, claims ni texto narrativo. Cancelar una consulta no modifica el cursor, el fingerprint de lectura ni las autorizaciones editoriales.

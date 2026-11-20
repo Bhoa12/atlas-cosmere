@@ -190,7 +190,10 @@ describe("HoidCursorEvidenceRuntime", () => {
     });
 
     expect(result.status).toBe("authorized");
-    expect(selector).toHaveBeenCalledWith(expect.objectContaining({ selectionBudget }));
+    expect(selector).toHaveBeenCalledWith(
+      expect.objectContaining({ selectionBudget }),
+      expect.objectContaining({ signal: expect.anything() }),
+    );
   });
 
   it("requires every cross-work cursor before invoking the selector", async () => {

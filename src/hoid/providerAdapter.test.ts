@@ -14,7 +14,10 @@ import type { HoidClaimSelectionTransportContext } from "./providerAdapter";
 import type { HoidClaimSelectionRequest } from "./selectionProtocol";
 import type { HoidClaimSelector } from "./evidenceRuntime";
 import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
-import { defineHoidProviderAdapterConformanceSuite } from "./providerAdapterConformance.testkit";
+import {
+  assertHoidRuntimeSelectorCompatibility,
+  defineHoidProviderAdapterConformanceSuite,
+} from "./providerAdapterConformance.testkit";
 
 const budget: HoidAnswerSelectionBudget = Object.freeze({
   maxClaims: 3,
@@ -55,11 +58,16 @@ defineHoidProviderAdapterConformanceSuite(
   createHoidClaimSelectorAdapter,
 );
 
+defineHoidProviderAdapterConformanceSuite(
+  "Reference Hoid provider adapter",
+  createHoidClaimSelectorAdapter,
+);
+
 describe("Hoid provider-neutral selector adapter", () => {
   it("satisfies the runtime selector contract without provider-specific dependencies", () => {
-    const selector: HoidClaimSelector = createHoidClaimSelectorAdapter(async request =>
+    const selector: HoidClaimSelector = assertHoidRuntimeSelectorCompatibility(createHoidClaimSelectorAdapter(async request =>
       createHoidClaimSelectionResponse(request, ["claim.alpha"])
-    );
+    ));
     expect(typeof selector.selectClaims).toBe("function");
   });
 

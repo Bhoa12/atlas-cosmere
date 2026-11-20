@@ -88,8 +88,8 @@ export function canonicalEvidenceScope(
   if (!isKnownHoidSource(sourceBookId) || !isKnownHoidSource(unlockBookId)) return null;
   if (sourceBookId !== unlockBookId) return null;
   if (!validChapter(sourceChapter) || !validChapter(unlockChapter)) return null;
-  // ReadingPosition.chapter is completed-through, while a v2 cursor stores
-  // the open chapter. Source chapter N is safe at cursor N+1.
+  // ReadingPosition.chapter is the current/open chapter cursor, matching
+  // cursorToLegacyReadingPosition(). Source chapter N is safe at cursor N+1.
   if (unlockChapter < sourceChapter) return null;
   if (!locatorId || locatorId.length > MAX_LOCATOR_LENGTH) return null;
   if (/[\u0000-\u001F\u007F]/u.test(locatorId)) return null;

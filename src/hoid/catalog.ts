@@ -89,7 +89,7 @@ export class HoidKnowledgeCatalog {
    * authorization. A name may be safe to mention before the complete editorial
    * summary is safe to reveal.
    */
-  isEntityMentionUnlocked(entry: HoidKnowledgeEntry, reading: ReadingPosition[]): boolean {
+  isEntityMentionUnlocked(entry: HoidKnowledgeEntry, reading: readonly ReadingPosition[]): boolean {
     // Never interpret raw progress independently. Canonicalization removes
     // duplicate or malformed positions before this authorization boundary, so
     // catalog access cannot depend on the incidental order of UI updates.
@@ -107,7 +107,7 @@ export class HoidKnowledgeCatalog {
     return this.isEntityMentionUnlocked(entry, reading);
   }
 
-  lockedMatches(text: string, reading: ReadingPosition[]): HoidKnowledgeEntry[] {
+  lockedMatches(text: string, reading: readonly ReadingPosition[]): HoidKnowledgeEntry[] {
     return this.findMatches(text).filter(entry => !this.isEntityMentionUnlocked(entry, reading));
   }
 

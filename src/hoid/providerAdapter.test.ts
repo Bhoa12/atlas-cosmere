@@ -45,6 +45,10 @@ describe("Hoid provider-neutral selector adapter", () => {
   it("accepts only immutable protocol snapshots without raw progress", () => {
     const request = createRequest();
     expect(isHoidProviderSelectionSnapshot(request)).toBe(true);
+    expect(Object.isFrozen(request)).toBe(true);
+    expect(Object.isFrozen(request.selectionBudget)).toBe(true);
+    expect(Object.isFrozen(request.candidates[0])).toBe(true);
+    expect(Object.isFrozen(request.candidates[0].evidenceIds)).toBe(true);
     expect(Object.keys(request).sort()).toEqual([
       "candidates",
       "intent",
@@ -73,6 +77,46 @@ describe("Hoid provider-neutral selector adapter", () => {
     await expect(adapter.selectClaims(mutable, { signal: new AbortController().signal }))
       .rejects.toThrow("immutable Hoid selection snapshots");
     expect(transport).not.toHaveBeenCalled();
+  });
+
+  it("rejects budgets and candidate payloads beyond runtime hard ceilings", () => {
+    const invalidBudget = Object.freeze({ ...budget, maxCharacters: 32_001 });
+    const overBudget = createHoidClaimSelectionRequest({
+      question: "Pregunta sintética.",
+      intent: "explain",
+      candidates: [{ id: "claim.alpha", text: "Afirmación sintética.", evidenceIds: ["evidence.alpha"] }],
+      selectionBudget: invalidBudget,
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    });
+    expect(isHoidProviderSelectionSnapshot(overBudget)).toBe(false);
+
+    const tooManyCandidates = createHoidClaimSelectionRequest({
+      question: "Pregunta sintética.",
+      intent: "explain",
+      candidates: Array.from({ length: 33 }, (_, index) => ({
+        id: `claim.item-${index}`,
+        text: "Afirmación sintética.",
+        evidenceIds: ["evidence.alpha"],
+      })),
+      selectionBudget: budget,
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    });
+    expect(isHoidProviderSelectionSnapshot(tooManyCandidates)).toBe(false);
+  });
+
+  it("rejects duplicate evidence IDs inside a candidate", () => {
+    const duplicateEvidence = createHoidClaimSelectionRequest({
+      question: "Pregunta sintética.",
+      intent: "explain",
+      candidates: [{
+        id: "claim.alpha",
+        text: "Afirmación sintética.",
+        evidenceIds: ["evidence.alpha", "evidence.alpha"],
+      }],
+      selectionBudget: budget,
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    });
+    expect(isHoidProviderSelectionSnapshot(duplicateEvidence)).toBe(false);
   });
 
   it("does not dispatch transport when the signal is already aborted", async () => {
@@ -110,6 +154,8 @@ describe("Hoid provider-neutral selector adapter", () => {
 
     expect(transport).toHaveBeenCalledTimes(1);
     expect(transport.mock.calls[0][0]).toBe(request);
+    expect(Object.isFrozen(transport.mock.calls[0][0])).toBe(true);
+    expect(Object.isFrozen(transport.mock.calls[0][0].candidates[0])).toBe(true);
     expect(transport.mock.calls[0][1].signal).toBe(controller.signal);
     expect(Object.isFrozen(transport.mock.calls[0][1])).toBe(true);
     expect(parseHoidClaimSelectionResponse(response, request, 3)).toEqual(["claim.alpha"]);

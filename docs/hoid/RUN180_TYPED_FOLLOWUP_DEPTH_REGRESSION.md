@@ -13,7 +13,7 @@ El gateway ya transmite `selectionBudget` en las consultas de seguimiento con co
 ## Correcciones
 
 - Las expectativas de los seguimientos tipados ahora incluyen el presupuesto canónico `detailed`, que es el valor predeterminado cuando la solicitud no especifica profundidad.
-- Se añade una prueba explícita para un seguimiento tipado de tipo fenómeno que solicita `brief` y verifica que el runtime recibe exactamente `HOID_EXPLANATION_DEPTH_BUDGETS.brief`.
+- Se añaden pruebas explícitas para seguimientos tipados que solicitan `brief` y `comparative`, verificando que el runtime recibe exactamente los presupuestos canónicos correspondientes.
 - Se conserva la exigencia de reautorizar los IDs de entidad y enviar al runtime únicamente el ID canónico resuelto.
 - No se cambia el catálogo, los umbrales `firstSafeAppearance` / `evidenceUnlock`, los manifiestos de edición ni el progreso de lectura.
 

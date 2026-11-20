@@ -311,17 +311,17 @@ describe("Hoid spoiler-aware entity resolution", () => {
   it("rejects an entity whose source document was not individually inspected", () => {
     const manifest = getHoidReadingManifest("twok");
     if (manifest.status !== "ready") throw new Error("Manifiesto de fixture no disponible");
-    const unit = manifest.manifest.units.find(item => item.chapterNumber === 12);
+    const unit = manifest.manifest.units.find(item => item.chapterNumber === 13);
     if (!unit?.locatorId) throw new Error("Localizador de fixture no disponible");
     const entry = {
       ...knowledge("synthetic.uninspected", ["Uninspected Synthetic Entity"]),
-      firstSafeAppearance: { bookId: "twok", chapter: 12 },
-      evidenceSource: { bookId: "twok", chapter: 12, locatorId: unit.locatorId },
-      evidenceUnlock: { bookId: "twok", chapter: 12 },
+      firstSafeAppearance: { bookId: "twok", chapter: 13 },
+      evidenceSource: { bookId: "twok", chapter: 13, locatorId: unit.locatorId },
+      evidenceUnlock: { bookId: "twok", chapter: 13 },
     };
     const result = resolveHoidAuthorizedEntities(
       [entry],
-      progress([{ bookId: "twok", chapter: 12 }]),
+      progress([{ bookId: "twok", chapter: 13 }]),
       { text: "Uninspected Synthetic Entity" },
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });
@@ -498,10 +498,10 @@ describe("Hoid spoiler-aware entity resolution", () => {
       "synthetic.alias-uninspected",
       entry.id,
       "Uninspected Alias",
-      [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 12, 12)],
+      [aliasEvidenceItem("synthetic.alias-source-uninspected", "twok", 13, 13)],
     )];
     const result = resolveHoidAuthorizedEntities(
-      [entry], progress([{ bookId: "twok", chapter: 12 }]),
+      [entry], progress([{ bookId: "twok", chapter: 13 }]),
       { text: "Uninspected Alias" }, aliases,
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-knowledge" });

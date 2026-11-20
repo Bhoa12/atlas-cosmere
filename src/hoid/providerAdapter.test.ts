@@ -58,11 +58,6 @@ defineHoidProviderAdapterConformanceSuite(
   createHoidClaimSelectorAdapter,
 );
 
-defineHoidProviderAdapterConformanceSuite(
-  "Reference Hoid provider adapter",
-  createHoidClaimSelectorAdapter,
-);
-
 describe("Hoid provider-neutral selector adapter", () => {
   it("satisfies the runtime selector contract without provider-specific dependencies", () => {
     const selector: HoidClaimSelector = assertHoidRuntimeSelectorCompatibility(createHoidClaimSelectorAdapter(async request =>

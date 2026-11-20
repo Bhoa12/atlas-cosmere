@@ -35,6 +35,12 @@ El runner no modifica la política de autorización: únicamente hace ejecutable
 - `evidenceRuntime.test.ts` verifica que el runtime rechaza respuestas de selección ligadas a otra pregunta o snapshot.
 - `cursorEvidenceRuntime.test.ts` y `answerClaimProvenance.test.ts` usan el adaptador de prueba versionado para mantener el mismo contrato de producción.
 
+## Adaptadores y conformidad de proveedores
+
+- `providerAdapter.ts` ofrece `createHoidClaimSelectorAdapter()`, una fábrica neutral que aplica el contrato de snapshot antes de llamar al transporte concreto.
+- `providerAdapter.test.ts` comprueba claves cerradas, ausencia de progreso bruto, inmutabilidad profunda, rechazo antes del despacho, señal idéntica durante el transporte y propagación de cancelación activa.
+- Los adaptadores específicos deben usar esta fábrica o reproducir exactamente sus garantías. La fábrica no autentica al proveedor ni sustituye el parser de respuesta del runtime.
+
 ## Deadline, cancelación y resultados tardíos
 
 - `providerTimeout.test.ts` comprueba resolución normal, timeout, aborto del proveedor, cancelación del llamante, rechazo del adaptador y que una operación ya cancelada no llegue a iniciarse.

@@ -139,3 +139,10 @@ El manifiesto metadata-only contiene ahora **71 registros en 53 documentos de ca
 One additional original Spanish summary was staged for El Imperio Final chapter 7. It is bound to the registered Cosmere edition, navigation digest, exact chapter locator and verified XHTML digest. Its summary digest is independently recorded. The draft remains `pending-review` and unlocks only after the reader reaches chapter 8.
 
 The current metadata-only bundle contains **72 records across 54 chapter-body documents**: 54 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Structural readiness does not equal editorial approval. The production registry remains empty, with zero approved claims and no activation receipt. No EPUB, XHTML body, source passage, image or private file path is committed.
+
+
+## Run 181 — TFE chapter-eight staging update
+
+One original Spanish summary was staged for El Imperio Final chapter 8. It is bound to the registered Cosmere edition, navigation digest, exact Chapter 8 locator and verified XHTML digest. Its independent summary digest is recorded. The draft remains `pending-review` and unlocks only after the reader reaches Chapter 9.
+
+The current metadata-only bundle contains **73 editorial records across 55 chapter-body documents**: 55 original summaries, one atomic claim, 14 identity dossiers and three relationship claims. Structural readiness does not equal editorial approval. The production registry remains empty, with zero approved claims and no activation receipt. No EPUB, XHTML body, source passage, image or private file path is committed.

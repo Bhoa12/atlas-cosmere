@@ -52,18 +52,18 @@ describe("recommendReadingNextSteps", () => {
       sourceId: "tfe",
       title: "El Imperio Final",
       reason: "resume-current-work",
-      currentChapter: 8,
-      completedThroughChapter: 7,
+      currentChapter: 9,
+      completedThroughChapter: 8,
     });
     expect(recommendations[1].reason).toBe("unread-source");
     expect(recommendations[1].sourceId).not.toBe("tfe");
   });
 
-  it("reports no completed chapter before the first chapter cursor", async () => {
+  it("recommends the next chapter after the completed-through watermark", async () => {
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 1 }], 1)[0]).toMatchObject({
       reason: "resume-current-work",
-      currentChapter: 1,
-      completedThroughChapter: null,
+      currentChapter: 2,
+      completedThroughChapter: 1,
     });
   });
 
@@ -87,8 +87,8 @@ describe("recommendReadingNextSteps", () => {
       sourceId: "elantris",
       title: "Elantris",
       reason: "resume-current-work",
-      currentChapter: 3,
-      completedThroughChapter: 2,
+      currentChapter: 4,
+      completedThroughChapter: 3,
     }]);
   });
 
@@ -103,6 +103,13 @@ describe("recommendReadingNextSteps", () => {
   it("fails closed for out-of-range and ambiguous chapter progress", async () => {
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 39 }], 3)).toEqual([]);
     expect(recommendReadingNextSteps([{ bookId: "elantris", chapter: 48 }], 3)).toEqual([]);
+  });
+
+  it("does not resume past the verified numeric prefix of an ambiguous edition", async () => {
+    const recommendations = recommendReadingNextSteps([{ bookId: "elantris", chapter: 47 }], 1);
+    expect(recommendations).toHaveLength(1);
+    expect(recommendations[0].reason).toBe("unread-source");
+    expect(recommendations[0].sourceId).not.toBe("elantris");
   });
 
   it("does not infer a numeric resume position for unsegmented works", async () => {

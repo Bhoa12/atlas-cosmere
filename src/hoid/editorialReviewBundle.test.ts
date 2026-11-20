@@ -270,7 +270,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "needs-revision",
-      approvedCount: 63,
+      approvedCount: reviewManifest.packets.length - 1,
       revisionRequiredCount: 1,
       missingCount: 0,
       promotionAllowed: false,

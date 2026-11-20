@@ -68,7 +68,6 @@ jobs:
           src/hoid/sourceIngestionExecution.ts
           src/hoid/sourceIngestionExecution.test.ts
           src/hoid/epubIngestion.test.ts
-          src/hoid/sourceIngestionExecution.test.ts
           src/hoid/sourceCoverage.ts
           src/hoid/verifiedChapterDocuments.ts
           src/hoid/verifiedChapterLocators.ts

@@ -65,3 +65,8 @@ Tests that need an uninspected chapter derive the first missing chapter from the
 - 0 approved claims.
 - 0 production knowledge entries.
 - no activation receipt.
+
+
+## Editorial wording verification
+
+After re-reading the four inspected XHTML documents, two summary phrases were narrowed to match the source more precisely: the El Imperio Final chapter refers to the Lord Legislator's army, and the Danzante del Filo chapter refers to the disciples of Oscuridad. The corresponding summary hashes were recomputed. Source-document hashes and chapter boundaries are unchanged; all four drafts remain pending review.

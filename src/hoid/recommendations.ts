@@ -24,8 +24,11 @@ export type HoidRecommendation =
       reason: "resume-current-work";
       /** Next chapter to open, derived from the completed-through watermark and verified manifest. */
       currentChapter: number;
-      /** Last completed chapter; always currentChapter - 1 for a resumable numeric work. */
-      completedThroughChapter: number;
+      /**
+       * Last completed chapter. Null is valid only when chapter one is open,
+       * because no numbered chapter has yet been completed.
+       */
+      completedThroughChapter: number | null;
     }>;
 
 const MAX_RECOMMENDATION_LIMIT = HOID_SOURCE_BIBLIOGRAPHY.length;

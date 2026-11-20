@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
-import { presentHoidExplanation } from "./explanationDepth";
+import { HOID_EXPLANATION_DEPTH_BUDGETS, presentHoidExplanation } from "./explanationDepth";
 
 const updatedAt = "2026-11-20T00:00:00.000Z";
 
@@ -51,7 +51,7 @@ type TestSegment = Readonly<{
 function answer(
   segments: readonly TestSegment[],
   sources: readonly ReturnType<typeof source>[],
-  includeSegments = false,
+  includeSegments = true,
   layout: "plain" | "numbered" = "plain",
 ) {
   const text = layout === "numbered"
@@ -68,7 +68,7 @@ function answer(
 }
 
 describe("Hoid explanation depth policy", () => {
-  it("accepts a concise answer without rewriting its authorized wording", () => {
+  it("accepts a concise answer with exact claim-level source provenance", () => {
     const evidence = source("tfe", "evidence-vin-ch1");
     const input = answer(
       [{ claimId: "claim-vin", text: "Afirmación verificada.", evidenceIds: [evidence.evidenceId] }],
@@ -81,9 +81,39 @@ describe("Hoid explanation depth policy", () => {
       status: "ready",
       depth: "brief",
       metrics: { claimCount: 1, evidenceCount: 1, workCount: 1 },
-      presentation: { status: "ready", text: "Afirmación verificada." },
+      presentation: { status: "ready", text: "Afirmación verificada.", segments: [{ claimId: "claim-vin", evidenceIds: ["evidence-vin-ch1"] }] },
     });
   });
+
+  it("requires claim-level provenance in every public explanation depth", () => {
+    for (const budget of Object.values(HOID_EXPLANATION_DEPTH_BUDGETS)) {
+      expect(budget.requireSegmentProvenance).toBe(true);
+    }
+    expect(HOID_EXPLANATION_DEPTH_BUDGETS.comparative.requireCrossWorkSegment).toBe(true);
+    expect(HOID_EXPLANATION_DEPTH_BUDGETS.brief.requireCrossWorkSegment).toBe(false);
+    expect(HOID_EXPLANATION_DEPTH_BUDGETS.detailed.requireCrossWorkSegment).toBe(false);
+  });
+
+  it.each(["brief", "detailed", "comparative"] as const)(
+    "withholds %s answers that omit the claim-to-evidence map",
+    depth => {
+      const evidence = source("tfe", "evidence-vin-ch1");
+      const input = answer(
+        [{ claimId: "claim-vin", text: "Afirmación sin mapa de procedencia.", evidenceIds: [evidence.evidenceId] }],
+        [evidence],
+        false,
+      );
+
+      const result = presentHoidExplanation(input, progressAt(["tfe"]), depth);
+
+      expect(result).toMatchObject({
+        status: "withheld",
+        reason: "segment-provenance-required",
+      });
+      expect(result).not.toHaveProperty("presentation");
+      expect(JSON.stringify(result)).not.toContain("Afirmación sin mapa de procedencia.");
+    },
+  );
 
   it("allows a detailed explanation to use several already-authorized works", () => {
     const first = source("tfe", "evidence-vin-ch1");

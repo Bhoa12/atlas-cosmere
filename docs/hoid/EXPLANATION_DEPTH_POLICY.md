@@ -10,7 +10,7 @@ Los niveles disponibles son:
 - `detailed`: explicación desarrollada, hasta 8 afirmaciones, 12 evidencias, 4 obras y 18.000 caracteres.
 - `comparative`: análisis comparativo, hasta 12 afirmaciones, 16 evidencias, 4 obras y 24.000 caracteres.
 
-Los límites son máximos, no objetivos. Una respuesta más corta es válida.
+Los límites son máximos, no objetivos. Una respuesta más corta es válida. Los tres niveles exigen procedencia explícita por afirmación: cada segmento visible debe conservar su ID de claim y sus IDs de evidencia exactos.
 
 ## Orden obligatorio de validación
 
@@ -26,9 +26,15 @@ La política nunca se ejecuta como sustituto del control de spoilers. Tampoco in
 
 El gateway convierte el nivel elegido en un `selectionBudget` cerrado y lo propaga por la fachada de cursores hasta `HoidEvidenceRuntime`. El selector recibe únicamente esos límites junto con los candidatos que ya han superado la autorización local. No recibe el valor de profundidad como permiso narrativo ni puede elevar los límites.
 
-El runtime vuelve a imponer el presupuesto después de la selección: número de afirmaciones, evidencias, obras distintas, caracteres y, para comparaciones, mínimo de obras y una afirmación con evidencias de varias obras. Una selección que excede cualquier límite se rechaza completa. La capa `presentHoidExplanation()` repite la validación después de comprobar las citas y los umbrales de lectura.
+El runtime vuelve a imponer el presupuesto después de la selección: número de afirmaciones, evidencias, obras distintas, caracteres y procedencia por afirmación en los tres niveles. Para comparaciones añade el mínimo de obras y una afirmación con evidencias de varias obras. Una selección que excede cualquier límite se rechaza completa. La capa `presentHoidExplanation()` repite la validación después de comprobar las citas y los umbrales de lectura.
 
 La interfaz permite elegir Breve, Detallada o Comparativa. La elección es una preferencia de presentación efímera; no se persiste como progreso ni modifica el estado editorial.
+
+## Procedencia obligatoria por afirmación
+
+`brief`, `detailed` y `comparative` requieren `segments` y `layout` validados. Cada segmento debe corresponder, en el mismo orden, a una afirmación aprobada y enumerar exactamente sus evidencias. La capa de presentación reconstruye las citas de cada segmento desde el manifiesto de evidencias; no acepta texto libre del proveedor ni permite que una afirmación herede citas de otra. Si falta el mapa claim-to-evidence, la respuesta completa se retiene con `segment-provenance-required`.
+
+El runtime local construye los segmentos a partir de los IDs seleccionados y del registro editorial aprobado. El selector externo nunca aporta ni reescribe el texto de las afirmaciones.
 
 ## Requisitos comparativos
 
@@ -59,7 +65,9 @@ Un futuro adaptador de proveedor puede usar los presupuestos para planificar una
 
 `explanationDepth.test.ts` cubre:
 
-- aceptación de una respuesta breve sin alterar el texto autorizado;
+- aceptación de una respuesta breve con procedencia exacta por afirmación;
+- retención de respuestas breves y detalladas que omiten el mapa claim-to-evidence;
+- verificación de que los tres presupuestos exigen procedencia por segmento;
 - explicación detallada con varias obras ya autorizadas;
 - rechazo completo de respuestas que exceden el presupuesto;
 - requisito de procedencia cruzada para comparaciones;

@@ -28,7 +28,7 @@ export const HOID_EXPLANATION_DEPTH_BUDGETS: Readonly<
     maxWorks: 2,
     maxCharacters: 6_000,
     minimumWorks: 1,
-    requireSegmentProvenance: false,
+    requireSegmentProvenance: true,
     requireCrossWorkSegment: false,
   }),
   detailed: Object.freeze({
@@ -37,7 +37,7 @@ export const HOID_EXPLANATION_DEPTH_BUDGETS: Readonly<
     maxWorks: 4,
     maxCharacters: 18_000,
     minimumWorks: 1,
-    requireSegmentProvenance: false,
+    requireSegmentProvenance: true,
     requireCrossWorkSegment: false,
   }),
   comparative: Object.freeze({
@@ -62,6 +62,7 @@ export type HoidExplanationWithheldReason =
   | Extract<HoidAnswerPresentation, { status: "withheld" }>["reason"]
   | "invalid-depth"
   | "depth-budget-exceeded"
+  | "segment-provenance-required"
   | "comparison-provenance-required";
 
 export type HoidExplanationResult =
@@ -137,13 +138,9 @@ export function presentHoidExplanation(
     metrics.characterCount > budget.maxCharacters
   ) return withheld("depth-budget-exceeded");
 
-  if (metrics.workCount < budget.minimumWorks) {
-    return withheld("comparison-provenance-required");
-  }
-
   if (budget.requireSegmentProvenance) {
     if (!presentation.segments || !presentation.layout) {
-      return withheld("comparison-provenance-required");
+      return withheld("segment-provenance-required");
     }
 
     if (budget.requireCrossWorkSegment) {
@@ -154,6 +151,10 @@ export function presentHoidExplanation(
         return withheld("comparison-provenance-required");
       }
     }
+  }
+
+  if (metrics.workCount < budget.minimumWorks) {
+    return withheld("comparison-provenance-required");
   }
 
   return Object.freeze({

@@ -357,4 +357,25 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(13);
   });
 
+  it("keeps each Run 170 digest bound to its exact edition and navigation fingerprint", () => {
+    const sources = [
+      ["tfe", "cosmere-epub-merged-v1", "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee", 5],
+      ["twok", "roshar-omnibus-v1", "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025", 12],
+      ["edgedancer", "edgedancer-epub-v1", "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517", 13],
+      ["dawnshard", "dawnshard-epub-v1", "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075", 13],
+    ] as const;
+
+    for (const [bookId, editionId, navigationSha256, chapter] of sources) {
+      expect(getVerifiedChapterDocumentSha256(
+        bookId, editionId, navigationSha256, chapter,
+      )).not.toBeNull();
+      expect(getVerifiedChapterDocumentSha256(
+        bookId, editionId, "0".repeat(64), chapter,
+      )).toBeNull();
+      expect(getVerifiedChapterDocumentSha256(
+        bookId, "different-edition", navigationSha256, chapter,
+      )).toBeNull();
+    }
+  });
+
 });

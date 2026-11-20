@@ -51,3 +51,12 @@ El runner no modifica la política de autorización: únicamente hace ejecutable
 - `evidenceRuntime.test.ts` comprueba que un timeout aborta la señal del adaptador y que una selección válida resuelta después del deadline no se presenta.
 - `cursorEvidenceRuntime.test.ts` comprueba que la cancelación iniciada por la interfaz atraviesa la fachada de cursores y llega al adaptador.
 - Los adaptadores deben respetar `AbortSignal` cuando el transporte lo permita. Las pruebas también cubren el caso no cooperativo: aunque el trabajo externo no se detenga, su resultado tardío se ignora.
+
+## Recomendaciones de lectura conscientes del progreso
+
+- `recommendReadingNextSteps()` valida el snapshot mediante `validEditionBoundReadingPositions()` antes de recomendar reanudar una obra.
+- `ReadingPosition.chapter` es el último capítulo completado; la recomendación propone `chapter + 1` como siguiente capítulo, solo si existe en el manifiesto verificado.
+- Si solo hay una obra numérica en curso, se prioriza como `resume-current-work`; si hay varias, no se infiere cuál está activa y se exige que la interfaz proporcione `activeBookId`.
+- La fachada de cursores proyecta el capítulo abierto N a progreso completado N-1; un cursor abierto en capítulo uno no se convierte en progreso numérico.
+- Las colecciones y volúmenes sin segmentación verificada no reciben recomendaciones de reanudación numérica.
+- `recommendations.test.ts` cubre progreso fuera de rango, capítulos ambiguos, selección activa explícita, límites y fuentes no segmentadas; `evidenceRuntime.test.ts` verifica la integración del runtime.

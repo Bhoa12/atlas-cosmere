@@ -1468,7 +1468,50 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
-]);
+
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-016.kaladin-choice-and-crisalis",
+    kind: "event",
+    aliases: Object.freeze(["elección de Kaladin en Piedralar"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 16 }),
+    evidenceSource: Object.freeze({ bookId: "twok", chapter: 16, locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-037.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 16 }),
+    sourceIntegrity: Object.freeze({ editionId: "roshar-omnibus-v1", navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025", documentSha256: "1f9d38db4cde7a471586ff7ed5d88cbef7a72b3616020ca1c4d8f06093e7da32" }),
+    summaryIntegrity: Object.freeze({ sha256: "0144eabf67c561f71884fb03a523cbf5d8f42f8458dc72fe3aded5bb64d99076" }),
+    summary: "En un recuerdo de su adolescencia en Piedralar, Kaladin conversa con Laral sobre la posibilidad de ir a Kharbranth para formarse como cirujano, mientras él se siente atraído por la vida militar y por la idea de cambiar las cosas. Tien le ofrece una piedra cuyo dibujo aparece al humedecerla, un gesto sencillo que consigue aliviar su melancolía. La conversación con los muchachos del pueblo deriva en una discusión sobre el ascenso social y la reputación de sus familias; Jost desafía a Kaladin a un combate con bastones. Kaladin descubre que luchar le despierta una sensación intensa, pero se detiene al advertir que puede herir gravemente a otra persona. Pide a Jost que le enseñe, aunque este se niega por la oposición que podría encontrar en Lirin. Al regresar, Kaladin descubre que el consistor Wistiow ha muerto y que ha dejado recursos para que estudie cirugía en Kharbranth. La decisión queda tomada por otros, mientras él sigue sin comprender qué desea realmente.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-017.lift-returns-to-the-alley",
+    kind: "event",
+    aliases: Object.freeze(["regreso de Lift al callejón"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 17 }),
+    evidenceSource: Object.freeze({ bookId: "edgedancer", chapter: 17, locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/017.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 17 }),
+    sourceIntegrity: Object.freeze({ editionId: "edgedancer-epub-v1", navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517", documentSha256: "250c26f671df7422277711bbefd1f72a381a5dd1791bb28d9efb50e7e8c1352c" }),
+    summaryIntegrity: Object.freeze({ sha256: "03d9f250332a63ef25c0a8a592b1d1d3d0a08ab3fd511e4db138ba4b13b29576" }),
+    summary: "Mientras se acerca una tormenta, Lift intenta alcanzar un callejón donde cree que alguien corre peligro, pero sus intentos de deslizarse por la ciudad fracasan y acaba agotando su poder. Llega al orfanato y la Tocón la mete dentro, pese a su trato brusco, para protegerla de la tormenta. Allí Lift escucha a los niños expresar miedo y soledad; la situación le recuerda su propia infancia y el compromiso que ha asumido de no olvidar a quienes quedan desatendidos. También habla con Mik, un niño que insiste en que aún tiene madre. Lift comprende que su deseo de controlar su propia vida convive con la responsabilidad de atender la incertidumbre de los demás. Aunque está agotada y la tormenta se aproxima, decide volver a salir para continuar hacia el callejón y no abandonar al anciano que cree que necesita ayuda.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "dawnshard.chapter-017.nikli-negotiation-and-sea-creature",
+    kind: "event",
+    aliases: Object.freeze(["negociación con Nikli"]),
+    firstSafeAppearance: Object.freeze({ bookId: "dawnshard", chapter: 17 }),
+    evidenceSource: Object.freeze({ bookId: "dawnshard", chapter: 17, locatorId: "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/17.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "dawnshard", chapter: 17 }),
+    sourceIntegrity: Object.freeze({ editionId: "dawnshard-epub-v1", navigationSha256: "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075", documentSha256: "85fe1ee6a0224ef0ebc04c8f3e327e30a6553f2623a7482be66d5a4e1b2af840" }),
+    summaryIntegrity: Object.freeze({ sha256: "c341e1d3a83e251680ad04e2b80cdc95d5ade8cff1e1faf58dec3bd9520c3495" }),
+    summary: "En la costa, Lopen rescata a Huio de una enorme criatura marina mientras la tripulación busca refugio y ambos continúan enfrentándose al animal. Lopen intenta convencer a Rua de que adopte la forma de una hoja esquirlada, pero el spren se resiste. En paralelo, Rysn prepara una negociación formal con Nikli. La conversación revela que Nikli pertenece a un grupo de seres capaces de reunirse para adoptar una forma humanoide y que su deber trasciende los intereses inmediatos de la expedición. Rysn intenta comprender qué puede ofrecerle y plantea que quizá necesita a alguien capaz de custodiar sus secretos. La negociación queda abierta, sin que se resuelva todavía qué implica ese deber ni qué condiciones aceptará Nikli.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+]); 
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);

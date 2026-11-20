@@ -463,7 +463,16 @@ function canonicalRecommendationResult(
   const started = new Set(context.positions.map(position => position.bookId));
   const seen = new Set<string>();
   const catalog = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
+  const catalogOrder = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
+  const activeOrder = new Map(
+    context.positions
+      .filter(position => position.status === "in-progress")
+      .map((position, index) => [position.bookId, index] as const),
+  );
   const items: HoidRecommendation[] = [];
+  let recommendationPhase: "resume" | "unread" = "resume";
+  let lastActiveOrder = -1;
+  let lastUnreadCatalogIndex = -1;
 
   for (const raw of rawItems) {
     const item = canonicalDataRecord(
@@ -488,12 +497,20 @@ function canonicalRecommendationResult(
         Object.keys(item).length !== 3 ||
         started.has(sourceId)
       ) return null;
+      recommendationPhase = "unread";
+      const catalogIndex = catalogOrder.get(sourceId);
+      if (catalogIndex === undefined || catalogIndex <= lastUnreadCatalogIndex) return null;
+      lastUnreadCatalogIndex = catalogIndex;
       seen.add(sourceId);
       items.push(Object.freeze({ sourceId, title, reason: "unread-source" }));
       continue;
     }
 
     if (item.reason === "resume-current-work") {
+      if (recommendationPhase !== "resume") return null;
+      const activeIndex = activeOrder.get(sourceId);
+      if (activeIndex === undefined || activeIndex <= lastActiveOrder) return null;
+      lastActiveOrder = activeIndex;
       const position = context.positions.find(candidate => candidate.bookId === sourceId);
       if (
         Object.keys(item).length !== 5 ||

@@ -67,3 +67,12 @@ Active works are presented first so the reader can resume an existing book witho
 Unstarted sources follow in bibliography order. That order is explicitly not a canonical Cosmere reading route. The system has no reviewed dependency or chronology metadata sufficient to recommend a safe cross-series sequence, so it does not infer one. The UI labels the two categories separately.
 
 The conversation gateway rejects a resume entry if its current chapter or completed-through chapter differs from the authoritative snapshot. It rejects an unread entry if that work is already started, completed, unknown, duplicated or title-mismatched. The existing before/after progress revision and fingerprint checks remain mandatory.
+
+## Gateway-enforced deterministic ordering
+
+The conversation gateway treats recommendation order as part of the contract, not as provider-authored ranking. It accepts in-progress works only in the reader's recorded order, followed by unstarted catalogue entries in the exact bibliography order. Once an unread-source item appears, a later resume-current-work item invalidates the whole batch. Unread entries must be strictly increasing by canonical catalogue index.
+
+This ordering is a presentation and continuity rule only. It must never be described as Cosmere chronology, publication order, plot dependency, thematic ranking or a spoiler-safe reading route. A runtime that returns individually valid entries in a misleading order is rejected with `invalid-recommendations`, rather than silently sorted after the fact. Rejecting instead of sorting preserves a visible signal that the runtime violated its contract.
+
+Regression tests cover interleaved resume/discovery items, reversed bibliography order and active works returned against the reader's recorded order.
+

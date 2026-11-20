@@ -345,7 +345,7 @@ describe("Hoid trusted verified answer presentation", () => {
     if (result.status !== "ready") return;
     data.setProgress(2);
     const call = result.presenter.present as unknown as (answer: unknown, forgedProgress: unknown) => Promise<unknown>;
-    expect(await call(data.answer, progress(100))).toMatchObject({
+    expect(await call(data.answer, progress(3))).toMatchObject({
       status: "withheld",
       reason: "locked-evidence",
     });

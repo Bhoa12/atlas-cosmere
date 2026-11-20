@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 175 adds four further individually inspected chapter documents from the supplied Cosmere and Roshar EPUBs.
+ * Run 175 added four and Run 176 adds three further individually inspected chapter documents from the supplied Cosmere and Roshar EPUBs.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -33,6 +33,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       12: "1f220d29b388c67834fb11d21fdb120407d1220531d735f946c00cc26223e838",
       13: "9716f41c822b8ea3801fd18d6072689d90482db419fd90d869fb12d8543da426",
       14: "6b5e5693ebbf7825cdbf9b0be1538641e8e412bfe8aba322453a80ec113d5e4e",
+      15: "43ff1d4f608fb3ec230923d92edadd09bc3c9606d72d506b547c7be43266f492",
     }),
   }),
   edgedancer: Object.freeze({
@@ -54,6 +55,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       13: "341ffa8144efe7c054d92bbedd54246889a92b268db7b62118f6b651095a516d",
       14: "0c716a985a6f3ec2478788463d4b2ef132088829ce5d338101b0df9169edc17c",
       15: "0cf7efadeb8eae0c6c3563cb0bd5e7beef853bb1d75dfa69ba6734af7c7aa786",
+      16: "d3a247b59d08735b83baa9840ef9e5058cc3f2108c931d66f06d370c4d41a4dd",
     }),
   }),
   dawnshard: Object.freeze({
@@ -75,6 +77,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       13: "e0a97fb4d28b90b99169e6afcdf4fbd3e42b67c1ff5b0c61e0cb4aad6405544c",
       14: "c62b4deedaa65671b41e69e944a5fb384f71cbfef4807d7d7ffd013b21225fb5",
       15: "8ddd62ba14191c2a333e6da18beabc5205f50b6aa45472cfd16e25e6ba573dd5",
+      16: "d62fefc1ce3e6eab0a0cfa5fa8e08819d5d5a9d3a2b2d12015ffaa9411cd18a2",
     }),
   }),
   tfe: Object.freeze({

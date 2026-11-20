@@ -35,6 +35,12 @@ Cubren:
 - conservación del contrato de progreso en snapshots parciales y completados;
 - primera aparición posterior al watermark de evidencia: ambas condiciones deben cumplirse.
 
+## Contrato de proveedor y snapshot
+
+El contrato de conocimiento reutiliza el tipo canónico `HoidKnowledgeKind`, incluido `phenomenon`, para que el catálogo heredado no descarte ni convierta tipos admitidos por el runtime editorial.
+
+El progreso que cruza la frontera del proveedor es `readonly`. El snapshot conserva la unión discriminada exclusiva: `{ bookId, chapter }` o `{ bookId, completed: true }`. Las funciones de lectura, catálogo y guardia aceptan ese contrato inmutable sin volver a interpretar ni mutar el progreso.
+
 ## Seguridad y alcance
 
 No se cambia el runtime estricto de claims, el progreso persistido, el catálogo bibliográfico ni los registros editoriales. No se inspeccionan EPUBs ni se incorporan resúmenes. No se escriben afirmaciones en producción. El cambio solo corrige la frontera de contexto de la ruta de compatibilidad y aclara sus contratos.

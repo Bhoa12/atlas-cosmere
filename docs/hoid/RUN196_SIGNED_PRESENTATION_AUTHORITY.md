@@ -18,13 +18,14 @@ Se añade createHoidTrustedVerifiedAnswerPresenter:
 - verifica todas las firmas de afirmaciones contra claves de revisores activas y autorizadas;
 - liga cada firma al contexto exacto del PR, refs, SHAs, manifiesto, plan, bundle y fingerprints;
 - reconstruye la respuesta con createHoidVerifiedAnswerPresenter solo después de verificar las firmas;
-- vuelve a comprobar en cada presentación la vigencia del bootstrap, su fingerprint y la igualdad exacta de la revisión persistida.
+- vuelve a comprobar en cada presentación la vigencia del bootstrap, su fingerprint y la igualdad exacta de la revisión persistida;
+- lee el progreso exclusivamente mediante un puerto local confiable, sin aceptar un snapshot aportado por el proveedor o el llamador.
 
 El presentador se invalida si cambia la revisión de confianza, caduca el registro o rota el bootstrap.
 
 ## Pruebas
 
-Once pruebas cubren construcción válida, firma de revisor alterada, replay contra otro HEAD, firma raíz manipulada, revisión no inicializada o retrocedida, repositorio incorrecto, invalidación por nueva revisión, expiración, bloqueo N+1, getters y conjunto vacío.
+Trece pruebas cubren construcción válida, firma de revisor alterada, replay contra otro HEAD, firma raíz manipulada, revisión no inicializada o retrocedida, repositorio incorrecto, invalidación por nueva revisión, expiración, bloqueo N+1, getters, conjunto vacío, progreso falsificado y fallo del puerto de progreso.
 
 Las pruebas usan un verificador determinista falso; el adaptador Ed25519 real y su vector RFC 8032 continúan cubiertos por la suite editorialReviewSignatures.
 

@@ -467,6 +467,7 @@ describe("HoidConversationGateway", () => {
       question: "¿Hasta dónde he leído?",
       progress: current,
       intent: "context",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
   });
 
@@ -479,6 +480,7 @@ describe("HoidConversationGateway", () => {
       question: "¿Qué significa este concepto?",
       progress: current,
       intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
   });
 
@@ -655,6 +657,7 @@ describe("HoidConversationGateway", () => {
       progress: current,
       intent: "explain",
       entityIds: ["e-alpha", "e-beta"],
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
   });
 
@@ -853,6 +856,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       progress: current,
       intent: "explain",
       entityIds: ["synthetic.entity-beta"],
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
     });
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
     if (result.status === "ready") expect(result.conversationContext).toEqual(context);

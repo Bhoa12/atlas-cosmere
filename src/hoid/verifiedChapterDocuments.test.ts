@@ -466,4 +466,14 @@ describe("verified EPUB chapter document fingerprints", () => {
   });
 
 
+
+  it("returns the three newly inspected Run 194 Roshar chapter digests", () => {
+    expect(getVerifiedChapterDocumentSha256("twok", "roshar-omnibus-v1", "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025", 17)).toBe("c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e");
+    expect(getVerifiedChapterDocumentSha256("edgedancer", "edgedancer-epub-v1", "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517", 18)).toBe("fc630c1dccc3e10f77d857bf6d4680cf6a004def6f6a3a2d9810a8906219f671");
+    expect(getVerifiedChapterDocumentSha256("dawnshard", "dawnshard-epub-v1", "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075", 18)).toBe("6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b");
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(17);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(18);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(18);
+  });
+
 });

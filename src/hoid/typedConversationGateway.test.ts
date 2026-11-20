@@ -67,7 +67,7 @@ function setup(
   },
 ) {
   let current: unknown = initial;
-  const runtime = { answer: vi.fn(async () => answer) };
+  const runtime = { answer: vi.fn(async (_request?: unknown, _options?: unknown) => answer) };
   const config: HoidConversationGatewayConfig = {
     runtime,
     getCurrentProgress: () => current,
@@ -113,7 +113,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.organization-a"],
-    });
+    }, undefined);
     if (result.status === "ready") {
       expect(result.typedConversationContext?.entities).toEqual(refs);
     }
@@ -144,7 +144,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.phenomenon-a"],
-    });
+    }, undefined);
   });
 
   it("forwards an explicitly requested brief budget through a typed phenomenon follow-up", async () => {
@@ -164,7 +164,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
       entityIds: ["synthetic.phenomenon-a"],
-    });
+    }, undefined);
   });
 
   it("forwards an explicitly requested comparative budget through a typed entity follow-up", async () => {
@@ -184,7 +184,30 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.comparative,
       entityIds: ["synthetic.organization-a"],
-    });
+    }, undefined);
+  });
+
+  it("forwards caller cancellation through a typed follow-up without exposing typed context", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const controller = new AbortController();
+    const result = await gateway.answer({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      typedContext: typedContext(current),
+      depth: "brief",
+    }, { signal: controller.signal });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        question: "¿Y ese fenómeno?",
+        entityIds: ["synthetic.phenomenon-a"],
+        selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
+      }),
+      { signal: controller.signal },
+    );
+    expect(runtime.answer.mock.calls[0]?.[0]).not.toHaveProperty("typedContext");
   });
 
   it("blocks ambiguous categories before entity reauthorization and runtime invocation", async () => {

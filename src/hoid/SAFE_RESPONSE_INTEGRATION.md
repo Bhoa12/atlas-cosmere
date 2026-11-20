@@ -9,18 +9,19 @@ La salida de un proveedor es una propuesta no confiable. La frontera verifyHoidR
 1. El núcleo valida la pregunta y fija una instantánea del progreso.
 2. El catálogo autoriza conocimiento por obra y capítulo.
 3. La recuperación local selecciona únicamente registros editoriales autorizados.
-4. El proveedor recibe contexto mínimo y propone una lista de afirmaciones.
-5. Cada afirmación debe referenciar identificadores de evidencia entregados por el núcleo; el proveedor no puede inventar nuevos identificadores.
-6. verifyHoidResponse conserva solo afirmaciones con evidencia autorizada.
+4. El proveedor recibe contexto mínimo y propone una lista de identificadores de afirmaciones y evidencias.
+5. Cada identificador debe pertenecer al conjunto autorizado antes de la llamada; el proveedor no puede inventar evidencia.
+6. verifyHoidResponse valida la forma de la propuesta.
 7. El runtime reconcilia la selección con el registro de afirmaciones aprobadas.
 8. createHoidVerifiedAnswerPresenter reconstruye texto, segmentos y citas desde los registros locales y vuelve a comprobar los umbrales de lectura.
-9. La interfaz muestra exclusivamente el resultado status: "ready" de esa frontera.
+9. Para producción, createHoidTrustedVerifiedAnswerPresenter exige además firmas Ed25519 verificadas contra una raíz fijada por el host y un trust registry cuya revisión mínima esté persistida de forma durable.
+10. La interfaz muestra exclusivamente el resultado status: "ready" de la autoridad criptográfica y estructural.
 
 ## Regla de no ampliación
 
 El conjunto de acceptedEvidenceIds debe ser subconjunto del conjunto autorizado antes de la llamada al proveedor. Un proveedor, un timeout o una respuesta parcialmente válida nunca pueden ampliar ese conjunto.
 
-Los IDs de afirmación tampoco bastan por sí solos: deben pertenecer al registro aprobado local y su texto, evidencias y citas se reconstruyen desde ese registro.
+Los IDs de afirmación tampoco bastan por sí solos: deben pertenecer al registro aprobado local y su texto, evidencias y citas se reconstruyen desde ese registro. La integridad SHA-256 no autentica al revisor.
 
 ## Compatibilidad
 
@@ -31,10 +32,13 @@ El contrato histórico HoidProvider devuelve texto y continúa protegido por Hoi
 - propuesta malformada: abstención;
 - evidencia desconocida: se descarta la afirmación;
 - propuesta mixta: solo sobrevive la parte respaldada;
-- afirmación no aprobada o alterada: se retiene la respuesta;
+- afirmación no aprobada, firma ausente o alterada: se retiene la respuesta;
 - evidencia aún bloqueada: se retiene la respuesta completa;
+- bootstrap, registro de confianza o almacén de revisión no disponibles: se retiene la respuesta;
 - ninguna afirmación respaldada: bloqueo o abstención según el estado estructural.
 
-presentHoidEvidenceAnswer es la comprobación estructural de bajo nivel. Para fronteras que reciben objetos externos, debe usarse la fábrica createHoidVerifiedAnswerPresenter, construida exclusivamente desde los registros locales de conocimiento y afirmaciones aprobadas. No debe renderizarse el texto del proveedor ni el objeto de respuesta sin pasar por esa autoridad.
+presentHoidEvidenceAnswer es la comprobación estructural de bajo nivel. createHoidVerifiedAnswerPresenter reconstruye la respuesta desde los registros locales; createHoidTrustedVerifiedAnswerPresenter añade la autenticidad criptográfica requerida para producción. No debe renderizarse el texto del proveedor ni el objeto de respuesta sin pasar por ambas autoridades.
+
+La promoción editorial conserva su gate separado: recibos completos, firmas por paquete, número mínimo de revisores, revisión de GitHub y progreso autorizado. Una firma individual no sustituye ese proceso.
 
 Este documento describe contratos y flujo de integración. No contiene pasajes de las obras ni convierte la bibliografía privada en contenido distribuible.

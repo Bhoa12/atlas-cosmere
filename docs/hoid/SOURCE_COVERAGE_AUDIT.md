@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 59 summaries remain `pending-review`. The 77-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 62 summaries remain `pending-review`. The 80-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 59 inspected documents, 59 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 62 inspected documents, 62 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)

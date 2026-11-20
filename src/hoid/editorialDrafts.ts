@@ -1432,6 +1432,20 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-007.marsh-vin-training",
+    kind: "event",
+    aliases: Object.freeze([]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 7 }),
+    evidenceSource: Object.freeze({ bookId: "tfe", chapter: 7, locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/007.xhtml" }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 7 }),
+    sourceIntegrity: Object.freeze({ editionId: "cosmere-epub-merged-v1", navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee", documentSha256: "fd79119ff64538b1d9fbe0d5d40ff9db8215afd144a27071c7c35b19b5ed1ac3" }),
+    summaryIntegrity: Object.freeze({ sha256: "86a081069be4acd3dde6d0cd6ff29eef181a5fcce4b1d71bfefeb5347d132914" }),
+    summary: "El capítulo contrapone las posturas de Kelsier y Marsh sobre la rebelión: Marsh cuestiona que Kelsier haya matado a hombres que también eran skaa y sospecha que su plan busca riqueza o venganza. Kelsier niega que sea un simple negocio y le pide infiltrarse en el Ministerio para vigilar a los Inquisidores; Marsh se marcha sin comprometerse del todo, pero acepta regresar para escuchar el plan. Vin, que ha estado espiando la conversación, recibe de Kelsier una capa de nacida de la bruma y comienza su entrenamiento nocturno. Mientras recorren la ciudad, él le explica el papel de las brumas y la doble vida de los nacidos de la bruma dentro de la nobleza. La instrucción introduce el peltre y el estaño, sus efectos, duración y riesgos de avivarlos; también enseña cómo el cobre oculta la actividad alomántica y protege a quien lo quema frente a la alomancia emocional, mientras el bronce permite detectar el uso de la alomancia en las cercanías. Al experimentar con las líneas metálicas, Vin descubre que puede atraer objetos con hierro y alejarlos con acero, y Kelsier le enseña que la masa y los puntos de apoyo determinan qué cuerpo se mueve. El capítulo termina cuando él la anima a probar un salto sobre la muralla utilizando un lingote como anclaje.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 ]);
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

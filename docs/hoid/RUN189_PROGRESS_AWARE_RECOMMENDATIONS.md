@@ -31,7 +31,7 @@ Por ello:
 - `completedThroughChapter` conserva el valor de `ReadingPosition.chapter`.
 - Una posición completada sin capítulo numérico nunca se presenta como reanudación.
 
-Esta semántica coincide con el umbral de evidencia: un resumen cuya fuente es el capítulo N se desbloquea cuando el lector avanza al capítulo N+1, o marca explícitamente la obra como terminada.
+Esta semántica coincide con el umbral de evidencia: un resumen cuya fuente es el capítulo N se desbloquea cuando el lector avanza al capítulo N+1, o marca explícitamente la obra como terminada. La función de compatibilidad `cursorToLegacyReadingPosition()` también proyecta N a N-1 y devuelve `null` cuando el capítulo uno sigue abierto.
 
 ## Límites y garantías
 

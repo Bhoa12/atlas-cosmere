@@ -33,7 +33,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `tfe` | El Imperio Final | 38 | 8 | 8 | Numeric chapters |
+| `tfe` | El Imperio Final | 38 | 9 | 9 | Numeric chapters |
 | `woa` | El Pozo de la Ascensión | 59 | 0 | 0 | Numeric chapters |
 | `hoa` | El Héroe de las Eras | 82 | 0 | 0 | Numeric chapters |
 | `aol` | Aleación de ley | 20 | 0 | 0 | Numeric chapters |

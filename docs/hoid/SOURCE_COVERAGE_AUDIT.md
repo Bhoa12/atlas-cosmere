@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 59 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 62 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 59 | Original editorial summaries exist in staging |
-| Summaries pending review | 59 | None of those summaries is approved for production |
+| Original staged chapter summaries | 62 | Original editorial summaries exist in staging |
+| Summaries pending review | 62 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -55,13 +55,13 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 16 | 16 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 17 | 17 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
 | `sawt` | Viento y Verdad | 11 | 0 | 0 | Only the safe numeric prefix through chapter 11 is locator-backed; chapter numbers 12 and 14 are ambiguous |
-| `edgedancer` | Danzante del Filo | 20 | 17 | 17 | Numeric chapters |
-| `dawnshard` | Esquirla del amanecer | 19 | 17 | 17 | Numeric chapters |
+| `edgedancer` | Danzante del Filo | 20 | 18 | 18 | Numeric chapters |
+| `dawnshard` | Esquirla del amanecer | 19 | 18 | 18 | Numeric chapters |
 
 ## Interpretation rules
 
@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 59 summaries remain `pending-review`. The 77-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 62 summaries remain `pending-review`. The 80-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 59 inspected documents, 59 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 62 inspected documents, 62 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -220,3 +220,16 @@ The chapter-nine navigation target `books/b000001/OEBPS/Text/009.xhtml` was reso
 One original Spanish summary was staged with summary SHA-256 `a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be`, exact edition-bound provenance and a completed-through evidence watermark of chapter 9. Its first eligible open reader cursor is chapter 10. It remains `pending-review`; no approved claim, activation receipt or production knowledge was added. No EPUB bytes, XHTML body, copied passage, extracted source text, image or private file path was committed.
 
 The current inventory is **59 individually inspected chapter documents and 59 original summaries pending review**, across the same four works. The catalogue remains at 24 works and 1,106 verified navigation locators. The next TFE candidate is chapter 10; the Roshar continuation candidates remain chapters 17, 18 and 18.
+
+
+## Run 194 — three additional Roshar chapter documents
+
+The current allowlist now contains 62 individually inspected chapter documents and 62 original summaries pending review. The new documents are El Camino de los Reyes chapter 17, Danzante del Filo chapter 18 and Esquirla del amanecer chapter 18. Their source bytes were checked against the already registered edition navigation digests, exact OPF manifest entries and reading spine membership. The preceding chapter digests matched the existing allowlist before each new chapter was inspected.
+
+The new document digests are:
+
+- `twok` chapter 17: `c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e`
+- `edgedancer` chapter 18: `fc630c1dccc3e10f77d857bf6d4680cf6a004def6f6a3a2d9810a8906219f671`
+- `dawnshard` chapter 18: `6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b`
+
+All three original summaries are staging-only and pending editorial review. Their completed-through watermark is chapter N and the minimum eligible reader cursor is N+1. Production knowledge and approved claims remain empty. No EPUB bytes, XHTML bodies, source passages or private file paths were committed.

@@ -6,12 +6,12 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 59 original chapter summaries;
+- 62 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 59 distinct edition-bound source documents;
-- 77 total editorial records across summaries, claims, identities and relationships.
+- 62 distinct edition-bound source documents;
+- 80 total editorial records across summaries, claims, identities and relationships.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -163,3 +163,16 @@ One original Spanish summary was added for El Imperio Final chapter 9 after the 
 The summary is bound to edition `cosmere-epub-merged-v1`, its navigation digest, the exact relative chapter locator and document SHA-256 `e08f8b2845eb2d15ed9a1ad517d2207501ba0068f25797643e127919d92daedb`. Its independent summary SHA-256 is `a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be`. The completed-through watermark is chapter 9 and the earliest eligible open cursor is chapter 10. The draft remains pending review and is excluded from production.
 
 The metadata-only bundle now contains **77 editorial records across 59 individually inspected chapter documents**: 59 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Structural readiness is not editorial approval. Production remains empty; no activation receipt was created. No EPUB bytes, XHTML body or source passage was committed.
+
+
+## Run 194 — three additional Roshar chapter drafts
+
+Three current Library EPUB assets were inspected without committing their bytes: the Roshar omnibus, Danzante del Filo and Esquirla del amanecer. The registered navigation digests matched exactly; each prior chapter digest matched the existing allowlist; and each new target was confirmed in the OPF manifest, reading spine and TOC.
+
+The new edition-bound chapter-document SHA-256 values are:
+
+- El Camino de los Reyes, chapter 17: `c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e`.
+- Danzante del Filo, chapter 18: `fc630c1dccc3e10f77d857bf6d4680cf6a004def6f6a3a2d9810a8906219f671`.
+- Esquirla del amanecer, chapter 18: `6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b`.
+
+The current staging manifest now contains 62 original summaries, one atomic claim, 14 identity dossiers and three relationship records: 80 editorial records across 62 individually inspected source documents. The three new summaries remain pending review. Their source watermark is N and the earliest eligible reader cursor is N+1. No production claim, activation receipt or production knowledge entry was created.

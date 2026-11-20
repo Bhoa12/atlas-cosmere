@@ -1446,6 +1446,28 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-008.vin-sazed-renoux-training",
+    kind: "event",
+    aliases: Object.freeze(["llegada de Vin a la Mansión Renoux"]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 8 }),
+    evidenceSource: Object.freeze({
+      bookId: "tfe",
+      chapter: 8,
+      locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/008.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 8 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "cosmere-epub-merged-v1",
+      navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      documentSha256: "5dc769cfdd8dfbfa91292ec9421b0ede94c8e1b05fd3560f9d9503b058e43d48",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "edacb5701aca7f81eb8560cd3dc0818dfa266c1a64f9ee2589d75b24a021e52d" }),
+    summary: "Vin continúa su aprendizaje alomántico con Kelsier y practica cómo regular los empujes de acero para mantenerse en equilibrio y descender sin perder el anclaje. El ejercicio la obliga a experimentar los riesgos de manipular el metal y a comprender por qué debe controlar lo que lleva consigo. Después, ambos atraviesan las brumas y observan un espectro de la bruma; Kelsier explica su comportamiento y por qué estas criaturas suelen evitar a los adultos sanos. En la carretera se reúnen con Sazed, quien acompaña a Vin y conversa con ella sobre la fe y las creencias que ha dado por sentadas. Al llegar a la Mansión Renoux, Kelsier y Renoux acuerdan presentarla en la corte como pupila, no como heredera, mientras Sazed acepta encargarse de su formación. La conversación final refuerza la confianza incipiente de Vin en Kelsier y su desconcierto ante una bondad que no está acostumbrada a encontrar.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 ]);
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

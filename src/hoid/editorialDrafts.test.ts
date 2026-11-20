@@ -464,8 +464,17 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps the chapter-thirteen summaries unavailable until chapter fourteen is completed", () => {
     const chapterThirteenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 13);
-    expect(chapterThirteenDrafts).toHaveLength(2);
+    expect(chapterThirteenDrafts).toHaveLength(3);
     for (const draft of chapterThirteenDrafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
+  it("keeps the chapter-fourteen summaries unavailable until chapter fifteen is completed", () => {
+    const chapterFourteenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 14);
+    expect(chapterFourteenDrafts).toHaveLength(2);
+    for (const draft of chapterFourteenDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }

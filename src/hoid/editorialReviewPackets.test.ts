@@ -38,55 +38,10 @@ describe("Hoid editorial review packets", () => {
   it("builds a deterministic packet for each pending source-backed draft", () => {
     expect(built.status).toBe("ready");
     if (built.status !== "ready") return;
-    expect(built.packets).toHaveLength(46);
-    expect(built.packets.map(item => item.draftId)).toEqual([
-      "dawnshard.chapter-001.akinah-expedition",
-      "dawnshard.chapter-002.rysn-navani-akinah-mission",
-      "dawnshard.chapter-003.lopen-talik-delegation",
-      "dawnshard.chapter-004.rysn-crew-trust",
-      "dawnshard.chapter-005.rysn-lopen-fabrial-demonstration",
-      "dawnshard.chapter-006.rysn-worm-grain-trade",
-      "dawnshard.chapter-007.lopen-crew-unease",
-      "dawnshard.chapter-008.rysn-dead-santhid",
-      "dawnshard.chapter-009.rysn-aluminum-fabrial",
-      "dawnshard.chapter-010.rysn-arrests-nikli",
-      "dawnshard.chapter-011.lopen-crosses-akinah-storm",
-      "dawnshard.chapter-012.rysn-arrives-at-akinah",
-      "dawnshard.chapter-013.lopen-akinah-landing",
-      "dawnshard.chapter-014.rysns-treasure-warning",
-      "edgedancer.chapter-001.lift-departure",
-      "edgedancer.chapter-002.lift-yeddaw-arrival",
-      "edgedancer.chapter-003.hauka-grain-cart",
-      "edgedancer.chapter-004.lift-immigrant-district",
-      "edgedancer.chapter-005.lift-remembering-forgotten",
-      "edgedancer.chapter-006.lift-tashikk-orphanage",
-      "edgedancer.chapter-007.lift-tracks-darkness",
-      "edgedancer.chapter-008.lift-follows-darkness",
-      "edgedancer.chapter-009.lift-nale-szeth",
-      "edgedancer.chapter-010.lift-orphanage-reflection",
-      "edgedancer.chapter-011.lift-finds-great-indicium",
-      "edgedancer.chapter-012.lift-gran-indicium-plan",
-      "edgedancer.chapter-013.lift-emperor-decree",
-      "edgedancer.chapter-014.lift-investigation-red-storm",
-      "tfe.chapter-001.vin",
-      "tfe.chapter-002.kelsier",
-      "tfe.chapter-003.vin-kelsier",
-      "tfe.chapter-004.vin-kelsier-crew",
-      "tfe.chapter-005.kelsier-venture-atium",
-      "twok.chapter-001.cenn-battle",
-      "twok.chapter-002.kaladin-slave-caravan",
-      "twok.chapter-003.shallan-kharbranth",
-      "twok.chapter-004.kaladin-highstorm-camp",
-      "twok.chapter-005.shallan-jasnah-assessment",
-      "twok.chapter-006.kaladin-bridge-four",
-      "twok.chapter-007.shallan-palanaeum-wait",
-      "twok.chapter-008.shallan-jasnah-pupil",
-      "twok.chapter-009.kaladin-recruit-death",
-      "twok.chapter-010.kaladin-lirin-surgeon",
-      "twok.chapter-011.kaladin-returns-to-bridge-four",
-      "twok.chapter-012.adolin-abismoid-hunt",
-      "twok.chapter-013.dalinar-elkohar-abismoid-battle",
-    ]);
+    expect(built.packets).toHaveLength(HOID_EDITORIAL_DRAFTS.length);
+    expect(built.packets.map(item => item.draftId)).toEqual(
+      HOID_EDITORIAL_DRAFTS.map(item => item.id).sort(),
+    );
     expect(built.packets.every(item => item.status === "pending-review")).toBe(true);
   });
 

@@ -89,7 +89,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(46);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(50);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -102,7 +102,7 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one through chapter-fourteen drafts for the accessible EPUBs", () => {
+  it("stages independently sourced chapter-one through chapter-fifteen drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -150,9 +150,13 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-013.dalinar-elkohar-abismoid-battle",
       "edgedancer.chapter-014.lift-investigation-red-storm",
       "dawnshard.chapter-014.rysns-treasure-warning",
+      "tfe.chapter-006.kelsier-rebellion-plan",
+      "twok.chapter-014.kaladin-bridge-four-training",
+      "edgedancer.chapter-015.lift-follows-skybreakers",
+      "dawnshard.chapter-015.akinah-hidden-oathgate",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]).toContain(draft.evidenceSource.chapter);
+      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
         chapter: draft.evidenceSource.chapter,

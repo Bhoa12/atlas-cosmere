@@ -145,7 +145,7 @@ describe("Hoid reader spoiler boundary", () => {
 
     expect(result).toBeNull();
   });
-  it("keeps Run 170 and Run 174 summaries locked at their source cursor and unlocks them at the next cursor", () => {
+  it("keeps Run 170, Run 174 and Run 175 summaries locked at their source cursor and unlocks them at the next cursor", () => {
     const ids = new Set([
       "tfe.chapter-005.kelsier-venture-atium",
       "twok.chapter-012.adolin-abismoid-hunt",
@@ -154,9 +154,13 @@ describe("Hoid reader spoiler boundary", () => {
       "twok.chapter-013.dalinar-elkohar-abismoid-battle",
       "edgedancer.chapter-014.lift-investigation-red-storm",
       "dawnshard.chapter-014.rysns-treasure-warning",
+      "tfe.chapter-006.kelsier-rebellion-plan",
+      "twok.chapter-014.kaladin-bridge-four-training",
+      "edgedancer.chapter-015.lift-follows-skybreakers",
+      "dawnshard.chapter-015.akinah-hidden-oathgate",
     ]);
     const drafts = HOID_EDITORIAL_DRAFTS.filter(draft => ids.has(draft.id));
-    expect(drafts).toHaveLength(7);
+    expect(drafts).toHaveLength(11);
 
     for (const draft of drafts) {
       const source = draft.evidenceSource;

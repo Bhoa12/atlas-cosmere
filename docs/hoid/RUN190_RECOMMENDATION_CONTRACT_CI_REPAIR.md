@@ -30,16 +30,33 @@ The second issue is a contract mismatch, not a reason to invent chapter zero or 
 - Recommendations remain metadata-only; no narrative order, canon dependency, or unverified chapter segmentation is inferred.
 - No private EPUB, XHTML, extracted passage, or copyrighted source text is added to the repository.
 
-## Validation status
+## Final validation
 
-The initial Run 189 CI logs showed the two defects above. Run 190 adds the fixes and broadens the source-coverage test/type-check boundary so both recommendation composition and gateway parsing are checked together.
+Validated on final Run 190 HEAD `3bdd340167c71600d40a4571b31a81efd255f342`:
 
-This document does not claim that Run 190 is validated. GitHub Actions for the final Run 190 HEAD must complete successfully before the branch is considered CI-green.
+- 6/6 GitHub Actions workflows completed successfully.
+- 889 test executions across the six workflow suites; suites overlap and this is not a count of unique tests.
+- Source coverage: 224 tests across 15 files; strict TypeScript passed.
+- Cross-book evidence and reading-aware recommendations: 105 tests across 5 files; runtime, recommendation and screen type-check passed.
+- Cursor evidence runtime: 98 tests across 5 files; strict TypeScript passed.
+- Authorized knowledge graph: 337 tests across 17 files; strict TypeScript passed.
+- Reading manifests: 46 tests across 5 files; strict TypeScript passed.
+- Edition structure: 79 tests across 5 files; strict TypeScript passed.
+
+Workflow runs:
+- https://github.com/Bhoa12/atlas-cosmere/actions/runs/44791412866
+- https://github.com/Bhoa12/atlas-cosmere/actions/runs/44791412826
+- https://github.com/Bhoa12/atlas-cosmere/actions/runs/44791412887
+- https://github.com/Bhoa12/atlas-cosmere/actions/runs/44791412819
+- https://github.com/Bhoa12/atlas-cosmere/actions/runs/44791412846
+- https://github.com/Bhoa12/atlas-cosmere/actions/runs/44791412817
 
 ## Isolation
 
 - Base: `feat/hoid-ia-core-run189`
 - Base HEAD: `a5ddf0ee654921863f0d2c07991ad493f1ba9d59`
 - Work branch: `feat/hoid-ia-core-run190`
+- Final validated code HEAD: `3bdd340167c71600d40a4571b31a81efd255f342`
+- The final documentation-only commit follows the validated code HEAD; it does not change source or tests.
 - No changes are made directly to `main`, Run 189, or any prior branch.
 - No pull request is merged automatically.

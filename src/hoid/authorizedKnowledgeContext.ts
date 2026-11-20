@@ -20,7 +20,7 @@ export type HoidContextFact = {
  */
 export function buildAuthorizedKnowledgeContext(
   catalog: HoidKnowledgeCatalog,
-  reading: ReadingPosition[],
+  reading: readonly ReadingPosition[],
 ): readonly HoidContextFact[] {
   return catalog.entriesForContext(reading).flatMap(entry => {
     const source = entry.evidenceSource;

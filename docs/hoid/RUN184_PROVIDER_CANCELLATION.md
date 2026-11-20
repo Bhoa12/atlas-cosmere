@@ -51,3 +51,11 @@ La validación CI debe ejecutarse sobre el HEAD final de esta rama. No se declar
 - PR #76 no se modifica ni se fusiona.
 - main no se modifica.
 - No se actualizan ramas anteriores.
+
+
+## Integración de interfaz
+
+- HoidConversationGateway.answer() transmite las opciones de cancelación a las rutas de seguimiento tipado, coreferencia y respuesta general.
+- HoidScreen crea un AbortController por respuesta, muestra el control Cancelar mientras el selector está activo y aborta la llamada cuando cambia el progreso o se desmonta la pantalla.
+- Antes de confirmar el mensaje en el historial, la pantalla vuelve a comprobar la señal local. Si ya fue cancelada, elimina citas, segmentos y cualquier alcance de progreso y solo muestra el aviso neutral de cancelación.
+- Las recomendaciones de catálogo y las consultas locales de progreso no muestran el control de cancelación del proveedor porque no invocan el selector narrativo.

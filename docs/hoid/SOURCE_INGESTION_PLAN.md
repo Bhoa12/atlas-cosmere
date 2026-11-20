@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 46 |
-| Original staged summaries | 46 |
-| Summaries pending review | 46 |
+| Individually inspected chapter documents | 54 |
+| Original staged summaries | 54 |
+| Summaries pending review | 54 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -145,7 +145,7 @@ Tras inspeccionar El Imperio Final capítulo 6, El Camino de los Reyes capítulo
 
 | Obra | Próximo capítulo |
 |---|---:|
-| El Imperio Final | 7 |
+| El Imperio Final | 8 |
 | El Camino de los Reyes | 15 |
 | Danzante del Filo | 16 |
 | Esquirla del amanecer | 16 |
@@ -165,3 +165,10 @@ Tras inspeccionar El Camino de los Reyes capítulo 15, Danzante del Filo capítu
 | Esquirla del amanecer | 17 |
 
 La inspección de los tres EPUBs de Roshar confirmó que sus huellas de navegación seguían coincidiendo con las ediciones registradas y que los XHTML previos continuaban teniendo los digests esperados. `cosmere.epub` no apareció en el inventario actual de Library ni en la búsqueda de archivos de conversación; El Imperio Final capítulo 7 no se inspeccionó. El plan permanece metadata-only y no afirma disponibilidad ni autorización.
+
+
+## Run 178 — cola de continuación actualizada
+
+Se encontró la copia privada `cosmere.epub` en Library y se revalidó su integridad ZIP y el digest de navegación registrado. El capítulo 7 de El Imperio Final se resolvió mediante su TOC, se confirmó en el manifiesto OPF y en el reading spine, y se fingerprintó desde sus bytes XHTML. La cola de continuación pasa a El Imperio Final capítulo 8, El Camino de los Reyes capítulo 16, Danzante del Filo capítulo 17 y Esquirla del amanecer capítulo 17.
+
+El plan sigue siendo metadata-only: registra candidatos y umbrales N+1, pero no autoriza evidencia ni modifica el progreso. El resumen del capítulo 7 permanece en revisión independiente.

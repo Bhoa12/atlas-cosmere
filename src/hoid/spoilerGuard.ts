@@ -34,7 +34,7 @@ function normalizeForSpoilerMatch(text: string): string {
   return text.normalize('NFKD').replace(/[\p{Cf}\p{Mn}]/gu, '').toLowerCase();
 }
 
-function hasReached(reading: ReadingPosition[], minimum: SpoilerRule['minimum']): boolean {
+function hasReached(reading: readonly ReadingPosition[], minimum: SpoilerRule['minimum']): boolean {
   // A rule that does not point at the verified source catalog must never grant
   // access. This keeps stale policy data from silently disabling spoiler safety.
   if (!isKnownHoidSource(minimum.bookId)) return false;
@@ -66,7 +66,7 @@ function containsLockedTerm(text: string, term: string): boolean {
   return expression.test(text);
 }
 
-function matchedLockedRule(text: string, reading: ReadingPosition[]): SpoilerRule | undefined {
+function matchedLockedRule(text: string, reading: readonly ReadingPosition[]): SpoilerRule | undefined {
   const normalized = normalizeForSpoilerMatch(text);
   return rules.find(rule =>
     rule.terms.some(term => containsLockedTerm(normalized, term))

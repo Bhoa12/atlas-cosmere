@@ -10,13 +10,30 @@ El contexto narrativo enviado a un proveedor contiene únicamente:
 
 - `id`
 - `kind`
-- `summary`
-- `firstSafeAppearance.bookId`
-- `firstSafeAppearance.chapter`
+- `summary` original, aprobado y no copiado de la fuente
+- `evidenceSource.bookId`
+- `evidenceSource.chapter`
 
 Los `aliases` se usan solo para recuperación interna y no deben cruzar esta frontera.
 
-El progreso enviado al proveedor se valida antes y se representa mediante posiciones canónicas de obras conocidas. Un estado ambiguo o inválido falla de forma cerrada: no se fusiona hacia un capítulo mayor.
+Antes de construir un snapshot, la ruta de compatibilidad valida el progreso contra la estructura de la edición. Un capítulo fuera del rango numérico verificado, un cursor ambiguo o una obra sin segmentación segura se rechazan antes de invocar al proveedor; no se convierten en una lista vacía de progreso.
+
+## Dos límites editoriales independientes
+
+Hoid mantiene dos umbrales que no deben confundirse:
+
+1. `firstSafeAppearance`: autoriza únicamente mencionar el nombre o alias de una entidad.
+2. `evidenceUnlock`: autoriza revelar el resumen editorial completo, una vez alcanzada la posición de lectura indicada.
+
+Una primera aparición temprana no autoriza los detalles de un resumen posterior. El resumen solo puede cruzar la frontera si:
+
+- la procedencia está marcada como verificada;
+- `evidenceSource` identifica el libro, capítulo y localizador exactos;
+- el localizador coincide con el manifiesto de la edición verificada;
+- `evidenceUnlock` es válido y el progreso completado alcanza ese umbral;
+- el progreso no contiene posiciones duplicadas, inválidas o ambiguas.
+
+La cita que recibe el proveedor identifica el capítulo que realmente respalda el resumen (`evidenceSource`), no la primera aparición de la entidad.
 
 ## Propiedades del snapshot
 
@@ -24,13 +41,15 @@ Las solicitudes y el contexto que cruzan la frontera deben ser snapshots desacop
 
 ## Dos rutas de respuesta
 
-### Texto libre
+### Texto libre de compatibilidad
 
 Los proveedores tradicionales devuelven texto. Hoid IA aplica:
 
 1. límite de tamaño;
 2. guardia determinista de spoilers;
 3. comprobación frente al catálogo bloqueado.
+
+Esta ruta de compatibilidad no equivale al runtime estricto de claims y no debe recibir resúmenes cuyo `evidenceUnlock` no se haya alcanzado.
 
 ### Evidencia estructurada
 

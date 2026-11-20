@@ -20,12 +20,18 @@ export type HoidContextFact = {
  */
 export function buildAuthorizedKnowledgeContext(
   catalog: HoidKnowledgeCatalog,
-  reading: ReadingPosition[],
+  reading: readonly ReadingPosition[],
 ): readonly HoidContextFact[] {
-  return catalog.entriesForContext(reading).map(entry => ({
-    id: entry.id,
-    kind: entry.kind,
-    source: { ...entry.firstSafeAppearance },
-    summary: entry.summary!,
-  }));
+  return catalog.entriesForContext(reading).flatMap(entry => {
+    const source = entry.evidenceSource;
+    const summary = entry.summary;
+    if (!source || typeof summary !== 'string' || summary.trim().length === 0) return [];
+
+    return [{
+      id: entry.id,
+      kind: entry.kind,
+      source: { bookId: source.bookId, chapter: source.chapter },
+      summary,
+    }];
+  });
 }

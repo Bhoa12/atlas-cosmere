@@ -7,7 +7,7 @@ import { snapshotProviderRequest } from './providerRequestSnapshot';
 import { answerWithinTimeout } from './providerTimeout';
 import { guardQuestion, redactProviderAnswer } from './spoilerGuard';
 import { HoidAnswer, HoidAnswerRequest, HoidProvider } from './types';
-import { validReadingPositions } from './readingValidation';
+import { validEditionBoundReadingPositions } from './editionProgressValidation';
 
 /**
  * Conservative default for a remote provider call. Integrations may override it
@@ -36,7 +36,7 @@ export class HoidService {
     }
 
     const question = validHoidQuestion(request.question);
-    const reading = validReadingPositions(request.reading);
+    const reading = validEditionBoundReadingPositions(request.reading);
     if (question === null || reading === null) {
       return {
         blocked: true,

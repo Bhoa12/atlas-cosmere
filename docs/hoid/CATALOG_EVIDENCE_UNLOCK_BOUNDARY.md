@@ -13,7 +13,7 @@ Además, el contexto atribuía la fuente a `firstSafeAppearance` en vez de al ca
 - Se introduce `isEntityMentionUnlocked()` para expresar el límite de mención.
 - `isUnlocked()` se conserva como alias de compatibilidad y queda documentado como obsoleto.
 - `lockedMatches()` y `authorizeHoidContext()` usan explícitamente el límite de primera aparición.
-- `entriesForContext()` exige `provenance=verified`, resumen no vacío y `isEvidenceUnlocked()`.
+- `entriesForContext()` exige `provenance=verified`, resumen no vacío, primera aparición segura y `isEvidenceUnlocked()`.
 - `isEvidenceUnlocked()` valida el localizador de fuente contra el manifiesto exacto y exige alcanzar `evidenceUnlock`.
 - `buildAuthorizedKnowledgeContext()` cita el capítulo real de `evidenceSource`, nunca la primera aparición.
 

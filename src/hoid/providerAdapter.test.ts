@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createHoidClaimSelectorAdapter,
+  inspectHoidProviderInvocationContext,
   inspectHoidProviderSelectionSnapshot,
   isHoidProviderSelectionSnapshot,
 } from "./providerAdapter";
@@ -13,6 +14,10 @@ import type { HoidClaimSelectionTransportContext } from "./providerAdapter";
 import type { HoidClaimSelectionRequest } from "./selectionProtocol";
 import type { HoidClaimSelector } from "./evidenceRuntime";
 import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
+import {
+  assertHoidRuntimeSelectorCompatibility,
+  defineHoidProviderAdapterConformanceSuite,
+} from "./providerAdapterConformance.testkit";
 
 const budget: HoidAnswerSelectionBudget = Object.freeze({
   maxClaims: 3,
@@ -44,11 +49,20 @@ function abortError(): Error {
   return error;
 }
 
+function invocationContext(signal: AbortSignal): HoidClaimSelectionTransportContext {
+  return Object.freeze({ signal });
+}
+
+defineHoidProviderAdapterConformanceSuite(
+  "Reference Hoid provider adapter",
+  createHoidClaimSelectorAdapter,
+);
+
 describe("Hoid provider-neutral selector adapter", () => {
   it("satisfies the runtime selector contract without provider-specific dependencies", () => {
-    const selector: HoidClaimSelector = createHoidClaimSelectorAdapter(async request =>
+    const selector: HoidClaimSelector = assertHoidRuntimeSelectorCompatibility(createHoidClaimSelectorAdapter(async request =>
       createHoidClaimSelectionResponse(request, ["claim.alpha"])
-    );
+    ));
     expect(typeof selector.selectClaims).toBe("function");
   });
 
@@ -85,7 +99,7 @@ describe("Hoid provider-neutral selector adapter", () => {
     const adapter = createHoidClaimSelectorAdapter(transport);
 
     expect(isHoidProviderSelectionSnapshot(mutable)).toBe(false);
-    await expect(adapter.selectClaims(mutable, { signal: new AbortController().signal }))
+    await expect(adapter.selectClaims(mutable, invocationContext(new AbortController().signal)))
       .rejects.toThrow("immutable Hoid selection snapshots");
     expect(transport).not.toHaveBeenCalled();
   });
@@ -136,7 +150,7 @@ describe("Hoid provider-neutral selector adapter", () => {
     const transport = vi.fn(async () => ({}));
     const adapter = createHoidClaimSelectorAdapter(transport);
 
-    await expect(adapter.selectClaims(createRequest(), { signal: controller.signal }))
+    await expect(adapter.selectClaims(createRequest(), invocationContext(controller.signal)))
       .rejects.toMatchObject({ name: "AbortError" });
     expect(transport).not.toHaveBeenCalled();
   });
@@ -145,7 +159,7 @@ describe("Hoid provider-neutral selector adapter", () => {
     const controller = new AbortController();
     const transport = vi.fn(async () => ({}));
     const adapter = createHoidClaimSelectorAdapter(transport);
-    const pending = adapter.selectClaims(createRequest(), { signal: controller.signal });
+    const pending = adapter.selectClaims(createRequest(), invocationContext(controller.signal));
 
     controller.abort();
 
@@ -161,7 +175,7 @@ describe("Hoid provider-neutral selector adapter", () => {
     );
     const adapter = createHoidClaimSelectorAdapter(transport);
 
-    const response = await adapter.selectClaims(request, { signal: controller.signal });
+    const response = await adapter.selectClaims(request, invocationContext(controller.signal));
 
     expect(transport).toHaveBeenCalledTimes(1);
     expect(transport.mock.calls[0][0]).toBe(request);
@@ -178,7 +192,7 @@ describe("Hoid provider-neutral selector adapter", () => {
       context.signal.addEventListener("abort", () => reject(abortError()), { once: true });
     }));
     const adapter = createHoidClaimSelectorAdapter(transport);
-    const pending = adapter.selectClaims(createRequest(), { signal: controller.signal });
+    const pending = adapter.selectClaims(createRequest(), invocationContext(controller.signal));
 
     await Promise.resolve();
     expect(transport).toHaveBeenCalledTimes(1);
@@ -187,12 +201,118 @@ describe("Hoid provider-neutral selector adapter", () => {
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 
+  it("rejects mutable invocation contexts before transport dispatch", async () => {
+    const controller = new AbortController();
+    const transport = vi.fn(async () => ({}));
+    const adapter = createHoidClaimSelectorAdapter(transport);
+    const mutable = { signal: controller.signal };
+
+    expect(inspectHoidProviderInvocationContext(mutable)).toEqual({
+      status: "invalid",
+      issue: "context-shape",
+    });
+    await expect(adapter.selectClaims(createRequest(), mutable as unknown as HoidClaimSelectionTransportContext))
+      .rejects.toThrow("frozen invocation context");
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it("rejects accessor-backed invocation contexts without executing the getter", async () => {
+    const controller = new AbortController();
+    let getterCalls = 0;
+    const accessorContext = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(accessorContext, "signal", {
+      enumerable: true,
+      get: () => {
+        getterCalls += 1;
+        return controller.signal;
+      },
+    });
+    Object.freeze(accessorContext);
+    const transport = vi.fn(async () => ({}));
+    const adapter = createHoidClaimSelectorAdapter(transport);
+
+    expect(inspectHoidProviderInvocationContext(accessorContext)).toEqual({
+      status: "invalid",
+      issue: "context-shape",
+    });
+    await expect(adapter.selectClaims(createRequest(), accessorContext as unknown as HoidClaimSelectionTransportContext))
+      .rejects.toThrow("frozen invocation context");
+    expect(getterCalls).toBe(0);
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it("rejects invocation contexts with extra fields", async () => {
+    const controller = new AbortController();
+    const context = Object.freeze({
+      signal: controller.signal,
+      traceId: "not-part-of-the-contract",
+    }) as unknown as HoidClaimSelectionTransportContext;
+    const transport = vi.fn(async () => ({}));
+    const adapter = createHoidClaimSelectorAdapter(transport);
+
+    expect(inspectHoidProviderInvocationContext(context)).toEqual({
+      status: "invalid",
+      issue: "context-shape",
+    });
+    await expect(adapter.selectClaims(createRequest(), context))
+      .rejects.toThrow("frozen invocation context");
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it("rejects forged AbortSignal-like objects", async () => {
+    const forgedSignal = Object.freeze({
+      aborted: false,
+      addEventListener: () => undefined,
+    }) as unknown as AbortSignal;
+    const context = invocationContext(forgedSignal);
+
+    expect(inspectHoidProviderInvocationContext(context)).toEqual({
+      status: "invalid",
+      issue: "signal-invalid",
+    });
+  });
+
+  it("rejects unknown intents and non-canonical candidate text", () => {
+    const request = createRequest();
+    const invalidIntent = Object.freeze({
+      ...request,
+      intent: "execute",
+    }) as unknown as HoidClaimSelectionRequest;
+    expect(inspectHoidProviderSelectionSnapshot(invalidIntent)).toBe("request-fields");
+
+    const invalidText = createHoidClaimSelectionRequest({
+      question: "Pregunta sintética.",
+      intent: "explain",
+      candidates: [{ id: "claim.alpha", text: "Texto\nno canónico.", evidenceIds: ["evidence.alpha"] }],
+      selectionBudget: budget,
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    });
+    expect(inspectHoidProviderSelectionSnapshot(invalidText)).toBe("candidate-values");
+  });
+
+  it("requires cross-work selections to declare at least two minimum works", () => {
+    const invalidBudget = Object.freeze({
+      ...budget,
+      maxWorks: 2,
+      minimumWorks: 1,
+      requireCrossWorkSegment: true,
+    });
+    const request = createHoidClaimSelectionRequest({
+      question: "Pregunta sintética.",
+      intent: "explain",
+      candidates: [{ id: "claim.alpha", text: "Afirmación sintética.", evidenceIds: ["evidence.alpha"] }],
+      selectionBudget: invalidBudget,
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    });
+    expect(inspectHoidProviderSelectionSnapshot(request)).toBe("budget-values");
+  });
+
   it("preserves synchronous transport failures as promise rejections", async () => {
     const adapter = createHoidClaimSelectorAdapter(() => {
       throw new Error("synthetic transport failure");
     });
 
-    await expect(adapter.selectClaims(createRequest(), { signal: new AbortController().signal }))
+    await expect(adapter.selectClaims(createRequest(), invocationContext(new AbortController().signal)))
       .rejects.toThrow("synthetic transport failure");
   });
 });

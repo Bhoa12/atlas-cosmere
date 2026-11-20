@@ -41,6 +41,7 @@ const BUDGET_KEYS = [
 
 const CANDIDATE_KEYS = ["id", "text", "evidenceIds"] as const;
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
+const APPROVED_INTENTS = new Set(["explain", "recommend", "context"]);
 const CLAIM_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const MAX_QUESTION_LENGTH = 4_000;
 const MAX_CANDIDATES = 32;
@@ -172,7 +173,8 @@ export function inspectHoidProviderSelectionSnapshot(
     request.question.length > MAX_QUESTION_LENGTH ||
     request.question !== request.question.trim() ||
     /[\u0000-\u001F\u007F\p{Cf}]/u.test(request.question) ||
-    typeof request.intent !== "string"
+    typeof request.intent !== "string" ||
+    !APPROVED_INTENTS.has(request.intent)
   ) return "request-fields";
 
   if (!hasExactFrozenDataProperties(request.selectionBudget, BUDGET_KEYS)) {
@@ -203,7 +205,7 @@ export function inspectHoidProviderSelectionSnapshot(
     budget.minimumWorks > budget.maxWorks ||
     typeof budget.requireSegmentProvenance !== "boolean" ||
     typeof budget.requireCrossWorkSegment !== "boolean" ||
-    (budget.requireCrossWorkSegment && !budget.requireSegmentProvenance)
+    (budget.requireCrossWorkSegment && (!budget.requireSegmentProvenance || budget.minimumWorks < 2))
   ) return "budget-values";
 
   const candidates = request.candidates;
@@ -235,6 +237,8 @@ export function inspectHoidProviderSelectionSnapshot(
       typeof candidate.text !== "string" ||
       candidate.text.length < 1 ||
       candidate.text.length > MAX_CLAIM_TEXT_LENGTH ||
+      candidate.text !== candidate.text.trim() ||
+      /[\u0000-\u001F\u007F]/u.test(candidate.text) ||
       !isFrozenDenseUniqueEvidenceArray(candidate.evidenceIds)
     ) return "candidate-values";
     seen.add(candidate.id);
@@ -256,6 +260,73 @@ export function isHoidProviderSelectionSnapshot(
   value: unknown,
 ): value is HoidClaimSelectionRequest {
   return inspectHoidProviderSelectionSnapshot(value) === null;
+}
+
+export type HoidProviderInvocationContextIssue =
+  | "context-shape"
+  | "signal-invalid";
+
+export type HoidProviderInvocationContextInspection =
+  | Readonly<{ status: "valid"; signal: AbortSignal; aborted: boolean }>
+  | Readonly<{ status: "invalid"; issue: HoidProviderInvocationContextIssue }>;
+
+/**
+ * Accept only a frozen, closed invocation record containing a genuine
+ * same-realm AbortSignal. Read the own data descriptor instead of evaluating
+ * the signal property, so accessor-backed contexts are rejected without
+ * running caller code.
+ */
+export function inspectHoidProviderInvocationContext(
+  value: unknown,
+): HoidProviderInvocationContextInspection {
+  try {
+    if (
+      value === null ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      !Object.isFrozen(value)
+    ) return Object.freeze({ status: "invalid", issue: "context-shape" });
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== null && prototype !== Object.prototype) {
+      return Object.freeze({ status: "invalid", issue: "context-shape" });
+    }
+
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== 1 || keys[0] !== "signal") {
+      return Object.freeze({ status: "invalid", issue: "context-shape" });
+    }
+
+    const descriptor = Object.getOwnPropertyDescriptor(value, "signal");
+    if (
+      !descriptor ||
+      !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+      descriptor.enumerable !== true
+    ) return Object.freeze({ status: "invalid", issue: "context-shape" });
+
+    if (typeof AbortSignal === "undefined") {
+      return Object.freeze({ status: "invalid", issue: "signal-invalid" });
+    }
+    const abortedGetter = Object.getOwnPropertyDescriptor(AbortSignal.prototype, "aborted")?.get;
+    if (typeof abortedGetter !== "function") {
+      return Object.freeze({ status: "invalid", issue: "signal-invalid" });
+    }
+
+    // The native getter performs the AbortSignal brand check and rejects
+    // forged objects and proxies without consulting user-defined properties.
+    const aborted = abortedGetter.call(descriptor.value);
+    if (typeof aborted !== "boolean") {
+      return Object.freeze({ status: "invalid", issue: "signal-invalid" });
+    }
+
+    return Object.freeze({
+      status: "valid",
+      signal: descriptor.value as AbortSignal,
+      aborted,
+    });
+  } catch {
+    return Object.freeze({ status: "invalid", issue: "signal-invalid" });
+  }
 }
 
 function createAbortError(): Error {
@@ -284,24 +355,17 @@ export function createHoidClaimSelectorAdapter(
       context: HoidClaimSelectionTransportContext,
     ): Promise<unknown> {
       return Promise.resolve().then(() => {
-        if (
-          context === null ||
-          typeof context !== "object" ||
-          context.signal === null ||
-          typeof context.signal !== "object" ||
-          typeof context.signal.aborted !== "boolean" ||
-          typeof context.signal.addEventListener !== "function"
-        ) {
-          throw new TypeError("A valid AbortSignal is required for provider invocation.");
+        const invocationContext = inspectHoidProviderInvocationContext(context);
+        if (invocationContext.status !== "valid") {
+          throw new TypeError("A frozen invocation context with a genuine AbortSignal is required (" + invocationContext.issue + ").");
         }
-
-        if (context.signal.aborted) throw createAbortError();
+        if (invocationContext.aborted) throw createAbortError();
         const snapshotIssue = inspectHoidProviderSelectionSnapshot(request);
         if (snapshotIssue !== null) {
           throw new TypeError(`Only immutable Hoid selection snapshots may cross the provider boundary (${snapshotIssue}).`);
         }
 
-        const transportContext = Object.freeze({ signal: context.signal });
+        const transportContext = Object.freeze({ signal: invocationContext.signal });
         return transport(request, transportContext);
       });
     },

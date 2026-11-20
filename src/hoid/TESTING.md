@@ -40,6 +40,8 @@ El runner no modifica la política de autorización: únicamente hace ejecutable
 - `providerAdapter.ts` ofrece `createHoidClaimSelectorAdapter()`, una fábrica neutral que aplica el contrato de snapshot antes de llamar al transporte concreto.
 - `providerAdapter.test.ts` comprueba claves cerradas, ausencia de progreso bruto, inmutabilidad profunda, rechazo antes del despacho, señal idéntica durante el transporte y propagación de cancelación activa.
 - Los adaptadores específicos deben usar esta fábrica o reproducir exactamente sus garantías. La fábrica no autentica al proveedor ni sustituye el parser de respuesta del runtime.
+- `providerAdapterConformance.testkit.ts` expone `defineHoidProviderAdapterConformanceSuite()` para reutilizar los mismos casos de forwarding, snapshots mutables, contextos con accessors, señales falsificadas, cancelación y errores de transporte en cada adaptador específico.
+- La suite exige un máximo de un despacho por invocación y documenta que el núcleo no reintenta automáticamente errores de transporte ambiguos. Las llamadas repetidas explícitas deben conservar el mismo fingerprint para un snapshot idéntico.
 
 ## Deadline, cancelación y resultados tardíos
 

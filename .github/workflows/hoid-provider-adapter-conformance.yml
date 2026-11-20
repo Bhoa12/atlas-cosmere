@@ -49,5 +49,6 @@ jobs:
           --moduleResolution node --skipLibCheck
           src/hoid/providerAdapter.ts
           src/hoid/providerAdapter.test.ts
+          src/hoid/providerAdapterConformance.testkit.ts
           src/hoid/selectionProtocol.ts
           src/hoid/providerTimeout.ts

@@ -7,6 +7,14 @@ on:
     paths:
       - "src/hoid/explanationDepth.ts"
       - "src/hoid/explanationDepth.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/types.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/narrativeComposition.ts"
       - "src/hoid/evidenceScope.ts"
@@ -17,6 +25,14 @@ on:
     paths:
       - "src/hoid/explanationDepth.ts"
       - "src/hoid/explanationDepth.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/types.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/narrativeComposition.ts"
       - "src/hoid/evidenceScope.ts"
@@ -44,8 +60,15 @@ jobs:
           npx vitest run
           src/hoid/explanationDepth.test.ts
           src/hoid/answerPresentation.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+          src/hoid/conversationGateway.test.ts
       - name: Type-check provider-neutral explanation boundary
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/explanationDepth.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/evidenceRuntime.ts
+          src/screens/HoidScreen.tsx

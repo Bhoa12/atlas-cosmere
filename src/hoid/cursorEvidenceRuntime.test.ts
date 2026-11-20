@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHoidEvidenceRuntime, createHoidClaimSelectionResponse, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
+import { createHoidEvidenceRuntime, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
+import { createHoidClaimSelectionResponse } from "./selectionProtocol";
 import {
   createHoidCursorEvidenceRuntime,
   projectHoidCursorProgressSnapshot,

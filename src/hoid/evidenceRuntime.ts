@@ -14,7 +14,6 @@ import type { HoidAnswerRequest, HoidAnswerSelectionBudget, ReadingPosition } fr
 import {
   createHoidClaimSelectionRequest,
   parseHoidClaimSelectionResponse,
-  type HoidClaimSelectionCandidate,
   type HoidClaimSelectionRequest,
 } from "./selectionProtocol";
 export type { HoidClaimSelectionCandidate, HoidClaimSelectionRequest, HoidClaimSelectionResponse } from "./selectionProtocol";

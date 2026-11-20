@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createHoidEvidenceRuntime,
-  createHoidClaimSelectionResponse,
   type HoidApprovedClaim,
   type HoidClaimSelectionRequest,
 } from "./evidenceRuntime";
+import { createHoidClaimSelectionResponse } from "./selectionProtocol";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { getHoidReadingManifest } from "./readingManifest";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";

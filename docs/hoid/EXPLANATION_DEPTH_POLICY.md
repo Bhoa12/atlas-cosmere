@@ -30,7 +30,13 @@ El runtime vuelve a imponer el presupuesto después de la selección: número de
 
 La interfaz permite elegir Breve, Detallada o Comparativa. La elección es una preferencia de presentación efímera; no se persiste como progreso ni modifica el estado editorial.
 
-## Procedencia obligatoria por afirmación\n\n`brief`, `detailed` y `comparative` requieren `segments` y `layout` validados. Cada segmento debe corresponder, en el mismo orden, a una afirmación aprobada y enumerar exactamente sus evidencias. La capa de presentación reconstruye las citas de cada segmento desde el manifiesto de evidencias; no acepta texto libre del proveedor ni permite que una afirmación herede citas de otra. Si falta el mapa claim-to-evidence, la respuesta completa se retiene con `segment-provenance-required`.\n\nEl runtime local construye los segmentos a partir de los IDs seleccionados y del registro editorial aprobado. El selector externo nunca aporta ni reescribe el texto de las afirmaciones.\n\n## Requisitos comparativos
+## Procedencia obligatoria por afirmación
+
+`brief`, `detailed` y `comparative` requieren `segments` y `layout` validados. Cada segmento debe corresponder, en el mismo orden, a una afirmación aprobada y enumerar exactamente sus evidencias. La capa de presentación reconstruye las citas de cada segmento desde el manifiesto de evidencias; no acepta texto libre del proveedor ni permite que una afirmación herede citas de otra. Si falta el mapa claim-to-evidence, la respuesta completa se retiene con `segment-provenance-required`.
+
+El runtime local construye los segmentos a partir de los IDs seleccionados y del registro editorial aprobado. El selector externo nunca aporta ni reescribe el texto de las afirmaciones.
+
+## Requisitos comparativos
 
 El nivel `comparative` exige:
 
@@ -59,7 +65,9 @@ Un futuro adaptador de proveedor puede usar los presupuestos para planificar una
 
 `explanationDepth.test.ts` cubre:
 
-- aceptación de una respuesta breve con procedencia exacta por afirmación;\n- retención de respuestas breves y detalladas que omiten el mapa claim-to-evidence;\n- verificación de que los tres presupuestos exigen procedencia por segmento;
+- aceptación de una respuesta breve con procedencia exacta por afirmación;
+- retención de respuestas breves y detalladas que omiten el mapa claim-to-evidence;
+- verificación de que los tres presupuestos exigen procedencia por segmento;
 - explicación detallada con varias obras ya autorizadas;
 - rechazo completo de respuestas que exceden el presupuesto;
 - requisito de procedencia cruzada para comparaciones;

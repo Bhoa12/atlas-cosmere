@@ -85,7 +85,6 @@ describe("Hoid explanation depth policy", () => {
     });
   });
 
-
   it("requires claim-level provenance in every public explanation depth", () => {
     for (const budget of Object.values(HOID_EXPLANATION_DEPTH_BUDGETS)) {
       expect(budget.requireSegmentProvenance).toBe(true);
@@ -95,7 +94,7 @@ describe("Hoid explanation depth policy", () => {
     expect(HOID_EXPLANATION_DEPTH_BUDGETS.detailed.requireCrossWorkSegment).toBe(false);
   });
 
-  it.each(["brief", "detailed"] as const)(
+  it.each(["brief", "detailed", "comparative"] as const)(
     "withholds %s answers that omit the claim-to-evidence map",
     depth => {
       const evidence = source("tfe", "evidence-vin-ch1");

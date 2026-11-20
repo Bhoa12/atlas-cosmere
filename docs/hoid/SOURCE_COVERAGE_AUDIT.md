@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 58 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 59 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 58 | Original editorial summaries exist in staging |
-| Summaries pending review | 58 | None of those summaries is approved for production |
+| Original staged chapter summaries | 59 | Original editorial summaries exist in staging |
+| Summaries pending review | 59 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 58 summaries remain `pending-review`. The 76-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 59 summaries remain `pending-review`. The 77-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 58 inspected documents, 58 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 59 inspected documents, 59 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -209,3 +209,14 @@ The current inventory is **58 individually inspected chapter documents and 58 or
 
 No EPUB, XHTML body, copied passage, extracted prose, image or private device path was committed.
 
+
+
+## Run 192 — El Imperio Final, capítulo 9
+
+The current Library copy of `cosmere.epub` was explicitly selected for a candidate-only inspection. The complete ZIP passed CRC validation. Its navigation-document SHA-256 matched the registered `cosmere-epub-merged-v1` edition digest. The previously registered chapter-eight XHTML digest also matched, confirming continuity with the inspected prefix.
+
+The chapter-nine navigation target `books/b000001/OEBPS/Text/009.xhtml` was resolved from the EPUB navigation document, matched exactly one OPF manifest item, and was confirmed in the reading spine. The original XHTML bytes produced document SHA-256 `e08f8b2845eb2d15ed9a1ad517d2207501ba0068f25797643e127919d92daedb`.
+
+One original Spanish summary was staged with summary SHA-256 `a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be`, exact edition-bound provenance and a completed-through evidence watermark of chapter 9. Its first eligible open reader cursor is chapter 10. It remains `pending-review`; no approved claim, activation receipt or production knowledge was added. No EPUB bytes, XHTML body, copied passage, extracted source text, image or private file path was committed.
+
+The current inventory is **59 individually inspected chapter documents and 59 original summaries pending review**, across the same four works. The catalogue remains at 24 works and 1,106 verified navigation locators. The next TFE candidate is chapter 10; the Roshar continuation candidates remain chapters 17, 18 and 18.

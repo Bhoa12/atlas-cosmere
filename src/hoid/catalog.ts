@@ -122,6 +122,7 @@ export class HoidKnowledgeCatalog {
       entry.provenance === 'verified'
       && typeof entry.summary === 'string'
       && entry.summary.trim().length > 0
+      && this.isEntityMentionUnlocked(entry, reading)
       && isEvidenceUnlocked(entry, reading),
     );
   }

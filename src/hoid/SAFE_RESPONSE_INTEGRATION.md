@@ -42,3 +42,10 @@ presentHoidEvidenceAnswer es la comprobación estructural de bajo nivel. createH
 La promoción editorial conserva su gate separado: recibos completos, firmas por paquete, número mínimo de revisores, revisión de GitHub y progreso autorizado. Una firma individual no sustituye ese proceso.
 
 Este documento describe contratos y flujo de integración. No contiene pasajes de las obras ni convierte la bibliografía privada en contenido distribuible.
+
+
+## Autoridad del progreso en la presentación final
+
+createHoidTrustedVerifiedAnswerPresenter no acepta un snapshot de progreso como argumento de present. Lee el cursor vigente mediante el puerto local readProgressSnapshot, inyectado por el host desde el almacén autoritativo (por ejemplo, SQLite). El proveedor y la interfaz no pueden suministrar un cursor alternativo ni adelantar el capítulo para desbloquear evidencia.
+
+Si la lectura del progreso falla, el snapshot es inválido, cambia la revisión de confianza o caduca el bootstrap/registro, la presentación se retiene. El adaptador del host debe leer una instantánea coherente y validada del almacén local; no debe derivarla de parámetros de la petición ni de la salida del proveedor.

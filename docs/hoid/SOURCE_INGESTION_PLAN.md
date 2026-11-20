@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 59 |
-| Original staged summaries | 59 |
-| Summaries pending review | 59 |
+| Individually inspected chapter documents | 62 |
+| Original staged summaries | 62 |
+| Summaries pending review | 62 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -38,9 +38,9 @@ The current continuation candidates are:
 | Work | Next chapter to inspect |
 |---|---:|
 | El Imperio Final | 10 |
-| El Camino de los Reyes | 17 |
-| Danzante del Filo | 18 |
-| Esquirla del amanecer | 18 |
+| El Camino de los Reyes | 18 |
+| Danzante del Filo | 19 |
+| Esquirla del amanecer | 19 |
 
 The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
@@ -207,3 +207,20 @@ The planner remains metadata-only. The three new chapter-N summaries carry compl
 The Library now contains the user's `cosmere.epub` source. Run 192 explicitly selected that file and verified the registered navigation digest, the existing chapter-eight document digest, the chapter-nine navigation href, its unique OPF manifest item, reading-spine membership and exact XHTML SHA-256. The source planner remains metadata-only; it did not inspect the archive or authorize evidence.
 
 The chapter-nine original summary is staged separately with completed-through watermark 9 and minimum open reader cursor 10. It remains pending editorial review and is excluded from production knowledge. The deterministic continuation queue now advances El Imperio Final to chapter 10; the other existing continuations remain El Camino de los Reyes 17, Danzante del Filo 18 and Esquirla del amanecer 18.
+
+
+## Run 194 — Roshar continuation
+
+The exact Library EPUB copies for the Roshar omnibus, Danzante del Filo and Esquirla del amanecer were rechecked. Their registered navigation SHA-256 values still match. For each work, the immediately preceding chapter document matched its existing allowlisted digest, and the next chapter target was confirmed as a single TOC entry, a unique OPF manifest item and a member of the reading spine.
+
+Three chapter bodies were inspected and staged as original summaries:
+
+| Work | Chapter inspected | Next candidate | Earliest unlock cursor |
+|---|---:|---:|---:|
+| El Camino de los Reyes | 17 | 18 | 18 |
+| Danzante del Filo | 18 | 19 | 19 |
+| Esquirla del amanecer | 18 | 19 | 19 |
+
+The next deterministic continuation queue is El Imperio Final chapter 10, El Camino de los Reyes chapter 18, Danzante del Filo chapter 19 and Esquirla del amanecer chapter 19. The current Library EPUB filter did not return `cosmere.epub`; TFE chapter 10 remains a candidate only.
+
+All three new summaries remain pending review. The ingestion planner still has no authorization effect and does not claim source availability.

@@ -70,7 +70,11 @@ export async function invokeWithProviderDeadline<T>(
 
     const cleanup = () => {
       if (timer !== undefined) clearTimeout(timer);
-      callerSignal?.removeEventListener("abort", onCallerAbort);
+      try {
+        callerSignal?.removeEventListener("abort", onCallerAbort);
+      } catch {
+        // A malformed host signal must not prevent the invocation from settling.
+      }
     };
 
     const finish = (outcome: ProviderInvocationOutcome<T>) => {

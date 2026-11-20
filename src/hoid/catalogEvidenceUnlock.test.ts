@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { buildAuthorizedKnowledgeContext } from "./authorizedKnowledgeContext";
 import { HoidService } from "./HoidService";
-import type { HoidAnswerRequest, HoidProvider } from "./types";
+import type { HoidAnswerRequest, HoidProvider, ReadingPosition } from "./types";
 import { getHoidReadingManifest } from "./readingManifest";
 import { snapshotProviderRequest } from "./providerRequestSnapshot";
 import { validReadingPositions } from "./readingValidation";
@@ -120,6 +120,16 @@ describe("catalog entity appearance versus complete-summary unlock", () => {
     expect(context).toHaveLength(1);
     expect(context[0].kind).toBe("phenomenon");
     expect(snapshot.knowledgeContext?.[0].kind).toBe("phenomenon");
+  });
+
+  it("accepts a frozen readonly progress snapshot at the catalog boundary", () => {
+    const catalog = new HoidKnowledgeCatalog([entry()]);
+    const reading: readonly ReadingPosition[] = Object.freeze([
+      Object.freeze({ bookId: "twok", chapter: 4 }),
+    ]);
+
+    expect(catalog.entriesForContext(reading)).toHaveLength(1);
+    expect(buildAuthorizedKnowledgeContext(catalog, reading)).toHaveLength(1);
   });
 
   it("keeps the legacy provider boundary from receiving a summary before its unlock watermark", async () => {

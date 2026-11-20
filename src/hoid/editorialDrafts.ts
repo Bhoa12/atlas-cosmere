@@ -1436,7 +1436,7 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     schemaVersion: 1,
     id: "tfe.chapter-007.marsh-vin-training",
     kind: "event",
-    aliases: Object.freeze([]),
+    aliases: Object.freeze(["Kelsier", "Marsh", "Vin"]),
     firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 7 }),
     evidenceSource: Object.freeze({ bookId: "tfe", chapter: 7, locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/007.xhtml" }),
     evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 7 }),

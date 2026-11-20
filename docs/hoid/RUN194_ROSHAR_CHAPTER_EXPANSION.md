@@ -62,3 +62,8 @@ The source-document fingerprint tests, editorial draft validation, source covera
 Base: `feat/hoid-ia-core-run193` at `4fc1f51a8375e922226b369261097ce1df93ee2a`.
 
 No changes were made to `main`, PR #86 or any earlier branch. No merge was performed.
+
+
+## CI follow-up
+
+The first pull-request validation found one stale negative-test fixture: the generic "uninspected chapter" test still treated the newly inspected Roshar chapter numbers as unavailable. The production allowlist and source digests were correct. The fixture now tests El Camino de los Reyes chapter 18 and Danzante del Filo / Esquirla del amanecer chapter 19, which remain uninspected. The source-ingestion, editorial-draft and coverage assertions themselves passed in their first runs. The corrected HEAD has been pushed and the complete pull-request workflow set is being rerun; Run 194 is not CI-validated until those final runs finish.

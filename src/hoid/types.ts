@@ -1,3 +1,5 @@
+import type { HoidKnowledgeKind } from "./knowledgeKinds";
+
 export type ReadingPosition = {
   bookId: string;
   chapter?: number;
@@ -8,7 +10,7 @@ export type ReadingPosition = {
 
 export type HoidKnowledgeContextFact = {
   id: string;
-  kind: 'character' | 'place' | 'event' | 'concept' | 'magic' | 'organization' | 'object';
+  kind: HoidKnowledgeKind;
   source: { bookId: string; chapter: number };
   /** Original editorial summary, never source text. */
   summary: string;
@@ -16,7 +18,7 @@ export type HoidKnowledgeContextFact = {
 
 export type HoidAnswerRequest = {
   question: string;
-  reading: ReadingPosition[];
+  reading: readonly ReadingPosition[];
   /**
    * Deprecated caller-supplied field. Hoid never forwards this value across
    * the provider boundary; authorized narrative context is built internally

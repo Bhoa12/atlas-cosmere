@@ -9,7 +9,8 @@ import {
   createHoidClaimSelectionResponse,
   parseHoidClaimSelectionResponse,
 } from "./selectionProtocol";
-import type { HoidClaimSelectionRequest, HoidClaimSelectionTransportContext } from "./providerAdapter";
+import type { HoidClaimSelectionTransportContext } from "./providerAdapter";
+import type { HoidClaimSelectionRequest } from "./selectionProtocol";
 import type { HoidClaimSelector } from "./evidenceRuntime";
 import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
 

@@ -103,7 +103,7 @@ export class HoidKnowledgeCatalog {
    * summaries must use isEvidenceUnlocked(), never this first-appearance check.
    * @deprecated Prefer isEntityMentionUnlocked() for explicit semantics.
    */
-  isUnlocked(entry: HoidKnowledgeEntry, reading: ReadingPosition[]): boolean {
+  isUnlocked(entry: HoidKnowledgeEntry, reading: readonly ReadingPosition[]): boolean {
     return this.isEntityMentionUnlocked(entry, reading);
   }
 
@@ -117,7 +117,7 @@ export class HoidKnowledgeCatalog {
    * locator, and an explicit full-summary unlock watermark. First appearance
    * alone is never sufficient to disclose summary details.
    */
-  entriesForContext(reading: ReadingPosition[]): HoidKnowledgeEntry[] {
+  entriesForContext(reading: readonly ReadingPosition[]): HoidKnowledgeEntry[] {
     return this.entries.filter(entry =>
       entry.provenance === 'verified'
       && typeof entry.summary === 'string'

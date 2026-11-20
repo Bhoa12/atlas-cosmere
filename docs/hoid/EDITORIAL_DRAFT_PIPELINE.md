@@ -188,3 +188,10 @@ Three additional source documents were inspected from the current Library copies
 Three original Spanish summaries were added to `editorialDrafts.ts` with exact summary SHA-256 values, edition-bound locators and source-document digests. All remain pending independent review. The evidence watermark is N; the reader cursor must reach N+1. No progress, production registry, approved claim or activation receipt was changed.
 
 The staging inventory now contains 46 original summaries backed by 46 individually inspected chapter documents. No EPUB bytes, XHTML bodies, copied passages, extracted source prose, images or private file paths were committed. See [RUN174_ROSHAR_CHAPTER_EXPANSION.md](RUN174_ROSHAR_CHAPTER_EXPANSION.md).
+
+
+## Run 175 — evidencia de capítulo y revisión
+
+Se incorporan cuatro resúmenes originales nuevos, cada uno vinculado a un XHTML concreto mediante edición, huella de navegación, localizador y SHA-256 del documento. Los cuatro permanecen en `pending-review`.
+
+La inspección local devuelve únicamente una huella candidate-only. La allowlist y el staging editorial se actualizan explícitamente, pero ninguna de las dos acciones concede aprobación ni escritura en producción. El umbral sigue siendo capítulo N+1.

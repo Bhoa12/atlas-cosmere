@@ -6,11 +6,11 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 43 original chapter summaries;
+- 46 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 43 distinct edition-bound source documents.
+- 46 distinct edition-bound source documents.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -107,3 +107,12 @@ The new source records are:
 The completed-through evidence watermarks are 5, 12, 13 and 13. Their minimum open reader cursors are 6, 13, 14 and 14. All four summaries remain pending review.
 
 The current metadata-only manifest contains 61 records across 43 distinct chapter-body documents: 43 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Its structural status is not editorial approval. Production remains empty and no activation receipt is created. No EPUB bytes, XHTML bodies, source passages or images are committed.
+
+
+## Run 174 — three additional Roshar summaries
+
+Three new source-backed original summaries were added after inspecting El Camino de los Reyes chapter 13, Danzante del Filo chapter 14 and Esquirla del amanecer chapter 14. The edition-bound navigation digests matched the registered manifests, each target was present in its OPF manifest and reading spine, and the exact XHTML bytes were fingerprinted.
+
+The metadata-only manifest now contains 64 records across 46 distinct chapter-body documents: 46 summaries, one atomic claim, 14 identity dossiers and three relationship claims. All 46 summaries remain pending independent review. The bundle's `ready-for-review` state is not approval; the production registry remains empty and no activation receipt is created.
+
+See [RUN174_ROSHAR_CHAPTER_EXPANSION.md](RUN174_ROSHAR_CHAPTER_EXPANSION.md) for exact relative locators and digests. No EPUB bytes, XHTML bodies, copied passages, images or private file paths are committed.

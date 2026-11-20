@@ -161,9 +161,9 @@ describe("Hoid complete editorial review bundle", () => {
     expect(second.status).toBe("ready-for-review");
     if (first.status !== "ready-for-review" || second.status !== "ready-for-review") return;
     expect(first.manifest).toEqual(second.manifest);
-    expect(first.manifest.packets).toHaveLength(61);
+    expect(first.manifest.packets).toHaveLength(64);
     expect(first.manifest.counts).toEqual({
-      summaries: 43,
+      summaries: 46,
       atomicClaims: 1,
       entities: 14,
       relationships: 3,
@@ -193,7 +193,7 @@ describe("Hoid complete editorial review bundle", () => {
       manifest,
       knowledge.manifest,
       sourceInput,
-    )).toMatchObject({ status: "valid", packetCount: 61 });
+    )).toMatchObject({ status: "valid", packetCount: 64 });
     expect(validateHoidEditorialReviewBundleManifest(
       manifest,
       knowledge.manifest,
@@ -232,7 +232,7 @@ describe("Hoid complete editorial review bundle", () => {
     expect(result).toMatchObject({
       status: "incomplete",
       approvedCount: 0,
-      missingCount: 61,
+      missingCount: 64,
       promotionAllowed: false,
       productionWritePerformed: false,
     });
@@ -248,7 +248,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toEqual({
       status: "complete",
-      approvedCount: 59,
+      approvedCount: 62,
       revisionRequiredCount: 0,
       rejectedCount: 0,
       missingCount: 0,
@@ -270,7 +270,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "needs-revision",
-      approvedCount: 60,
+      approvedCount: 63,
       revisionRequiredCount: 1,
       missingCount: 0,
       promotionAllowed: false,

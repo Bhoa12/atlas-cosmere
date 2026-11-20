@@ -173,3 +173,18 @@ Four original Spanish summaries were added to `editorialDrafts.ts` with exact su
 All four remain pending independent editorial review. For source chapter N, the evidence watermark is N and the reader's open cursor must reach N+1. A cursor at N still leaves that chapter's summary locked. The integration regression also proves that another work's progress cannot unlock the evidence.
 
 The staging inventory now contains 43 original summaries backed by 43 individually inspected chapter documents. Production knowledge, approved claims and activation receipts remain unchanged. No EPUB, XHTML body, copied passage, extracted source prose, image or private file path was committed.
+
+
+## Run 174 — three new chapter summaries
+
+Three additional source documents were inspected from the current Library copies. The registered navigation digests matched the EPUB navigation documents; each target was resolved from its table of contents, matched to one OPF manifest item, confirmed in the reading spine and fingerprinted from its original XHTML bytes.
+
+| Work | Chapter | Relative XHTML target | Document SHA-256 | Evidence watermark | Minimum open cursor |
+|---|---:|---|---|---:|---:|
+| El Camino de los Reyes | 13 | OEBPS/Text/L1-033.xhtml | 9716f41c822b8ea3801fd18d6072689d90482db419fd90d869fb12d8543da426 | 13 | 14 |
+| Danzante del Filo | 14 | OEBPS/Text/014.xhtml | 0c716a985a6f3ec2478788463d4b2ef132088829ce5d338101b0df9169edc17c | 14 | 15 |
+| Esquirla del amanecer | 14 | OEBPS/Text/14.xhtml | c62b4deedaa65671b41e69e944a5fb384f71cbfef4807d7d7ffd013b21225fb5 | 14 | 15 |
+
+Three original Spanish summaries were added to `editorialDrafts.ts` with exact summary SHA-256 values, edition-bound locators and source-document digests. All remain pending independent review. The evidence watermark is N; the reader cursor must reach N+1. No progress, production registry, approved claim or activation receipt was changed.
+
+The staging inventory now contains 46 original summaries backed by 46 individually inspected chapter documents. No EPUB bytes, XHTML bodies, copied passages, extracted source prose, images or private file paths were committed. See [RUN174_ROSHAR_CHAPTER_EXPANSION.md](RUN174_ROSHAR_CHAPTER_EXPANSION.md).

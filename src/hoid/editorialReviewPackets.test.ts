@@ -38,7 +38,7 @@ describe("Hoid editorial review packets", () => {
   it("builds a deterministic packet for each pending source-backed draft", () => {
     expect(built.status).toBe("ready");
     if (built.status !== "ready") return;
-    expect(built.packets).toHaveLength(43);
+    expect(built.packets).toHaveLength(46);
     expect(built.packets.map(item => item.draftId)).toEqual([
       "dawnshard.chapter-001.akinah-expedition",
       "dawnshard.chapter-002.rysn-navani-akinah-mission",
@@ -53,6 +53,7 @@ describe("Hoid editorial review packets", () => {
       "dawnshard.chapter-011.lopen-crosses-akinah-storm",
       "dawnshard.chapter-012.rysn-arrives-at-akinah",
       "dawnshard.chapter-013.lopen-akinah-landing",
+      "dawnshard.chapter-014.rysns-treasure-warning",
       "edgedancer.chapter-001.lift-departure",
       "edgedancer.chapter-002.lift-yeddaw-arrival",
       "edgedancer.chapter-003.hauka-grain-cart",
@@ -66,6 +67,7 @@ describe("Hoid editorial review packets", () => {
       "edgedancer.chapter-011.lift-finds-great-indicium",
       "edgedancer.chapter-012.lift-gran-indicium-plan",
       "edgedancer.chapter-013.lift-emperor-decree",
+      "edgedancer.chapter-014.lift-investigation-red-storm",
       "tfe.chapter-001.vin",
       "tfe.chapter-002.kelsier",
       "tfe.chapter-003.vin-kelsier",
@@ -83,6 +85,7 @@ describe("Hoid editorial review packets", () => {
       "twok.chapter-010.kaladin-lirin-surgeon",
       "twok.chapter-011.kaladin-returns-to-bridge-four",
       "twok.chapter-012.adolin-abismoid-hunt",
+      "twok.chapter-013.dalinar-elkohar-abismoid-battle",
     ]);
     expect(built.packets.every(item => item.status === "pending-review")).toBe(true);
   });

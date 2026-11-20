@@ -145,15 +145,18 @@ describe("Hoid reader spoiler boundary", () => {
 
     expect(result).toBeNull();
   });
-  it("keeps each Run 170 summary locked at its source cursor and unlocks it at the next cursor", () => {
+  it("keeps Run 170 and Run 174 summaries locked at their source cursor and unlocks them at the next cursor", () => {
     const ids = new Set([
       "tfe.chapter-005.kelsier-venture-atium",
       "twok.chapter-012.adolin-abismoid-hunt",
       "edgedancer.chapter-013.lift-emperor-decree",
       "dawnshard.chapter-013.lopen-akinah-landing",
+      "twok.chapter-013.dalinar-elkohar-abismoid-battle",
+      "edgedancer.chapter-014.lift-investigation-red-storm",
+      "dawnshard.chapter-014.rysns-treasure-warning",
     ]);
     const drafts = HOID_EDITORIAL_DRAFTS.filter(draft => ids.has(draft.id));
-    expect(drafts).toHaveLength(4);
+    expect(drafts).toHaveLength(7);
 
     for (const draft of drafts) {
       const source = draft.evidenceSource;

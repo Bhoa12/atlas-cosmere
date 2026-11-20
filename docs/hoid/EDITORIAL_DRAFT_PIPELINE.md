@@ -230,3 +230,16 @@ Three additional chapter documents were inspected from the private Library copie
 
 The three summaries are original editorial prose and remain `pending-review`. No source passage or XHTML body is stored in the repository. No draft is promoted into the production registry.
 
+
+
+## Run 194 — three additional Roshar chapter drafts
+
+The current Library copies were revalidated against the edition-bound navigation digests. The previous chapter XHTML digest for each work matched the existing allowlist before the next chapter was read. Each target was resolved to exactly one TOC entry, one OPF manifest item and one reading-spine item.
+
+| Work | Chapter | Relative XHTML locator | Chapter-document SHA-256 | Earliest reader cursor |
+|---|---:|---|---|---:|
+| El Camino de los Reyes | 17 | `OEBPS/Text/L1-038.xhtml` | `c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e` | 18 |
+| Danzante del Filo | 18 | `OEBPS/Text/018.xhtml` | `fc630c1dccc3e10f77d857bf6d4680cf6a004def6f6a3a2d9810a8906219f671` | 19 |
+| Esquirla del amanecer | 18 | `OEBPS/Text/18.xhtml` | `6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b` | 19 |
+
+Three original Spanish summaries were staged with independent UTF-8 SHA-256 digests. They are pending review and excluded from production. No chapter title, XHTML passage, EPUB bytes, images or private path was committed. The current checked-in inventory is 62 inspected documents and 62 pending summaries; the 80-record editorial bundle remains structurally ready for review, not approved.

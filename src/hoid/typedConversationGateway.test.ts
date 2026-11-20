@@ -113,7 +113,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.organization-a"],
-    });
+    }, undefined);
     if (result.status === "ready") {
       expect(result.typedConversationContext?.entities).toEqual(refs);
     }
@@ -144,7 +144,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.phenomenon-a"],
-    });
+    }, undefined);
   });
 
   it("forwards an explicitly requested brief budget through a typed phenomenon follow-up", async () => {
@@ -164,7 +164,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
       entityIds: ["synthetic.phenomenon-a"],
-    });
+    }, undefined);
   });
 
   it("forwards an explicitly requested comparative budget through a typed entity follow-up", async () => {
@@ -184,7 +184,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.comparative,
       entityIds: ["synthetic.organization-a"],
-    });
+    }, undefined);
   });
 
   it("forwards caller cancellation through a typed follow-up without exposing typed context", async () => {

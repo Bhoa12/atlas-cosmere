@@ -241,6 +241,24 @@ describe("Hoid provider-neutral selector adapter", () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
+  it("rejects invocation contexts with extra fields", async () => {
+    const controller = new AbortController();
+    const context = Object.freeze({
+      signal: controller.signal,
+      traceId: "not-part-of-the-contract",
+    }) as unknown as HoidClaimSelectionTransportContext;
+    const transport = vi.fn(async () => ({}));
+    const adapter = createHoidClaimSelectorAdapter(transport);
+
+    expect(inspectHoidProviderInvocationContext(context)).toEqual({
+      status: "invalid",
+      issue: "context-shape",
+    });
+    await expect(adapter.selectClaims(createRequest(), context))
+      .rejects.toThrow("frozen invocation context");
+    expect(transport).not.toHaveBeenCalled();
+  });
+
   it("rejects forged AbortSignal-like objects", async () => {
     const forgedSignal = Object.freeze({
       aborted: false,

@@ -4,6 +4,7 @@ import {
   type HoidApprovedClaim,
   type HoidClaimSelectionRequest,
 } from "./evidenceRuntime";
+import { createHoidClaimSelectionResponse } from "./selectionProtocol";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { getHoidReadingManifest } from "./readingManifest";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
@@ -97,13 +98,26 @@ const claims: HoidApprovedClaim[] = [
   }),
 ];
 
+function selectorAdapter(
+  selectClaims: (request: HoidClaimSelectionRequest) => Promise<unknown>,
+) {
+  return {
+    selectClaims: async (request: HoidClaimSelectionRequest) => {
+      const result = await selectClaims(request);
+      return Array.isArray(result) && result.every(item => typeof item === "string")
+        ? createHoidClaimSelectionResponse(request, result as string[])
+        : result;
+    },
+  };
+}
+
 function createRuntime(
   selectClaims?: (request: HoidClaimSelectionRequest) => Promise<unknown>,
 ) {
   return createHoidEvidenceRuntime({
     knowledge,
     claims,
-    selector: selectClaims ? { selectClaims } : null,
+    selector: selectClaims ? selectorAdapter(selectClaims) : null,
   });
 }
 
@@ -126,11 +140,16 @@ describe("HoidEvidenceRuntime", () => {
 
   it("sends only claims whose complete evidence set is authorized", async () => {
     const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.schemaVersion).toBe(1);
+      expect(request.requestFingerprint).toMatch(/^[a-f0-9]{64}$/);
+      expect("reading" in request).toBe(false);
+      expect("progress" in request).toBe(false);
       expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
       expect(Object.isFrozen(request)).toBe(true);
       expect(Object.isFrozen(request.candidates)).toBe(true);
+      expect(Object.isFrozen(request.candidates[0].evidenceIds)).toBe(true);
       expect("aliases" in request.candidates[0]).toBe(false);
-      return ["claim-alpha"];
+      return createHoidClaimSelectionResponse(request, ["claim-alpha"]);
     });
     const runtime = createRuntime(selector);
 
@@ -154,6 +173,41 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects a selector response replayed for a different question and progress snapshot", async () => {
+    let firstResponse: unknown;
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      if (firstResponse === undefined) firstResponse = createHoidClaimSelectionResponse(request, ["claim-alpha"]);
+      return firstResponse;
+    });
+    const runtime = createRuntime(selector);
+    const first = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+    });
+    expect(first.status).toBe("authorized");
+    const replayed = await runtime!.answer({
+      question: "Explica el contexto de Personaje Alfa.",
+      reading: [{ bookId: "twok", chapter: 3 }],
+    });
+    expect(replayed.status).toBe("blocked");
+    expect(replayed.reason).toBe("invalid-selection");
+    expect(replayed.text).not.toContain("Afirmación editorial aprobada");
+  });
+
+  it("rejects legacy bare-array selector responses", async () => {
+    const runtime = createHoidEvidenceRuntime({
+      knowledge,
+      claims,
+      selector: { selectClaims: async () => ["claim-alpha"] },
+    });
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+    });
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-selection");
+  });
+
   it("passes a closed selection budget to the selector and enforces claim limits", async () => {
     const selectionBudget = Object.freeze({
       maxClaims: 1,
@@ -161,7 +215,7 @@ describe("HoidEvidenceRuntime", () => {
       maxWorks: 2,
       maxCharacters: 18_000,
       minimumWorks: 1,
-      requireSegmentProvenance: false,
+      requireSegmentProvenance: true,
       requireCrossWorkSegment: false,
     });
     const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
@@ -191,7 +245,7 @@ describe("HoidEvidenceRuntime", () => {
       maxWorks: 1,
       maxCharacters: 24_000,
       minimumWorks: 1,
-      requireSegmentProvenance: false,
+      requireSegmentProvenance: true,
       requireCrossWorkSegment: false,
     });
     const selector = vi.fn(async () => ["claim-cross-book"]);
@@ -216,7 +270,7 @@ describe("HoidEvidenceRuntime", () => {
       maxWorks: 2,
       maxCharacters: 10,
       minimumWorks: 1,
-      requireSegmentProvenance: false,
+      requireSegmentProvenance: true,
       requireCrossWorkSegment: false,
     });
     const selector = vi.fn(async () => ["claim-alpha"]);
@@ -342,7 +396,7 @@ describe("HoidEvidenceRuntime", () => {
     const runtime = createHoidEvidenceRuntime({
       knowledge: scopedKnowledge,
       claims: [approvedClaim(claimCore(claims[1]), scopedKnowledge)],
-      selector: { selectClaims: selector },
+      selector: selectorAdapter(selector),
     });
 
     const oneChapterShort = await runtime!.answer({
@@ -525,7 +579,7 @@ describe("HoidEvidenceRuntime", () => {
     const runtime = createHoidEvidenceRuntime({
       knowledge: delayedKnowledge,
       claims: [approvedClaim(claimCore(claims[0]), delayedKnowledge)],
-      selector: { selectClaims: selector },
+      selector: selectorAdapter(selector),
     });
 
     const beforeUnlock = await runtime!.answer({
@@ -656,7 +710,7 @@ describe("HoidEvidenceRuntime", () => {
     const runtime = createHoidEvidenceRuntime({
       knowledge,
       claims: [unscopedClaim],
-      selector: { selectClaims: selector },
+      selector: selectorAdapter(selector),
     });
     const result = await runtime!.answer({
       question: "¿Quién es Personaje Alfa?",

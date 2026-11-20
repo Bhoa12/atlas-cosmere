@@ -28,3 +28,10 @@ Una comprobación nueva debe seguir estas reglas:
 - nombrar la función con el sufijo `Invariants` para que el adaptador la descubra.
 
 El runner no modifica la política de autorización: únicamente hace ejecutables las comprobaciones que ya describen los invariantes del núcleo.
+
+
+## Protocolo de selección de afirmaciones
+
+- `selectionProtocol.test.ts` comprueba el fingerprint de solicitud, la ausencia de progreso en bruto, la versión del contrato y el rechazo de respuestas heredadas o reproducidas.
+- `evidenceRuntime.test.ts` verifica que el runtime rechaza respuestas de selección ligadas a otra pregunta o snapshot.
+- `cursorEvidenceRuntime.test.ts` y `answerClaimProvenance.test.ts` usan el adaptador de prueba versionado para mantener el mismo contrato de producción.

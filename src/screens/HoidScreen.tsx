@@ -161,6 +161,7 @@ export const HoidScreen: React.FC = () => {
     setMensajes(prev => [...prev, nuevoMsgUsuario]);
     setInput('');
     setCargando(true);
+    let answerSignal: AbortSignal | undefined;
 
     try {
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
@@ -245,6 +246,7 @@ export const HoidScreen: React.FC = () => {
       } else {
         const controller = new AbortController();
         answerAbortControllerRef.current = controller;
+        answerSignal = controller.signal;
         setCanCancelAnswer(true);
         const result = await conversationGateway.answer({
           question: textoUsuario,
@@ -324,6 +326,17 @@ export const HoidScreen: React.FC = () => {
         responseScope = null;
         // A stale response must lose every citation/provenance field before the
         // neutral notice is committed as an unscoped chat message.
+        citas = undefined;
+        segmentos = undefined;
+        formato = undefined;
+        evidenciaTransversal = undefined;
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+      }
+
+      if (answerSignal?.aborted) {
+        respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
+        responseScope = null;
         citas = undefined;
         segmentos = undefined;
         formato = undefined;

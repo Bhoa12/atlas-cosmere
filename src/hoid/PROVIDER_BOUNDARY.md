@@ -84,6 +84,8 @@ El selector recibe un contexto de invocación separado del payload narrativo:
 
 - `signal`: AbortSignal propiedad del runtime para esa llamada concreta.
 
+El objeto de invocación también es un snapshot cerrado: debe estar congelado, tener únicamente la propiedad de datos enumerable `signal` y no contener getters ni campos adicionales. El adaptador comprueba la señal mediante el getter nativo de `AbortSignal.prototype`, que realiza la validación de marca; no lee `context.signal` mediante una propiedad potencialmente accesoria. Se rechazan señales simuladas y contextos mutables antes de despachar el transporte.
+
 El runtime inicia la operación únicamente después de instalar el deadline y los listeners de cancelación. Si vence el timeout o el llamante cancela la consulta, aborta la señal y cierra la invocación con un resultado tipado. La cancelación del llamante se presenta como `request-cancelled`; el timeout o el fallo del adaptador se presentan como indisponibilidad del proveedor.
 
 Los adaptadores HTTP deben transmitir la señal a su transporte cuando este admita cancelación. Si un adaptador ignora la señal, Hoid no puede garantizar que el trabajo remoto se detenga físicamente; sí garantiza que una resolución posterior queda fuera de la ruta de presentación y no puede autorizar ni mostrar una respuesta tardía.
@@ -101,3 +103,11 @@ La señal no contiene progreso, permisos, claims ni texto narrativo. Cancelar un
 - no incorpora SDKs ni interpreta la respuesta como autoridad narrativa.
 
 El transporte sigue siendo responsable de pasar la señal al cliente HTTP/SDK. La fábrica es una frontera de conformidad, no una autenticación ni un sustituto de `parseHoidClaimSelectionResponse()` en el runtime.
+
+## Conformidad reutilizable, repetición e idempotencia
+
+`src/hoid/providerAdapterConformance.testkit.ts` ofrece una batería de comportamiento reutilizable para fábricas de adaptadores. Comprueba el forwarding del snapshot inmutable, el rechazo previo al despacho, la validación del contexto, la cancelación previa y activa, y el tratamiento de errores de transporte. Un adaptador específico puede ejecutar la misma suite pasando su fábrica y su puente de transporte, sin introducir su SDK en el dominio.
+
+El adaptador de referencia realiza como máximo un despacho de transporte por invocación. El núcleo no aplica reintentos automáticos: un error de transporte no se interpreta como prueba de que el servidor remoto no procesó la solicitud. Las invocaciones explícitas repetidas conservan el mismo payload y fingerprint cuando la pregunta, el progreso, el presupuesto y los candidatos son idénticos.
+
+El fingerprint es una clave de correlación, no una garantía de idempotencia remota ni una autorización para reproducir respuestas. Si un adaptador futuro implementa reintentos, debe documentar el comportamiento de idempotencia del proveedor, reutilizar exactamente el mismo snapshot, respetar el deadline y la señal originales, y no reintentar tras cancelación, timeout o una respuesta ya recibida. La respuesta final seguirá pasando por el parser local y por la reconciliación de IDs.

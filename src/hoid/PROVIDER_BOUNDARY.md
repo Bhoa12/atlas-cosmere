@@ -70,7 +70,6 @@ Al añadir un proveedor nuevo, el adaptador debe depender de contratos de Hoid I
 - pruebas de aislamiento e inmutabilidad;
 - revisión de su impacto en spoilers y procedencia.
 
-
 ## Protocolo versionado de selección
 
 El selector utiliza el contrato neutral de selección de afirmaciones, versión 1. Cada solicitud incluye versión, fingerprint SHA-256, pregunta, intención, candidatos autorizados y presupuesto cerrado. El fingerprint vincula también el snapshot de lectura normalizado, pero las posiciones de lectura sin procesar no cruzan la frontera.
@@ -79,15 +78,26 @@ La respuesta debe contener exactamente la versión 1, el mismo fingerprint y una
 
 El fingerprint sirve para correlación y frescura, no como autenticación del proveedor. La autoridad narrativa, el control N+1, la verificación de edición y la procedencia continúan siendo locales. Un adaptador nuevo debe devolver el sobre versionado y no puede convertir el fingerprint en un permiso.
 
-
 ## Cancelación cooperativa y resultados tardíos
 
 El selector recibe un contexto de invocación separado del payload narrativo:
 
-- signal: AbortSignal propiedad del runtime para esa llamada concreta.
+- `signal`: AbortSignal propiedad del runtime para esa llamada concreta.
 
-El runtime inicia la operación únicamente después de instalar el deadline y los listeners de cancelación. Si vence el timeout o el llamante cancela la consulta, aborta la señal y cierra la invocación con un resultado tipado. La cancelación del llamante se presenta como request-cancelled; el timeout o el fallo del adaptador se presentan como indisponibilidad del proveedor.
+El runtime inicia la operación únicamente después de instalar el deadline y los listeners de cancelación. Si vence el timeout o el llamante cancela la consulta, aborta la señal y cierra la invocación con un resultado tipado. La cancelación del llamante se presenta como `request-cancelled`; el timeout o el fallo del adaptador se presentan como indisponibilidad del proveedor.
 
 Los adaptadores HTTP deben transmitir la señal a su transporte cuando este admita cancelación. Si un adaptador ignora la señal, Hoid no puede garantizar que el trabajo remoto se detenga físicamente; sí garantiza que una resolución posterior queda fuera de la ruta de presentación y no puede autorizar ni mostrar una respuesta tardía.
 
 La señal no contiene progreso, permisos, claims ni texto narrativo. Cancelar una consulta no modifica el cursor, el fingerprint de lectura ni las autorizaciones editoriales.
+
+## Fábrica de adaptadores de referencia
+
+`src/hoid/providerAdapter.ts` expone `createHoidClaimSelectorAdapter(transport)`. La fábrica:
+
+- acepta solo el snapshot v1 congelado y con claves exactas;
+- rechaza solicitudes mutables o con campos extra antes del transporte;
+- vuelve a comprobar `signal.aborted` en la microtarea de despacho;
+- entrega al transporte la misma señal y un contexto de invocación congelado;
+- no incorpora SDKs ni interpreta la respuesta como autoridad narrativa.
+
+El transporte sigue siendo responsable de pasar la señal al cliente HTTP/SDK. La fábrica es una frontera de conformidad, no una autenticación ni un sustituto de `parseHoidClaimSelectionResponse()` en el runtime.

@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 175 added four and Run 176 adds three further individually inspected chapter documents from the supplied Cosmere and Roshar EPUBs.
+ * Run 175 added four, Run 176 added three Roshar documents, and Run 178 added one further Cosmere chapter from the supplied EPUBs.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({

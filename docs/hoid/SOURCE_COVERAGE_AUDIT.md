@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 43 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 46 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 43 | Original editorial summaries exist in staging |
-| Summaries pending review | 43 | None of those summaries is approved for production |
+| Original staged chapter summaries | 46 | Original editorial summaries exist in staging |
+| Summaries pending review | 46 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 43 inspected documents, 43 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 46 inspected documents, 46 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -130,3 +130,12 @@ Four original Spanish summaries were added to staging with summary digests and e
 The evidence watermark is the completed-through chapter N. The open reader cursor must reach N+1. The cursor/evidence integration regression tests this boundary for all four new drafts and confirms that progress in another book cannot unlock them.
 
 No EPUB bytes, XHTML bodies, copied passages, extracted prose, images or private file paths were committed.
+
+
+## Run 174 — three additional Roshar chapter documents
+
+The latest Library copies of the Roshar omnibus, Danzante del Filo and Esquirla del amanecer were inspected. Each ZIP passed CRC validation; each registered navigation digest matched; every chapter target was confirmed in the OPF manifest and spine before its XHTML bytes were fingerprinted.
+
+The new documents are El Camino de los Reyes chapter 13 (`L1-033.xhtml`), Danzante del Filo chapter 14 (`Text/014.xhtml`) and Esquirla del amanecer chapter 14 (`Text/14.xhtml`). Their exact edition and document digests, unlock watermarks and source checks are recorded in [RUN174_ROSHAR_CHAPTER_EXPANSION.md](RUN174_ROSHAR_CHAPTER_EXPANSION.md).
+
+Three original Spanish summaries were added to staging. The current inventory is 46 inspected chapter documents and 46 pending summaries. Production knowledge remains empty, with zero approved claims and no activation receipt. No EPUB, XHTML body, copied passage, extracted prose, image or private file path was committed.

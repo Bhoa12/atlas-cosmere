@@ -4,6 +4,8 @@ import { buildAuthorizedKnowledgeContext } from "./authorizedKnowledgeContext";
 import { HoidService } from "./HoidService";
 import type { HoidAnswerRequest, HoidProvider } from "./types";
 import { getHoidReadingManifest } from "./readingManifest";
+import { snapshotProviderRequest } from "./providerRequestSnapshot";
+import { validReadingPositions } from "./readingValidation";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -27,6 +29,24 @@ function entry(): HoidKnowledgeEntry {
 }
 
 describe("catalog entity appearance versus complete-summary unlock", () => {
+  it("preserves the exclusive progress union in immutable provider snapshots", () => {
+    const partial = snapshotProviderRequest({
+      question: "Pregunta sintética.",
+      reading: [{ bookId: "twok", chapter: 3 }],
+    });
+    const completed = snapshotProviderRequest({
+      question: "Pregunta sintética.",
+      reading: [{ bookId: "twok", completed: true }],
+    });
+
+    expect(validReadingPositions(partial.reading)).not.toBeNull();
+    expect(partial.reading).toEqual([{ bookId: "twok", chapter: 3 }]);
+    expect(validReadingPositions(completed.reading)).not.toBeNull();
+    expect(completed.reading).toEqual([{ bookId: "twok", completed: true }]);
+    expect(Object.isFrozen(partial.reading)).toBe(true);
+    expect(Object.isFrozen(partial.reading[0])).toBe(true);
+  });
+
   it("allows a safe entity mention while withholding its later summary", () => {
     const knowledge = entry();
     const catalog = new HoidKnowledgeCatalog([knowledge]);

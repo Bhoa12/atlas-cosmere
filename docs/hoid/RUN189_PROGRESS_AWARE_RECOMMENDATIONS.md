@@ -23,14 +23,15 @@ La función valida el progreso mediante `validEditionBoundReadingPositions()`. U
 
 ## Semántica del cursor
 
-`ReadingPosition.chapter` representa el capítulo actual/abierto, igual que la proyección de `HoidReadingCursor` a la posición compatible. Por ello:
+`ReadingPosition.chapter` representa el último capítulo completado. La fachada v2 proyecta un cursor abierto en el capítulo N a un progreso compatible con `chapter = N - 1`; el capítulo uno abierto no genera una posición numérica completada.
 
-- `currentChapter` es el capítulo del cursor actual.
-- `completedThroughChapter` es `currentChapter - 1`.
-- En el capítulo 1, `completedThroughChapter` es `null`.
-- `completed: true` representa la finalización de la obra y no se convierte en un cursor numérico.
+Por ello:
 
-Esta semántica coincide con el umbral de evidencia: un resumen cuya fuente es el capítulo N se desbloquea cuando el cursor está en N+1.
+- `currentChapter` recomendado es `ReadingPosition.chapter + 1`.
+- `completedThroughChapter` conserva el valor de `ReadingPosition.chapter`.
+- Una posición completada sin capítulo numérico nunca se presenta como reanudación.
+
+Esta semántica coincide con el umbral de evidencia: un resumen cuya fuente es el capítulo N se desbloquea cuando el lector avanza al capítulo N+1, o marca explícitamente la obra como terminada.
 
 ## Límites y garantías
 

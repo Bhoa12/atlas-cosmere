@@ -62,6 +62,32 @@ describe("invokeWithProviderDeadline", () => {
     expect(providerSignal?.aborted).toBe(true);
   });
 
+  it("does not dispatch an adapter when the caller aborts before the scheduled invocation", async () => {
+    const caller = new AbortController();
+    const operation = vi.fn(async () => "must not run");
+    const pending = invokeWithProviderDeadline(operation, 1_000, caller.signal);
+
+    // Abort synchronously, before the invocation microtask gets a chance to run.
+    caller.abort();
+
+    await expect(pending).resolves.toEqual({ status: "aborted" });
+    await Promise.resolve();
+    expect(operation).not.toHaveBeenCalled();
+  });
+
+  it("does not let a late provider rejection replace a timeout outcome", async () => {
+    let rejectLate: ((reason: Error) => void) | undefined;
+    const result = await invokeWithProviderDeadline(
+      () => new Promise<string>((_resolve, reject) => { rejectLate = reject; }),
+      5,
+    );
+
+    expect(result).toEqual({ status: "timeout" });
+    rejectLate?.(new Error("late provider failure"));
+    await Promise.resolve();
+    expect(result).toEqual({ status: "timeout" });
+  });
+
   it("does not start an adapter when the caller is already aborted", async () => {
     const caller = new AbortController();
     caller.abort();

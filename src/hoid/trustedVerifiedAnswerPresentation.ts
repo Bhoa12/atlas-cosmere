@@ -39,8 +39,13 @@ export type HoidTrustedClockPort = Readonly<{
   now(): unknown;
 }>;
 
+export type HoidTrustedReadingProgressPort = Readonly<{
+  /** Read the authoritative local cursor snapshot; never accept a provider/user snapshot here. */
+  readProgressSnapshot(): Promise<unknown>;
+}>;
+
 export type HoidTrustedVerifiedAnswerPresenter = Readonly<{
-  present(answer: unknown, progress: unknown): Promise<HoidAnswerPresentation>;
+  present(answer: unknown): Promise<HoidAnswerPresentation>;
 }>;
 
 export type HoidTrustedVerifiedAnswerPresenterBuild =
@@ -283,6 +288,7 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
     "verifier",
     "bootstrapPort",
     "revisionStore",
+    "progressPort",
     "expectedRepositoryFullName",
     "clock",
   ]);
@@ -297,7 +303,8 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
   const bootstrapRead = resolveMethod(config.bootstrapPort, "readPinnedConfiguration");
   const readMinimumRevision = resolveMethod(config.revisionStore, "readMinimumRevision");
   const compareAndSetMinimumRevision = resolveMethod(config.revisionStore, "compareAndSetMinimumRevision");
-  if (!clockMethod || !bootstrapRead || !readMinimumRevision || !compareAndSetMinimumRevision) {
+  const readProgressSnapshot = resolveMethod(config.progressPort, "readProgressSnapshot");
+  if (!clockMethod || !bootstrapRead || !readMinimumRevision || !compareAndSetMinimumRevision || !readProgressSnapshot) {
     return blocked("invalid-config");
   }
 
@@ -400,7 +407,7 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
   const bootstrapExpiresAt = bootstrap.configuration.expiresAt;
 
   const presenter: HoidTrustedVerifiedAnswerPresenter = Object.freeze({
-    async present(answer: unknown, progress: unknown): Promise<HoidAnswerPresentation> {
+    async present(answer: unknown): Promise<HoidAnswerPresentation> {
       try {
         const currentNow = clockMethod();
         if (
@@ -421,11 +428,16 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
         ) return withheld(progress);
 
         const currentRevision = await readExactRevision(readMinimumRevision, trustDomainId);
-        if (currentRevision !== registryRevision) return withheld(progress);
+        if (currentRevision !== registryRevision) return withheld(undefined);
 
-        return innerPresenter.present(answer, progress);
+        const progressResult = await withTimeout(
+          () => Promise.resolve(readProgressSnapshot()),
+          PRESENTATION_STORE_TIMEOUT_MS,
+        );
+        if (progressResult.status !== "value") return withheld(undefined);
+        return innerPresenter.present(answer, progressResult.value);
       } catch {
-        return withheld(progress);
+        return withheld(undefined);
       }
     },
   });

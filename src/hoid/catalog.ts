@@ -35,12 +35,12 @@ export type HoidKnowledgeEntry = {
 function normalizeForCatalogMatch(value: string): string {
   return value
     .normalize('NFKD')
-    .replace(/[\\p{Cf}\\p{Mn}]/gu, '')
+    .replace(/[\p{Cf}\p{Mn}]/gu, '')
     .toLowerCase();
 }
 
 function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^\u0024{}()|[\\]\\\\]/g, '\\\\$&');
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function containsCatalogAlias(text: string, alias: string): boolean {
@@ -48,7 +48,7 @@ function containsCatalogAlias(text: string, alias: string): boolean {
   // Require a Unicode letter/number boundary around aliases. This prevents a
   // short catalog alias from matching inside an unrelated word while still
   // allowing names and multi-word aliases next to punctuation.
-  return new RegExp('(^|[^\\\\p{L}\\\\p{N}])' + escaped + '($|[^\\\\p{L}\\\\p{N}])', 'u').test(text);
+  return new RegExp('(^|[^\\p{L}\\p{N}])' + escaped + '($|[^\\p{L}\\p{N}])', 'u').test(text);
 }
 
 /**
@@ -116,9 +116,6 @@ export class HoidKnowledgeCatalog {
    * must have an original summary, verified provenance, an edition-bound source
    * locator, and an explicit full-summary unlock watermark. First appearance
    * alone is never sufficient to disclose summary details.
-   *
-   * The progress snapshot is intentionally readonly: callers may pass the
-   * frozen provider snapshot directly without widening or mutating its type.
    */
   entriesForContext(reading: readonly ReadingPosition[]): HoidKnowledgeEntry[] {
     return this.entries.filter(entry =>

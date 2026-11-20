@@ -8,6 +8,7 @@ import {
   createHoidClaimSelectionResponse,
   parseHoidClaimSelectionResponse,
 } from "./selectionProtocol";
+import type { HoidClaimSelectionRequest, HoidClaimSelectionTransportContext } from "./providerAdapter";
 import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
 
 const budget: HoidAnswerSelectionBudget = Object.freeze({
@@ -100,7 +101,7 @@ describe("Hoid provider-neutral selector adapter", () => {
   it("passes the exact per-invocation signal to the transport", async () => {
     const controller = new AbortController();
     const request = createRequest();
-    const transport = vi.fn(async (received, context) =>
+    const transport = vi.fn(async (received: HoidClaimSelectionRequest, _context: HoidClaimSelectionTransportContext) =>
       createHoidClaimSelectionResponse(received, ["claim.alpha"])
     );
     const adapter = createHoidClaimSelectorAdapter(transport);
@@ -116,7 +117,7 @@ describe("Hoid provider-neutral selector adapter", () => {
 
   it("propagates cancellation to an active transport", async () => {
     const controller = new AbortController();
-    const transport = vi.fn((_request, context) => new Promise<unknown>((_resolve, reject) => {
+    const transport = vi.fn((_request: HoidClaimSelectionRequest, context: HoidClaimSelectionTransportContext) => new Promise<unknown>((_resolve, reject) => {
       context.signal.addEventListener("abort", () => reject(abortError()), { once: true });
     }));
     const adapter = createHoidClaimSelectorAdapter(transport);

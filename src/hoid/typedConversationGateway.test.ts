@@ -67,7 +67,7 @@ function setup(
   },
 ) {
   let current: unknown = initial;
-  const runtime = { answer: vi.fn(async () => answer) };
+  const runtime = { answer: vi.fn(async (_request?: unknown, _options?: unknown) => answer) };
   const config: HoidConversationGatewayConfig = {
     runtime,
     getCurrentProgress: () => current,
@@ -207,8 +207,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       }),
       { signal: controller.signal },
     );
-    const forwardedRequest = runtime.answer.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(forwardedRequest).not.toHaveProperty("typedContext");
+    expect(runtime.answer.mock.calls[0]?.[0]).not.toHaveProperty("typedContext");
   });
 
   it("blocks ambiguous categories before entity reauthorization and runtime invocation", async () => {

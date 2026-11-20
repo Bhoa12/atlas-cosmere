@@ -160,7 +160,7 @@ describe("HoidCursorEvidenceRuntime", () => {
       maxWorks: 2,
       maxCharacters: 6_000,
       minimumWorks: 1,
-      requireSegmentProvenance: false,
+      requireSegmentProvenance: true,
       requireCrossWorkSegment: false,
     });
     const result = await facade.answer({

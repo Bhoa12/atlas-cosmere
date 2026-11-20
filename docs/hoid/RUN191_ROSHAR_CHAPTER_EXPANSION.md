@@ -82,9 +82,9 @@ The current Library listing contains the Roshar EPUBs used in this run but does 
 
 The first PR validation run exposed one stale assertion in `cosmereNavigationAudit.test.ts`: it still expected the pre-Run-191 chapter-document counts (15 for El Camino de los Reyes and 16 for each novella). The verified document allowlist correctly returned 16, 17 and 17.
 
-All four affected workflows shared this same assertion; the editorial draft, source-ingestion and core coverage checks passed. The stale expectations were updated to 16 / 17 / 17 in a dedicated test-only commit. No production runtime code or authorization policy was weakened.
+All four affected workflows shared this same assertion. The stale expectations were updated to 16 / 17 / 17 in a dedicated test-only commit. No production runtime code or authorization policy was weakened.
 
-The rerun for the final branch head is pending and must pass before this run is considered validated.
+The corrected code/test commit `e08d02a0dda028a4a9abe6bf646090335f0121ac` then passed **15/15 GitHub Actions workflows**, including source coverage, editorial draft validation, source ingestion, offline EPUB ingestion, Cosmere navigation audit, reading manifests, atomic-claim spoiler gating and the complete editorial review bundle. The final branch HEAD `4987830579a8aa12ade91d73d976aa70ecb738fd` adds only two documentation commits after that validated code/test commit; neither changes source code or tests.
 
 ## Validation boundary
 

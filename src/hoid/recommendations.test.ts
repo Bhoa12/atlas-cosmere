@@ -1,4 +1,4 @@
-import { recommendUnstartedSources, recommendUnstartedSourcesFromUnknown } from "./recommendations";
+import { recommendReadingNextSteps, recommendUnstartedSources, recommendUnstartedSourcesFromUnknown } from "./recommendations";
 
 describe("recommendUnstartedSources", () => {
   it("returns metadata-only recommendations for verified sources not yet started", () => {
@@ -42,7 +42,6 @@ describe("recommendUnstartedSources", () => {
 
 describe("recommendReadingNextSteps", () => {
   it("puts a single resumable work first and fills the remaining limit with unread sources", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     const recommendations = recommendReadingNextSteps(
       [{ bookId: "tfe", chapter: 8 }],
       2,
@@ -61,7 +60,6 @@ describe("recommendReadingNextSteps", () => {
   });
 
   it("reports no completed chapter before the first chapter cursor", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 1 }], 1)[0]).toMatchObject({
       reason: "resume-current-work",
       currentChapter: 1,
@@ -70,7 +68,6 @@ describe("recommendReadingNextSteps", () => {
   });
 
   it("does not guess which work to resume when several works are in progress", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     const recommendations = recommendReadingNextSteps([
       { bookId: "tfe", chapter: 8 },
       { bookId: "elantris", chapter: 3 },
@@ -81,7 +78,6 @@ describe("recommendReadingNextSteps", () => {
   });
 
   it("uses an explicit active work to resolve multiple in-progress works", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     const recommendations = recommendReadingNextSteps([
       { bookId: "tfe", chapter: 8 },
       { bookId: "elantris", chapter: 3 },
@@ -97,7 +93,6 @@ describe("recommendReadingNextSteps", () => {
   });
 
   it("never resumes a completed work", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     const recommendations = recommendReadingNextSteps([{ bookId: "tfe", completed: true }], 1);
 
     expect(recommendations).toHaveLength(1);
@@ -106,23 +101,19 @@ describe("recommendReadingNextSteps", () => {
   });
 
   it("fails closed for out-of-range and ambiguous chapter progress", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 39 }], 3)).toEqual([]);
     expect(recommendReadingNextSteps([{ bookId: "elantris", chapter: 48 }], 3)).toEqual([]);
   });
 
   it("does not infer a numeric resume position for unsegmented works", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     expect(recommendReadingNextSteps([{ bookId: "white-sand-1", chapter: 1 }], 3)).toEqual([]);
   });
 
   it("applies the overall limit after prioritizing the resume item", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 8 }], 1)).toHaveLength(1);
   });
 
   it("rejects an unknown explicit active work instead of guessing", async () => {
-    const { recommendReadingNextSteps } = await import("./recommendations");
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 8 }], 3, "unknown-work")).toEqual([]);
   });
 });

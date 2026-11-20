@@ -30,6 +30,7 @@ El host debe proporcionar, desde configuración confiable y nunca desde el prove
 - Verificador Ed25519 real (por ejemplo, WebCrypto o implementación nativa).
 - Revision store durable, resistente a rollback, con compare-and-set linealizable.
 - Clock del host.
+- Puerto de progreso que lee el snapshot autoritativo local (por ejemplo, el adaptador SQLite); el presentador no acepta progreso como argumento del llamador.
 - Contexto del manifiesto de revisión ligado al PR y HEAD exactos.
 - Repositorio esperado.
 

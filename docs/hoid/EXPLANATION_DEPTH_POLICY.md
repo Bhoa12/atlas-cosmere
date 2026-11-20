@@ -22,6 +22,14 @@ Los límites son máximos, no objetivos. Una respuesta más corta es válida.
 
 La política nunca se ejecuta como sustituto del control de spoilers. Tampoco interpreta la profundidad como permiso para consultar más capítulos.
 
+## Integración con la selección de afirmaciones
+
+El gateway convierte el nivel elegido en un `selectionBudget` cerrado y lo propaga por la fachada de cursores hasta `HoidEvidenceRuntime`. El selector recibe únicamente esos límites junto con los candidatos que ya han superado la autorización local. No recibe el valor de profundidad como permiso narrativo ni puede elevar los límites.
+
+El runtime vuelve a imponer el presupuesto después de la selección: número de afirmaciones, evidencias, obras distintas, caracteres y, para comparaciones, mínimo de obras y una afirmación con evidencias de varias obras. Una selección que excede cualquier límite se rechaza completa. La capa `presentHoidExplanation()` repite la validación después de comprobar las citas y los umbrales de lectura.
+
+La interfaz permite elegir Breve, Detallada o Comparativa. La elección es una preferencia de presentación efímera; no se persiste como progreso ni modifica el estado editorial.
+
 ## Requisitos comparativos
 
 El nivel `comparative` exige:

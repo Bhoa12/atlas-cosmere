@@ -1,5 +1,5 @@
 import { buildReadingContext } from './readingContext';
-import { HoidAnswerRequest } from './types';
+import { HoidAnswerRequest, ReadingPosition } from './types';
 
 /**
  * Creates an immutable, detached request at the provider trust boundary.
@@ -22,8 +22,15 @@ export function snapshotProviderRequest(
   request: HoidAnswerRequest,
   options: ProviderSnapshotOptions = {},
 ): HoidAnswerRequest {
-  const reading = buildReadingContext(request.reading)
-    .map((position) => Object.freeze({ ...position }));
+  // buildReadingContext is a presentation projection with both "chapter"
+  // and "completed" fields. The provider contract is the exclusive
+  // ReadingPosition union, so reconstruct exactly one progress form before
+  // the snapshot crosses the trust boundary.
+  const reading: ReadingPosition[] = buildReadingContext(request.reading).map(position =>
+    position.completed
+      ? { bookId: position.bookId, completed: true }
+      : { bookId: position.bookId, chapter: position.chapter },
+  ).map(position => Object.freeze(position));
 
   const knowledgeContext = options.includeAuthorizedKnowledgeContext && request.knowledgeContext
     ? request.knowledgeContext.map((fact) => Object.freeze({

@@ -49,6 +49,17 @@ describe("catalog entity appearance versus complete-summary unlock", () => {
     expect(catalog.entriesForContext([{ bookId: "twok", chapter: 4 }])).toHaveLength(0);
   });
 
+  it("requires both the first safe appearance and the complete-summary unlock", () => {
+    const delayedAppearance: HoidKnowledgeEntry = {
+      ...entry(),
+      firstSafeAppearance: { bookId: "twok", chapter: 5 },
+    };
+    const catalog = new HoidKnowledgeCatalog([delayedAppearance]);
+
+    expect(catalog.entriesForContext([{ bookId: "twok", chapter: 4 }])).toHaveLength(0);
+    expect(catalog.entriesForContext([{ bookId: "twok", chapter: 5 }])).toHaveLength(1);
+  });
+
   it("does not unlock a summary from progress in a different work", () => {
     const catalog = new HoidKnowledgeCatalog([entry()]);
     expect(catalog.entriesForContext([{ bookId: "wor", chapter: 99 }])).toHaveLength(0);

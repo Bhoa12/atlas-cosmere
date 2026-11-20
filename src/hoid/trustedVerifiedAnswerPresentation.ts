@@ -415,7 +415,7 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
           Date.parse(currentNow) < Date.parse(verifiedAt) ||
           Date.parse(currentNow) >= Date.parse(registryExpiresAt) ||
           Date.parse(currentNow) >= Date.parse(bootstrapExpiresAt)
-        ) return withheld(progress);
+        ) return withheld(undefined);
 
         const currentBootstrap = await loadHoidTrustedHostBootstrap(
           bootstrapPort,
@@ -425,7 +425,7 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
         if (
           currentBootstrap.status !== "ready" ||
           currentBootstrap.configurationFingerprint !== bootstrapFingerprint
-        ) return withheld(progress);
+        ) return withheld(undefined);
 
         const currentRevision = await readExactRevision(readMinimumRevision, trustDomainId);
         if (currentRevision !== registryRevision) return withheld(undefined);

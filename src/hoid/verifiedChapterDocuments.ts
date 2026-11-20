@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 175 added four, Run 176 added three Roshar documents, and Run 178 added one further Cosmere chapter from the supplied EPUBs.
+ * Run 175 added four, Run 176 added three Roshar documents, Run 178 added one Cosmere chapter, and Run 181 adds the next individually inspected chapter from the supplied EPUBs.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -91,6 +91,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       5: "ec48d5ed29ede0760a63d913fcc71d79c908d879fe62841fe6cbfc64d90676d8",
       6: "8b8596f106ac9f0510624c86849750358a934ab064036f91a70189378deda299",
       7: "fd79119ff64538b1d9fbe0d5d40ff9db8215afd144a27071c7c35b19b5ed1ac3",
+      8: "5dc769cfdd8dfbfa91292ec9421b0ede94c8e1b05fd3560f9d9503b058e43d48",
     }),
   }),
 });

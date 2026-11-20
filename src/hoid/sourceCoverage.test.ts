@@ -27,12 +27,12 @@ describe("Hoid metadata-only source coverage", () => {
     });
     expect(report.chapterBodies).toEqual({
       worksWithInspectedDocuments: 4,
-      totalInspectedChapterDocuments: 54,
+      totalInspectedChapterDocuments: 55,
     });
   });
 
   it("reports only the four works with individually inspected chapter documents", () => {
-    expect(work("tfe").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(work("tfe").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     expect(work("twok").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
     expect(work("edgedancer").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(work("dawnshard").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
@@ -42,19 +42,19 @@ describe("Hoid metadata-only source coverage", () => {
     }
   });
 
-  it("keeps the current 53 summaries in pending review and production empty", () => {
+  it("keeps the current 55 summaries in pending review and production empty", () => {
     const report = getHoidSourceCoverageReport();
 
     expect(report.editorial).toEqual({
       worksWithStagedSummaries: 4,
-      stagedSummaryCount: 54,
-      pendingReviewSummaryCount: 54,
+      stagedSummaryCount: 55,
+      pendingReviewSummaryCount: 55,
       draftRegistryStatus: "pending-review",
       productionKnowledgeEntryCount: 0,
       approvedClaimCount: 0,
       productionRegistryStatus: "empty",
     });
-    expect(work("tfe").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(work("tfe").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     expect(work("twok").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
     expect(work("edgedancer").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(work("dawnshard").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);

@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 54 |
-| Original staged summaries | 54 |
-| Summaries pending review | 54 |
+| Individually inspected chapter documents | 55 |
+| Original staged summaries | 55 |
+| Summaries pending review | 55 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -37,7 +37,7 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
-| El Imperio Final | 8 |
+| El Imperio Final | 9 |
 | El Camino de los Reyes | 16 |
 | Danzante del Filo | 17 |
 | Esquirla del amanecer | 17 |
@@ -172,3 +172,17 @@ La inspección de los tres EPUBs de Roshar confirmó que sus huellas de navegaci
 Se encontró la copia privada `cosmere.epub` en Library y se revalidó su integridad ZIP y el digest de navegación registrado. El capítulo 7 de El Imperio Final se resolvió mediante su TOC, se confirmó en el manifiesto OPF y en el reading spine, y se fingerprintó desde sus bytes XHTML. La cola de continuación pasa a El Imperio Final capítulo 8, El Camino de los Reyes capítulo 16, Danzante del Filo capítulo 17 y Esquirla del amanecer capítulo 17.
 
 El plan sigue siendo metadata-only: registra candidatos y umbrales N+1, pero no autoriza evidencia ni modifica el progreso. El resumen del capítulo 7 permanece en revisión independiente.
+
+
+## Run 181 — cola de continuación actualizada
+
+Tras inspeccionar El Imperio Final capítulo 8 desde la copia privada accesible de `cosmere.epub`, la cola de continuación queda así:
+
+| Obra | Próximo capítulo candidato |
+|---|---:|
+| El Imperio Final | 9 |
+| El Camino de los Reyes | 16 |
+| Danzante del Filo | 17 |
+| Esquirla del amanecer | 17 |
+
+El plan sigue siendo metadata-only. Registra el siguiente candidato y el umbral N+1, pero no autoriza evidencia ni modifica el progreso. La disponibilidad del EPUB se verificó por separado durante la inspección; el plan no conserva rutas privadas ni afirma disponibilidad futura.

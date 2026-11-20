@@ -123,10 +123,23 @@ function isFrozenDenseStringArray(value: unknown): value is readonly string[] {
  * Only protocol-factory snapshots may cross this adapter boundary.
  * Exact keys prevent raw reading/progress fields from being forwarded.
  */
-export function isHoidProviderSelectionSnapshot(
+export type HoidProviderSelectionSnapshotIssue =
+  | "request-shape"
+  | "request-fields"
+  | "budget-shape"
+  | "budget-values"
+  | "candidate-array"
+  | "candidate-keys"
+  | "candidate-descriptor"
+  | "candidate-shape"
+  | "candidate-values"
+  | "candidate-extra-key";
+
+/** Return a payload-free issue code so adapters can fail closed observably. */
+export function inspectHoidProviderSelectionSnapshot(
   value: unknown,
-): value is HoidClaimSelectionRequest {
-  if (!hasExactFrozenDataProperties(value, REQUEST_KEYS)) return false;
+): HoidProviderSelectionSnapshotIssue | null {
+  if (!hasExactFrozenDataProperties(value, REQUEST_KEYS)) return "request-shape";
 
   const request = value;
   if (
@@ -138,9 +151,12 @@ export function isHoidProviderSelectionSnapshot(
     request.question.length > MAX_QUESTION_LENGTH ||
     request.question !== request.question.trim() ||
     /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(request.question) ||
-    typeof request.intent !== "string" ||
-    !hasExactFrozenDataProperties(request.selectionBudget, BUDGET_KEYS)
-  ) return false;
+    typeof request.intent !== "string"
+  ) return "request-fields";
+
+  if (!hasExactFrozenDataProperties(request.selectionBudget, BUDGET_KEYS)) {
+    return "budget-shape";
+  }
 
   const budget = request.selectionBudget;
   if (
@@ -167,7 +183,7 @@ export function isHoidProviderSelectionSnapshot(
     typeof budget.requireSegmentProvenance !== "boolean" ||
     typeof budget.requireCrossWorkSegment !== "boolean" ||
     (budget.requireCrossWorkSegment && !budget.requireSegmentProvenance)
-  ) return false;
+  ) return "budget-values";
 
   const candidates = request.candidates;
   if (
@@ -176,17 +192,21 @@ export function isHoidProviderSelectionSnapshot(
     candidates.length > MAX_CANDIDATES ||
     !Object.isFrozen(candidates) ||
     Object.getPrototypeOf(candidates) !== Array.prototype
-  ) return false;
+  ) return "candidate-array";
 
   const candidateKeys = Reflect.ownKeys(candidates);
-  if (candidateKeys.length !== candidates.length + 1 || !candidateKeys.includes("length")) return false;
+  if (candidateKeys.length !== candidates.length + 1 || !candidateKeys.includes("length")) {
+    return "candidate-keys";
+  }
 
   const seen = new Set<string>();
   for (let index = 0; index < candidates.length; index += 1) {
     const descriptor = Object.getOwnPropertyDescriptor(candidates, String(index));
-    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value")) return false;
+    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+      return "candidate-descriptor";
+    }
     const candidate = descriptor.value;
-    if (!hasExactFrozenDataProperties(candidate, CANDIDATE_KEYS)) return false;
+    if (!hasExactFrozenDataProperties(candidate, CANDIDATE_KEYS)) return "candidate-shape";
 
     if (
       typeof candidate.id !== "string" ||
@@ -196,7 +216,7 @@ export function isHoidProviderSelectionSnapshot(
       candidate.text.length < 1 ||
       candidate.text.length > MAX_CLAIM_TEXT_LENGTH ||
       !isFrozenDenseUniqueEvidenceArray(candidate.evidenceIds)
-    ) return false;
+    ) return "candidate-values";
     seen.add(candidate.id);
   }
 
@@ -206,22 +226,16 @@ export function isHoidProviderSelectionSnapshot(
       typeof key !== "string" ||
       !/^(0|[1-9][0-9]*)$/.test(key) ||
       Number(key) >= candidates.length
-    ) return false;
+    ) return "candidate-extra-key";
   }
 
-  return true;
+  return null;
 }
 
-function isFrozenDenseUniqueEvidenceArray(value: unknown): value is readonly string[] {
-  if (!isFrozenDenseStringArray(value) || value.length < 1 || value.length > MAX_CANDIDATE_EVIDENCE_IDS) {
-    return false;
-  }
-  const seen = new Set<string>();
-  for (const id of value) {
-    if (!CLAIM_ID_PATTERN.test(id) || seen.has(id)) return false;
-    seen.add(id);
-  }
-  return true;
+export function isHoidProviderSelectionSnapshot(
+  value: unknown,
+): value is HoidClaimSelectionRequest {
+  return inspectHoidProviderSelectionSnapshot(value) === null;
 }
 
 function createAbortError(): Error {
@@ -262,8 +276,9 @@ export function createHoidClaimSelectorAdapter(
         }
 
         if (context.signal.aborted) throw createAbortError();
-        if (!isHoidProviderSelectionSnapshot(request)) {
-          throw new TypeError("Only immutable Hoid selection snapshots may cross the provider boundary.");
+        const snapshotIssue = inspectHoidProviderSelectionSnapshot(request);
+        if (snapshotIssue !== null) {
+          throw new TypeError(`Only immutable Hoid selection snapshots may cross the provider boundary (${snapshotIssue}).`);
         }
 
         const transportContext = Object.freeze({ signal: context.signal });

@@ -22,7 +22,7 @@ export function authorizeHoidContext(
     allowed: true,
     allowedEntityIds: catalog
       .findMatches(request.question)
-      .filter(entry => catalog.isUnlocked(entry, request.reading))
+      .filter(entry => catalog.isEntityMentionUnlocked(entry, request.reading))
       .map(entry => entry.id)
   };
 }

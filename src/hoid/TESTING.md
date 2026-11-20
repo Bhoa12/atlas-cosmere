@@ -29,17 +29,17 @@ Una comprobación nueva debe seguir estas reglas:
 
 El runner no modifica la política de autorización: únicamente hace ejecutables las comprobaciones que ya describen los invariantes del núcleo.
 
-
 ## Protocolo de selección de afirmaciones
 
 - `selectionProtocol.test.ts` comprueba el fingerprint de solicitud, la ausencia de progreso en bruto, la versión del contrato y el rechazo de respuestas heredadas o reproducidas.
 - `evidenceRuntime.test.ts` verifica que el runtime rechaza respuestas de selección ligadas a otra pregunta o snapshot.
 - `cursorEvidenceRuntime.test.ts` y `answerClaimProvenance.test.ts` usan el adaptador de prueba versionado para mantener el mismo contrato de producción.
 
-
 ## Deadline, cancelación y resultados tardíos
 
-- providerTimeout.test.ts comprueba resolución normal, timeout, aborto del proveedor, cancelación del llamante, rechazo del adaptador y que una operación ya cancelada no llegue a iniciarse.
-- evidenceRuntime.test.ts comprueba que un timeout aborta la señal del adaptador y que una selección válida resuelta después del deadline no se presenta.
-- cursorEvidenceRuntime.test.ts comprueba que la cancelación iniciada por la interfaz atraviesa la fachada de cursores y llega al adaptador.
-- Los adaptadores deben respetar AbortSignal cuando el transporte lo permita. Las pruebas también cubren el caso no cooperativo: aunque el trabajo externo no se detenga, su resultado tardío se ignora.
+- `providerTimeout.test.ts` comprueba resolución normal, timeout, aborto del proveedor, cancelación del llamante, rechazo del adaptador y que una operación ya cancelada no llegue a iniciarse.
+- La prueba de cancelación previa al despacho cubre la carrera entre el retorno de `invokeWithProviderDeadline` y la microtarea que invoca el adaptador: si el llamante aborta en ese intervalo, el adaptador no debe ejecutarse.
+- Una respuesta tardía o un rechazo tardío no puede cambiar un resultado ya asentado por timeout o cancelación.
+- `evidenceRuntime.test.ts` comprueba que un timeout aborta la señal del adaptador y que una selección válida resuelta después del deadline no se presenta.
+- `cursorEvidenceRuntime.test.ts` comprueba que la cancelación iniciada por la interfaz atraviesa la fachada de cursores y llega al adaptador.
+- Los adaptadores deben respetar `AbortSignal` cuando el transporte lo permita. Las pruebas también cubren el caso no cooperativo: aunque el trabajo externo no se detenga, su resultado tardío se ignora.

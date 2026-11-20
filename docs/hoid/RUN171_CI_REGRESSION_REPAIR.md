@@ -2,7 +2,7 @@
 
 ## Audit
 
-The 19 pull-request workflow runs associated with Run 170 completed with 8 successes and 11 failures. The failures were deterministic fixture drift after the four additional inspected chapter documents and four staged summaries; they did not indicate that the new source digests or the production spoiler gate had failed.
+The 19 pull-request workflow runs associated with Run 170 completed with 7 successes and 12 failures. The failures were deterministic fixture drift after the four additional inspected chapter documents and four staged summaries; they did not indicate that the new source digests or the production spoiler gate had failed.
 
 The distinct stale assumptions were:
 

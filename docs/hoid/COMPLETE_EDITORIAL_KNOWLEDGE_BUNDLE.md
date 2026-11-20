@@ -116,3 +116,12 @@ Three new source-backed original summaries were added after inspecting El Camino
 The metadata-only manifest now contains 64 records across 46 distinct chapter-body documents: 46 summaries, one atomic claim, 14 identity dossiers and three relationship claims. All 46 summaries remain pending independent review. The bundle's `ready-for-review` state is not approval; the production registry remains empty and no activation receipt is created.
 
 See [RUN174_ROSHAR_CHAPTER_EXPANSION.md](RUN174_ROSHAR_CHAPTER_EXPANSION.md) for exact relative locators and digests. No EPUB bytes, XHTML bodies, copied passages, images or private file paths are committed.
+
+
+## Run 175 — cuatro resúmenes adicionales
+
+Se incorporaron cuatro resúmenes originales tras inspeccionar El Imperio Final capítulo 6, El Camino de los Reyes capítulo 14, Danzante del Filo capítulo 15 y Esquirla del amanecer capítulo 15. Cada resumen tiene un localizador de edición, digest de navegación, digest XHTML y digest de resumen.
+
+Los watermarks de evidencia son 6, 14, 15 y 15; los cursores mínimos son 7, 15, 16 y 16. Todos permanecen en `pending-review`.
+
+El manifiesto editorial contiene ahora **68 registros en 50 documentos de capítulo**: 50 resúmenes, una afirmación atómica, 14 expedientes de identidad y tres relaciones. La condición `ready-for-review` no equivale a aprobación. La producción sigue vacía y no existe recibo de activación. No se han añadido EPUBs, XHTML ni pasajes protegidos al repositorio.

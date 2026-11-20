@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "./sha256";
 import { getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentNumbers } from "./verifiedChapterDocuments";
 import type { HoidKnowledgeKind } from "./catalog";
 import {
   HOID_APPROVED_TOPIC_ASSIGNMENTS,
@@ -9,6 +10,15 @@ import {
 } from "./topicTaxonomy";
 
 const CLAIM_TEXT = "Dato sintético para probar una asignación editorial.";
+
+function firstUninspectedChapter(bookId: string): Readonly<{ chapter: number; locatorId: string }> {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") throw new Error("Manifiesto sintético no disponible");
+  const inspected = new Set(getVerifiedChapterDocumentNumbers(bookId));
+  const unit = result.manifest.units.find(item => !inspected.has(item.chapterNumber));
+  if (!unit?.locatorId) throw new Error("No hay capítulo no inspeccionado con localizador");
+  return Object.freeze({ chapter: unit.chapterNumber, locatorId: unit.locatorId });
+}
 
 function locator(bookId: string, chapter: number) {
   const result = getHoidReadingManifest(bookId);
@@ -89,14 +99,15 @@ describe("Hoid reviewed topic taxonomy", () => {
   it("rejects evidence whose source chapter has no individually verified document digest", () => {
     const record = assignment();
     const claim = { id: "claim.alpha", text: CLAIM_TEXT, evidenceIds: ["evidence.alpha"] };
+    const next = firstUninspectedChapter("tfe");
     const uninspected = {
       id: "evidence.alpha",
       kind: "concept",
       provenance: "verified",
       summary: CLAIM_TEXT,
-      evidenceSource: { bookId: "tfe", chapter: 6, locatorId: locator("tfe", 6) },
-      evidenceUnlock: { bookId: "tfe", chapter: 6 },
-      firstSafeAppearance: { bookId: "tfe", chapter: 6 },
+      evidenceSource: { bookId: "tfe", chapter: next.chapter, locatorId: next.locatorId },
+      evidenceUnlock: { bookId: "tfe", chapter: next.chapter },
+      firstSafeAppearance: { bookId: "tfe", chapter: next.chapter },
     };
     expect(validateHoidTopicAssignments([record], [claim], [uninspected]).status).toBe("invalid");
   });

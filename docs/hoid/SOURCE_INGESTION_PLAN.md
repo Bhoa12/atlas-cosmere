@@ -130,3 +130,24 @@ The planner remains metadata-only. It records candidate locators and the minimum
 ## Run 174 — refreshed continuation queue
 
 After inspecting El Camino de los Reyes chapter 13, Danzante del Filo chapter 14 and Esquirla del amanecer chapter 14, the continuation candidates are El Imperio Final chapter 6, El Camino de los Reyes chapter 14, Danzante del Filo chapter 15 and Esquirla del amanecer chapter 15. These are metadata-only candidates; the current Library listing did not contain `cosmere.epub`, so the Cosmere continuation remains uninspected until that exact source is available.
+
+
+## Ejecución local de una tarea del plan
+
+Run 175 añade `inspectHoidPlannedChapterCandidate`, que conecta una tarea vigente con una selección explícita de EPUB local y un candidato de paquete emitido por la misma instancia del servicio de ingesta. Vuelve a comprobar la tarea canónica, la obra, el grupo de fuente, la edición, el localizador exacto, la huella de navegación y la identidad del candidato.
+
+El resultado es exclusivamente `candidate-only`: contiene localizador, tamaño y huellas SHA-256. No contiene texto ni bytes del capítulo, no genera resúmenes, no añade documentos a la allowlist, no modifica progreso y no promueve conocimiento. El panel Expo permite ejecutar la siguiente tarea y muestra solo el número del capítulo y una huella parcial.
+
+
+## Run 175 — cola de continuación actualizada
+
+Tras inspeccionar El Imperio Final capítulo 6, El Camino de los Reyes capítulo 14, Danzante del Filo capítulo 15 y Esquirla del amanecer capítulo 15, las siguientes tareas candidatas son:
+
+| Obra | Próximo capítulo |
+|---|---:|
+| El Imperio Final | 7 |
+| El Camino de los Reyes | 15 |
+| Danzante del Filo | 16 |
+| Esquirla del amanecer | 16 |
+
+En esta ejecución `cosmere.epub` sí estuvo disponible en la biblioteca y su navegación coincidió con la edición registrada. La tarea del plan sigue siendo metadata-only y exige selección local explícita. La inspección candidate-only no escribe texto ni autoriza conocimiento.

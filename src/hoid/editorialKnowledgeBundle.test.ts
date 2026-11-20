@@ -23,12 +23,12 @@ describe("Hoid complete editorial knowledge bundle", () => {
     expect(second.status).toBe("ready-for-review");
     if (first.status !== "ready-for-review" || second.status !== "ready-for-review") return;
     expect(first.manifest).toEqual(second.manifest);
-    expect(first.manifest.records).toHaveLength(64);
-    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(46);
+    expect(first.manifest.records).toHaveLength(sourceInput.summaries.length + sourceInput.claims.length + sourceInput.entities.length + sourceInput.relationships.length);
+    expect(first.manifest.records.filter(item => item.kind === "summary")).toHaveLength(sourceInput.summaries.length);
     expect(first.manifest.records.filter(item => item.kind === "atomic-claim")).toHaveLength(1);
     expect(first.manifest.records.filter(item => item.kind === "entity")).toHaveLength(14);
     expect(first.manifest.records.filter(item => item.kind === "relationship")).toHaveLength(3);
-    expect(first.manifest.sources).toHaveLength(46);
+    expect(first.manifest.sources).toHaveLength(sourceInput.summaries.length);
     expect(first.manifest.blockers).toEqual([]);
     expect(first.manifest.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(first.promotionAllowed).toBe(false);

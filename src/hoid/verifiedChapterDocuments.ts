@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 174 adds three further individually inspected chapter documents across the three accessible Roshar works.
+ * Run 175 adds four further individually inspected chapter documents from the supplied Cosmere and Roshar EPUBs.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -32,6 +32,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       11: "3198740aafd799096672d6a893b925c08a4f33819219e7769761319eaea97ae5",
       12: "1f220d29b388c67834fb11d21fdb120407d1220531d735f946c00cc26223e838",
       13: "9716f41c822b8ea3801fd18d6072689d90482db419fd90d869fb12d8543da426",
+      14: "6b5e5693ebbf7825cdbf9b0be1538641e8e412bfe8aba322453a80ec113d5e4e",
     }),
   }),
   edgedancer: Object.freeze({
@@ -52,6 +53,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       12: "d02ecf9613cb9ae5ff8f95984b2a7bcdf56b19c72e9dcc6f193a1a959150155c",
       13: "341ffa8144efe7c054d92bbedd54246889a92b268db7b62118f6b651095a516d",
       14: "0c716a985a6f3ec2478788463d4b2ef132088829ce5d338101b0df9169edc17c",
+      15: "0cf7efadeb8eae0c6c3563cb0bd5e7beef853bb1d75dfa69ba6734af7c7aa786",
     }),
   }),
   dawnshard: Object.freeze({
@@ -72,6 +74,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       12: "d5d73c0ebaaaeccf2dfbd2f16315aa521b860c043c0b61b971bbce76b7bc8990",
       13: "e0a97fb4d28b90b99169e6afcdf4fbd3e42b67c1ff5b0c61e0cb4aad6405544c",
       14: "c62b4deedaa65671b41e69e944a5fb384f71cbfef4807d7d7ffd013b21225fb5",
+      15: "8ddd62ba14191c2a333e6da18beabc5205f50b6aa45472cfd16e25e6ba573dd5",
     }),
   }),
   tfe: Object.freeze({
@@ -83,6 +86,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       3: "bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7",
       4: "6b729cfc609f926a4bac5b10f3eb5148a7c8935adde54f51f4ff13b9995b35d7",
       5: "ec48d5ed29ede0760a63d913fcc71d79c908d879fe62841fe6cbfc64d90676d8",
+      6: "8b8596f106ac9f0510624c86849750358a934ab064036f91a70189378deda299",
     }),
   }),
 });

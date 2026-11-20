@@ -139,3 +139,21 @@ The latest Library copies of the Roshar omnibus, Danzante del Filo and Esquirla 
 The new documents are El Camino de los Reyes chapter 13 (`L1-033.xhtml`), Danzante del Filo chapter 14 (`Text/014.xhtml`) and Esquirla del amanecer chapter 14 (`Text/14.xhtml`). Their exact edition and document digests, unlock watermarks and source checks are recorded in [RUN174_ROSHAR_CHAPTER_EXPANSION.md](RUN174_ROSHAR_CHAPTER_EXPANSION.md).
 
 Three original Spanish summaries were added to staging. The current inventory is 46 inspected chapter documents and 46 pending summaries. Production knowledge remains empty, with zero approved claims and no activation receipt. No EPUB, XHTML body, copied passage, extracted prose, image or private file path was committed.
+
+
+## Run 175 — cuatro nuevos documentos de capítulo
+
+Se reabrieron los cuatro EPUB privados y se comprobó que sus huellas de navegación coincidían con las ediciones registradas. Cada XHTML nuevo se resolvió desde la navegación, se encontró en el manifiesto OPF y en el reading spine, y se fingerprintó desde los bytes originales.
+
+| Obra | Capítulo | Destino XHTML relativo | SHA-256 del documento |
+|---|---:|---|---|
+| El Imperio Final | 6 | `books/b000001/OEBPS/Text/006.xhtml` | `8b8596f106ac9f0510624c86849750358a934ab064036f91a70189378deda299` |
+| El Camino de los Reyes | 14 | `L1-034.xhtml` | `6b5e5693ebbf7825cdbf9b0be1538641e8e412bfe8aba322453a80ec113d5e4e` |
+| Danzante del Filo | 15 | `Text/015.xhtml` | `0cf7efadeb8eae0c6c3563cb0bd5e7beef853bb1d75dfa69ba6734af7c7aa786` |
+| Esquirla del amanecer | 15 | `Text/15.xhtml` | `8ddd62ba14191c2a333e6da18beabc5205f50b6aa45472cfd16e25e6ba573dd5` |
+
+Cuatro resúmenes originales en español se añadieron a staging con SHA-256 propio, localizador exacto y watermark de capítulo completado N. El cursor mínimo de lectura es N+1. Los cuatro permanecen pendientes de revisión independiente.
+
+El inventario actualizado es de **50 documentos de capítulo inspeccionados y 50 resúmenes originales pendientes de revisión**, en cuatro obras. El catálogo sigue conteniendo 24 obras y 1.106 localizadores de navegación verificados. No se ha aprobado ninguna afirmación, no hay conocimiento en producción ni recibo de activación.
+
+No se han subido EPUBs, XHTML, texto extraído, pasajes, imágenes ni rutas privadas.

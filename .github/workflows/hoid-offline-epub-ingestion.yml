@@ -7,6 +7,12 @@ on:
     paths:
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionExecution.test.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "docs/hoid/SOURCE_INGESTION_PLAN.md"
       - "src/hoid/bibliography.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/sourceCoverage.ts"
@@ -17,6 +23,12 @@ on:
     paths:
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionExecution.test.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "docs/hoid/SOURCE_INGESTION_PLAN.md"
       - "src/hoid/bibliography.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/sourceCoverage.ts"
@@ -43,6 +55,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/epubIngestion.test.ts
+          src/hoid/sourceIngestionExecution.test.ts
           src/hoid/sourceCoverage.test.ts
           src/hoid/verifiedChapterDocuments.test.ts
           src/hoid/editionStructure.test.ts
@@ -52,6 +65,8 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/epubIngestion.ts
+          src/hoid/sourceIngestionExecution.ts
+          src/hoid/sourceIngestionExecution.test.ts
           src/hoid/epubIngestion.test.ts
           src/hoid/sourceCoverage.ts
           src/hoid/verifiedChapterDocuments.ts

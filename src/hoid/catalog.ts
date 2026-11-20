@@ -1,4 +1,5 @@
 import { buildReadingContext } from './readingContext';
+import { isEvidenceUnlocked } from './evidenceScope';
 import { ReadingPosition } from './types';
 
 import type { HoidKnowledgeKind } from "./knowledgeKinds";
@@ -83,7 +84,12 @@ export class HoidKnowledgeCatalog {
     );
   }
 
-  isUnlocked(entry: HoidKnowledgeEntry, reading: ReadingPosition[]): boolean {
+  /**
+   * Entity-name authorization is intentionally separate from summary
+   * authorization. A name may be safe to mention before the complete editorial
+   * summary is safe to reveal.
+   */
+  isEntityMentionUnlocked(entry: HoidKnowledgeEntry, reading: ReadingPosition[]): boolean {
     // Never interpret raw progress independently. Canonicalization removes
     // duplicate or malformed positions before this authorization boundary, so
     // catalog access cannot depend on the incidental order of UI updates.
@@ -92,22 +98,31 @@ export class HoidKnowledgeCatalog {
     return Boolean(position && (position.completed || position.chapter >= entry.firstSafeAppearance.chapter));
   }
 
+  /**
+   * Backwards-compatible alias for the entity-name boundary. Provider-facing
+   * summaries must use isEvidenceUnlocked(), never this first-appearance check.
+   * @deprecated Prefer isEntityMentionUnlocked() for explicit semantics.
+   */
+  isUnlocked(entry: HoidKnowledgeEntry, reading: ReadingPosition[]): boolean {
+    return this.isEntityMentionUnlocked(entry, reading);
+  }
+
   lockedMatches(text: string, reading: ReadingPosition[]): HoidKnowledgeEntry[] {
-    return this.findMatches(text).filter(entry => !this.isUnlocked(entry, reading));
+    return this.findMatches(text).filter(entry => !this.isEntityMentionUnlocked(entry, reading));
   }
 
   /**
-   * Provider-facing context is stricter than spoiler matching: an entry must be
-   * unlocked, have an original summary and explicitly verified provenance.
-   * This prevents inaccessible or partially verified source material from being
-   * converted into narrative assertions.
+   * Provider-facing context is stricter than entity-name matching: an entry
+   * must have an original summary, verified provenance, an edition-bound source
+   * locator, and an explicit full-summary unlock watermark. First appearance
+   * alone is never sufficient to disclose summary details.
    */
   entriesForContext(reading: ReadingPosition[]): HoidKnowledgeEntry[] {
     return this.entries.filter(entry =>
       entry.provenance === 'verified'
       && typeof entry.summary === 'string'
       && entry.summary.trim().length > 0
-      && this.isUnlocked(entry, reading),
+      && isEvidenceUnlocked(entry, reading),
     );
   }
 }

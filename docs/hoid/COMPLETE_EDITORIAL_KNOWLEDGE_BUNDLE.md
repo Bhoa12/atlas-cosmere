@@ -10,7 +10,8 @@ The deterministic metadata-only manifest now contains:
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 55 distinct edition-bound source documents;\n- 73 total editorial records across summaries, claims, identities and relationships.
+- 55 distinct edition-bound source documents;
+- 73 total editorial records across summaries, claims, identities and relationships.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 

@@ -82,6 +82,9 @@ describe("Hoid editorial draft staging", () => {
       "03d9f250332a63ef25c0a8a592b1d1d3d0a08ab3fd511e4db138ba4b13b29576",
       "c341e1d3a83e251680ad04e2b80cdc95d5ade8cff1e1faf58dec3bd9520c3495",
       "a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be",
+      "d0066c51f3e37b54796ea67d95da6c777bfa50dab86dc231e452b7e4279f1ba8",
+      "16195eca1bce7f70756cc161521fb8d0c17bcd14030cf452ab3c8d3900e0712f",
+      "771e397958ae5dcb8b73cd78cf5e68c3bb5be9ba7d8c2a01f2d1521ab3825943",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -102,7 +105,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(59);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(62);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -115,7 +118,7 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one through chapter-seventeen drafts for the accessible EPUBs", () => {
+  it("stages independently sourced chapter-one through chapter-eighteen drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -176,9 +179,12 @@ describe("Hoid editorial draft staging", () => {
       "edgedancer.chapter-017.lift-returns-to-the-alley",
       "dawnshard.chapter-017.nikli-negotiation-and-sea-creature",
       "tfe.chapter-009.vin-kelsier-court-preparation",
+      "twok.chapter-017.kaladin-leads-bridge-four",
+      "edgedancer.chapter-018.lift-meets-arclo",
+      "dawnshard.chapter-018.rysn-negotiation-breaks",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]).toContain(draft.evidenceSource.chapter);
+      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
         chapter: draft.evidenceSource.chapter,
@@ -540,9 +546,18 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps the chapter-seventeen summaries unavailable until chapter eighteen is completed", () => {
     const drafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 17);
-    expect(drafts).toHaveLength(2);
+    expect(drafts).toHaveLength(3);
     for (const draft of drafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 17 });
+      expect(draft.review.status).toBe("pending-review");
+    }
+  });
+
+  it("keeps the chapter-eighteen summaries unavailable until chapter nineteen is completed", () => {
+    const drafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 18);
+    expect(drafts.map(draft => draft.evidenceSource.bookId).sort()).toEqual(["dawnshard", "edgedancer"]);
+    for (const draft of drafts) {
+      expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: 18 });
       expect(draft.review.status).toBe("pending-review");
     }
   });

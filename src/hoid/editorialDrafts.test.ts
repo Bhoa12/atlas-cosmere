@@ -76,6 +76,7 @@ describe("Hoid editorial draft staging", () => {
       "425a4b6233aa3b38315517543e7a7992ccc910cd3d13de5d53a1e43a07dcd50b",
       "bbb171095d991631090ae39f88218a8b9e561492828ee023ede17e4c42c24544",
       "d83caf4c8c8082df409fc78abc5b69e3f7a96068742d562048806276973fbbc0",
+      "86a081069be4acd3dde6d0cd6ff29eef181a5fcce4b1d71bfefeb5347d132914",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -96,7 +97,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(53);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(54);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -164,6 +165,7 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-015.adolin-aftermath-gavilar-message",
       "edgedancer.chapter-016.lift-pursues-skybreakers",
       "dawnshard.chapter-016.rysn-mural-acceptance",
+      "tfe.chapter-007.marsh-vin-training",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]).toContain(draft.evidenceSource.chapter);
@@ -414,7 +416,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps all chapter-seven summaries unavailable until chapter eight is completed", () => {
     const chapterSevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 7);
-    expect(chapterSevenDrafts).toHaveLength(3);
+    expect(chapterSevenDrafts).toHaveLength(4);
     for (const draft of chapterSevenDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");

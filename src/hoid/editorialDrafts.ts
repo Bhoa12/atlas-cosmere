@@ -1511,6 +1511,28 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-009.vin-kelsier-court-preparation",
+    kind: "event",
+    aliases: Object.freeze(["Vin", "Kelsier", "Sazed", "Cosahn", "Mansión Renoux", "Guardadores", "trelagismo", "Lord Venture"]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 9 }),
+    evidenceSource: Object.freeze({
+      bookId: "tfe",
+      chapter: 9,
+      locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/009.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 9 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "cosmere-epub-merged-v1",
+      navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      documentSha256: "e08f8b2845eb2d15ed9a1ad517d2207501ba0068f25797643e127919d92daedb",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be" }),
+    summary: "Durante una práctica nocturna, Vin se enfrenta a Kelsier en un ejercicio de empujes de acero. La prueba obliga a ambos a sostener la presión sobre una moneda mientras Vin intenta compensar su menor peso y alcance; aunque termina derribada y magullada, Kelsier valora su progreso y le advierte que no debe medir fuerzas directamente con rivales más pesados. De vuelta en la Mansión Renoux, Vin se preocupa por su papel en el plan y por la dificultad de presentarse como una joven noble. Sazed y Cosahn preparan su aspecto y repasan su identidad ficticia, la etiqueta y las casas de Luthadel. Sazed vuelve a presentarle el trelagismo y explica que los Guardadores preservan las creencias perseguidas por el Ministerio. Mientras Vin estudia, Kelsier y Sazed hablan en privado sobre si está preparada para infiltrarse en la aristocracia. Sazed duda que memorizar las costumbres baste para desenvolverse en la corte; Kelsier reconoce su talento alomántico, pero admite que el plan exige utilizarla antes de que esté plenamente preparada. Decide que Sazed la acompañará y protegerá en los actos sociales, y confirma que asistirá al baile de Lord Venture.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 ]); 
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

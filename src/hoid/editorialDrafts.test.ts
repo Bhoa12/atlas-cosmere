@@ -101,7 +101,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(58);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(59);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -174,6 +174,7 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-016.kaladin-choice-and-crisalis",
       "edgedancer.chapter-017.lift-returns-to-the-alley",
       "dawnshard.chapter-017.nikli-negotiation-and-sea-creature",
+      "tfe.chapter-009.vin-kelsier-court-preparation",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]).toContain(draft.evidenceSource.chapter);

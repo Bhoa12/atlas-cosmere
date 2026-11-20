@@ -470,13 +470,26 @@ describe("Hoid editorial draft staging", () => {
     }
   });
 
-  it("keeps the chapter-nine summaries unavailable until chapter ten is completed", () => {
-    const chapterNineDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 9);
-    expect(chapterNineDrafts).toHaveLength(3);
-    for (const draft of chapterNineDrafts) {
+  it("keeps the three Roshar chapter-nine summaries separately scoped and pending review", () => {
+    const chapterNineRosharDrafts = HOID_EDITORIAL_DRAFTS.filter(
+      draft => draft.evidenceSource.chapter === 9 && draft.evidenceSource.bookId !== "tfe",
+    );
+    expect(chapterNineRosharDrafts).toHaveLength(3);
+    for (const draft of chapterNineRosharDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");
     }
+  });
+
+  it("stages El Imperio Final chapter nine independently and keeps it pending review", () => {
+    const draft = HOID_EDITORIAL_DRAFTS.find(
+      item => item.id === "tfe.chapter-009.vin-kelsier-court-preparation",
+    );
+    expect(draft).toBeDefined();
+    if (!draft) return;
+    expect(draft.evidenceSource).toMatchObject({ bookId: "tfe", chapter: 9 });
+    expect(draft.evidenceUnlock).toEqual({ bookId: "tfe", chapter: 9 });
+    expect(draft.review.status).toBe("pending-review");
   });
 
   it("keeps the chapter-twelve summaries unavailable until chapter thirteen is completed", () => {

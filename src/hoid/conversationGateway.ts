@@ -44,21 +44,6 @@ type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
   recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
 };
 
-/**
- * Preserve the legacy one-argument call shape when no invocation options are
- * supplied. Explicit options (notably AbortSignal) are forwarded unchanged.
- * This keeps existing adapters and typed follow-up integrations compatible.
- */
-function invokeRuntimeAnswer(
-  runtime: HoidConversationRuntime,
-  request: unknown,
-  options?: HoidRuntimeCallOptions,
-): Promise<HoidEvidenceAnswer> {
-  return options === undefined
-    ? runtime.answer(request)
-    : runtime.answer(request, options);
-}
-
 export type HoidConversationGatewayResult =
   | Readonly<{
       status: "ready";
@@ -623,7 +608,7 @@ export class HoidConversationGateway {
       try {
         // Only the single, live-reauthorized target ID crosses the evidence-runtime boundary.
         // The typed context, names, aliases and previous answer remain local to this screen.
-        answer = await invokeRuntimeAnswer(this.config.runtime, {
+        answer = await this.config.runtime.answer({
           question: request.question,
           progress: request.progress,
           intent: request.intent,
@@ -792,7 +777,7 @@ export class HoidConversationGateway {
         // Preserve the original user question, but add only the one canonical
         // entity ID selected by reviewed evidence. The mapping record, alias
         // list, previous answer and full context never cross this boundary.
-        answer = await invokeRuntimeAnswer(this.config.runtime, {
+        answer = await this.config.runtime.answer({
           question: request.question,
           progress: request.progress,
           intent: request.intent,
@@ -868,7 +853,7 @@ export class HoidConversationGateway {
 
     let answer: HoidEvidenceAnswer;
     try {
-      answer = await invokeRuntimeAnswer(this.config.runtime, {
+      answer = await this.config.runtime.answer({
         question: request.question,
         progress: request.progress,
         intent: request.intent,

@@ -12,7 +12,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 175 added four, Run 176 added three Roshar documents, Run 178 added one Cosmere chapter, and Run 181 adds the next individually inspected chapter from the supplied EPUBs.
+ * Run 175 added four, Run 176 added three Roshar documents, Run 178 added one Cosmere chapter, Run 181 added one Cosmere chapter, and Run 191 adds three further Roshar chapters.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -34,6 +34,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       13: "9716f41c822b8ea3801fd18d6072689d90482db419fd90d869fb12d8543da426",
       14: "6b5e5693ebbf7825cdbf9b0be1538641e8e412bfe8aba322453a80ec113d5e4e",
       15: "43ff1d4f608fb3ec230923d92edadd09bc3c9606d72d506b547c7be43266f492",
+      16: "1f9d38db4cde7a471586ff7ed5d88cbef7a72b3616020ca1c4d8f06093e7da32",
     }),
   }),
   edgedancer: Object.freeze({
@@ -56,6 +57,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       14: "0c716a985a6f3ec2478788463d4b2ef132088829ce5d338101b0df9169edc17c",
       15: "0cf7efadeb8eae0c6c3563cb0bd5e7beef853bb1d75dfa69ba6734af7c7aa786",
       16: "d3a247b59d08735b83baa9840ef9e5058cc3f2108c931d66f06d370c4d41a4dd",
+      17: "250c26f671df7422277711bbefd1f72a381a5dd1791bb28d9efb50e7e8c1352c",
     }),
   }),
   dawnshard: Object.freeze({
@@ -78,6 +80,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       14: "c62b4deedaa65671b41e69e944a5fb384f71cbfef4807d7d7ffd013b21225fb5",
       15: "8ddd62ba14191c2a333e6da18beabc5205f50b6aa45472cfd16e25e6ba573dd5",
       16: "d62fefc1ce3e6eab0a0cfa5fa8e08819d5d5a9d3a2b2d12015ffaa9411cd18a2",
+      17: "85fe1ee6a0224ef0ebc04c8f3e327e30a6553f2623a7482be66d5a4e1b2af840",
     }),
   }),
   tfe: Object.freeze({

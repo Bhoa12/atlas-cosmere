@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 55 |
-| Original staged summaries | 55 |
-| Summaries pending review | 55 |
+| Individually inspected chapter documents | 58 |
+| Original staged summaries | 58 |
+| Summaries pending review | 58 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -38,9 +38,9 @@ The current continuation candidates are:
 | Work | Next chapter to inspect |
 |---|---:|
 | El Imperio Final | 9 |
-| El Camino de los Reyes | 16 |
-| Danzante del Filo | 17 |
-| Esquirla del amanecer | 17 |
+| El Camino de los Reyes | 17 |
+| Danzante del Filo | 18 |
+| Esquirla del amanecer | 18 |
 
 The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
@@ -186,3 +186,17 @@ Tras inspeccionar El Imperio Final capítulo 8 desde la copia privada accesible 
 | Esquirla del amanecer | 17 |
 
 El plan sigue siendo metadata-only. Registra el siguiente candidato y el umbral N+1, pero no autoriza evidencia ni modifica el progreso. La disponibilidad del EPUB se verificó por separado durante la inspección; el plan no conserva rutas privadas ni afirma disponibilidad futura.
+
+## Run 191 — refreshed continuation queue
+
+After inspecting El Camino de los Reyes chapter 16, Danzante del Filo chapter 17 and Esquirla del amanecer chapter 17, the current continuation candidates are:
+
+| Work | Next chapter to inspect |
+|---|---:|
+| El Imperio Final | 9 |
+| El Camino de los Reyes | 17 |
+| Danzante del Filo | 18 |
+| Esquirla del amanecer | 18 |
+
+The planner remains metadata-only. The three new chapter-N summaries carry completed-through watermark N and require the reader to reach chapter N+1 before they can be unlocked. All three remain pending editorial review; production knowledge is unchanged. The current Library inventory used in this run did not include `cosmere.epub`, so El Imperio Final chapter 9 remains a metadata-only candidate and no TFE passage was inspected.
+

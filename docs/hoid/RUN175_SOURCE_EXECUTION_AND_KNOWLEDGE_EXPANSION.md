@@ -47,7 +47,7 @@ All four remain pending independent review. No claim was approved and no product
 
 Added `src/hoid/sourceIngestionExecution.ts` and tests. The function accepts only a current canonical plan task, an explicit source descriptor, and a package candidate issued by the same ingestion service. It revalidates the edition-bound locator and returned chapter fingerprint.
 
-The result contains metadata and digests only. It cannot create a summary, alter reading progress, extend the verified-document allowlist, or promote knowledge. The Expo local EPUB panel will expose an explicit action to inspect the next planned chapter and display only the chapter number and digest prefix.
+The result contains metadata and digests only. It cannot create a summary, alter reading progress, extend the verified-document allowlist, or promote knowledge. The Expo local EPUB panel now exposes an explicit action to inspect the next planned chapter and displays only the chapter number and digest prefix.
 
 ## Spoiler boundary
 

@@ -1,11 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHoidEvidenceRuntime, type HoidApprovedClaim } from "./evidenceRuntime";
+import { createHoidEvidenceRuntime, createHoidClaimSelectionResponse, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { presentHoidEvidenceAnswer } from "./answerPresentation";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 const updatedAt = "2026-11-19T07:00:00.000Z";
+
+function selectorAdapter(
+  selectClaims: (request: HoidClaimSelectionRequest) => Promise<unknown>,
+) {
+  return {
+    selectClaims: async (request: HoidClaimSelectionRequest) => {
+      const result = await selectClaims(request);
+      return Array.isArray(result) && result.every(item => typeof item === "string")
+        ? createHoidClaimSelectionResponse(request, result as string[])
+        : result;
+    },
+  };
+}
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -91,7 +104,7 @@ describe("Hoid per-claim evidence provenance", () => {
     const runtime = createHoidEvidenceRuntime({
       knowledge,
       claims,
-      selector: { selectClaims: selector },
+      selector: selectorAdapter(selector),
     });
     expect(runtime).not.toBeNull();
 
@@ -134,7 +147,7 @@ describe("Hoid per-claim evidence provenance", () => {
     const runtime = createHoidEvidenceRuntime({
       knowledge,
       claims,
-      selector: { selectClaims: selector },
+      selector: selectorAdapter(selector),
     });
     const answer = await runtime!.answer({
       question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
@@ -175,7 +188,7 @@ describe("Hoid per-claim evidence provenance", () => {
     const runtime = createHoidEvidenceRuntime({
       knowledge: manyKnowledge,
       claims: manyClaims,
-      selector: { selectClaims: async () => ["claim-one", "claim-two"] },
+      selector: selectorAdapter(async () => ["claim-one", "claim-two"]),
     });
     expect(runtime).not.toBeNull();
     const answer = await runtime!.answer({

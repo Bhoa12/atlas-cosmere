@@ -12,6 +12,13 @@ import { guardQuestion } from "./spoilerGuard";
 import { getHoidReadingManifest } from "./readingManifest";
 import type { HoidAnswerRequest, HoidAnswerSelectionBudget, ReadingPosition } from "./types";
 import {
+  createHoidClaimSelectionRequest,
+  parseHoidClaimSelectionResponse,
+  type HoidClaimSelectionCandidate,
+  type HoidClaimSelectionRequest,
+} from "./selectionProtocol";
+export type { HoidClaimSelectionCandidate, HoidClaimSelectionRequest, HoidClaimSelectionResponse } from "./selectionProtocol";
+import {
   validateHoidApprovedClaimAttestation,
   type HoidApprovedClaim as AttestedHoidApprovedClaim,
   type HoidApprovedClaimIntent,
@@ -19,20 +26,6 @@ import {
 
 export type HoidClaimIntent = HoidApprovedClaimIntent;
 export type HoidApprovedClaim = AttestedHoidApprovedClaim;
-
-export type HoidClaimSelectionCandidate = Readonly<{
-  id: string;
-  text: string;
-  evidenceIds: readonly string[];
-}>;
-
-export type HoidClaimSelectionRequest = Readonly<{
-  question: string;
-  intent: HoidClaimIntent;
-  candidates: readonly HoidClaimSelectionCandidate[];
-  /** Closed local budget; the selector cannot raise or reinterpret these limits. */
-  selectionBudget: HoidAnswerSelectionBudget;
-}>;
 
 /**
  * The model is a selector, not an author. It may return only IDs from the
@@ -109,7 +102,7 @@ const DEFAULT_SELECTION_BUDGET: HoidAnswerSelectionBudget = Object.freeze({
   maxWorks: 4,
   maxCharacters: 32_000,
   minimumWorks: 1,
-  requireSegmentProvenance: false,
+  requireSegmentProvenance: true,
   requireCrossWorkSegment: false,
 });
 
@@ -499,15 +492,16 @@ export class HoidEvidenceRuntime {
       return abstain("provider-unavailable", "No hay un selector de IA configurado. Hoid conserva las evidencias autorizadas sin generar contenido.");
     }
 
-    const selectionRequest: HoidClaimSelectionRequest = Object.freeze({
+    const selectionRequest = createHoidClaimSelectionRequest({
       question,
       intent,
+      reading,
       selectionBudget,
-      candidates: Object.freeze(candidates.map(claim => Object.freeze({
+      candidates: candidates.map(claim => ({
         id: claim.id,
         text: claim.text,
-        evidenceIds: Object.freeze([...claim.evidenceIds]),
-      }))),
+        evidenceIds: claim.evidenceIds,
+      })),
     });
 
     const rawSelection = await answerWithinTimeout(
@@ -518,25 +512,22 @@ export class HoidEvidenceRuntime {
     if (rawSelection === null) {
       return abstain("provider-unavailable", "El selector no está disponible o ha superado el tiempo límite. Hoid no completará la respuesta por su cuenta.");
     }
-    if (
-      !Array.isArray(rawSelection) ||
-      rawSelection.length === 0 ||
-      rawSelection.length > Math.min(MAX_SELECTED_CLAIMS, selectionBudget.maxClaims)
-    ) {
-      return blocked("invalid-selection", "El proveedor devolvió una selección inválida. No se mostrará contenido sin verificar.");
+    const selectedIds = parseHoidClaimSelectionResponse(
+      rawSelection,
+      selectionRequest,
+      Math.min(MAX_SELECTED_CLAIMS, selectionBudget.maxClaims),
+    );
+    if (!selectedIds) {
+      return blocked("invalid-selection", "El selector devolvió una respuesta sin versión o vinculada a otra solicitud. No se mostrará contenido.");
     }
 
-    const selectedIds: string[] = [];
     const selectedSet = new Set<string>();
     const candidateIds = new Set(candidates.map(claim => claim.id));
-    for (const rawId of rawSelection) {
-      if (typeof rawId !== "string") return blocked("invalid-selection", "La selección contiene identificadores no válidos.");
-      const id = rawId.trim();
-      if (!id || id.length > MAX_CLAIM_ID_LENGTH || selectedSet.has(id) || !candidateIds.has(id)) {
-        return blocked("invalid-selection", "La selección contiene una afirmación desconocida o repetida. No se mostrará contenido.");
+    for (const id of selectedIds) {
+      if (!candidateIds.has(id)) {
+        return blocked("invalid-selection", "La selección contiene una afirmación desconocida. No se mostrará contenido.");
       }
       selectedSet.add(id);
-      selectedIds.push(id);
     }
 
     // Render in editorial registry order, not provider order. The provider

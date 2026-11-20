@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHoidEvidenceRuntime, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
+import { createHoidEvidenceRuntime, createHoidClaimSelectionResponse, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
 import {
   createHoidCursorEvidenceRuntime,
   projectHoidCursorProgressSnapshot,
@@ -87,8 +87,21 @@ function snapshot(
   };
 }
 
+function selectorAdapter(
+  selectClaims: (request: HoidClaimSelectionRequest) => Promise<unknown>,
+) {
+  return {
+    selectClaims: async (request: HoidClaimSelectionRequest) => {
+      const result = await selectClaims(request);
+      return Array.isArray(result) && result.every(item => typeof item === "string")
+        ? createHoidClaimSelectionResponse(request, result as string[])
+        : result;
+    },
+  };
+}
+
 function createFacade(selector = vi.fn(async (_request: HoidClaimSelectionRequest) => ["claim-alpha"])) {
-  const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: { selectClaims: selector } });
+  const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: selectorAdapter(selector) });
   if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
   return { facade: createHoidCursorEvidenceRuntime(runtime), selector };
 }
@@ -175,7 +188,7 @@ describe("HoidCursorEvidenceRuntime", () => {
 
   it("requires every cross-work cursor before invoking the selector", async () => {
     const selector = vi.fn(async () => ["claim-cross-book"]);
-    const runtime = createHoidEvidenceRuntime({ knowledge, claims: [claims[1]], selector: { selectClaims: selector } });
+    const runtime = createHoidEvidenceRuntime({ knowledge, claims: [claims[1]], selector: selectorAdapter(selector) });
     if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
     const facade = createHoidCursorEvidenceRuntime(runtime);
 
@@ -314,7 +327,7 @@ describe("HoidCursorEvidenceRuntime", () => {
       expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-cross-book"]);
       return ["claim-cross-book"];
     });
-    const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: { selectClaims: selector } });
+    const runtime = createHoidEvidenceRuntime({ knowledge, claims, selector: selectorAdapter(selector) });
     if (runtime === null) throw new Error("No se pudo crear el runtime de prueba");
     const facade = createHoidCursorEvidenceRuntime(runtime);
     const progress = snapshot([

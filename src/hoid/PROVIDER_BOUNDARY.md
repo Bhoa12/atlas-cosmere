@@ -69,3 +69,12 @@ Al añadir un proveedor nuevo, el adaptador debe depender de contratos de Hoid I
 - revisión del presupuesto de contexto;
 - pruebas de aislamiento e inmutabilidad;
 - revisión de su impacto en spoilers y procedencia.
+
+
+## Protocolo versionado de selección
+
+El selector utiliza el contrato neutral de selección de afirmaciones, versión 1. Cada solicitud incluye versión, fingerprint SHA-256, pregunta, intención, candidatos autorizados y presupuesto cerrado. El fingerprint vincula también el snapshot de lectura normalizado, pero las posiciones de lectura sin procesar no cruzan la frontera.
+
+La respuesta debe contener exactamente la versión 1, el mismo fingerprint y una lista densa de IDs de afirmaciones. Se rechazan arrays heredados, fingerprints de otra solicitud, versiones desconocidas, propiedades adicionales, getters, IDs duplicados y candidatos no autorizados. Los IDs se vuelven a reconciliar con el conjunto local y el texto se reconstruye desde el registro editorial aprobado.
+
+El fingerprint sirve para correlación y frescura, no como autenticación del proveedor. La autoridad narrativa, el control N+1, la verificación de edición y la procedencia continúan siendo locales. Un adaptador nuevo debe devolver el sobre versionado y no puede convertir el fingerprint en un permiso.

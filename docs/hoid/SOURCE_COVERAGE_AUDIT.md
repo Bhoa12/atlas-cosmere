@@ -1,4 +1,4 @@
-# Run 168 — Source coverage and evidence completeness
+# Hoid source coverage and evidence completeness
 
 ## Purpose
 
@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 46 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 54 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 46 | Original editorial summaries exist in staging |
-| Summaries pending review | 46 | None of those summaries is approved for production |
+| Original staged chapter summaries | 54 | Original editorial summaries exist in staging |
+| Summaries pending review | 54 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -33,7 +33,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `tfe` | El Imperio Final | 38 | 5 | 5 | Numeric chapters |
+| `tfe` | El Imperio Final | 38 | 7 | 7 | Numeric chapters |
 | `woa` | El Pozo de la Ascensión | 59 | 0 | 0 | Numeric chapters |
 | `hoa` | El Héroe de las Eras | 82 | 0 | 0 | Numeric chapters |
 | `aol` | Aleación de ley | 20 | 0 | 0 | Numeric chapters |
@@ -55,13 +55,13 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 12 | 12 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 15 | 15 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
 | `sawt` | Viento y Verdad | 11 | 0 | 0 | Only the safe numeric prefix through chapter 11 is locator-backed; chapter numbers 12 and 14 are ambiguous |
-| `edgedancer` | Danzante del Filo | 20 | 13 | 13 | Numeric chapters |
-| `dawnshard` | Esquirla del amanecer | 19 | 13 | 13 | Numeric chapters |
+| `edgedancer` | Danzante del Filo | 20 | 16 | 16 | Numeric chapters |
+| `dawnshard` | Esquirla del amanecer | 19 | 16 | 16 | Numeric chapters |
 
 ## Interpretation rules
 
@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 39 summaries remain `pending-review`. The 57-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 54 summaries remain `pending-review`. The 72-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 46 inspected documents, 46 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 54 inspected documents, 54 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -172,3 +172,12 @@ Se inspeccionaron tres capítulos nuevos desde las copias actuales de la bibliot
 Se añadieron tres resúmenes originales en español, todos pendientes de revisión. El inventario asciende a **53 documentos de capítulo y 53 resúmenes pendientes**, en cuatro obras. El catálogo conserva 24 obras y 1.106 localizadores. La producción sigue vacía, con cero afirmaciones aprobadas y sin recibo de activación.
 
 La búsqueda actual en Library y archivos de conversación no encontró `cosmere.epub`; por ello El Imperio Final capítulo 7 no se inspeccionó y permanece como candidato de metadatos. No se subieron EPUBs, XHTML, pasajes, imágenes ni rutas privadas.
+
+
+## Run 178 — El Imperio Final chapter seven
+
+The current Library copy of `cosmere.epub` was re-opened for the next planned TFE chapter. The full ZIP container passed CRC validation. The EPUB 3 navigation document SHA-256 matched the registered Cosmere edition digest (`85c53b4a…`). The Chapter 7 navigation target resolved to exactly one OPF manifest item and was present in the reading spine. The exact XHTML bytes were fingerprinted as `fd79119ff64538b1d9fbe0d5d40ff9db8215afd144a27071c7c35b19b5ed1ac3`.
+
+One original Spanish summary was added to staging with its exact edition-bound locator and source digest. Its completed-through evidence watermark is chapter 7; the minimum open reader cursor is chapter 8. It remains `pending-review` and is not part of production knowledge.
+
+The current inventory is **54 individually inspected chapter documents and 54 original summaries pending review**, across the same four works. The catalogue remains at 24 works and 1,106 verified navigation locators. Approved claims and production knowledge remain at zero; the activation receipt remains null. No EPUB bytes, XHTML bodies, copied passages, images or private file paths were committed.

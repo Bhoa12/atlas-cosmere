@@ -6,11 +6,11 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 46 original chapter summaries;
+- 54 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 46 distinct edition-bound source documents.
+- 54 distinct edition-bound source documents;\n- 72 total editorial records across summaries, claims, identities and relationships.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -132,3 +132,10 @@ El manifiesto editorial contiene ahora **68 registros en 50 documentos de capít
 Se incorporaron tres resúmenes originales respaldados por los EPUBs privados de Roshar: El Camino de los Reyes capítulo 15, Danzante del Filo capítulo 16 y Esquirla del amanecer capítulo 16. Cada uno está ligado a su edición, digest de navegación, localizador XHTML, digest del documento y digest del resumen. Los tres permanecen en `pending-review`.
 
 El manifiesto metadata-only contiene ahora **71 registros en 53 documentos de capítulo**: 53 resúmenes, una afirmación atómica, 14 expedientes de identidad y tres relaciones. `ready-for-review` sigue sin equivaler a aprobación. La producción permanece vacía y no existe recibo de activación. No se han añadido EPUBs, XHTML, pasajes protegidos ni rutas privadas.
+
+
+## Run 178 — TFE chapter-seven staging update
+
+One additional original Spanish summary was staged for El Imperio Final chapter 7. It is bound to the registered Cosmere edition, navigation digest, exact chapter locator and verified XHTML digest. Its summary digest is independently recorded. The draft remains `pending-review` and unlocks only after the reader reaches chapter 8.
+
+The current metadata-only bundle contains **72 records across 54 chapter-body documents**: 54 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Structural readiness does not equal editorial approval. The production registry remains empty, with zero approved claims and no activation receipt. No EPUB, XHTML body, source passage, image or private file path is committed.

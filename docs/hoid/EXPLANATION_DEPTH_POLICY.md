@@ -1,0 +1,64 @@
+# Hoid IA — política de profundidad de explicaciones
+
+## Propósito
+
+La profundidad solicitada adapta la extensión y la estructura de una explicación sin ampliar el conocimiento narrativo autorizado. Es una política determinista, independiente del proveedor y aplicada después de la presentación con procedencia y del control de progreso.
+
+Los niveles disponibles son:
+
+- `brief`: respuesta concisa, hasta 3 afirmaciones, 4 evidencias, 2 obras y 6.000 caracteres.
+- `detailed`: explicación desarrollada, hasta 8 afirmaciones, 12 evidencias, 4 obras y 18.000 caracteres.
+- `comparative`: análisis comparativo, hasta 12 afirmaciones, 16 evidencias, 4 obras y 24.000 caracteres.
+
+Los límites son máximos, no objetivos. Una respuesta más corta es válida.
+
+## Orden obligatorio de validación
+
+1. `presentHoidEvidenceAnswer()` canonicaliza la respuesta.
+2. Comprueba el contrato de afirmaciones y la correspondencia exacta entre claims, evidencias y citas.
+3. Revalida cada fuente contra el manifiesto de edición y el progreso vivo de la obra correspondiente.
+4. Solo si la presentación está autorizada se calcula el presupuesto del nivel solicitado.
+5. Se devuelve la presentación original o se retiene el resultado completo.
+
+La política nunca se ejecuta como sustituto del control de spoilers. Tampoco interpreta la profundidad como permiso para consultar más capítulos.
+
+## Requisitos comparativos
+
+El nivel `comparative` exige:
+
+- procedencia por segmento;
+- evidencias autorizadas de al menos dos obras distintas;
+- al menos un segmento cuya afirmación esté vinculada a evidencias de dos o más obras;
+- correspondencia exacta entre los identificadores de evidencia declarados y los citados.
+
+No basta con que una respuesta mencione dos obras en segmentos independientes. La afirmación comparativa debe tener procedencia cruzada explícita.
+
+## Comportamiento ante excesos o incertidumbre
+
+La política no recorta, resume, reordena ni reescribe afirmaciones. Si se excede cualquier límite, se retiene la respuesta completa con `depth-budget-exceeded`.
+
+Si una comparación carece de procedencia cruzada suficiente, se retiene con `comparison-provenance-required`.
+
+Si una fuente está bloqueada por el progreso, prevalece el resultado de `presentHoidEvidenceAnswer()`; el nivel de detalle nunca puede desbloquearla.
+
+## Límite del proveedor
+
+El módulo `explanationDepth.ts` no importa SDKs, clientes HTTP, claves, modelos ni tipos de proveedores. Recibe una respuesta ya estructurada y validada, y devuelve un resultado tipado e inmutable. La política no genera prosa ni autoriza contenido.
+
+Un futuro adaptador de proveedor puede usar los presupuestos para planificar una respuesta, pero la validación local posterior seguirá siendo obligatoria.
+
+## Pruebas
+
+`explanationDepth.test.ts` cubre:
+
+- aceptación de una respuesta breve sin alterar el texto autorizado;
+- explicación detallada con varias obras ya autorizadas;
+- rechazo completo de respuestas que exceden el presupuesto;
+- requisito de procedencia cruzada para comparaciones;
+- rechazo de comparaciones con obras separadas por segmentos sin una afirmación compartida;
+- conservación del bloqueo de una fuente futura;
+- rechazo de niveles no admitidos sin filtrar el texto de respuesta.
+
+## Privacidad y bibliografía
+
+La política solo usa identificadores de obras, capítulos, localizadores y resúmenes editoriales originales ya autorizados. No lee EPUBs, no copia XHTML ni envía texto protegido a proveedores.

@@ -208,3 +208,12 @@ Los tres nuevos documentos se resolvieron desde las navegaciones registradas, se
 | Esquirla del amanecer | 16 | `Text/16.xhtml` | `d62fefc1ce3e6eab0a0cfa5fa8e08819d5d5a9d3a2b2d12015ffaa9411cd18a2` | `d83caf4c8c8082df409fc78abc5b69e3f7a96068742d562048806276973fbbc0` | 16 | 17 |
 
 Los identificadores son `twok.chapter-015.adolin-aftermath-gavilar-message`, `edgedancer.chapter-016.lift-pursues-skybreakers` y `dawnshard.chapter-016.rysn-mural-acceptance`. Los tres resúmenes permanecen pendientes de revisión independiente. El inventario contiene 53 resúmenes respaldados por 53 documentos inspeccionados. No se ha aprobado ninguna afirmación ni se ha escrito conocimiento en producción.
+
+
+## Run 178 — El Imperio Final chapter seven
+
+The current Library copy of `cosmere.epub` was available for a candidate-only local inspection. The container passed a full ZIP CRC check. Its `EPUB/nav.xhtml` digest matched the registered Cosmere edition. Chapter 7 resolved to one OPF manifest item and was present in the reading spine; the exact XHTML bytes were fingerprinted independently.
+
+One original Spanish summary, `tfe.chapter-007.marsh-vin-training`, was added to `HOID_EDITORIAL_DRAFTS`. It is bound to the edition ID, navigation digest, chapter-7 locator and exact document digest. The completed-through watermark is 7, so the minimum open reader cursor is chapter 8. The draft remains `pending-review` and is not imported into the production registry.
+
+No EPUB bytes, XHTML body, copied passage, extracted source text, image or private file path was committed. The source file was used only in the local inspection environment.

@@ -154,14 +154,14 @@ describe("Hoid coreference promotion authority", () => {
   });
 
   it("does not prepare a review plan until every source-specific unlock threshold is completed", () => {
-    const beforeUnlock = buildHoidCoreferencePromotionPlan([record()], progress(8, 2));
+    const beforeUnlock = buildHoidCoreferencePromotionPlan([record()], progress(8, 1));
     expect(beforeUnlock).toEqual({
       status: "blocked",
       reason: "source-evidence-not-unlocked",
       promotionAllowed: false,
       productionWritePerformed: false,
     });
-    expect(buildHoidCoreferencePromotionPlan([record()], progress(8, 3)).status).toBe("ready");
+    expect(buildHoidCoreferencePromotionPlan([record()], progress(8, 2)).status).toBe("ready");
   });
 
   it("keeps the production plan blocked while the registry is empty", () => {

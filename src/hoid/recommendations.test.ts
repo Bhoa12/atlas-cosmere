@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { recommendReadingNextSteps, recommendUnstartedSources, recommendUnstartedSourcesFromUnknown } from "./recommendations";
 
 describe("recommendUnstartedSources", () => {
@@ -41,7 +42,7 @@ describe("recommendUnstartedSources", () => {
 });
 
 describe("recommendReadingNextSteps", () => {
-  it("puts a single resumable work first and fills the remaining limit with unread sources", async () => {
+  it("puts a single resumable work first and fills the remaining limit with unread sources", () => {
     const recommendations = recommendReadingNextSteps(
       [{ bookId: "tfe", chapter: 8 }],
       2,
@@ -59,7 +60,7 @@ describe("recommendReadingNextSteps", () => {
     expect(recommendations[1].sourceId).not.toBe("tfe");
   });
 
-  it("recommends the next chapter after the completed-through watermark", async () => {
+  it("recommends the next chapter after the completed-through watermark", () => {
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 1 }], 1)[0]).toMatchObject({
       reason: "resume-current-work",
       currentChapter: 2,
@@ -67,7 +68,7 @@ describe("recommendReadingNextSteps", () => {
     });
   });
 
-  it("does not guess which work to resume when several works are in progress", async () => {
+  it("does not guess which work to resume when several works are in progress", () => {
     const recommendations = recommendReadingNextSteps([
       { bookId: "tfe", chapter: 8 },
       { bookId: "elantris", chapter: 3 },
@@ -77,7 +78,7 @@ describe("recommendReadingNextSteps", () => {
     expect(recommendations.some(item => item.sourceId === "tfe" || item.sourceId === "elantris")).toBe(false);
   });
 
-  it("uses an explicit active work to resolve multiple in-progress works", async () => {
+  it("uses an explicit active work to resolve multiple in-progress works", () => {
     const recommendations = recommendReadingNextSteps([
       { bookId: "tfe", chapter: 8 },
       { bookId: "elantris", chapter: 3 },
@@ -92,7 +93,7 @@ describe("recommendReadingNextSteps", () => {
     }]);
   });
 
-  it("never resumes a completed work", async () => {
+  it("never resumes a completed work", () => {
     const recommendations = recommendReadingNextSteps([{ bookId: "tfe", completed: true }], 1);
 
     expect(recommendations).toHaveLength(1);
@@ -100,27 +101,27 @@ describe("recommendReadingNextSteps", () => {
     expect(recommendations[0].sourceId).not.toBe("tfe");
   });
 
-  it("fails closed for out-of-range and ambiguous chapter progress", async () => {
+  it("fails closed for out-of-range and ambiguous chapter progress", () => {
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 39 }], 3)).toEqual([]);
     expect(recommendReadingNextSteps([{ bookId: "elantris", chapter: 48 }], 3)).toEqual([]);
   });
 
-  it("does not resume past the verified numeric prefix of an ambiguous edition", async () => {
+  it("does not resume past the verified numeric prefix of an ambiguous edition", () => {
     const recommendations = recommendReadingNextSteps([{ bookId: "elantris", chapter: 47 }], 1);
     expect(recommendations).toHaveLength(1);
     expect(recommendations[0].reason).toBe("unread-source");
     expect(recommendations[0].sourceId).not.toBe("elantris");
   });
 
-  it("does not infer a numeric resume position for unsegmented works", async () => {
+  it("does not infer a numeric resume position for unsegmented works", () => {
     expect(recommendReadingNextSteps([{ bookId: "white-sand-1", chapter: 1 }], 3)).toEqual([]);
   });
 
-  it("applies the overall limit after prioritizing the resume item", async () => {
+  it("applies the overall limit after prioritizing the resume item", () => {
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 8 }], 1)).toHaveLength(1);
   });
 
-  it("rejects an unknown explicit active work instead of guessing", async () => {
+  it("rejects an unknown explicit active work instead of guessing", () => {
     expect(recommendReadingNextSteps([{ bookId: "tfe", chapter: 8 }], 3, "unknown-work")).toEqual([]);
   });
 });

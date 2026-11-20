@@ -28,6 +28,9 @@ on:
       - "src/hoid/authorizedKnowledgeContext.ts"
       - "src/hoid/catalogEvidenceUnlock.test.ts"
       - "src/hoid/HoidService.ts"
+      - "src/hoid/HoidServiceCatalogBoundary.test.ts"
+      - "src/hoid/providerRequestSnapshot.ts"
+      - "src/hoid/readingValidation.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/readingContext.ts"
       - "src/hoid/editionProgressValidation.ts"
@@ -56,9 +59,6 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/catalogEvidenceUnlock.test.ts
-          src/hoid/HoidServiceCatalogBoundary.test.ts
-          src/hoid/providerRequestSnapshot.ts
-          src/hoid/readingValidation.ts
           src/hoid/evidenceScope.test.ts
           src/hoid/HoidServiceCatalogBoundary.test.ts
       - name: Type-check provider-facing catalog boundary
@@ -77,3 +77,4 @@ jobs:
           src/hoid/readingManifest.ts
           src/hoid/verifiedChapterLocators.ts
           src/hoid/catalogEvidenceUnlock.test.ts
+          src/hoid/HoidServiceCatalogBoundary.test.ts

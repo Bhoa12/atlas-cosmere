@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 46 inspected documents, 46 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 54 inspected documents, 54 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)

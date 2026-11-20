@@ -348,9 +348,11 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
     return blocked("bootstrap-blocked");
   }
   if (bootstrap.status !== "ready") return blocked("bootstrap-blocked");
+  const trustedConfiguration = bootstrap.configuration;
+  const bootstrapFingerprint = bootstrap.configurationFingerprint;
 
   const storeCheck = await verifyHoidTrustedHostRevisionStore(
-    bootstrap.configuration,
+    trustedConfiguration,
     revisionStore,
     expectedRepositoryFullName,
     nowInput,
@@ -359,10 +361,10 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
 
   const persistence = await persistHoidTrustRegistryMinimumRevision(
     config.trustRegistry as HoidReviewerTrustRegistry,
-    bootstrap.configuration.rootKey,
+    trustedConfiguration.rootKey,
     config.verifier as HoidEd25519VerificationPort,
     nowInput,
-    bootstrap.configuration.trustDomainId,
+    trustedConfiguration.trustDomainId,
     revisionStore,
   );
   if (
@@ -374,7 +376,7 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
     () => verifyHoidReviewerBoundPayloadSignatures(
       material.requests,
       config.trustRegistry as HoidReviewerTrustRegistry,
-      bootstrap.configuration.rootKey,
+      trustedConfiguration.rootKey,
       config.verifier as HoidEd25519VerificationPort,
       nowInput,
       persistence.minimumRevision,
@@ -400,11 +402,10 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
   });
   if (!innerPresenter) return blocked("presenter-unavailable");
 
-  const trustDomainId = bootstrap.configuration.trustDomainId;
+  const trustDomainId = trustedConfiguration.trustDomainId;
   const registryRevision = persistence.registryRevision;
   const verifiedAt = nowInput;
-  const bootstrapFingerprint = bootstrap.configurationFingerprint;
-  const bootstrapExpiresAt = bootstrap.configuration.expiresAt;
+  const bootstrapExpiresAt = trustedConfiguration.expiresAt;
 
   const presenter: HoidTrustedVerifiedAnswerPresenter = Object.freeze({
     async present(answer: unknown): Promise<HoidAnswerPresentation> {

@@ -159,7 +159,7 @@ export function inspectHoidProviderSelectionSnapshot(
     request.question.length < 1 ||
     request.question.length > MAX_QUESTION_LENGTH ||
     request.question !== request.question.trim() ||
-    /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(request.question) ||
+    /[\u0000-\u001F\u007F\p{Cf}]/u.test(request.question) ||
     typeof request.intent !== "string"
   ) return "request-fields";
 

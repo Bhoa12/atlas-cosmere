@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 43 |
-| Original staged summaries | 43 |
-| Summaries pending review | 43 |
+| Individually inspected chapter documents | 46 |
+| Original staged summaries | 46 |
+| Summaries pending review | 46 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -38,9 +38,9 @@ The current continuation candidates are:
 | Work | Next chapter to inspect |
 |---|---:|
 | El Imperio Final | 6 |
-| El Camino de los Reyes | 13 |
-| Danzante del Filo | 14 |
-| Esquirla del amanecer | 14 |
+| El Camino de los Reyes | 14 |
+| Danzante del Filo | 15 |
+| Esquirla del amanecer | 15 |
 
 The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
@@ -125,3 +125,8 @@ After inspecting El Imperio Final chapter 5, El Camino de los Reyes chapter 12, 
 | Esquirla del amanecer | 14 |
 
 The planner remains metadata-only. It records candidate locators and the minimum open cursor N+1; the editorial evidence record stores the completed-through watermark N. Every candidate still requires explicit local source selection and candidate-only inspection. The four Run 170 summaries remain pending review and production remains empty.
+
+
+## Run 174 — refreshed continuation queue
+
+After inspecting El Camino de los Reyes chapter 13, Danzante del Filo chapter 14 and Esquirla del amanecer chapter 14, the continuation candidates are El Imperio Final chapter 6, El Camino de los Reyes chapter 14, Danzante del Filo chapter 15 and Esquirla del amanecer chapter 15. These are metadata-only candidates; the current Library listing did not contain `cosmere.epub`, so the Cosmere continuation remains uninspected until that exact source is available.

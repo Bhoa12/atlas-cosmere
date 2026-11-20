@@ -198,5 +198,5 @@ After inspecting El Camino de los Reyes chapter 16, Danzante del Filo chapter 17
 | Danzante del Filo | 18 |
 | Esquirla del amanecer | 18 |
 
-The planner remains metadata-only. The three new chapter-N summaries carry completed-through watermark N and require the reader to reach chapter N+1 before they can be unlocked. All three remain pending editorial review; production knowledge is unchanged.
+The planner remains metadata-only. The three new chapter-N summaries carry completed-through watermark N and require the reader to reach chapter N+1 before they can be unlocked. All three remain pending editorial review; production knowledge is unchanged. The current Library inventory used in this run did not include `cosmere.epub`, so El Imperio Final chapter 9 remains a metadata-only candidate and no TFE passage was inspected.
 

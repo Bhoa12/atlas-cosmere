@@ -64,6 +64,7 @@ function progress(chapter: number) {
 function fixture(initialRevision = 2) {
   let currentRevision = initialRevision;
   let currentNow = now;
+  let currentProgress = progress(3);
   const knowledge: HoidKnowledgeEntry[] = [{
     id: "evidence-alpha",
     aliases: ["Personaje Alfa"],
@@ -158,6 +159,11 @@ function fixture(initialRevision = 2) {
     },
   });
   const clock = Object.freeze({ now: () => currentNow });
+  const progressPort = Object.freeze({
+    async readProgressSnapshot() {
+      return currentProgress;
+    },
+  });
   const answer = Object.freeze({
     status: "authorized",
     text: claim.text,
@@ -186,6 +192,7 @@ function fixture(initialRevision = 2) {
     verifier,
     bootstrapPort,
     revisionStore,
+    progressPort,
     expectedRepositoryFullName: repository,
     clock,
   });
@@ -194,6 +201,7 @@ function fixture(initialRevision = 2) {
     answer,
     setNow(value: string) { currentNow = value; },
     setRevision(value: number) { currentRevision = value; },
+    setProgress(chapter: number) { currentProgress = progress(chapter); },
   };
 }
 
@@ -205,7 +213,7 @@ describe("Hoid trusted verified answer presentation", () => {
     if (result.status !== "ready") return;
     expect(result.verifiedClaimCount).toBe(1);
     expect(result.trustRegistryRevision).toBe(3);
-    expect(await result.presenter.present(data.answer, progress(3))).toMatchObject({
+    expect(await result.presenter.present(data.answer)).toMatchObject({
       status: "ready",
       text: "Afirmación editorial aprobada y verificable.",
     });
@@ -273,7 +281,7 @@ describe("Hoid trusted verified answer presentation", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     data.setRevision(4);
-    expect(await result.presenter.present(data.answer, progress(3))).toMatchObject({
+    expect(await result.presenter.present(data.answer)).toMatchObject({
       status: "withheld",
       reason: "not-authorized",
     });
@@ -285,7 +293,7 @@ describe("Hoid trusted verified answer presentation", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     data.setNow("2026-12-02T00:00:00.000Z");
-    expect(await result.presenter.present(data.answer, progress(3))).toMatchObject({
+    expect(await result.presenter.present(data.answer)).toMatchObject({
       status: "withheld",
       reason: "not-authorized",
     });
@@ -296,7 +304,8 @@ describe("Hoid trusted verified answer presentation", () => {
     const result = await createHoidTrustedVerifiedAnswerPresenter(data.config);
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
-    expect(await result.presenter.present(data.answer, progress(2))).toMatchObject({
+    data.setProgress(2);
+    expect(await result.presenter.present(data.answer)).toMatchObject({
       status: "withheld",
       reason: "locked-evidence",
     });
@@ -328,4 +337,33 @@ describe("Hoid trusted verified answer presentation", () => {
       reason: "invalid-signed-claims",
     });
   });
+
+  it("ignores caller-supplied progress and reads only the host progress port", async () => {
+    const data = fixture();
+    const result = await createHoidTrustedVerifiedAnswerPresenter(data.config);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    data.setProgress(2);
+    const call = result.presenter.present as unknown as (answer: unknown, forgedProgress: unknown) => Promise<unknown>;
+    expect(await call(data.answer, progress(100))).toMatchObject({
+      status: "withheld",
+      reason: "locked-evidence",
+    });
+  });
+
+  it("withholds when the authoritative progress port fails", async () => {
+    const data = fixture();
+    const config = {
+      ...data.config,
+      progressPort: { async readProgressSnapshot() { throw new Error("progress store unavailable"); } },
+    };
+    const result = await createHoidTrustedVerifiedAnswerPresenter(config);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(await result.presenter.present(data.answer)).toMatchObject({
+      status: "withheld",
+      reason: "not-authorized",
+    });
+  });
+
 });

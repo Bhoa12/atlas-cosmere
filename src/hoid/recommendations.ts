@@ -82,9 +82,9 @@ export function recommendUnstartedSources(
  * works are active and no activeBookId is supplied, the function does not
  * guess which one the reader intends to continue.
  *
- * ReadingPosition.chapter is the current/open chapter cursor (the v2 cursor
- * projection uses the same value). Therefore completedThroughChapter is
- * currentChapter - 1; a completed=true position never produces a resume item.
+ * ReadingPosition.chapter is the completed-through watermark projected by
+ * the v2 cursor boundary. The next open chapter is chapter + 1; a
+ * completed=true position never produces a resume item.
  */
 export function recommendReadingNextSteps(
   readingInput: unknown,
@@ -119,7 +119,8 @@ export function recommendReadingNextSteps(
 
   let resume: HoidRecommendation | null = null;
   if (activePosition && typeof activePosition.chapter === "number") {
-    const currentChapter = activePosition.chapter;
+    const completedThroughChapter = activePosition.chapter;
+    const currentChapter = completedThroughChapter + 1;
     const activeSourceId = activePosition.bookId;
     const source = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === activeSourceId);
     const manifestResult = getHoidReadingManifest(activeSourceId);
@@ -132,7 +133,7 @@ export function recommendReadingNextSteps(
         title: source.title,
         reason: "resume-current-work" as const,
         currentChapter,
-        completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
+        completedThroughChapter,
       });
     }
   }

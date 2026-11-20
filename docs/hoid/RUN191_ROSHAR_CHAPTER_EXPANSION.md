@@ -84,7 +84,7 @@ The first PR validation run exposed one stale assertion in `cosmereNavigationAud
 
 All four affected workflows shared this same assertion. The stale expectations were updated to 16 / 17 / 17 in a dedicated test-only commit. No production runtime code or authorization policy was weakened.
 
-The corrected code/test commit `e08d02a0dda028a4a9abe6bf646090335f0121ac` then passed **15/15 GitHub Actions workflows**, including source coverage, editorial draft validation, source ingestion, offline EPUB ingestion, Cosmere navigation audit, reading manifests, atomic-claim spoiler gating and the complete editorial review bundle. The final branch HEAD adds three documentation-only commits after that validated code/test commit; none changes source code or tests.
+The corrected code/test commit `e08d02a0dda028a4a9abe6bf646090335f0121ac` then passed **15/15 GitHub Actions workflows**, including source coverage, editorial draft validation, source ingestion, offline EPUB ingestion, Cosmere navigation audit, reading manifests, atomic-claim spoiler gating and the complete editorial review bundle. Subsequent commits update documentation only; none changes source code or tests.
 
 ## Validation boundary
 

@@ -180,4 +180,13 @@ The current Library copy of `cosmere.epub` was re-opened for the next planned TF
 
 One original Spanish summary was added to staging with its exact edition-bound locator and source digest. Its completed-through evidence watermark is chapter 7; the minimum open reader cursor is chapter 8. It remains `pending-review` and is not part of production knowledge.
 
-The current inventory is **55 individually inspected chapter documents and 55 original summaries pending review**, across the same four works. The catalogue remains at 24 works and 1,106 verified navigation locators. Approved claims and production knowledge remain at zero; the activation receipt remains null. No EPUB bytes, XHTML bodies, copied passages, images or private file paths were committed.
+The current inventory at the end of Run 178 was **54 individually inspected chapter documents and 54 original summaries pending review**, across the same four works. The catalogue remained at 24 works and 1,106 verified navigation locators. Approved claims and production knowledge remained at zero; the activation receipt remained null. No EPUB bytes, XHTML bodies, copied passages, images or private file paths were committed.
+
+
+## Run 181 — El Imperio Final chapter eight
+
+The current Library copy of `cosmere.epub` was materialized locally for a one-chapter inspection. The complete ZIP passed CRC validation. The EPUB navigation SHA-256 matched the registered edition digest. The Chapter 8 target resolved to one OPF manifest item, was present in the reading spine, and followed the already registered Chapter 7 XHTML digest. The exact Chapter 8 XHTML digest is `5dc769cfdd8dfbfa91292ec9421b0ede94c8e1b05fd3560f9d9503b058e43d48`.
+
+One original Spanish summary was added to editorial staging. Its evidence source and completed-through watermark are Chapter 8; the first cursor eligible to unlock it is Chapter 9. It remains `pending-review` and is not production knowledge.
+
+The current inventory is **55 individually inspected chapter documents and 55 original summaries pending review**, across four works. The catalogue remains at 24 works and 1,106 verified navigation locators. Approved claims and production knowledge remain at zero; the activation receipt remains null. The EPUB was not committed; no XHTML body or copied passage was uploaded.

@@ -44,6 +44,7 @@ jobs:
           src/hoid/selectionProtocol.test.ts
           src/hoid/providerTimeout.test.ts
           src/hoid/recommendations.test.ts
+          src/hoid/readingAwareRecommendations.test.ts
           src/hoid/evidenceRuntime.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
       - name: Type-check source coverage boundaries
@@ -62,5 +63,7 @@ jobs:
           src/hoid/selectionProtocol.ts
           src/hoid/providerTimeout.ts
           src/hoid/recommendations.ts
+          src/hoid/readingAwareRecommendations.ts
+          src/hoid/conversationGateway.ts
           src/hoid/evidenceRuntime.ts
           src/hoid/cursorEvidenceRuntime.ts

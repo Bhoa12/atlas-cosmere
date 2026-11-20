@@ -7,6 +7,8 @@ on:
     paths:
       - "src/hoid/sourceIngestionPlan.ts"
       - "src/hoid/sourceIngestionPlan.test.ts"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionExecution.test.ts"
       - "src/hoid/sourceCoverage.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/editionStructure.ts"
@@ -19,6 +21,8 @@ on:
     paths:
       - "src/hoid/sourceIngestionPlan.ts"
       - "src/hoid/sourceIngestionPlan.test.ts"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionExecution.test.ts"
       - "src/hoid/sourceCoverage.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/editionStructure.ts"
@@ -47,6 +51,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/sourceIngestionPlan.test.ts
+          src/hoid/sourceIngestionExecution.test.ts
           src/hoid/sourceCoverage.test.ts
           src/hoid/verifiedChapterDocuments.test.ts
           src/hoid/verifiedChapterLocators.test.ts
@@ -58,6 +63,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/sourceIngestionPlan.ts
+          src/hoid/sourceIngestionExecution.ts
           src/hoid/sourceCoverage.ts
           src/hoid/bibliography.ts
           src/hoid/editionStructure.ts

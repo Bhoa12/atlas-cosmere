@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { createHoidExpoLocalEpubRuntime } from "../hoid/expoLocalEpubPlatform";
 import { createHoidImportLifecycleGuard } from "../hoid/epubImportLifecycle";
+import { getHoidSourceIngestionPlan } from "../hoid/sourceIngestionPlan";
+import { inspectHoidPlannedChapterCandidate, type HoidPlannedChapterInspectionCandidate } from "../hoid/sourceIngestionExecution";
 import type { HoidExpoPickedSource } from "../hoid/expoLocalEpubProvider";
 import type { HoidEpubPackageInspectionCandidate } from "../hoid/epubIngestion";
 import {
@@ -45,6 +47,8 @@ function rejectionMessage(reason: string): string {
   if (reason === "source-changed") {
     return "El archivo ha cambiado durante la inspección. Se ha descartado el resultado.";
   }
+  if (reason === "invalid-task" || reason === "manifest-mismatch") return "La tarea ya no coincide con el plan o manifiesto vigente. No se ha inspeccionado el documento.";
+  if (reason === "source-candidate-mismatch" || reason === "chapter-candidate-mismatch") return "La evidencia local no coincide con la fuente o edición seleccionada. Se ha descartado el resultado.";
   return "No se ha podido verificar la estructura EPUB. El archivo permanece sin vincular y no se ha cambiado tu progreso.";
 }
 
@@ -52,6 +56,7 @@ export const HoidEpubImportPanel: React.FC = () => {
   const [pickedSource, setPickedSource] = useState<HoidExpoPickedSource | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<HoidEpubImportChoice | null>(null);
   const [candidate, setCandidate] = useState<HoidEpubPackageInspectionCandidate | null>(null);
+  const [chapterCandidate, setChapterCandidate] = useState<HoidPlannedChapterInspectionCandidate | null>(null);
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
@@ -59,6 +64,7 @@ export const HoidEpubImportPanel: React.FC = () => {
   );
   const sourceIdRef = useRef<string | null>(null);
   const lifecycleRef = useRef(createHoidImportLifecycleGuard());
+  const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
 
   useEffect(() => {
     const lease = lifecycleRef.current.activate();
@@ -105,6 +111,7 @@ export const HoidEpubImportPanel: React.FC = () => {
       if (!lifecycleRef.current.isCurrent(operation)) return;
       setSelectedChoice(null);
       setCandidate(null);
+      setChapterCandidate(null);
       setMessage("Archivo local seleccionado. Ahora debes elegir explícitamente la obra y su edición registrada.");
       setSelectionOpen(true);
     } catch {
@@ -135,6 +142,7 @@ export const HoidEpubImportPanel: React.FC = () => {
     setBusy(true);
     setSelectedChoice(choice);
     setCandidate(null);
+    setChapterCandidate(null);
     setMessage("Verificando ZIP, paquete OPF, navegación y huella de la edición…");
     try {
       const result = await epubRuntime.ingestion.inspectPackage(descriptor);
@@ -156,6 +164,36 @@ export const HoidEpubImportPanel: React.FC = () => {
     }
   };
 
+
+  const inspectNextChapter = async () => {
+    const source = pickedSource;
+    const choice = selectedChoice;
+    const packageCandidate = candidate;
+    const task = plannedTask;
+    if (source === null || choice === null || packageCandidate === null || task === null || busy) return;
+    const descriptor = createHoidEpubSourceDescriptor(source.sourceId, choice.workId, choice.editionId);
+    if (descriptor === null) {
+      setMessage("La selección local ya no coincide con el catálogo. No se inspeccionará ningún capítulo.");
+      return;
+    }
+    const operation = lifecycleRef.current.beginOperation();
+    setBusy(true);
+    setChapterCandidate(null);
+    setMessage(`Inspeccionando localmente el documento del capítulo ${task.chapterNumber}…`);
+    try {
+      const result = await inspectHoidPlannedChapterCandidate(task, descriptor, packageCandidate, epubRuntime.ingestion);
+      if (!lifecycleRef.current.isCurrent(operation)) return;
+      if (result.status === "candidate") {
+        setChapterCandidate(result.candidate);
+        setMessage(`Capítulo ${result.candidate.chapterNumber} inspeccionado localmente. Solo se conserva su huella; no se guarda texto, no se crea un resumen y no se autoriza producción.`);
+      } else setMessage(rejectionMessage(result.reason));
+    } catch {
+      if (lifecycleRef.current.isCurrent(operation)) setMessage("La inspección del capítulo ha fallado de forma segura. No se ha creado un resumen ni se ha modificado el progreso.");
+    } finally {
+      if (lifecycleRef.current.isCurrent(operation)) setBusy(false);
+    }
+  };
+
   const releaseSource = async () => {
     const operation = lifecycleRef.current.beginOperation();
     const sourceId = sourceIdRef.current;
@@ -172,6 +210,7 @@ export const HoidEpubImportPanel: React.FC = () => {
         setPickedSource(null);
         setSelectedChoice(null);
         setCandidate(null);
+        setChapterCandidate(null);
         setSelectionOpen(false);
         setMessage("Fuente local liberada. No se ha guardado su URI ni su contenido.");
         setBusy(false);
@@ -249,9 +288,20 @@ export const HoidEpubImportPanel: React.FC = () => {
               <Text style={styles.metricLabel}>Recursos del spine</Text>
             </View>
           </View>
-          <Text style={styles.privacyNote}>
-            No se muestran títulos de capítulos. La coincidencia de edición no equivale a inspección narrativa ni a aprobación editorial.
-          </Text>
+          {plannedTask !== null && (
+            <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={inspectNextChapter} style={[styles.inspectButton, busy && styles.disabled]}>
+              <Text style={styles.inspectButtonText}>Inspeccionar capítulo {plannedTask.chapterNumber}</Text>
+            </TouchableOpacity>
+          )}
+          {chapterCandidate !== null && (
+            <View style={styles.chapterPreview}>
+              <Text style={styles.chapterPreviewTitle}>DOCUMENTO XHTML INSPECCIONADO</Text>
+              <Text style={styles.previewMeta}>Capítulo {chapterCandidate.chapterNumber} · desbloqueo mínimo al llegar al capítulo {chapterCandidate.minimumReaderChapter}</Text>
+              <Text style={styles.previewMeta}>SHA-256: {chapterCandidate.documentSha256.slice(0, 20)}…</Text>
+              <Text style={styles.privacyNote}>Resultado candidate-only. No contiene texto, no añade un resumen y no modifica el progreso ni el conocimiento de producción.</Text>
+            </View>
+          )}
+          <Text style={styles.privacyNote}>La inspección devuelve solo metadatos y huellas. La coincidencia de edición o un documento inspeccionado no equivalen a aprobación editorial.</Text>
         </View>
       )}
 
@@ -331,6 +381,10 @@ const styles = StyleSheet.create({
   metric: { flex: 1, padding: 7, borderRadius: 8, backgroundColor: "#0b1424" },
   metricValue: { color: "#ffffff", fontSize: 17, fontWeight: "800" },
   metricLabel: { color: "#94a3b8", fontSize: 8, lineHeight: 12, marginTop: 2 },
+  inspectButton: { alignSelf: "flex-start", marginTop: 10, backgroundColor: "#312e81", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  inspectButtonText: { color: "#ffffff", fontSize: 10, fontWeight: "800" },
+  chapterPreview: { marginTop: 9, padding: 9, borderRadius: 8, backgroundColor: "#0b1424", borderWidth: 1, borderColor: "#475569" },
+  chapterPreviewTitle: { color: "#86efac", fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
   privacyNote: { color: "#94a3b8", fontSize: 9, lineHeight: 13, marginTop: 9 },
   modalBackdrop: { flex: 1, justifyContent: "center", padding: 18, backgroundColor: "rgba(0,0,0,0.72)" },
   modal: { maxHeight: "85%", backgroundColor: "#0f172a", borderRadius: 16, borderWidth: 1, borderColor: "#334155", padding: 14 },

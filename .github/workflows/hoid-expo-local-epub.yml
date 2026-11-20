@@ -7,6 +7,11 @@ on:
     paths:
       - "package.json"
       - "src/hoid/epubIngestion.ts"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionExecution.test.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
       - "src/hoid/epubRangeRuntimeAdapters.ts"
       - "src/hoid/epubRangeRuntimeAdapters.test.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -18,6 +23,11 @@ on:
     paths:
       - "package.json"
       - "src/hoid/epubIngestion.ts"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionExecution.test.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
       - "src/hoid/epubRangeRuntimeAdapters.ts"
       - "src/hoid/epubRangeRuntimeAdapters.test.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -45,6 +55,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/sourceIngestionExecution.test.ts
           src/hoid/expoLocalEpubProvider.test.ts
           src/hoid/epubIngestion.test.ts
       - name: Type-check the local ingestion boundary
@@ -52,7 +63,9 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/epubRangeRuntimeAdapters.ts
+          src/hoid/sourceIngestionExecution.ts
           src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/sourceIngestionExecution.test.ts
           src/hoid/expoLocalEpubProvider.ts
           src/hoid/expoLocalEpubProvider.test.ts
           src/hoid/expoLocalEpubPlatform.ts
@@ -66,3 +79,9 @@ jobs:
           src/hoid/verifiedChapterDocuments.ts
           src/hoid/verifiedChapterLocators.ts
           src/hoid/readingManifest.ts
+
+      - name: Type-check the Expo local EPUB panel
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native --esModuleInterop
+          src/components/HoidEpubImportPanel.tsx

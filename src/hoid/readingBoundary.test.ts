@@ -145,7 +145,7 @@ describe("Hoid reader spoiler boundary", () => {
 
     expect(result).toBeNull();
   });
-  it("keeps Run 170, Run 174, Run 175, Run 176 and Run 178 summaries locked at their source cursor and unlocks them at the next cursor", () => {
+  it("keeps Run 170, Run 174, Run 175, Run 176, Run 178 and Run 181 summaries locked at their source cursor and unlocks them at the next cursor", () => {
     const ids = new Set([
       "tfe.chapter-005.kelsier-venture-atium",
       "twok.chapter-012.adolin-abismoid-hunt",
@@ -162,9 +162,10 @@ describe("Hoid reader spoiler boundary", () => {
       "twok.chapter-015.adolin-aftermath-gavilar-message",
       "edgedancer.chapter-016.lift-pursues-skybreakers",
       "dawnshard.chapter-016.rysn-mural-acceptance",
+      "tfe.chapter-008.vin-sazed-renoux-training",
     ]);
     const drafts = HOID_EDITORIAL_DRAFTS.filter(draft => ids.has(draft.id));
-    expect(drafts).toHaveLength(15);
+    expect(drafts).toHaveLength(16);
 
     for (const draft of drafts) {
       const source = draft.evidenceSource;

@@ -958,4 +958,96 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
     expect(relationshipGateway.answer).not.toHaveBeenCalled();
     expect(runtime.answer).not.toHaveBeenCalled();
   });
+
+  it("rejects unread discovery before an in-progress work has been offered for resumption", async () => {
+    const current = snapshot(3);
+    const runtime = {
+      answer: vi.fn(async () => answer),
+      recommend: vi.fn(async () => ({
+        status: "ready" as const,
+        items: [
+          tfeRecommendation,
+          {
+            sourceId: "twok",
+            title: "El Camino de los Reyes",
+            reason: "resume-current-work",
+            currentChapter: 3,
+            completedThroughChapter: 2,
+          },
+        ],
+      })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.recommend({ progress: current, limit: 2 }))
+      .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
+  });
+
+  it("rejects unread recommendations that do not follow canonical bibliography order", async () => {
+    const current = snapshot(3);
+    const gateway = createHoidConversationGateway({
+      runtime: {
+        answer: vi.fn(async () => answer),
+        recommend: vi.fn(async () => ({
+          status: "ready" as const,
+          items: [elantrisRecommendation, tfeRecommendation],
+        })),
+      },
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.recommend({ progress: current, limit: 2 }))
+      .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
+  });
+
+  it("rejects active-work recommendations that contradict the reader's recorded order", async () => {
+    const twokCursor = createHoidReadingCursor("twok", 3);
+    const worCursor = createHoidReadingCursor("wor", 5);
+    if (twokCursor.status !== "ready" || worCursor.status !== "ready") {
+      throw new Error("Cursores sintéticos no disponibles");
+    }
+    const current = {
+      schemaVersion: 2,
+      revision: 2,
+      positions: [
+        { bookId: "twok", cursor: twokCursor.cursor, order: 1 },
+        { bookId: "wor", cursor: worCursor.cursor, order: 2 },
+      ],
+      updatedAt: UPDATED_AT,
+    };
+    const gateway = createHoidConversationGateway({
+      runtime: {
+        answer: vi.fn(async () => answer),
+        recommend: vi.fn(async () => ({
+          status: "ready" as const,
+          items: [
+            {
+              sourceId: "wor",
+              title: "Palabras radiantes",
+              reason: "resume-current-work",
+              currentChapter: 5,
+              completedThroughChapter: 4,
+            },
+            {
+              sourceId: "twok",
+              title: "El Camino de los Reyes",
+              reason: "resume-current-work",
+              currentChapter: 3,
+              completedThroughChapter: 2,
+            },
+          ],
+        })),
+      },
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.recommend({ progress: current, limit: 2 }))
+      .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
+  });
 });

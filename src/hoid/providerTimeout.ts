@@ -100,14 +100,20 @@ export async function invokeWithProviderDeadline<T>(
       const nodeTimer = timer as ReturnType<typeof setTimeout> & { unref?: () => void };
       nodeTimer.unref?.();
 
-      // Deferring invocation ensures the deadline and abort listener are
-      // installed before any adapter code can run.
-      void Promise.resolve()
-        .then(() => operation(controller.signal))
-        .then(
-          value => finish({ status: "completed", value }),
-          () => finish({ status: "failed" }),
-        );
+      // Defer adapter execution until the deadline and listener are installed.
+      // Re-check settlement inside the microtask: the caller may abort after
+      // this function returns but before the adapter is actually dispatched.
+      void Promise.resolve().then(() => {
+        if (settled || controller.signal.aborted) return;
+        try {
+          void Promise.resolve(operation(controller.signal)).then(
+            value => finish({ status: "completed", value }),
+            () => finish({ status: "failed" }),
+          );
+        } catch {
+          finish({ status: "failed" });
+        }
+      });
     } catch {
       finish({ status: "failed" });
     }

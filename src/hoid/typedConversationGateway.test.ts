@@ -187,6 +187,30 @@ describe("Hoid typed entity follow-up gateway", () => {
     });
   });
 
+  it("forwards caller cancellation through a typed follow-up without exposing typed context", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const controller = new AbortController();
+    const result = await gateway.answer({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      typedContext: typedContext(current),
+      depth: "brief",
+    }, { signal: controller.signal });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        question: "¿Y ese fenómeno?",
+        entityIds: ["synthetic.phenomenon-a"],
+        selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
+      }),
+      { signal: controller.signal },
+    );
+    const forwardedRequest = runtime.answer.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(forwardedRequest).not.toHaveProperty("typedContext");
+  });
+
   it("blocks ambiguous categories before entity reauthorization and runtime invocation", async () => {
     const current = snapshot();
     const ambiguous = typedContext(current);

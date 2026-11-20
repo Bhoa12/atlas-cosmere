@@ -138,10 +138,6 @@ export function presentHoidExplanation(
     metrics.characterCount > budget.maxCharacters
   ) return withheld("depth-budget-exceeded");
 
-  if (metrics.workCount < budget.minimumWorks) {
-    return withheld("comparison-provenance-required");
-  }
-
   if (budget.requireSegmentProvenance) {
     if (!presentation.segments || !presentation.layout) {
       return withheld("segment-provenance-required");
@@ -155,6 +151,10 @@ export function presentHoidExplanation(
         return withheld("comparison-provenance-required");
       }
     }
+  }
+
+  if (metrics.workCount < budget.minimumWorks) {
+    return withheld("comparison-provenance-required");
   }
 
   return Object.freeze({

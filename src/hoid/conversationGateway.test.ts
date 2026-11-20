@@ -1097,4 +1097,20 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
     expect(await gateway.recommend({ progress: current, limit: 2 }))
       .toEqual({ status: "unavailable", reason: "invalid-recommendations" });
   });
+  it("forwards caller cancellation options to the strict runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const controller = new AbortController();
+    const result = await gateway.answer({
+      question: "¿Qué se ha autorizado?",
+      progress: current,
+    }, { signal: controller.signal });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith(
+      expect.objectContaining({ question: "¿Qué se ha autorizado?" }),
+      { signal: controller.signal },
+    );
+  });
+
 });

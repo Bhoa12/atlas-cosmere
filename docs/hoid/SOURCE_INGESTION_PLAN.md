@@ -37,10 +37,10 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
-| El Imperio Final | 6 |
-| El Camino de los Reyes | 14 |
-| Danzante del Filo | 15 |
-| Esquirla del amanecer | 15 |
+| El Imperio Final | 8 |
+| El Camino de los Reyes | 16 |
+| Danzante del Filo | 17 |
+| Esquirla del amanecer | 17 |
 
 The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
@@ -145,7 +145,7 @@ Tras inspeccionar El Imperio Final capítulo 6, El Camino de los Reyes capítulo
 
 | Obra | Próximo capítulo |
 |---|---:|
-| El Imperio Final | 8 |
+| El Imperio Final | 7 |
 | El Camino de los Reyes | 15 |
 | Danzante del Filo | 16 |
 | Esquirla del amanecer | 16 |

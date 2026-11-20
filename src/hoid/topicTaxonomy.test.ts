@@ -94,9 +94,9 @@ describe("Hoid reviewed topic taxonomy", () => {
       kind: "concept",
       provenance: "verified",
       summary: CLAIM_TEXT,
-      evidenceSource: { bookId: "tfe", chapter: 5, locatorId: locator("tfe", 5) },
-      evidenceUnlock: { bookId: "tfe", chapter: 5 },
-      firstSafeAppearance: { bookId: "tfe", chapter: 5 },
+      evidenceSource: { bookId: "tfe", chapter: 6, locatorId: locator("tfe", 6) },
+      evidenceUnlock: { bookId: "tfe", chapter: 6 },
+      firstSafeAppearance: { bookId: "tfe", chapter: 6 },
     };
     expect(validateHoidTopicAssignments([record], [claim], [uninspected]).status).toBe("invalid");
   });

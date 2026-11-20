@@ -10,6 +10,7 @@ import {
   parseHoidClaimSelectionResponse,
 } from "./selectionProtocol";
 import type { HoidClaimSelectionRequest, HoidClaimSelectionTransportContext } from "./providerAdapter";
+import type { HoidClaimSelector } from "./evidenceRuntime";
 import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
 
 const budget: HoidAnswerSelectionBudget = Object.freeze({
@@ -43,6 +44,13 @@ function abortError(): Error {
 }
 
 describe("Hoid provider-neutral selector adapter", () => {
+  it("satisfies the runtime selector contract without provider-specific dependencies", () => {
+    const selector: HoidClaimSelector = createHoidClaimSelectorAdapter(async request =>
+      createHoidClaimSelectionResponse(request, ["claim.alpha"])
+    );
+    expect(typeof selector.selectClaims).toBe("function");
+  });
+
   it("accepts only immutable protocol snapshots without raw progress", () => {
     const request = createRequest();
     expect(inspectHoidProviderSelectionSnapshot(request)).toBeNull();

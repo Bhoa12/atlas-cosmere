@@ -119,20 +119,20 @@ export function recommendReadingNextSteps(
 
   let resume: HoidRecommendation | null = null;
   if (activePosition && typeof activePosition.chapter === "number") {
-    const source = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === activePosition!.bookId);
-    const manifestResult = getHoidReadingManifest(activePosition.bookId);
+    const currentChapter = activePosition.chapter;
+    const activeSourceId = activePosition.bookId;
+    const source = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === activeSourceId);
+    const manifestResult = getHoidReadingManifest(activeSourceId);
     const hasExactUnit = manifestResult.status === "ready" &&
-      manifestResult.manifest.units.some(unit => unit.chapterNumber === activePosition!.chapter);
+      manifestResult.manifest.units.some(unit => unit.chapterNumber === currentChapter);
 
     if (source && hasExactUnit) {
       resume = Object.freeze({
         sourceId: source.id,
         title: source.title,
         reason: "resume-current-work" as const,
-        currentChapter: activePosition.chapter,
-        completedThroughChapter: activePosition.chapter > 1
-          ? activePosition.chapter - 1
-          : null,
+        currentChapter,
+        completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
       });
     }
   }

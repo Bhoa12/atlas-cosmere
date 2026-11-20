@@ -132,6 +132,18 @@ function isFrozenDenseStringArray(value: unknown): value is readonly string[] {
  * Only protocol-factory snapshots may cross this adapter boundary.
  * Exact keys prevent raw reading/progress fields from being forwarded.
  */
+function isFrozenDenseUniqueEvidenceArray(value: unknown): value is readonly string[] {
+  if (!isFrozenDenseStringArray(value) || value.length < 1 || value.length > MAX_CANDIDATE_EVIDENCE_IDS) {
+    return false;
+  }
+  const seen = new Set<string>();
+  for (const id of value) {
+    if (!CLAIM_ID_PATTERN.test(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
+  return true;
+}
+
 export type HoidProviderSelectionSnapshotIssue =
   | "request-shape"
   | "request-fields"

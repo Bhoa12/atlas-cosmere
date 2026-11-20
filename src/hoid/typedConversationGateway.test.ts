@@ -8,6 +8,7 @@ import { createHoidReadingCursor } from "./readingManifest";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidTypedConversationContext } from "./typedConversationContext";
+import { HOID_EXPLANATION_DEPTH_BUDGETS } from "./explanationDepth";
 
 const UPDATED_AT = "2026-11-18T15:00:00.000Z";
 
@@ -110,6 +111,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y esa organización?",
       progress: current,
       intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.organization-a"],
     });
     if (result.status === "ready") {
@@ -140,7 +142,48 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.phenomenon-a"],
+    });
+  });
+
+  it("forwards an explicitly requested brief budget through a typed phenomenon follow-up", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      typedContext: typedContext(current),
+      depth: "brief",
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
+      entityIds: ["synthetic.phenomenon-a"],
+    });
+  });
+
+  it("forwards an explicitly requested comparative budget through a typed entity follow-up", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y esa organización?",
+      progress: current,
+      typedContext: typedContext(current),
+      depth: "comparative",
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith({
+      question: "¿Y esa organización?",
+      progress: current,
+      intent: "explain",
+      selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.comparative,
+      entityIds: ["synthetic.organization-a"],
     });
   });
 

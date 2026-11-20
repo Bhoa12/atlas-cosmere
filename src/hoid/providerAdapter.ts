@@ -60,7 +60,8 @@ function hasExactFrozenDataProperties(
     ) return false;
 
     const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) return false;
+    // Accept plain records from another JS realm while rejecting class instances.
+    if (prototype !== null && Object.getPrototypeOf(prototype) !== null) return false;
 
     const keys = Reflect.ownKeys(value);
     if (keys.length !== expectedKeys.length) return false;
@@ -84,13 +85,21 @@ function hasExactFrozenDataProperties(
   }
 }
 
+function isStandardArray(value: unknown): value is unknown[] {
+  try {
+    if (!Array.isArray(value)) return false;
+    const arrayPrototype = Object.getPrototypeOf(value);
+    if (arrayPrototype === null) return false;
+    const objectPrototype = Object.getPrototypeOf(arrayPrototype);
+    return objectPrototype !== null && Object.getPrototypeOf(objectPrototype) === null;
+  } catch {
+    return false;
+  }
+}
+
 function isFrozenDenseStringArray(value: unknown): value is readonly string[] {
   try {
-    if (
-      !Array.isArray(value) ||
-      !Object.isFrozen(value) ||
-      Object.getPrototypeOf(value) !== Array.prototype
-    ) return false;
+    if (!isStandardArray(value) || !Object.isFrozen(value)) return false;
 
     const keys = Reflect.ownKeys(value);
     if (keys.length !== value.length + 1 || !keys.includes("length")) return false;
@@ -187,11 +196,10 @@ export function inspectHoidProviderSelectionSnapshot(
 
   const candidates = request.candidates;
   if (
-    !Array.isArray(candidates) ||
+    !isStandardArray(candidates) ||
     candidates.length < 1 ||
     candidates.length > MAX_CANDIDATES ||
-    !Object.isFrozen(candidates) ||
-    Object.getPrototypeOf(candidates) !== Array.prototype
+    !Object.isFrozen(candidates)
   ) return "candidate-array";
 
   const candidateKeys = Reflect.ownKeys(candidates);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHoidEvidenceRuntime, type HoidApprovedClaim, type HoidClaimSelectionRequest } from "./evidenceRuntime";
+import { createHoidEvidenceRuntime, type HoidApprovedClaim, type HoidClaimSelectionRequest, type HoidClaimSelectionContext } from "./evidenceRuntime";
 import { createHoidClaimSelectionResponse } from "./selectionProtocol";
 import {
   createHoidCursorEvidenceRuntime,
@@ -89,11 +89,17 @@ function snapshot(
 }
 
 function selectorAdapter(
-  selectClaims: (request: HoidClaimSelectionRequest) => Promise<unknown>,
+  selectClaims: (
+    request: HoidClaimSelectionRequest,
+    context: HoidClaimSelectionContext,
+  ) => Promise<unknown>,
 ) {
   return {
-    selectClaims: async (request: HoidClaimSelectionRequest) => {
-      const result = await selectClaims(request);
+    selectClaims: async (
+      request: HoidClaimSelectionRequest,
+      context: HoidClaimSelectionContext,
+    ) => {
+      const result = await selectClaims(request, context);
       return Array.isArray(result) && result.every(item => typeof item === "string")
         ? createHoidClaimSelectionResponse(request, result as string[])
         : result;
@@ -345,6 +351,32 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(result.status).toBe("authorized");
     expect(result.claimIds).toEqual(["claim-cross-book"]);
     expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards caller cancellation through the cursor-native facade", async () => {
+    const controller = new AbortController();
+    let providerSignal: AbortSignal | undefined;
+    const selector = vi.fn(async (
+      _request: HoidClaimSelectionRequest,
+      context: HoidClaimSelectionContext,
+    ) => {
+      providerSignal = context.signal;
+      return new Promise<unknown>(() => {});
+    });
+    const { facade } = createFacade(selector);
+    const pending = facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
+    }, { signal: controller.signal });
+
+    await Promise.resolve();
+    expect(providerSignal).toBeDefined();
+    controller.abort();
+    const result = await pending;
+
+    expect(result.status).toBe("abstain");
+    expect(result.reason).toBe("request-cancelled");
+    expect(providerSignal?.aborted).toBe(true);
   });
 
 });

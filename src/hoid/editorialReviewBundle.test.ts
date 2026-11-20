@@ -248,7 +248,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toEqual({
       status: "complete",
-      approvedCount: 59,
+      approvedCount: 62,
       revisionRequiredCount: 0,
       rejectedCount: 0,
       missingCount: 0,
@@ -270,7 +270,7 @@ describe("Hoid complete editorial review bundle", () => {
     );
     expect(result).toMatchObject({
       status: "needs-revision",
-      approvedCount: 60,
+      approvedCount: 63,
       revisionRequiredCount: 1,
       missingCount: 0,
       promotionAllowed: false,

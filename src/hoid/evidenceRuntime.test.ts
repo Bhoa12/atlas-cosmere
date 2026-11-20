@@ -522,13 +522,38 @@ describe("HoidEvidenceRuntime", () => {
     const recommendations = runtime!.recommend([{ bookId: "tfe", chapter: 1 }], 2);
     expect(recommendations.status).toBe("ready");
     if (recommendations.status === "ready") {
-      expect(recommendations.items.map(item => item.sourceId)).toEqual(["woa", "hoa"]);
-      expect(recommendations.items.every(item => item.reason === "unread-source")).toBe(true);
+      expect(recommendations.items.map(item => item.sourceId)).toEqual(["tfe", "woa"]);
+      expect(recommendations.items[0]).toMatchObject({
+        reason: "resume-current-work",
+        currentChapter: 2,
+        completedThroughChapter: 1,
+      });
+      expect(recommendations.items[1].reason).toBe("unread-source");
     }
 
     const invalid = runtime!.recommend(null);
     expect(invalid.status).toBe("abstain");
     if (invalid.status === "abstain") expect(invalid.reason).toBe("invalid-progress");
+  });
+
+
+  it("uses the explicitly active work when several legacy progress positions exist", () => {
+    const runtime = createRuntime();
+    const recommendations = runtime!.recommend([
+      { bookId: "tfe", chapter: 8 },
+      { bookId: "elantris", chapter: 3 },
+    ], 1, "elantris");
+
+    expect(recommendations.status).toBe("ready");
+    if (recommendations.status === "ready") {
+      expect(recommendations.items).toEqual([{
+        sourceId: "elantris",
+        title: "Elantris",
+        reason: "resume-current-work",
+        currentChapter: 4,
+        completedThroughChapter: 3,
+      }]);
+    }
   });
 
 

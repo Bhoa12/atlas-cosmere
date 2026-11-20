@@ -4,7 +4,7 @@ import { canonicalEvidenceScope, evidenceCitationFor, isEvidenceUnlocked, type H
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { validatedKnowledge } from "./catalogValidation";
 import { invokeWithProviderDeadline } from "./providerTimeout";
-import { recommendUnstartedSources, type HoidRecommendation } from "./recommendations";
+import { recommendReadingNextSteps, type HoidRecommendation } from "./recommendations";
 import { retrieveAuthorized } from "./retrieval";
 import { validHoidQuestion } from "./requestValidation";
 import { validEditionBoundReadingPositions } from "./editionProgressValidation";
@@ -616,14 +616,14 @@ export class HoidEvidenceRuntime {
     });
   }
 
-  recommend(readingInput: unknown, limit = 3): HoidEvidenceRecommendationResult {
+  recommend(readingInput: unknown, limit = 3, activeBookId?: string): HoidEvidenceRecommendationResult {
     const reading = knownReadingPositions(readingInput);
     if (reading === null) {
       return Object.freeze({ status: "abstain", reason: "invalid-progress", items: Object.freeze([]) as readonly [] });
     }
     return Object.freeze({
       status: "ready",
-      items: Object.freeze(recommendUnstartedSources(reading, limit)),
+      items: Object.freeze(recommendReadingNextSteps(reading, limit, activeBookId)),
     });
   }
 }

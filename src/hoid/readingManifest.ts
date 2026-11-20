@@ -289,14 +289,20 @@ export function validateHoidReadingCursor(value: unknown): HoidReadingCursorVali
 }
 
 /**
- * Compatibility projection for the current chapter-based EvidenceRuntime.
- * Only a cursor that validates against its edition manifest can be projected.
+ * Compatibility projection into the legacy completed-through ReadingPosition.
+ *
+ * A v2 cursor identifies the chapter currently open, not a completed chapter.
+ * Therefore chapter N projects to N-1; an open chapter-one cursor has no
+ * completed numeric chapter and projects to null. This prevents callers of the
+ * compatibility helper from unlocking the chapter that is still open.
  */
 export function cursorToLegacyReadingPosition(value: unknown): ReadingPosition | null {
   const result = validateHoidReadingCursor(value);
   if (result.status !== "valid") return null;
+  const completedThroughChapter = result.cursor.chapterNumber - 1;
+  if (completedThroughChapter < 1) return null;
   return Object.freeze({
     bookId: result.cursor.bookId,
-    chapter: result.cursor.chapterNumber,
+    chapter: completedThroughChapter,
   });
 }

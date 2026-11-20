@@ -87,8 +87,15 @@ describe("edition-bound reading manifests", () => {
     });
     expect(cursorToLegacyReadingPosition(created.cursor)).toEqual({
       bookId: "tfe",
-      chapter: 12,
+      chapter: 11,
     });
+  });
+
+  it("does not project an open chapter-one cursor into completed progress", () => {
+    const created = createHoidReadingCursor("tfe", 1);
+    expect(created.status).toBe("ready");
+    if (created.status !== "ready") return;
+    expect(cursorToLegacyReadingPosition(created.cursor)).toBeNull();
   });
 
   it("rejects forged unit IDs, ordinals, chapter numbers and manifest digests", () => {

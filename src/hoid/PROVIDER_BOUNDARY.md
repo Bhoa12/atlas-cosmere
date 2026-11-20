@@ -16,6 +16,8 @@ El contexto narrativo enviado a un proveedor contiene únicamente:
 
 Los `aliases` se usan solo para recuperación interna y no deben cruzar esta frontera.
 
+Antes de construir un snapshot, la ruta de compatibilidad valida el progreso contra la estructura de la edición. Un capítulo fuera del rango numérico verificado, un cursor ambiguo o una obra sin segmentación segura se rechazan antes de invocar al proveedor; no se convierten en una lista vacía de progreso.
+
 ## Dos límites editoriales independientes
 
 Hoid mantiene dos umbrales que no deben confundirse:

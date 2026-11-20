@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 58 |
-| Original staged summaries | 58 |
-| Summaries pending review | 58 |
+| Individually inspected chapter documents | 59 |
+| Original staged summaries | 59 |
+| Summaries pending review | 59 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
@@ -37,7 +37,7 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
-| El Imperio Final | 9 |
+| El Imperio Final | 10 |
 | El Camino de los Reyes | 17 |
 | Danzante del Filo | 18 |
 | Esquirla del amanecer | 18 |
@@ -200,3 +200,10 @@ After inspecting El Camino de los Reyes chapter 16, Danzante del Filo chapter 17
 
 The planner remains metadata-only. The three new chapter-N summaries carry completed-through watermark N and require the reader to reach chapter N+1 before they can be unlocked. All three remain pending editorial review; production knowledge is unchanged. The current Library inventory used in this run did not include `cosmere.epub`, so El Imperio Final chapter 9 remains a metadata-only candidate and no TFE passage was inspected.
 
+
+
+## Run 192 — El Imperio Final chapter 9 inspected
+
+The Library now contains the user's `cosmere.epub` source. Run 192 explicitly selected that file and verified the registered navigation digest, the existing chapter-eight document digest, the chapter-nine navigation href, its unique OPF manifest item, reading-spine membership and exact XHTML SHA-256. The source planner remains metadata-only; it did not inspect the archive or authorize evidence.
+
+The chapter-nine original summary is staged separately with completed-through watermark 9 and minimum open reader cursor 10. It remains pending editorial review and is excluded from production knowledge. The deterministic continuation queue now advances El Imperio Final to chapter 10; the other existing continuations remain El Camino de los Reyes 17, Danzante del Filo 18 and Esquirla del amanecer 18.

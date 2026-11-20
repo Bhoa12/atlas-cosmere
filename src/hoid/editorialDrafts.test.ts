@@ -81,6 +81,7 @@ describe("Hoid editorial draft staging", () => {
       "0144eabf67c561f71884fb03a523cbf5d8f42f8458dc72fe3aded5bb64d99076",
       "03d9f250332a63ef25c0a8a592b1d1d3d0a08ab3fd511e4db138ba4b13b29576",
       "c341e1d3a83e251680ad04e2b80cdc95d5ade8cff1e1faf58dec3bd9520c3495",
+      "a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -101,7 +102,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(58);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(59);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -174,6 +175,7 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-016.kaladin-choice-and-crisalis",
       "edgedancer.chapter-017.lift-returns-to-the-alley",
       "dawnshard.chapter-017.nikli-negotiation-and-sea-creature",
+      "tfe.chapter-009.vin-kelsier-court-preparation",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]).toContain(draft.evidenceSource.chapter);

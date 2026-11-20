@@ -6,12 +6,12 @@ Run 121 closes the atomic-claim subject reference for `tfe.vin` using a separate
 
 The deterministic metadata-only manifest now contains:
 
-- 58 original chapter summaries;
+- 59 original chapter summaries;
 - 1 atomic claim;
 - 14 entity identity dossiers;
 - 3 relationship claims;
-- 58 distinct edition-bound source documents;
-- 76 total editorial records across summaries, claims, identities and relationships.
+- 59 distinct edition-bound source documents;
+- 77 total editorial records across summaries, claims, identities and relationships.
 
 All four source batches are revalidated before inclusion. The Vin dossier uses the existing chapter-one TFE document digest; the Kelsier dossier uses the existing chapter-two digest. Both dossiers remain pending review and do not declare aliases or first-appearance claims.
 
@@ -154,3 +154,12 @@ The staging bundle now includes original summaries for El Camino de los Reyes ch
 
 The metadata-only bundle contains **76 editorial records across 58 individually inspected chapter documents**: 58 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Structural readiness is not editorial approval. The production registry remains empty, with zero approved claims and no activation receipt.
 
+
+
+## Run 192 — El Imperio Final chapter 9
+
+One original Spanish summary was added for El Imperio Final chapter 9 after the current Library `cosmere.epub` passed ZIP CRC validation and its registered navigation and preceding chapter-eight digests matched. The chapter-nine XHTML target was resolved through navigation, matched to one OPF manifest item and confirmed in the reading spine before its bytes were fingerprinted.
+
+The summary is bound to edition `cosmere-epub-merged-v1`, its navigation digest, the exact relative chapter locator and document SHA-256 `e08f8b2845eb2d15ed9a1ad517d2207501ba0068f25797643e127919d92daedb`. Its independent summary SHA-256 is `a53963d7734af570e745e6a569ed1eeafa374eab234f7eac1bacd94d1020a5be`. The completed-through watermark is chapter 9 and the earliest eligible open cursor is chapter 10. The draft remains pending review and is excluded from production.
+
+The metadata-only bundle now contains **77 editorial records across 59 individually inspected chapter documents**: 59 summaries, one atomic claim, 14 identity dossiers and three relationship claims. Structural readiness is not editorial approval. Production remains empty; no activation receipt was created. No EPUB bytes, XHTML body or source passage was committed.

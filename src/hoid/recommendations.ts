@@ -1,5 +1,7 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { validReadingPositions } from "./readingValidation";
+import { getHoidReadingManifest } from "./readingManifest";
 import { ReadingPosition } from "./types";
 
 /**
@@ -20,9 +22,19 @@ export type HoidRecommendation =
       sourceId: string;
       title: string;
       reason: "resume-current-work";
+      /** The current/open chapter cursor, validated against the edition manifest. */
       currentChapter: number;
+      /** Chapters before the current/open cursor; null when the cursor is at chapter one. */
       completedThroughChapter: number | null;
     }>;
+
+const MAX_RECOMMENDATION_LIMIT = HOID_SOURCE_BIBLIOGRAPHY.length;
+
+function safeRecommendationLimit(limit: number): number {
+  return Number.isFinite(limit)
+    ? Math.min(MAX_RECOMMENDATION_LIMIT, Math.max(0, Math.floor(limit)))
+    : 0;
+}
 
 function hasStarted(sourceId: string, reading: ReadingPosition[]): boolean {
   return reading.some(position =>
@@ -41,9 +53,7 @@ export function recommendUnstartedSources(
   reading: ReadingPosition[],
   limit = 3,
 ): HoidRecommendation[] {
-  const safeLimit = Number.isFinite(limit)
-    ? Math.max(0, Math.floor(limit))
-    : 0;
+  const safeLimit = safeRecommendationLimit(limit);
   if (safeLimit === 0) return [];
 
   // This exported helper is also a public boundary. Validate even when the
@@ -57,11 +67,82 @@ export function recommendUnstartedSources(
   return HOID_SOURCE_BIBLIOGRAPHY
     .filter(source => !hasStarted(source.id, verifiedReading))
     .slice(0, safeLimit)
-    .map(source => ({
+    .map(source => Object.freeze({
       sourceId: source.id,
       title: source.title,
       reason: "unread-source" as const,
     }));
+}
+
+/**
+ * Recommend a safe next step from edition-validated progress.
+ *
+ * A resume recommendation is emitted only when the caller explicitly names
+ * the active work, or exactly one known work is in progress. When several
+ * works are active and no activeBookId is supplied, the function does not
+ * guess which one the reader intends to continue.
+ *
+ * ReadingPosition.chapter is the current/open chapter cursor (the v2 cursor
+ * projection uses the same value). Therefore completedThroughChapter is
+ * currentChapter - 1; a completed=true position never produces a resume item.
+ */
+export function recommendReadingNextSteps(
+  readingInput: unknown,
+  limit = 3,
+  activeBookId?: unknown,
+): HoidRecommendation[] {
+  const safeLimit = safeRecommendationLimit(limit);
+  if (safeLimit === 0) return [];
+
+  if (activeBookId !== undefined && (
+    typeof activeBookId !== "string" ||
+    activeBookId !== activeBookId.trim() ||
+    !HOID_SOURCE_BIBLIOGRAPHY.some(source => source.id === activeBookId)
+  )) return [];
+
+  const canonicalReading = validEditionBoundReadingPositions(readingInput);
+  if (canonicalReading === null) return [];
+
+  const verifiedReading = knownReading(canonicalReading);
+  const inProgress = verifiedReading.filter(position =>
+    position.completed !== true &&
+    typeof position.chapter === "number" &&
+    position.chapter >= 1,
+  );
+
+  let activePosition: ReadingPosition | undefined;
+  if (typeof activeBookId === "string") {
+    activePosition = inProgress.find(position => position.bookId === activeBookId);
+  } else if (inProgress.length === 1) {
+    activePosition = inProgress[0];
+  }
+
+  let resume: HoidRecommendation | null = null;
+  if (activePosition && typeof activePosition.chapter === "number") {
+    const source = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === activePosition!.bookId);
+    const manifestResult = getHoidReadingManifest(activePosition.bookId);
+    const hasExactUnit = manifestResult.status === "ready" &&
+      manifestResult.manifest.units.some(unit => unit.chapterNumber === activePosition!.chapter);
+
+    if (source && hasExactUnit) {
+      resume = Object.freeze({
+        sourceId: source.id,
+        title: source.title,
+        reason: "resume-current-work" as const,
+        currentChapter: activePosition.chapter,
+        completedThroughChapter: activePosition.chapter > 1
+          ? activePosition.chapter - 1
+          : null,
+      });
+    }
+  }
+
+  const remaining = safeLimit - (resume ? 1 : 0);
+  const unread = remaining > 0
+    ? recommendUnstartedSources(canonicalReading, remaining)
+    : [];
+
+  return resume ? [resume, ...unread] : unread;
 }
 
 /**

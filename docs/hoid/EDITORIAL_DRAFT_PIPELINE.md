@@ -217,3 +217,16 @@ The current Library copy of `cosmere.epub` was available for a candidate-only lo
 One original Spanish summary, `tfe.chapter-007.marsh-vin-training`, was added to `HOID_EDITORIAL_DRAFTS`. It is bound to the edition ID, navigation digest, chapter-7 locator and exact document digest. The completed-through watermark is 7, so the minimum open reader cursor is chapter 8. The draft remains `pending-review` and is not imported into the production registry.
 
 No EPUB bytes, XHTML body, copied passage, extracted source text, image or private file path was committed. The source file was used only in the local inspection environment.
+
+## Run 191 — three new Roshar chapter drafts
+
+Three additional chapter documents were inspected from the private Library copies after revalidating the registered edition navigation digests, the previous chapter fingerprints, the OPF manifest entries and the reading-spine membership.
+
+| Work | Chapter | XHTML target | Document SHA-256 | Summary SHA-256 | Unlock cursor |
+|---|---:|---|---|---|---:|
+| El Camino de los Reyes | 16 | `Text/L1-037.xhtml` | `1f9d38db4cde7a471586ff7ed5d88cbef7a72b3616020ca1c4d8f06093e7da32` | `0144eabf67c561f71884fb03a523cbf5d8f42f8458dc72fe3aded5bb64d99076` | 17 |
+| Danzante del Filo | 17 | `Text/017.xhtml` | `250c26f671df7422277711bbefd1f72a381a5dd1791bb28d9efb50e7e8c1352c` | `03d9f250332a63ef25c0a8a592b1d1d3d0a08ab3fd511e4db138ba4b13b29576` | 18 |
+| Esquirla del amanecer | 17 | `Text/17.xhtml` | `85fe1ee6a0224ef0ebc04c8f3e327e30a6553f2623a7482be66d5a4e1b2af840` | `c341e1d3a83e251680ad04e2b80cdc95d5ade8cff1e1faf58dec3bd9520c3495` | 18 |
+
+The three summaries are original editorial prose and remain `pending-review`. No source passage or XHTML body is stored in the repository. No draft is promoted into the production registry.
+

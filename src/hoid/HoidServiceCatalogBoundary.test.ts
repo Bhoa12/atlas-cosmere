@@ -20,6 +20,18 @@ describe('HoidService catalog authorization boundary', () => {
     expect(provider.answer).not.toHaveBeenCalled();
   });
 
+  it('rejects progress outside the verified edition range before invoking a provider', async () => {
+    const provider: HoidProvider = { answer: vi.fn(async () => 'No debería llamarse') };
+    const result = await new HoidService(provider).answer({
+      question: 'Pregunta sintética sin spoilers.',
+      reading: [{ bookId: 'tfe', chapter: 999_999 }],
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('input-invalid');
+    expect(provider.answer).not.toHaveBeenCalled();
+  });
+
   it('allows an unlocked catalog entry through the provider boundary', async () => {
     const provider: HoidProvider = { answer: vi.fn(async () => 'Respuesta segura') };
     const catalog = new HoidKnowledgeCatalog([

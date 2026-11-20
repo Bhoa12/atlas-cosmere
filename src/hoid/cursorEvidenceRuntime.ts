@@ -7,6 +7,7 @@ import type {
   HoidEvidenceRecommendationResult,
   HoidEvidenceRuntime,
   HoidClaimIntent,
+  HoidRuntimeCallOptions,
 } from "./evidenceRuntime";
 import { projectHoidCursorPositionToBoundary } from "./readingBoundary";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
@@ -132,7 +133,7 @@ function invalidRecommendation(): HoidEvidenceRecommendationResult {
 export class HoidCursorEvidenceRuntime {
   constructor(private readonly runtime: HoidEvidenceRuntime) {}
 
-  async answer(input: unknown): Promise<HoidEvidenceAnswer> {
+  async answer(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidEvidenceAnswer> {
     const request = canonicalDataRecord(input, ANSWER_REQUEST_KEYS);
     if (
       request === null ||
@@ -163,7 +164,7 @@ export class HoidCursorEvidenceRuntime {
       ...(Object.prototype.hasOwnProperty.call(request, "selectionBudget")
         ? { selectionBudget: request.selectionBudget }
         : {}),
-    });
+    }, options);
   }
 
   recommend(

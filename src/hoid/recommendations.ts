@@ -22,10 +22,10 @@ export type HoidRecommendation =
       sourceId: string;
       title: string;
       reason: "resume-current-work";
-      /** The current/open chapter cursor, validated against the edition manifest. */
+      /** Next chapter to open, derived from the completed-through watermark and verified manifest. */
       currentChapter: number;
-      /** Chapters before the current/open cursor; null when the cursor is at chapter one. */
-      completedThroughChapter: number | null;
+      /** Last completed chapter; always currentChapter - 1 for a resumable numeric work. */
+      completedThroughChapter: number;
     }>;
 
 const MAX_RECOMMENDATION_LIMIT = HOID_SOURCE_BIBLIOGRAPHY.length;

@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 4 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 54 |
-| Original staged summaries | 54 |
-| Summaries pending review | 54 |
+| Individually inspected chapter documents | 55 |
+| Original staged summaries | 55 |
+| Summaries pending review | 55 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
 

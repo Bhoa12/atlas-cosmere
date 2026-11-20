@@ -44,6 +44,7 @@ jobs:
           src/hoid/selectionProtocol.test.ts
           src/hoid/providerTimeout.test.ts
           src/hoid/recommendations.test.ts
+          src/hoid/evidenceRuntime.test.ts
       - name: Type-check source coverage boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -60,3 +61,4 @@ jobs:
           src/hoid/selectionProtocol.ts
           src/hoid/providerTimeout.ts
           src/hoid/recommendations.ts
+          src/hoid/evidenceRuntime.ts

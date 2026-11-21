@@ -240,21 +240,27 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     };
   }
 
-  if (
+  const hasValidSummaryText =
     typeof record.summary === "string" &&
     record.summary.length > 0 &&
     record.summary.length <= MAX_SUMMARY_LENGTH &&
     record.summary === record.summary.trim() &&
-    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(record.summary)
-  ) {
-    entry.summary = record.summary;
-  }
-  if (
+    !/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(record.summary);
+  const hasValidProvenance =
     record.provenance === "verified" ||
     record.provenance === "limited" ||
-    record.provenance === "unavailable"
-  ) {
-    entry.provenance = record.provenance;
+    record.provenance === "unavailable";
+
+  // A summary is sensitive narrative context, not harmless catalog metadata.
+  // Keep it only when the complete evidence tuple survived canonicalization
+  // and the editorial provenance is explicitly verified. Otherwise the
+  // canonical entry is genuinely name-only: no summary text or provenance
+  // flag can leak through compatibility adapters such as validatedKnowledge().
+  if (entry.evidenceSource && entry.evidenceUnlock && hasValidProvenance) {
+    entry.provenance = record.provenance as HoidKnowledgeProvenance;
+    if (record.provenance === "verified" && hasValidSummaryText) {
+      entry.summary = record.summary as string;
+    }
   }
 
   return entry;

@@ -471,7 +471,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationTrustPort(null);
     setTopicRecommendationMessage('');
 
-    if (!topicRecommendationsTrustReady || !trustedTopicRecommendationPresenter) {
+    if (!topicRecommendationsTrustReady || !trustedAnswerPort || !trustedTopicRecommendationPresenter) {
       setTopicRecommendationMessage('Las recomendaciones temáticas están temporalmente bloqueadas hasta que cada afirmación pase por la autoridad editorial Ed25519 del host.');
       return;
     }

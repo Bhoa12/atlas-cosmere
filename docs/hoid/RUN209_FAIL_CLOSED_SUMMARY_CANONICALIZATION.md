@@ -37,8 +37,12 @@ name-only: `summary` and `provenance` are omitted.
 
 A valid evidence scope with `limited` or `unavailable` provenance may retain
 that status for editorial diagnostics, but never retains summary text.
-The catalog's existing `entriesForContext()` check remains an independent
-authorization boundary.\n\nThe public `findMatches()` method is also narrowed to a name-only
+The exported canonicalization helpers and `validatedKnowledge()` are
+ingestion/validation APIs. They have no reader-progress input and therefore do
+not authorize display, even when they return a complete verified summary with
+its watermark. Consumers must never send their returned summary directly to a
+provider or UI. The catalog's `entriesForContext()` method is the
+reader-progress-aware presentation source.\n\nThe public `findMatches()` method is also narrowed to a name-only
 projection (`id` and only the aliases that already matched the user's query).
 It never returns entity kind, first-safe chapter metadata, evidence or summary
 fields, and it does not reveal other aliases that may themselves be

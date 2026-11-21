@@ -196,7 +196,7 @@ function resolveAuthorizeMethod(value: unknown): ((request: HoidAliasDisclosureR
 }
 
 function canonicalExpectedMatches(
-  matches: readonly HoidKnowledgeMatch[],
+  matches: readonly HoidAliasDisclosureGrant[],
 ): readonly HoidAliasDisclosureGrant[] | null {
   const result: HoidAliasDisclosureGrant[] = [];
   const seenIds = new Set<string>();

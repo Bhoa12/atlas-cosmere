@@ -8,6 +8,7 @@ import {
   createHoidReadingCursor,
   cursorToLegacyReadingPosition,
 } from "./readingManifest";
+import { isChapterBeyondCompletedReadingBoundary } from "./readingBoundary";
 
 function cursor(bookId: string, chapter: number) {
   const result = createHoidReadingCursor(bookId, chapter);
@@ -40,14 +41,16 @@ describe("atlasProgressFromCursorSnapshot", () => {
     expect(Object.getPrototypeOf(result.chaptersByBook)).toBeNull();
 
     // The legacy authorization position is deliberately one chapter behind.
-    // Atlas display and spoiler authorization must not share this projection.
+    // The UI retains N so the community boundary can shield N and later.
     expect(cursorToLegacyReadingPosition(openCursor)).toEqual({
       bookId: "tfe",
       chapter: 11,
     });
+    expect(isChapterBeyondCompletedReadingBoundary(12, result.chaptersByBook.tfe)).toBe(true);
+    expect(isChapterBeyondCompletedReadingBoundary(11, result.chaptersByBook.tfe)).toBe(false);
   });
 
-  it("keeps chapter one visible even though it has no completed-through legacy chapter", () => {
+  it("keeps chapter one visible and shields its own chapter from community spoilers", () => {
     const firstCursor = cursor("tfe", 1);
     const result = atlasProgressFromCursorSnapshot(snapshot([
       { bookId: "tfe", cursor: firstCursor },
@@ -58,6 +61,7 @@ describe("atlasProgressFromCursorSnapshot", () => {
     expect(result.chaptersByBook.tfe).toBe(1);
     expect(cursorToLegacyReadingPosition(firstCursor)).toBeNull();
     expect(result.completedByBook.tfe).toBeUndefined();
+    expect(isChapterBeyondCompletedReadingBoundary(1, result.chaptersByBook.tfe)).toBe(true);
   });
 
   it("preserves explicit completion without inventing a final chapter", () => {

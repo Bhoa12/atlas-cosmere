@@ -3,6 +3,7 @@ import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import type { HoidPresentedCitation } from "./answerPresentation";
+import type { HoidEvidenceCitation } from "./evidenceScope";
 import { resolveProductionHoidTopicAssignments } from "./topicAssignmentActivation";
 import {
   getHoidTopicDefinition,
@@ -315,16 +316,7 @@ function resolveActiveAssignments(
   validator: (assignments: unknown) => HoidTopicAssignmentValidation,
 ): Readonly<{
   assignments: readonly HoidTopicAssignment[];
-  evidenceCitations: HoidTopicAssignmentValidation extends infer _T
-    ? readonly Readonly<{
-        evidenceId: string;
-        sourceBookId: string;
-        sourceChapter: number;
-        locatorId: string;
-        unlockBookId: string;
-        unlockChapter: number;
-      }>[]
-    : never;
+  evidenceCitations: readonly HoidEvidenceCitation[];
   entityFirstAppearances: readonly Readonly<{
     entityId: string;
     bookId: string;
@@ -603,10 +595,15 @@ export function createHoidTrustedTopicComparisonPresenter(
     (config.validateAssignments !== undefined && typeof config.validateAssignments !== "function")
   ) return null;
 
-  const presentDescriptor = config.trustedAnswerPort !== null &&
-    typeof config.trustedAnswerPort === "object"
-    ? Object.getOwnPropertyDescriptor(config.trustedAnswerPort, "present")
-    : undefined;
+  let presentDescriptor: PropertyDescriptor | undefined;
+  try {
+    presentDescriptor = config.trustedAnswerPort !== null &&
+      typeof config.trustedAnswerPort === "object"
+      ? Object.getOwnPropertyDescriptor(config.trustedAnswerPort, "present")
+      : undefined;
+  } catch {
+    return null;
+  }
   if (
     !presentDescriptor ||
     !Object.prototype.hasOwnProperty.call(presentDescriptor, "value") ||

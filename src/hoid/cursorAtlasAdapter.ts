@@ -2,17 +2,21 @@ import {
   validateHoidCursorProgressSnapshot,
   type HoidCursorProgressSnapshot,
 } from "./cursorProgressLedger";
-import { cursorToLegacyReadingPosition } from "./readingManifest";
 
 /**
- * Read-only compatibility projection for Atlas UI components that still
- * display numeric chapter counters. The v2 snapshot remains authoritative;
- * these maps must never be used as the source of Hoid's spoiler authorization.
+ * Read-only compatibility projection for Atlas UI components that display the
+ * chapter currently open in each work.
+ *
+ * The v2 cursor is authoritative. Its chapterNumber is the reader's current
+ * open chapter, so this display projection preserves N exactly. It must never
+ * be used as the completed-through position for spoiler authorization:
+ * cursorToLegacyReadingPosition deliberately maps N to N-1 for that purpose.
  */
 export type AtlasCursorProgressProjection =
   | Readonly<{
       status: "ready";
       snapshot: HoidCursorProgressSnapshot;
+      /** Current/open chapter for display only; never an authorization cursor. */
       chaptersByBook: Readonly<Record<string, number>>;
       completedByBook: Readonly<Record<string, true>>;
     }>
@@ -38,15 +42,11 @@ export function atlasProgressFromCursorSnapshot(
       continue;
     }
 
-    const legacy = cursorToLegacyReadingPosition(position.cursor);
-    if (
-      legacy === null ||
-      legacy.bookId !== position.bookId ||
-      typeof legacy.chapter !== "number"
-    ) {
-      return Object.freeze({ status: "unavailable", reason: "cursor-unavailable" });
-    }
-    chapters[position.bookId] = legacy.chapter;
+    // Snapshot validation has already bound this cursor to its exact edition
+    // manifest. Preserve the open chapter for Atlas display; do not project
+    // through the legacy completed-through helper (which intentionally yields
+    // N-1 and null for chapter 1).
+    chapters[position.bookId] = position.cursor.chapterNumber;
   }
 
   return Object.freeze({

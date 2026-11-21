@@ -8,6 +8,7 @@ import { HoidCursorProgressCoordinator, type HoidCursorCoordinatorResult } from 
 import type { HoidCursorProgressSnapshot } from '../hoid/cursorProgressLedger';
 import { createHoidReadingCursor } from '../hoid/readingManifest';
 import { atlasProgressFromCursorSnapshot } from '../hoid/cursorAtlasAdapter';
+import type { HoidReaderBoundary } from '../hoid/readingBoundary';
 
 interface ComentarioComunidad {
   id: string;
@@ -21,8 +22,10 @@ interface ComentarioComunidad {
 
 interface CosmereContextType {
   reinoCognitivoActivo: boolean;
-  librosLeidos: { [libroId: string]: boolean };
-  capituloActualPorLibro: { [libroId: string]: number };
+  librosLeidos: Readonly<{ [libroId: string]: boolean }>;
+  capituloActualPorLibro: Readonly<{ [libroId: string]: number }>;
+  /** Canonical, per-work boundary used by Community spoiler authorization. */
+  communityReadingBoundaryByBook: Readonly<Record<string, HoidReaderBoundary>>;
   puntosInvestidura: number;
   rangoActual: RangoCosmere;
   apodoActivo: string;
@@ -52,8 +55,10 @@ const CosmereContext = createContext<CosmereContextType | undefined>(undefined);
 export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [reinoCognitivoActivo, setReinoCognitivoActivo] = useState(false);
   const [initialReadingProgress] = useState(createEmptyAtlasReadingProgress);
-  const [librosLeidos, setLibrosLeidos] = useState(initialReadingProgress.completedByBook);
-  const [capituloActualPorLibro, setCapituloActualPorLibro] = useState(initialReadingProgress.chaptersByBook);
+  const [atlasReadingProgress, setAtlasReadingProgress] = useState(initialReadingProgress);
+  const librosLeidos = atlasReadingProgress.completedByBook;
+  const capituloActualPorLibro = atlasReadingProgress.chaptersByBook;
+  const communityReadingBoundaryByBook = atlasReadingProgress.communityBoundariesByBook;
   const [progresoPersistenciaEstado, setProgresoPersistenciaEstado] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const [cursorProgressCoordinator, setCursorProgressCoordinator] = useState<HoidCursorProgressCoordinator | null>(null);
   const [hoidCursorProgressSnapshot, setHoidCursorProgressSnapshot] = useState<HoidCursorProgressSnapshot | null>(null);
@@ -63,15 +68,20 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const restored = atlasProgressFromCursorSnapshot(result.snapshot);
       if (restored.status !== 'ready') {
         setHoidCursorProgressSnapshot(null);
+        setAtlasReadingProgress(createEmptyAtlasReadingProgress());
         setProgresoPersistenciaEstado('unavailable');
         return;
       }
       setHoidCursorProgressSnapshot(restored.snapshot);
-      setCapituloActualPorLibro(Object.assign(Object.create(null), restored.chaptersByBook));
-      setLibrosLeidos(Object.assign(Object.create(null), restored.completedByBook));
+      setAtlasReadingProgress(Object.freeze({
+        chaptersByBook: restored.chaptersByBook,
+        completedByBook: restored.completedByBook,
+        communityBoundariesByBook: restored.communityBoundariesByBook,
+      }));
       setProgresoPersistenciaEstado('ready');
     } else if (result.status === 'unavailable') {
       setHoidCursorProgressSnapshot(null);
+      setAtlasReadingProgress(createEmptyAtlasReadingProgress());
       setProgresoPersistenciaEstado('unavailable');
     }
   };
@@ -86,6 +96,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }).catch(() => {
       if (mounted) {
         setHoidCursorProgressSnapshot(null);
+        setAtlasReadingProgress(createEmptyAtlasReadingProgress());
         setProgresoPersistenciaEstado('unavailable');
       }
     });
@@ -219,6 +230,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       reinoCognitivoActivo,
       librosLeidos,
       capituloActualPorLibro,
+      communityReadingBoundaryByBook,
       puntosInvestidura,
       rangoActual,
       apodoActivo,

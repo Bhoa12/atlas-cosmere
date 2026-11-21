@@ -2,21 +2,25 @@ import {
   validateHoidCursorProgressSnapshot,
   type HoidCursorProgressSnapshot,
 } from "./cursorProgressLedger";
+import {
+  projectHoidCursorPositionToBoundary,
+  type HoidReaderBoundary,
+} from "./readingBoundary";
 
 /**
  * Read-only compatibility projection for Atlas and Community UI components.
  *
- * chaptersByBook preserves the currently open chapter so the Community spoiler
- * shield can apply its exclusive N-1 boundary. The v2 snapshot remains
- * authoritative; this projection must never unlock Hoid narrative evidence.
+ * chaptersByBook preserves the currently open chapter for display.
+ * communityBoundariesByBook is the only supported input for Community spoiler
+ * authorization. Neither projection may authorize Hoid narrative evidence.
  */
 export type AtlasCursorProgressProjection =
   | Readonly<{
       status: "ready";
       snapshot: HoidCursorProgressSnapshot;
-      /** Current/open chapter for UI display and community spoiler shielding only. */
       chaptersByBook: Readonly<Record<string, number>>;
       completedByBook: Readonly<Record<string, true>>;
+      communityBoundariesByBook: Readonly<Record<string, HoidReaderBoundary>>;
     }>
   | Readonly<{
       status: "unavailable";
@@ -33,18 +37,20 @@ export function atlasProgressFromCursorSnapshot(
 
   const chapters = Object.create(null) as Record<string, number>;
   const completed = Object.create(null) as Record<string, true>;
+  const communityBoundaries = Object.create(null) as Record<string, HoidReaderBoundary>;
 
   for (const position of validation.snapshot.positions) {
-    if ("completed" in position) {
-      completed[position.bookId] = true;
-      continue;
+    const projection = projectHoidCursorPositionToBoundary(position);
+    if (projection === null) {
+      return Object.freeze({ status: "unavailable", reason: "cursor-unavailable" });
     }
 
-    // Snapshot validation has already bound this cursor to its exact edition
-    // manifest. Preserve N for the Community screen, whose boundary helper
-    // exposes only chapters strictly before N. Never use this display map as
-    // Hoid's evidence authorization position; that comes from the v2 boundary.
-    chapters[position.bookId] = position.cursor.chapterNumber;
+    communityBoundaries[position.bookId] = projection.boundary;
+    if (projection.boundary.kind === "completed") {
+      completed[position.bookId] = true;
+    } else {
+      chapters[position.bookId] = projection.boundary.currentChapter;
+    }
   }
 
   return Object.freeze({
@@ -52,5 +58,6 @@ export function atlasProgressFromCursorSnapshot(
     snapshot: validation.snapshot,
     chaptersByBook: Object.freeze(chapters),
     completedByBook: Object.freeze(completed),
+    communityBoundariesByBook: Object.freeze(communityBoundaries),
   });
 }

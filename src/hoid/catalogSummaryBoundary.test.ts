@@ -46,8 +46,12 @@ describe("Hoid canonical summary disclosure boundary", () => {
     expect(canonical.evidenceUnlock).toBeUndefined();
     expect(canonical.summary).toBeUndefined();
     expect(canonical.provenance).toBeUndefined();
-    expect(new HoidKnowledgeCatalog([malformed]).findMatches("Entidad sintética")[0].summary)
-      .toBeUndefined();
+    const match = new HoidKnowledgeCatalog([malformed]).findMatches("Entidad sintética");
+    expect(match).toHaveLength(1);
+    expect(match[0]).not.toHaveProperty("summary");
+    expect(match[0]).not.toHaveProperty("provenance");
+    expect(match[0]).not.toHaveProperty("evidenceSource");
+    expect(match[0]).not.toHaveProperty("evidenceUnlock");
   });
 
   it("strips summary and provenance when the unlock watermark is missing", () => {
@@ -97,6 +101,26 @@ describe("Hoid canonical summary disclosure boundary", () => {
       expect(canonical.summary).toBeUndefined();
       expect(canonical.provenance).toBeUndefined();
     }
+  });
+
+  it("never returns narrative summaries or evidence through name matching before the unlock", () => {
+    const trusted = entry();
+    const catalog = new HoidKnowledgeCatalog([trusted]);
+    const [match] = catalog.findMatches("Entidad sintética");
+
+    expect(match).toMatchObject({
+      id: trusted.id,
+      aliases: trusted.aliases,
+      kind: trusted.kind,
+      firstSafeAppearance: trusted.firstSafeAppearance,
+    });
+    expect(match).not.toHaveProperty("summary");
+    expect(match).not.toHaveProperty("provenance");
+    expect(match).not.toHaveProperty("evidenceSource");
+    expect(match).not.toHaveProperty("evidenceUnlock");
+    expect(catalog.isEntityMentionUnlocked(match, [{ bookId: "tfe", chapter: 1 }])).toBe(true);
+    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 1 }])).toEqual([]);
+    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }])).toHaveLength(1);
   });
 
   it("keeps name-only metadata mentionable without making its summary available", () => {

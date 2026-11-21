@@ -34,6 +34,7 @@ on:
       - "src/hoid/catalog.ts"
       - "src/hoid/catalogValidation.ts"
       - "src/hoid/catalogValidation.test.ts"
+      - "src/hoid/catalogSummaryBoundary.test.ts"
       - "src/hoid/contextPolicy.ts"
       - "src/hoid/authorizedKnowledgeContext.ts"
       - "src/hoid/catalogEvidenceUnlock.test.ts"
@@ -49,6 +50,7 @@ on:
       - "src/hoid/verifiedChapterLocators.ts"
       - "docs/hoid/CATALOG_EVIDENCE_UNLOCK_BOUNDARY.md"
       - "docs/hoid/RUN207_CATALOG_SNAPSHOT_ISOLATION.md"
+      - "docs/hoid/RUN209_FAIL_CLOSED_SUMMARY_CANONICALIZATION.md"
       - "src/hoid/PROVIDER_BOUNDARY.md"
       - ".github/workflows/hoid-catalog-evidence-unlock.yml"
 
@@ -74,7 +76,6 @@ jobs:
           src/hoid/catalogTrustBoundary.test.ts
           src/hoid/catalogValidation.test.ts
           src/hoid/catalogSummaryBoundary.test.ts
-          src/hoid/catalogSummaryBoundary.test.ts
           src/hoid/evidenceScope.test.ts
           src/hoid/HoidServiceCatalogBoundary.test.ts
       - name: Type-check provider-facing catalog boundary
@@ -97,4 +98,5 @@ jobs:
           src/hoid/verifiedChapterLocators.ts
           src/hoid/catalogEvidenceUnlock.test.ts
           src/hoid/catalogTrustBoundary.test.ts
+          src/hoid/catalogSummaryBoundary.test.ts
           src/hoid/HoidServiceCatalogBoundary.test.ts

@@ -149,7 +149,7 @@ describe("Hoid local principal identity provisioning", () => {
       .toEqual({ status: "invalid-input", reason: "invalid-random-source" });
   });
 
-  it("rejects an identity row that changes between create and verification", async () => {
+  it("rejects a row that differs from the candidate after the store reports created", async () => {
     const store = new MemoryIdentityStore();
     store.createIfAbsent = async () => {
       store.record = Object.freeze({
@@ -159,11 +159,7 @@ describe("Hoid local principal identity provisioning", () => {
       });
       return "created";
     };
-    const result = await getOrCreateHoidLocalPrincipalIdentity(store, randomSource());
-    expect(result).toEqual({
-      status: "ready",
-      principalId: "hlp1_" + "ff".repeat(HOID_LOCAL_PRINCIPAL_RANDOM_BYTES),
-      created: false,
-    });
+    expect(await getOrCreateHoidLocalPrincipalIdentity(store, randomSource()))
+      .toEqual({ status: "invalid-record" });
   });
 });

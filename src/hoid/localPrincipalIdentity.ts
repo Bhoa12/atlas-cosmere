@@ -240,10 +240,15 @@ export async function getOrCreateHoidLocalPrincipalIdentity(
 
   const canonicalWinner = canonicalIdentityRecord(winner);
   if (!canonicalWinner) return Object.freeze({ status: "invalid-record" });
+  if (creation === "created" && canonicalWinner.principalId !== principalId) {
+    // A store claiming creation must return the exact value it accepted.
+    // A different row indicates a broken or compromised persistence boundary.
+    return Object.freeze({ status: "invalid-record" });
+  }
 
   return Object.freeze({
     status: "ready",
     principalId: canonicalWinner.principalId,
-    created: creation === "created" && canonicalWinner.principalId === principalId,
+    created: creation === "created",
   });
 }

@@ -9,6 +9,14 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/cursorAtlasAdapter.ts"
       - "src/hoid/cursorAtlasAdapter.test.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingBoundary.test.ts"
+      - "src/hoid/initialProgress.ts"
+      - "src/screens/CommunityScreen.tsx"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingBoundary.test.ts"
+      - "src/hoid/initialProgress.ts"
+      - "src/screens/CommunityScreen.tsx"
       - "src/hoid/cursorProgressCoordinator.ts"
       - "src/hoid/cursorSqliteProgressStore.ts"
       - "src/hoid/cursorProgressLedger.ts"
@@ -46,6 +54,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test cursor-native progress and evidence
-        run: npx vitest run src/hoid/cursorAtlasAdapter.test.ts src/hoid/cursorProgressCoordinator.test.ts src/hoid/cursorSqliteProgressStore.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/readingManifest.test.ts
-      - name: Type-check Atlas and Hoid screen integration
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --jsx react --esModuleInterop --skipLibCheck src/context/CosmereContext.tsx src/screens/HoidScreen.tsx
+        run: npx vitest run src/hoid/cursorAtlasAdapter.test.ts src/hoid/readingBoundary.test.ts src/hoid/cursorProgressCoordinator.test.ts src/hoid/cursorSqliteProgressStore.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/readingManifest.test.ts
+      - name: Type-check Atlas, Community and Hoid screen integration
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --jsx react --esModuleInterop --skipLibCheck src/context/CosmereContext.tsx src/screens/CommunityScreen.tsx src/screens/HoidScreen.tsx

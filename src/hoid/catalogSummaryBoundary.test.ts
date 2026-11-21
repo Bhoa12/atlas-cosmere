@@ -123,6 +123,18 @@ describe("Hoid canonical summary disclosure boundary", () => {
     expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }])).toHaveLength(1);
   });
 
+  it("does not return unmentioned aliases that may be spoiler-bearing", () => {
+    const catalog = new HoidKnowledgeCatalog([entry({
+      aliases: ["Alias ya mencionado", "Alias todavía desconocido"],
+    })]);
+    const [match] = catalog.findMatches("Alias ya mencionado");
+
+    expect(match.aliases).toEqual(["Alias ya mencionado"]);
+    expect(match.aliases).not.toContain("Alias todavía desconocido");
+    expect(match).not.toHaveProperty("summary");
+    expect(match).not.toHaveProperty("evidenceSource");
+  });
+
   it("keeps name-only metadata mentionable without making its summary available", () => {
     const malformed = entry({
       evidenceSource: undefined,

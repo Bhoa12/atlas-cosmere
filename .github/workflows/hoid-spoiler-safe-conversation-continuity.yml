@@ -20,12 +20,15 @@ on:
       - "src/hoid/conversationHistoryPolicy.test.ts"
       - "src/hoid/conversationHistoryHydration.ts"
       - "src/hoid/conversationHistoryHydration.test.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationHistoryStorePort.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
       - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
       - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
       - "docs/hoid/RUN216_VERSIONED_CONVERSATION_HISTORY_HYDRATION.md"
+      - "docs/hoid/RUN217_PROVIDER_NEUTRAL_CONVERSATION_STORAGE_PORT.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
   pull_request:
     paths:
@@ -44,12 +47,15 @@ on:
       - "src/hoid/conversationHistoryPolicy.test.ts"
       - "src/hoid/conversationHistoryHydration.ts"
       - "src/hoid/conversationHistoryHydration.test.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationHistoryStorePort.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
       - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
       - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
       - "docs/hoid/RUN216_VERSIONED_CONVERSATION_HISTORY_HYDRATION.md"
+      - "docs/hoid/RUN217_PROVIDER_NEUTRAL_CONVERSATION_STORAGE_PORT.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
 
 permissions:
@@ -67,7 +73,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test spoiler-safe conversation continuity and regressions
+      - name: Test spoiler-safe conversation continuity and storage contract
         run: >-
           npx vitest run
           src/hoid/coreferenceResolver.test.ts
@@ -77,7 +83,8 @@ jobs:
           src/hoid/conversationGateway.test.ts
           src/hoid/conversationHistoryPolicy.test.ts
           src/hoid/conversationHistoryHydration.test.ts
-      - name: Type-check continuity boundaries and screen integration
+          src/hoid/conversationHistoryStorePort.test.ts
+      - name: Type-check continuity boundaries and storage contract
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
@@ -90,4 +97,6 @@ jobs:
           src/hoid/conversationHistoryPolicy.ts
           src/hoid/conversationHistoryHydration.ts
           src/hoid/conversationHistoryHydration.test.ts
+          src/hoid/conversationHistoryStorePort.ts
+          src/hoid/conversationHistoryStorePort.test.ts
           src/screens/HoidScreen.tsx

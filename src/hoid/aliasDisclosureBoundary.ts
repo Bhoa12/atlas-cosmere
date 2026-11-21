@@ -1,10 +1,10 @@
-import type { HoidKnowledgeCatalog, HoidKnowledgeMatch } from "./catalog";
+import type { HoidKnowledgeCatalog } from "./catalog";
 import type { ReadingPosition } from "./types";
 
 export type HoidAliasDisclosureRequest = Readonly<{
   text: string;
   reading: readonly ReadingPosition[];
-  matches: readonly HoidKnowledgeMatch[];
+  matches: readonly HoidAliasDisclosureGrant[];
 }>;
 
 export type HoidAliasDisclosureGrant = Readonly<{

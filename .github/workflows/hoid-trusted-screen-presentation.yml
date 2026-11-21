@@ -1,0 +1,63 @@
+name: Hoid trusted screen presentation boundary
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/hoid/trustedScreenAnswer.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/hoid/trustedPresentationHost.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "App.tsx"
+      - "docs/hoid/RUN199_TRUSTED_SCREEN_PRESENTATION.md"
+      - ".github/workflows/hoid-trusted-screen-presentation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/hoid/trustedScreenAnswer.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/hoid/trustedPresentationHost.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "App.tsx"
+      - "docs/hoid/RUN199_TRUSTED_SCREEN_PRESENTATION.md"
+      - ".github/workflows/hoid-trusted-screen-presentation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-screen-presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 20.19 for Noble Curves v2
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test trusted UI answer boundary and integration gates
+        run: >-
+          npx vitest run
+          src/hoid/trustedScreenAnswer.test.ts
+          src/hoid/trustedScreenIntegration.test.ts
+          src/hoid/trustedPresentationHost.test.ts
+          src/hoid/trustedVerifiedAnswerPresentation.test.ts
+          src/hoid/answerPresentation.test.ts
+          src/hoid/explanationDepth.test.ts
+      - name: Type-check provider-neutral UI boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module ESNext --moduleResolution bundler --skipLibCheck
+          --allowSyntheticDefaultImports
+          src/hoid/trustedScreenAnswer.ts

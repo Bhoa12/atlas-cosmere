@@ -104,7 +104,7 @@ class MemoryTransaction implements HoidSqliteTransactionPort {
       throw new Error("Unexpected SELECT");
     }
     const key = String(params[0]) + "\u0000" + String(params[1]);
-    return (this.state.get(key) as T | undefined) ?? null;
+    return (this.state.get(key) as unknown as T | undefined) ?? null;
   }
 
   async runAsync(
@@ -280,6 +280,18 @@ describe("Expo SQLite Hoid conversation history adapter", () => {
     await saveHoidConversationHistory(store, keyA, null, snapshot(), scopeA);
     const other = await loadHoidConversationHistory(store, keyB, scopeA);
     expect(other).toEqual({ status: "not-found" });
+  });
+
+  it("isolates conversations within the same principal partition", async () => {
+    const database = new MemoryDatabase();
+    const store = createStore(database);
+    await saveHoidConversationHistory(store, keyA, null, snapshot(), scopeA);
+    const otherConversation = Object.freeze({
+      principalId: keyA.principalId,
+      conversationId: "conversation-02",
+    });
+    const loaded = await loadHoidConversationHistory(store, otherConversation, scopeA);
+    expect(loaded).toEqual({ status: "not-found" });
   });
 
   it("drops assistant prose when the saved reading progress is stale", async () => {

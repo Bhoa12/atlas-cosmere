@@ -111,11 +111,11 @@ describe("Hoid canonical summary disclosure boundary", () => {
     expect(match).toMatchObject({
       id: trusted.id,
       aliases: trusted.aliases,
-      kind: trusted.kind,
     });
     expect(match).not.toHaveProperty("summary");
     expect(match).not.toHaveProperty("provenance");
     expect(match).not.toHaveProperty("firstSafeAppearance");
+    expect(match).not.toHaveProperty("kind");
     expect(match).not.toHaveProperty("evidenceSource");
     expect(match).not.toHaveProperty("evidenceUnlock");
     expect(catalog.isEntityMentionUnlocked(match, [{ bookId: "tfe", chapter: 1 }])).toBe(true);

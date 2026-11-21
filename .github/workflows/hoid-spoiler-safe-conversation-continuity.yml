@@ -22,6 +22,7 @@ on:
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
       - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
+      - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
   pull_request:
     paths:
@@ -42,6 +43,7 @@ on:
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
       - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
+      - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
 
 permissions:

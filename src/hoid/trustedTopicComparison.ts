@@ -1,6 +1,7 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
+import { isHoidFirstSafeAppearanceCompleted } from "./readingBoundary";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import type { HoidPresentedCitation } from "./answerPresentation";
 import type { HoidEvidenceCitation } from "./evidenceScope";
@@ -381,12 +382,10 @@ function subjectIsDisclosed(
   const first = firstAppearances.find(item => item.entityId === assignment.subjectId);
   if (!first) return false;
   const position = reading.context.positions.find(item => item.bookId === first.bookId);
-  return Boolean(
-    position &&
-    (position.status === "completed" ||
-      (position.status === "in-progress" &&
-        position.completedThroughChapter !== null &&
-        position.completedThroughChapter >= first.chapter)),
+  return position !== undefined && isHoidFirstSafeAppearanceCompleted(
+    position.status === "in-progress" ? position.completedThroughChapter : null,
+    first.chapter,
+    position.status === "completed",
   );
 }
 

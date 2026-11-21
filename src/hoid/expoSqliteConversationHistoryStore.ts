@@ -206,8 +206,10 @@ function canonicalProtector(value: unknown): HoidConversationPayloadProtector | 
     const sealMethod = sealDescriptor.value as HoidConversationPayloadProtector["seal"];
     const openMethod = openDescriptor.value as HoidConversationPayloadProtector["open"];
     return Object.freeze({
-      seal: (plaintext, context) => sealMethod.call(value, plaintext, context),
-      open: (ciphertext, context) => openMethod.call(value, ciphertext, context),
+      seal: (plaintext: string, context: HoidConversationPayloadProtectionContext) =>
+        sealMethod.call(value, plaintext, context),
+      open: (ciphertext: string, context: HoidConversationPayloadProtectionContext) =>
+        openMethod.call(value, ciphertext, context),
     });
   } catch {
     return null;

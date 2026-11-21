@@ -9,6 +9,7 @@ on:
       - "src/hoid/aliasDisclosureBoundary.test.ts"
       - "src/hoid/productionAliasDisclosurePort.ts"
       - "src/hoid/productionAliasDisclosurePort.test.ts"
+      - "docs/hoid/RUN213_PRODUCTION_ALIAS_RESOLVER_NON_INJECTABILITY.md"
       - "src/hoid/contextPolicy.ts"
       - "src/hoid/HoidService.ts"
       - "src/hoid/HoidServiceCatalogBoundary.test.ts"
@@ -45,7 +46,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test progress-bound alias authorization
+      - name: Test progress-bound alias authorization and production resolver lock
         run: >-
           npx vitest run
           src/hoid/aliasDisclosureBoundary.test.ts

@@ -4,6 +4,7 @@ import type {
   HoidReviewerTrustRegistry,
 } from "./editorialReviewSignatures";
 import type { HoidTrustedHostBootstrapPort } from "./trustedHostBootstrap";
+import type { HoidTrustRegistryRevisionStorePort } from "./trustRegistryRevisionStore";
 import {
   createHoidNobleEd25519VerificationPort,
 } from "./nobleEd25519VerificationAdapter";
@@ -132,7 +133,7 @@ export async function createHoidTrustedPresentationHost(
   }
 
   const verifier = createHoidNobleEd25519VerificationPort();
-  let revisionStore;
+  let revisionStore: HoidTrustRegistryRevisionStorePort;
   try {
     revisionStore = createHoidRemoteTrustRegistryRevisionStorePort({
       configuration: config.witnessConfiguration as HoidTrustRevisionWitnessConfiguration,
@@ -148,18 +149,27 @@ export async function createHoidTrustedPresentationHost(
   const trustedClock: HoidTrustedClockPort = Object.freeze({
     now: () => clockNow(),
   });
-  const presenterBuild = await createHoidTrustedVerifiedAnswerPresenter(Object.freeze({
-    knowledge: config.knowledge as readonly HoidKnowledgeEntry[],
-    signedClaims: config.signedClaims,
-    context: config.context,
-    trustRegistry: config.trustRegistry as HoidReviewerTrustRegistry,
-    verifier,
-    bootstrapPort: config.bootstrapPort as HoidTrustedHostBootstrapPort,
-    revisionStore,
-    progressPort,
-    expectedRepositoryFullName: config.expectedRepositoryFullName,
-    clock: trustedClock,
-  }));
+  let presenterBuild: Awaited<ReturnType<typeof createHoidTrustedVerifiedAnswerPresenter>>;
+  try {
+    presenterBuild = await createHoidTrustedVerifiedAnswerPresenter(Object.freeze({
+      knowledge: config.knowledge as readonly HoidKnowledgeEntry[],
+      signedClaims: config.signedClaims,
+      context: config.context,
+      trustRegistry: config.trustRegistry as HoidReviewerTrustRegistry,
+      verifier,
+      bootstrapPort: config.bootstrapPort as HoidTrustedHostBootstrapPort,
+      revisionStore,
+      progressPort,
+      expectedRepositoryFullName: config.expectedRepositoryFullName,
+      clock: trustedClock,
+    }));
+  } catch {
+    return Object.freeze({
+      status: "blocked",
+      reason: "trusted-presenter-blocked",
+      presenterReason: "presenter-internal-error",
+    });
+  }
 
   if (presenterBuild.status !== "ready") {
     return Object.freeze({

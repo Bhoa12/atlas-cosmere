@@ -270,7 +270,7 @@ export async function saveHoidConversationHistory(
   const storageRevision = expectedStorageRevision === null
     ? 1
     : expectedStorageRevision + 1;
-  const nextRecord: HoidConversationHistoryStorageRecord = Object.freeze({
+  const nextRecord: HoidConversationStorageRecord = Object.freeze({
     schemaVersion: HOID_CONVERSATION_STORAGE_SCHEMA_VERSION,
     kind: HOID_CONVERSATION_STORAGE_RECORD_KIND,
     principalId: key.principalId,

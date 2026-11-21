@@ -351,12 +351,16 @@ describe("Hoid trusted presentation host composition", () => {
     expect(build.status).toBe("ready");
     if (build.status !== "ready") return;
 
+    await expect(build.presenter.present(data.answer)).resolves.toMatchObject({
+      status: "ready",
+      text: "Afirmación editorial aprobada y verificable.",
+    });
     data.setProgress(progress(2));
     await expect(build.presenter.present(data.answer)).resolves.toMatchObject({
       status: "withheld",
       reason: "locked-evidence",
     });
-    expect(data.getProgressReads()).toBe(1);
+    expect(data.getProgressReads()).toBe(2);
   });
 
   it("blocks when the signed remote witness receipt cannot be authenticated", async () => {

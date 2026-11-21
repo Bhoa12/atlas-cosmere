@@ -22,6 +22,8 @@ on:
       - "src/hoid/conversationHistoryHydration.test.ts"
       - "src/hoid/conversationHistoryStorePort.ts"
       - "src/hoid/conversationHistoryStorePort.test.ts"
+      - "src/hoid/expoSqliteConversationHistoryStore.ts"
+      - "src/hoid/expoSqliteConversationHistoryStore.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
@@ -29,6 +31,7 @@ on:
       - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
       - "docs/hoid/RUN216_VERSIONED_CONVERSATION_HISTORY_HYDRATION.md"
       - "docs/hoid/RUN217_PROVIDER_NEUTRAL_CONVERSATION_STORAGE_PORT.md"
+      - "docs/hoid/RUN218_EXPO_SQLITE_CONVERSATION_HISTORY_ADAPTER.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
   pull_request:
     paths:
@@ -49,6 +52,8 @@ on:
       - "src/hoid/conversationHistoryHydration.test.ts"
       - "src/hoid/conversationHistoryStorePort.ts"
       - "src/hoid/conversationHistoryStorePort.test.ts"
+      - "src/hoid/expoSqliteConversationHistoryStore.ts"
+      - "src/hoid/expoSqliteConversationHistoryStore.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
@@ -56,6 +61,7 @@ on:
       - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
       - "docs/hoid/RUN216_VERSIONED_CONVERSATION_HISTORY_HYDRATION.md"
       - "docs/hoid/RUN217_PROVIDER_NEUTRAL_CONVERSATION_STORAGE_PORT.md"
+      - "docs/hoid/RUN218_EXPO_SQLITE_CONVERSATION_HISTORY_ADAPTER.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
 
 permissions:
@@ -84,6 +90,7 @@ jobs:
           src/hoid/conversationHistoryPolicy.test.ts
           src/hoid/conversationHistoryHydration.test.ts
           src/hoid/conversationHistoryStorePort.test.ts
+          src/hoid/expoSqliteConversationHistoryStore.test.ts
       - name: Type-check continuity boundaries and storage contract
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -98,5 +105,6 @@ jobs:
           src/hoid/conversationHistoryHydration.ts
           src/hoid/conversationHistoryHydration.test.ts
           src/hoid/conversationHistoryStorePort.ts
+          src/hoid/expoSqliteConversationHistoryStore.ts
           src/hoid/conversationHistoryStorePort.test.ts
           src/screens/HoidScreen.tsx

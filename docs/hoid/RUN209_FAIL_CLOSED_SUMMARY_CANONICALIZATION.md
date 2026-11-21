@@ -39,8 +39,8 @@ A valid evidence scope with `limited` or `unavailable` provenance may retain
 that status for editorial diagnostics, but never retains summary text.
 The catalog's existing `entriesForContext()` check remains an independent
 authorization boundary.\n\nThe public `findMatches()` method is also narrowed to a name-only
-projection (`id`, kind and only the aliases that already matched the user's
-query). It never returns first-safe chapter metadata, evidence or summary
+projection (`id` and only the aliases that already matched the user's query).
+It never returns entity kind, first-safe chapter metadata, evidence or summary
 fields, and it does not reveal other aliases that may themselves be
 spoiler-bearing. Mention authorization accepts an identity only and resolves
 the first-safe boundary from the catalog's private snapshot. `lockedMatches()` uses this safe

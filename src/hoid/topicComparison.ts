@@ -211,9 +211,14 @@ function findAssignment(
 }
 
 /**
- * Compares only reviewed, source-backed assignments for the same explicit
- * topic dimension. It presents facts side by side and never infers similarity,
- * equivalence, causality, chronology or a cross-world relationship.
+ * Low-level deterministic comparison utility for editorial fixtures and
+ * validation tests only. It accepts caller-supplied progress and pre-rendered
+ * answers; it is not a production or UI authorization boundary. Production
+ * presentation must use createHoidTrustedTopicComparisonPresenter().
+ *
+ * It compares only reviewed, source-backed assignments for the same explicit
+ * topic dimension and never infers similarity, equivalence, causality,
+ * chronology or a cross-world relationship.
  */
 export function compareHoidTopicsAcrossWorlds(
   input: unknown,
@@ -360,10 +365,17 @@ export function compareHoidTopicsAcrossWorlds(
   });
 }
 
-/** Production entry point is bound to the reviewed source-controlled registry. */
+/**
+ * Legacy production convenience entry point.
+ *
+ * The low-level comparison helper does not refresh host-owned progress and does
+ * not authenticate each claim through the Ed25519 screen presenter. It must
+ * never become a production/UI path, even if the assignment registry is later
+ * populated. Production callers must use createHoidTrustedTopicComparisonPresenter().
+ */
 export function compareProductionHoidTopicsAcrossWorlds(
-  input: unknown,
-  progress: unknown,
+  _input: unknown,
+  _progress: unknown,
 ): HoidCrossWorldComparisonResult {
-  return compareHoidTopicsAcrossWorlds(input, progress, HOID_APPROVED_TOPIC_ASSIGNMENTS);
+  return Object.freeze({ status: "unavailable", reason: "no-authorized-comparison" });
 }

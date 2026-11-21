@@ -364,16 +364,22 @@ function findAssignment(
   return matches.length === 1 ? matches[0] : null;
 }
 
-function entityIsDisclosed(
+function subjectIsDisclosed(
   assignment: HoidTopicAssignment,
   firstAppearances: readonly Readonly<{ entityId: string; bookId: string; chapter: number }>[],
   progress: unknown,
 ): boolean {
-  if (assignment.subjectKind !== "entity") return true;
-  const first = firstAppearances.find(item => item.entityId === assignment.subjectId);
-  if (!first) return false;
   const reading = buildHoidCursorReadingContext(progress);
   if (reading.status !== "ready") return false;
+  if (assignment.subjectKind === "work") {
+    // A work's world membership can itself be a spoiler. The current taxonomy
+    // has no chapter-scoped first-safe marker for work subjects, so require an
+    // explicit completion rather than guessing that chapter one is sufficient.
+    const work = reading.context.positions.find(item => item.bookId === assignment.subjectId);
+    return work?.status === "completed";
+  }
+  const first = firstAppearances.find(item => item.entityId === assignment.subjectId);
+  if (!first) return false;
   const position = reading.context.positions.find(item => item.bookId === first.bookId);
   return Boolean(
     position &&
@@ -648,7 +654,7 @@ export function createHoidTrustedTopicComparisonPresenter(
           topic.id,
           dimension.id,
         );
-        if (!assignment || !entityIsDisclosed(
+        if (!assignment || !subjectIsDisclosed(
           assignment,
           initialResolution.entityFirstAppearances,
           initialProgress,

@@ -426,6 +426,47 @@ describe("Hoid trusted cross-world topic comparison", () => {
     expect(fixture.load).not.toHaveBeenCalled();
   });
 
+  it("does not disclose an entity while its first-safe-appearance chapter is still open", async () => {
+    const assignments = entityAssignments();
+    const progress = snapshot({ tfeChapter: 1, twokChapter: 5, completed: false });
+    const input = {
+      topicId: "investiture-system",
+      dimensionId: "mechanism",
+      entries: [
+        { subjectKind: "entity", subjectId: "entity.alpha" },
+        { subjectKind: "entity", subjectId: "entity.beta" },
+      ],
+    };
+    const fixture = setup({ assignments, progress });
+    await expect(fixture.presenter.present(input)).resolves.toEqual({
+      status: "withheld",
+      reason: "no-authorized-comparison",
+    });
+    expect(fixture.load).not.toHaveBeenCalled();
+    expect(fixture.present).not.toHaveBeenCalled();
+  });
+
+  it("discloses an entity only after its first-safe-appearance chapter is completed", async () => {
+    const assignments = entityAssignments();
+    const progress = snapshot({ tfeChapter: 2, twokChapter: 5, completed: false });
+    const input = {
+      topicId: "investiture-system",
+      dimensionId: "mechanism",
+      entries: [
+        { subjectKind: "entity", subjectId: "entity.alpha" },
+        { subjectKind: "entity", subjectId: "entity.beta" },
+      ],
+    };
+    const fixture = setup({ assignments, progress });
+    await expect(fixture.presenter.present(input)).resolves.toMatchObject({
+      status: "ready",
+      verifiedClaimCount: 2,
+      comparison: { inference: "none", mode: "side-by-side" },
+    });
+    expect(fixture.load).toHaveBeenCalledTimes(1);
+    expect(fixture.present).toHaveBeenCalledTimes(2);
+  });
+
   it("returns not-cross-world only after all entries have passed authorization", async () => {
     const assignments = workAssignments().map(item =>
       Object.freeze({ ...item, worldId: "world-alpha", worldLabel: "Mundo Alfa" }),

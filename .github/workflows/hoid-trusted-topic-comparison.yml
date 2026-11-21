@@ -25,6 +25,7 @@ on:
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/sha256.ts"
       - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
+      - "docs/hoid/RUN205_FIRST_SAFE_APPEARANCE_COMPLETION_BOUNDARY.md"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
       - ".github/workflows/hoid-trusted-topic-comparison.yml"
   pull_request:
@@ -49,6 +50,7 @@ on:
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/sha256.ts"
       - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
+      - "docs/hoid/RUN205_FIRST_SAFE_APPEARANCE_COMPLETION_BOUNDARY.md"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
       - ".github/workflows/hoid-trusted-topic-comparison.yml"
 

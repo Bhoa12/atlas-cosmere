@@ -384,7 +384,9 @@ function subjectIsDisclosed(
   return Boolean(
     position &&
     (position.status === "completed" ||
-      (position.status === "in-progress" && position.currentChapter >= first.chapter)),
+      (position.status === "in-progress" &&
+        position.completedThroughChapter !== null &&
+        position.completedThroughChapter >= first.chapter)),
   );
 }
 

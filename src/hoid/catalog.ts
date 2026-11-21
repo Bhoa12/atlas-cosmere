@@ -245,7 +245,7 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     record.summary.length > 0 &&
     record.summary.length <= MAX_SUMMARY_LENGTH &&
     record.summary === record.summary.trim() &&
-    !/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(record.summary);
+    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(record.summary);
   const hasValidProvenance =
     record.provenance === "verified" ||
     record.provenance === "limited" ||

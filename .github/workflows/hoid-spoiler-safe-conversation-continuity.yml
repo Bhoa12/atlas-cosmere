@@ -106,5 +106,6 @@ jobs:
           src/hoid/conversationHistoryHydration.test.ts
           src/hoid/conversationHistoryStorePort.ts
           src/hoid/expoSqliteConversationHistoryStore.ts
+          src/hoid/expoSqliteConversationHistoryStore.test.ts
           src/hoid/conversationHistoryStorePort.test.ts
           src/screens/HoidScreen.tsx

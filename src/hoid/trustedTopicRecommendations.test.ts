@@ -215,7 +215,11 @@ describe("Hoid trusted topic recommendation presentation", () => {
   });
 
   it("rejects a recommendation whose reason text differs from the signed claim segment", async () => {
-    const fixture = setup();
+    // Let the assignment digest match the tampered candidate so this reaches
+    // the later signed-claim comparison rather than the earlier assignment guard.
+    const fixture = setup({
+      assignments: [approvedAssignment({ claimTextSha256: sha256Hex("Texto sustituido.") })],
+    });
     const input = { ...fixture.input, items: [recommendation({ reasonText: "Texto sustituido." })] };
     await expect(fixture.port.present(input)).resolves.toEqual({
       status: "withheld",

@@ -9,7 +9,8 @@ import {
   type HoidPresentedCitation,
   type HoidPresentedSegment,
 } from '../hoid/answerPresentation';
-import { presentHoidExplanation, type HoidExplanationDepth } from '../hoid/explanationDepth';
+import type { HoidExplanationDepth } from '../hoid/explanationDepth';
+import type { HoidTrustedScreenAnswerPort } from '../hoid/trustedScreenAnswer';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 import {
   buildHoidCrossBookEvidenceSummary,
@@ -49,7 +50,7 @@ interface Mensaje {
   evidenciaTransversal?: HoidCrossBookEvidenceSummary;
 }
 
-export const HoidScreen: React.FC = () => {
+export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort = null }) => {
   const {
     hoidCursorProgressSnapshot,
     getHoidCursorProgressSnapshot,
@@ -78,6 +79,9 @@ export const HoidScreen: React.FC = () => {
       ? { answerApprovedClaims: topicApprovedClaimAnswerPort }
       : {}),
   });
+
+  // Topic recommendations remain closed until each selected claim is routed through the signed presenter.
+  const topicRecommendationsTrustReady = false;
 
   const [cargando, setCargando] = useState(false);
   const [canCancelAnswer, setCanCancelAnswer] = useState(false);
@@ -243,6 +247,11 @@ export const HoidScreen: React.FC = () => {
               ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
               : 'No puedo verificar el catálogo o el runtime de recomendaciones. No mostraré una lista alternativa.';
         }
+      } else if (!trustedAnswerPort) {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        responseScope = requestScope;
+        respuesta = 'La presentación narrativa está desactivada porque el host todavía no ha provisionado una autoridad editorial firmada. Puedo consultar tu progreso y las recomendaciones de catálogo sin revelar contenido narrativo.';
       } else {
         const controller = new AbortController();
         answerAbortControllerRef.current = controller;
@@ -266,21 +275,20 @@ export const HoidScreen: React.FC = () => {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
           };
-          const explanation = presentHoidExplanation(result.answer, currentProgress, result.depth);
-          if (explanation.status === 'ready') {
-            const presentation = explanation.presentation;
+          const trustedResult = await trustedAnswerPort.present(result.answer, result.depth);
+          if (trustedResult.status === 'ready') {
+            const presentation = trustedResult.presentation;
             respuesta = presentation.text;
             citas = presentation.citations;
             segmentos = presentation.segments;
             formato = presentation.layout;
-            const crossBook = buildHoidCrossBookEvidenceSummary(result.answer, currentProgress);
-            if (crossBook.status === 'ready') evidenciaTransversal = crossBook.summary;
             conversationContextRef.current = result.conversationContext ?? null;
             typedConversationContextRef.current = result.typedConversationContext ?? null;
           } else {
-            respuesta = explanation.text;
+            respuesta = trustedResult.text;
             conversationContextRef.current = null;
             typedConversationContextRef.current = null;
+            responseScope = requestScope;
           }
         } else {
           conversationContextRef.current = null;
@@ -453,6 +461,10 @@ export const HoidScreen: React.FC = () => {
     setTopicRecommendationSelectionKey(null);
     setTopicRecommendationMessage('');
 
+    if (!topicRecommendationsTrustReady) {
+      setTopicRecommendationMessage('Las recomendaciones temáticas están temporalmente bloqueadas hasta que cada afirmación pase por la autoridad editorial Ed25519 del host.');
+      return;
+    }
     if (selectedTopicIds.length === 0) {
       setTopicRecommendationMessage('Selecciona al menos un tema de interés explícito.');
       return;
@@ -543,6 +555,7 @@ export const HoidScreen: React.FC = () => {
     recommendationFingerprint === liveProgressScope.fingerprint;
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
   const topicRecommendationsAreCurrent =
+    topicRecommendationsTrustReady &&
     topicRecommendationRevision !== null &&
     topicRecommendationFingerprint !== null &&
     liveProgressScope !== null &&
@@ -609,7 +622,7 @@ export const HoidScreen: React.FC = () => {
       <View style={styles.topicInterestPanel}>
         <Text style={styles.recommendationTitle}>TEMAS QUE TE INTERESAN</Text>
         <Text style={styles.recommendationNote}>
-          Selección explícita y temporal. Hoid no deduce intereses de tus preguntas ni de tu historial.
+          Selección explícita y temporal. Los resultados narrativos permanecerán cerrados hasta disponer de presentación firmada.
         </Text>
         <View style={styles.topicChipRow}>
           {HOID_TOPIC_TAXONOMY.map(topic => {
@@ -632,10 +645,10 @@ export const HoidScreen: React.FC = () => {
         </View>
         <TouchableOpacity
           accessibilityRole="button"
-          disabled={progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !topicInterestGateway}
+          disabled={progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !topicInterestGateway || !topicRecommendationsTrustReady}
           style={[
             styles.recommendationButton,
-            (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !topicInterestGateway) && styles.disabledButton,
+            (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !topicInterestGateway || !topicRecommendationsTrustReady) && styles.disabledButton,
           ]}
           onPress={cargarRecomendacionesTematicas}
         >

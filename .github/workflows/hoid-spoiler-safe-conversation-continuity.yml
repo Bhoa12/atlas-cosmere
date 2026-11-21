@@ -28,6 +28,11 @@ on:
       - "src/hoid/sharedSqliteDatabase.test.ts"
       - "src/hoid/expoHoidDatabase.ts"
       - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/localPrincipalIdentity.ts"
+      - "src/hoid/localPrincipalIdentity.test.ts"
+      - "src/hoid/expoSqliteLocalPrincipalStore.ts"
+      - "src/hoid/expoSqliteLocalPrincipalStore.test.ts"
+      - "src/hoid/expoHoidLocalPrincipal.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
@@ -37,6 +42,7 @@ on:
       - "docs/hoid/RUN217_PROVIDER_NEUTRAL_CONVERSATION_STORAGE_PORT.md"
       - "docs/hoid/RUN218_EXPO_SQLITE_CONVERSATION_HISTORY_ADAPTER.md"
       - "docs/hoid/RUN219_SHARED_EXPO_SQLITE_DATABASE_LIFECYCLE.md"
+      - "docs/hoid/RUN220_LOCAL_PRINCIPAL_IDENTITY_PROVISIONING.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
   pull_request:
     paths:
@@ -63,6 +69,11 @@ on:
       - "src/hoid/sharedSqliteDatabase.test.ts"
       - "src/hoid/expoHoidDatabase.ts"
       - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/localPrincipalIdentity.ts"
+      - "src/hoid/localPrincipalIdentity.test.ts"
+      - "src/hoid/expoSqliteLocalPrincipalStore.ts"
+      - "src/hoid/expoSqliteLocalPrincipalStore.test.ts"
+      - "src/hoid/expoHoidLocalPrincipal.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
@@ -72,6 +83,7 @@ on:
       - "docs/hoid/RUN217_PROVIDER_NEUTRAL_CONVERSATION_STORAGE_PORT.md"
       - "docs/hoid/RUN218_EXPO_SQLITE_CONVERSATION_HISTORY_ADAPTER.md"
       - "docs/hoid/RUN219_SHARED_EXPO_SQLITE_DATABASE_LIFECYCLE.md"
+      - "docs/hoid/RUN220_LOCAL_PRINCIPAL_IDENTITY_PROVISIONING.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
 
 permissions:
@@ -89,7 +101,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test spoiler-safe conversation continuity and storage contracts
+      - name: Test spoiler-safe conversation continuity, storage and identity
         run: >-
           npx vitest run
           src/hoid/coreferenceResolver.test.ts
@@ -102,7 +114,9 @@ jobs:
           src/hoid/conversationHistoryStorePort.test.ts
           src/hoid/expoSqliteConversationHistoryStore.test.ts
           src/hoid/sharedSqliteDatabase.test.ts
-      - name: Type-check continuity boundaries and storage composition
+          src/hoid/localPrincipalIdentity.test.ts
+          src/hoid/expoSqliteLocalPrincipalStore.test.ts
+      - name: Type-check continuity boundaries, storage and identity composition
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
@@ -123,4 +137,9 @@ jobs:
           src/hoid/sharedSqliteDatabase.test.ts
           src/hoid/expoHoidDatabase.ts
           src/hoid/expoCursorProgressCoordinator.ts
+          src/hoid/localPrincipalIdentity.ts
+          src/hoid/localPrincipalIdentity.test.ts
+          src/hoid/expoSqliteLocalPrincipalStore.ts
+          src/hoid/expoSqliteLocalPrincipalStore.test.ts
+          src/hoid/expoHoidLocalPrincipal.ts
           src/screens/HoidScreen.tsx

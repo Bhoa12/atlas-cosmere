@@ -13,6 +13,8 @@ Every narrative answer, reading-context result and catalogue recommendation prod
 
 User-authored messages remain visible. Every Hoid message must carry the exact current progress scope, except the single static greeting identified by the fixed `HOID_STATIC_GREETING_ID` and `HOID_STATIC_GREETING_KIND` markers. Unscoped legacy assistant messages are hidden; missing scope is never a compatibility exemption. A present but malformed scope is also hidden.
 
+The static greeting is a single canonical record: its ID, role, kind, exact fixed text and complete four-key shape must all match. Accessor-backed fields, extra properties, altered text, and attempts to reuse the greeting ID or kind on a scoped answer are rejected. Rendering and pruning collapse duplicate copies to one greeting. Ordinary user and scoped assistant records also require bounded own-data IDs and text; getters are never invoked by the visibility check.
+
 When the live identity differs, scoped assistant messages are hidden during render and then pruned from component state. User messages remain. This is deliberately conservative: even a forward progress change invalidates old answers instead of trying to prove each answer remains safe under a new state.
 
 ## Commit-time check

@@ -27,6 +27,8 @@ import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAns
 import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
 import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
 import {
+  HOID_STATIC_GREETING_ID,
+  HOID_STATIC_GREETING_KIND,
   canCommitHoidProgressScopedResponse,
   filterVisibleHoidMessages,
   pruneStaleHoidMessages,
@@ -41,6 +43,7 @@ interface Mensaje {
   id: string;
   emisor: 'usuario' | 'hoid';
   texto: string;
+  kind?: typeof HOID_STATIC_GREETING_KIND;
   progressScope?: HoidConversationProgressScope;
   citas?: readonly HoidPresentedCitation[];
   segmentos?: readonly HoidPresentedSegment[];
@@ -94,8 +97,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [cargandoRecomendaciones, setCargandoRecomendaciones] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
-      id: '1',
+      id: HOID_STATIC_GREETING_ID,
       emisor: 'hoid',
+      kind: HOID_STATIC_GREETING_KIND,
       texto: 'Saludos, viajero de mundos. Soy Sagaz. Estoy usando el runtime estricto con el progreso de lectura vinculado a la edición. El registro editorial todavía está vacío, así que no inventaré hechos ni recurriré a respuestas libres.'
     }
   ]);
@@ -182,7 +186,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       let segmentos: readonly HoidPresentedSegment[] | undefined;
       let formato: HoidNarrativeLayout | undefined;
       let evidenciaTransversal: HoidCrossBookEvidenceSummary | undefined;
-      let responseScope: HoidConversationProgressScope | null = null;
+      // Even neutral fallback text is scoped to the request snapshot. Stale
+      // results and cancelled work explicitly clear this scope below.
+      let responseScope: HoidConversationProgressScope | null = requestScope;
 
       if (intentPlan.status !== 'ready') {
         conversationContextRef.current = null;
@@ -377,6 +383,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
         texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completaré la respuesta mediante suposiciones.',
+        progressScope: requestScope,
       }]);
     } finally {
       answerAbortControllerRef.current = null;

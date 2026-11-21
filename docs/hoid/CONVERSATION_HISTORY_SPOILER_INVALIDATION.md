@@ -11,7 +11,7 @@ Every narrative answer, reading-context result and catalogue recommendation prod
 - the coordinator revision;
 - the canonical progress fingerprint.
 
-User-authored messages and the static greeting are not progress-scoped. A Hoid message with no scope is retained only for static/neutral compatibility. A present but malformed scope is hidden.
+User-authored messages remain visible. Every Hoid message must carry the exact current progress scope, except the single static greeting identified by the fixed `HOID_STATIC_GREETING_ID` and `HOID_STATIC_GREETING_KIND` markers. Unscoped legacy assistant messages are hidden; missing scope is never a compatibility exemption. A present but malformed scope is also hidden.
 
 When the live identity differs, scoped assistant messages are hidden during render and then pruned from component state. User messages remain. This is deliberately conservative: even a forward progress change invalidates old answers instead of trying to prove each answer remains safe under a new state.
 
@@ -29,7 +29,7 @@ The gateway's existing before/after check remains mandatory. This UI check close
 
 ## Rendering and cleanup
 
-The visible-message filter is applied to the FlatList data on every render, so stale answers are not displayed while an effect is pending. A cleanup pass then removes stale assistant content from component state. The cleanup preserves user-authored messages and the static unscoped greeting.
+The visible-message filter is applied to the FlatList data on every render, so stale answers are not displayed while an effect is pending. A cleanup pass then removes stale assistant content from component state. The cleanup preserves user-authored messages and only the explicitly marked static greeting. Neutral error notices are scoped to the request snapshot, so they disappear if progress changes. Stale and cancelled results remain unscoped and are therefore hidden.
 
 If the coordinator is unavailable or the snapshot is invalid, no progress-scoped Hoid response is visible.
 

@@ -309,7 +309,7 @@ function canonicalEntryId(value: unknown): string | null {
     id.length === 0 ||
     id.length > 128 ||
     id !== id.trim() ||
-    /[\\u0000-\\u001F\\u007F]/u.test(id)
+    /[\u0000-\u001F\u007F]/u.test(id)
   ) return null;
   return id;
 }

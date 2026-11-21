@@ -136,7 +136,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationFingerprint(null);
     setTopicRecommendationSelectionKey(null);
     setTopicRecommendationMessage('');
-  }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado]);
+  }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado, trustedAnswerPort]);
 
   useEffect(() => () => {
     answerAbortControllerRef.current?.abort();

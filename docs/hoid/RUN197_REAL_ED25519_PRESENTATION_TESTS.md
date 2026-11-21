@@ -36,7 +36,7 @@ The updated native Ed25519 workflow is required to run:
 - trusted bootstrap, promotion and revision-store suites
 - strict TypeScript checks for the Noble adapter and trusted presenter.
 
-Validated on final PR HEAD `538848824b92482229e81cf03a44ba24a446551f` on 2026-11-21:
+Validated on code/test HEAD `538848824b92482229e81cf03a44ba24a446551f` on 2026-11-21. The final PR HEAD `00d56562d7a41739d7a398a6c3f28753d37ee1c4` adds documentation only after those checks:
 
 | Workflow | Tests | Result |
 |---|---:|---|

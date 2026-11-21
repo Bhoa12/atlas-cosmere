@@ -247,7 +247,7 @@ describe("book-bound community spoiler authority", () => {
 
     const partial = projectHoidCursorPositionToBoundary({
       bookId: "woa",
-      cursor: cursor("woa", 75),
+      cursor: cursor("woa", 1),
     });
     expect(isCommunityPostBeyondReadingBoundary("woa", 75, partial?.boundary)).toBe(true);
   });

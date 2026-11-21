@@ -160,7 +160,7 @@ function canonicalCitation(value: unknown): HoidPresentedCitation | null {
   return Object.freeze({
     evidenceId: raw.evidenceId,
     sourceBookId: raw.sourceBookId,
-    title: raw.title,
+    title: raw.title as string,
     chapter: raw.chapter,
     locatorId: raw.locatorId,
   });

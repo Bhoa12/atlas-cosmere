@@ -340,7 +340,8 @@ export function canonicalizeHoidKnowledgeEntry(value: unknown): HoidKnowledgeEnt
  * Canonicalize a complete untrusted catalog collection. Sparse arrays,
  * accessor-backed collections and oversized inputs fail closed as a whole.
  * Every member is detached, and all entries sharing a normalized ID are
- * rejected as a group. Returned objects are caller-owned copies.
+ * rejected as a group. Returned objects are caller-owned copies. This helper
+ * validates ingestion metadata; it does not authorize narrative disclosure.
  */
 export function canonicalizeHoidKnowledgeEntries(value: unknown): HoidKnowledgeEntry[] {
   const rawEntries = canonicalDenseArray(value, 0, MAX_CATALOG_ENTRIES);

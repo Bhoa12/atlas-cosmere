@@ -16,6 +16,9 @@ on:
       - "src/hoid/trustRegistryRevisionStore.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingBoundary.test.ts"
+      - "src/hoid/catalog.ts"
       - "src/hoid/knowledgeGraph.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/evidenceScope.ts"
@@ -24,6 +27,7 @@ on:
       - "src/hoid/bibliography.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN206_SHARED_FIRST_SAFE_APPEARANCE_POLICY.md"
       - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
       - "docs/hoid/RUN205_FIRST_SAFE_APPEARANCE_COMPLETION_BOUNDARY.md"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
@@ -41,6 +45,9 @@ on:
       - "src/hoid/trustRegistryRevisionStore.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingBoundary.test.ts"
+      - "src/hoid/catalog.ts"
       - "src/hoid/knowledgeGraph.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/evidenceScope.ts"
@@ -49,6 +56,7 @@ on:
       - "src/hoid/bibliography.ts"
       - "src/hoid/editorialRegistry.ts"
       - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN206_SHARED_FIRST_SAFE_APPEARANCE_POLICY.md"
       - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
       - "docs/hoid/RUN205_FIRST_SAFE_APPEARANCE_COMPLETION_BOUNDARY.md"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
@@ -79,6 +87,7 @@ jobs:
           src/hoid/trustedTopicRecommendations.test.ts
           src/hoid/answerPresentation.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
+          src/hoid/readingBoundary.test.ts
       - name: Type-check trusted comparison and trust boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -94,4 +103,6 @@ jobs:
           src/hoid/knowledgeGraph.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/cursorReadingContext.ts
+          src/hoid/catalog.ts
+          src/hoid/readingBoundary.ts
           src/hoid/answerPresentation.ts

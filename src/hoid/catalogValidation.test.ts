@@ -139,6 +139,7 @@ describe("catalogValidation shared canonical boundary", () => {
     expect(canonical).toBeDefined();
     expect(canonical.evidenceSource).toBeUndefined();
     expect(canonical.evidenceUnlock).toBeUndefined();
-    expect(canonical.summary).toBe("Resumen editorial sintético para la prueba.");
+    expect(canonical.summary).toBeUndefined();
+    expect(canonical.provenance).toBeUndefined();
   });
 });

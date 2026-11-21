@@ -187,7 +187,7 @@ function resolveLoadMethod(value: unknown): (() => Promise<unknown>) | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
     let current: object | null = value;
-    for (let depth = 0; current !== null && depth < 5; depth += 1) {
+    for (let depth = 0; current !== null && current !== Object.prototype && depth < 5; depth += 1) {
       const descriptor = Object.getOwnPropertyDescriptor(current, "load");
       if (descriptor) {
         if (!Object.prototype.hasOwnProperty.call(descriptor, "value") ||

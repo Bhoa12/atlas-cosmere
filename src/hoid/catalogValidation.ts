@@ -15,9 +15,11 @@ export function isValidKnowledgeEntry(entry: HoidKnowledgeEntry): boolean {
 }
 
 /**
- * Return detached, canonical entries using the exact same bibliography,
- * edition-manifest, alias, size, descriptor and duplicate-ID rules as
- * HoidKnowledgeCatalog. Invalid outer collections fail closed as a whole.
+ * Return detached, canonical ingestion metadata using the exact same
+ * bibliography, edition-manifest, alias, size, descriptor and duplicate-ID
+ * rules as HoidKnowledgeCatalog. Invalid outer collections fail closed as a
+ * whole. This helper has no reader-progress argument and does not authorize
+ * disclosure; presentation must use HoidKnowledgeCatalog.entriesForContext().
  */
 export function validatedKnowledge(
   entries: readonly HoidKnowledgeEntry[],

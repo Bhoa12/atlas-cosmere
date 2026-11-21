@@ -176,7 +176,7 @@ describe("Hoid trusted topic recommendation presentation", () => {
     });
     await expect(fixture.port.present(fixture.input)).resolves.toEqual({
       status: "withheld",
-      reason: "invalid-claim-presentation",
+      reason: "claim-presentation-withheld",
     });
   });
 
@@ -287,6 +287,20 @@ describe("Hoid trusted topic recommendation presentation", () => {
     const result = await fixture.port.present({ ...fixture.input, items: [first, second] });
     expect(result.status).toBe("ready");
     expect(fixture.present).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a trusted answer port whose descriptor trap throws", () => {
+    const fixture = setup();
+    const hostilePort = new Proxy({}, {
+      getOwnPropertyDescriptor() {
+        throw new Error("hostile descriptor trap");
+      },
+    });
+    expect(createHoidTrustedTopicRecommendationPresenter({
+      loadApprovedClaims: fixture.loadApprovedClaims,
+      trustedAnswerPort: hostilePort as unknown as HoidTrustedScreenAnswerPort,
+      refreshCurrentProgress: () => fixture.progress,
+    })).toBeNull();
   });
 
   it("fails closed when durable progress cannot be refreshed", async () => {

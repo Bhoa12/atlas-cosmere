@@ -426,10 +426,15 @@ export function createHoidTrustedTopicRecommendationPresenter(
     typeof config.refreshCurrentProgress !== "function"
   ) return null;
 
-  const presentDescriptor = config.trustedAnswerPort !== null &&
-    typeof config.trustedAnswerPort === "object"
-    ? Object.getOwnPropertyDescriptor(config.trustedAnswerPort, "present")
-    : undefined;
+  let presentDescriptor: PropertyDescriptor | undefined;
+  try {
+    presentDescriptor = config.trustedAnswerPort !== null &&
+      typeof config.trustedAnswerPort === "object"
+      ? Object.getOwnPropertyDescriptor(config.trustedAnswerPort, "present")
+      : undefined;
+  } catch {
+    return null;
+  }
   if (
     !presentDescriptor ||
     !Object.prototype.hasOwnProperty.call(presentDescriptor, "value") ||
@@ -498,6 +503,18 @@ export function createHoidTrustedTopicRecommendationPresenter(
         } catch {
           return withheld("claim-presentation-withheld");
         }
+        let resultStatus: unknown;
+        try {
+          if (rawResult !== null && typeof rawResult === "object" && !Array.isArray(rawResult)) {
+            const statusDescriptor = Object.getOwnPropertyDescriptor(rawResult, "status");
+            if (statusDescriptor && Object.prototype.hasOwnProperty.call(statusDescriptor, "value")) {
+              resultStatus = statusDescriptor.value;
+            }
+          }
+        } catch {
+          return withheld("invalid-claim-presentation");
+        }
+        if (resultStatus === "withheld") return withheld("claim-presentation-withheld");
         const verified = canonicalTrustedClaimPresentation(rawResult, claimId);
         if (!verified) return withheld("invalid-claim-presentation");
         verifiedClaims.set(claimId, verified);

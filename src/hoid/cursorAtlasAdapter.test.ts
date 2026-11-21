@@ -38,7 +38,14 @@ describe("atlasProgressFromCursorSnapshot", () => {
     if (result.status !== "ready") return;
     expect(result.chaptersByBook.tfe).toBe(12);
     expect(result.completedByBook.tfe).toBeUndefined();
+    expect(result.communityBoundariesByBook.tfe).toEqual({
+      kind: "in-progress",
+      bookId: "tfe",
+      currentChapter: 12,
+      completedThroughChapter: 11,
+    });
     expect(Object.getPrototypeOf(result.chaptersByBook)).toBeNull();
+    expect(Object.getPrototypeOf(result.communityBoundariesByBook)).toBeNull();
 
     // The legacy authorization position is deliberately one chapter behind.
     // The UI retains N so the community boundary can shield N and later.
@@ -61,6 +68,12 @@ describe("atlasProgressFromCursorSnapshot", () => {
     expect(result.chaptersByBook.tfe).toBe(1);
     expect(cursorToLegacyReadingPosition(firstCursor)).toBeNull();
     expect(result.completedByBook.tfe).toBeUndefined();
+    expect(result.communityBoundariesByBook.tfe).toEqual({
+      kind: "in-progress",
+      bookId: "tfe",
+      currentChapter: 1,
+      completedThroughChapter: null,
+    });
     expect(isChapterBeyondCompletedReadingBoundary(1, result.chaptersByBook.tfe)).toBe(true);
   });
 
@@ -73,6 +86,11 @@ describe("atlasProgressFromCursorSnapshot", () => {
     if (result.status !== "ready") return;
     expect(result.completedByBook.woa).toBe(true);
     expect(result.chaptersByBook.woa).toBeUndefined();
+    expect(result.communityBoundariesByBook.woa).toEqual({
+      kind: "completed",
+      bookId: "woa",
+      completedThrough: "entire-work",
+    });
     expect(Object.getPrototypeOf(result.completedByBook)).toBeNull();
   });
 
@@ -119,7 +137,9 @@ describe("atlasProgressFromCursorSnapshot", () => {
     if (result.status !== "ready") return;
     expect(Object.keys(result.chaptersByBook)).toEqual([]);
     expect(Object.keys(result.completedByBook)).toEqual([]);
+    expect(Object.keys(result.communityBoundariesByBook)).toEqual([]);
     expect(Object.getPrototypeOf(result.chaptersByBook)).toBeNull();
     expect(Object.getPrototypeOf(result.completedByBook)).toBeNull();
+    expect(Object.getPrototypeOf(result.communityBoundariesByBook)).toBeNull();
   });
 });

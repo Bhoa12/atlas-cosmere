@@ -167,7 +167,7 @@ describe("provider-neutral Hoid conversation history storage port", () => {
   });
 
   it("increments the storage revision after a successful replacement", async () => {
-    const store = makeStore(recordFor(key, scopeA, [userMessage()], 4));
+    const store = makeStore(recordFor(key, [userMessage()], 4));
     const result = await saveHoidConversationHistory(
       store.port, key, 4, snapshot([userMessage("new-user")]), scopeA,
     );

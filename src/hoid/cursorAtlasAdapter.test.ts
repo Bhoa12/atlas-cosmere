@@ -4,7 +4,10 @@ import {
   emptyHoidCursorProgressSnapshot,
   type HoidCursorProgressSnapshot,
 } from "./cursorProgressLedger";
-import { createHoidReadingCursor } from "./readingManifest";
+import {
+  createHoidReadingCursor,
+  cursorToLegacyReadingPosition,
+} from "./readingManifest";
 
 function cursor(bookId: string, chapter: number) {
   const result = createHoidReadingCursor(bookId, chapter);
@@ -24,9 +27,10 @@ function snapshot(
 }
 
 describe("atlasProgressFromCursorSnapshot", () => {
-  it("projects a valid partial cursor to a display-only chapter counter", () => {
+  it("preserves the currently open chapter for Atlas display without marking it completed", () => {
+    const openCursor = cursor("tfe", 12);
     const result = atlasProgressFromCursorSnapshot(snapshot([
-      { bookId: "tfe", cursor: cursor("tfe", 12) },
+      { bookId: "tfe", cursor: openCursor },
     ]));
 
     expect(result.status).toBe("ready");
@@ -34,6 +38,26 @@ describe("atlasProgressFromCursorSnapshot", () => {
     expect(result.chaptersByBook.tfe).toBe(12);
     expect(result.completedByBook.tfe).toBeUndefined();
     expect(Object.getPrototypeOf(result.chaptersByBook)).toBeNull();
+
+    // The legacy authorization position is deliberately one chapter behind.
+    // Atlas display and spoiler authorization must not share this projection.
+    expect(cursorToLegacyReadingPosition(openCursor)).toEqual({
+      bookId: "tfe",
+      chapter: 11,
+    });
+  });
+
+  it("keeps chapter one visible even though it has no completed-through legacy chapter", () => {
+    const firstCursor = cursor("tfe", 1);
+    const result = atlasProgressFromCursorSnapshot(snapshot([
+      { bookId: "tfe", cursor: firstCursor },
+    ]));
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.chaptersByBook.tfe).toBe(1);
+    expect(cursorToLegacyReadingPosition(firstCursor)).toBeNull();
+    expect(result.completedByBook.tfe).toBeUndefined();
   });
 
   it("preserves explicit completion without inventing a final chapter", () => {

@@ -9,10 +9,9 @@ function allowAllMatchedAliases(): HoidAliasDisclosurePort {
     authorize(request: HoidAliasDisclosureRequest) {
       return {
         status: "authorized",
-        authorizedMatches: request.matches.map(match => ({
-          id: match.id,
-          aliases: [...match.aliases],
-        })),
+        authorizedMatches: request.matches.map(match => ({ id: match.id, aliases: [...match.aliases] })),
+        progressRevision: 3,
+        progressFingerprint: "d".repeat(64),
       };
     },
   };
@@ -24,12 +23,10 @@ describe('HoidService catalog authorization boundary', () => {
     const catalog = new HoidKnowledgeCatalog([
       { id: 'verified-locked-entity', aliases: ['Entidad bloqueada'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
     ]);
-
     const result = await new HoidService(provider, undefined, catalog).answer({
       question: '¿Qué es la Entidad bloqueada?',
       reading: [{ bookId: 'tfe', chapter: 4 }],
     });
-
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe('reading-position');
     expect(provider.answer).not.toHaveBeenCalled();
@@ -41,7 +38,6 @@ describe('HoidService catalog authorization boundary', () => {
       question: 'Pregunta sintética sin spoilers.',
       reading: [{ bookId: 'tfe', chapter: 999_999 }],
     });
-
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe('input-invalid');
     expect(provider.answer).not.toHaveBeenCalled();
@@ -52,17 +48,10 @@ describe('HoidService catalog authorization boundary', () => {
     const catalog = new HoidKnowledgeCatalog([
       { id: 'verified-entry', aliases: ['Entidad segura'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
     ]);
-
-    const result = await new HoidService(
-      provider,
-      undefined,
-      catalog,
-      allowAllMatchedAliases(),
-    ).answer({
+    const result = await new HoidService(provider, undefined, catalog, allowAllMatchedAliases()).answer({
       question: 'Háblame de la Entidad segura',
       reading: [{ bookId: 'tfe', chapter: 5 }],
     });
-
     expect(result.blocked).toBe(false);
     expect(provider.answer).toHaveBeenCalledTimes(1);
   });
@@ -72,12 +61,10 @@ describe('HoidService catalog authorization boundary', () => {
     const catalog = new HoidKnowledgeCatalog([
       { id: 'verified-locked-output', aliases: ['Entidad bloqueada'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
     ]);
-
     const result = await new HoidService(provider, undefined, catalog).answer({
       question: 'Dame una explicación general sin nombres.',
       reading: [{ bookId: 'tfe', chapter: 4 }],
     });
-
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe('provider-output');
   });
@@ -87,22 +74,25 @@ describe('HoidService catalog authorization boundary', () => {
     const catalog = new HoidKnowledgeCatalog([
       { id: 'unicode-locked-output', aliases: ['Entidad bloqueada'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
     ]);
-
     const result = await new HoidService(provider, undefined, catalog).answer({
       question: 'Dame una explicación general sin nombres.',
       reading: [{ bookId: 'tfe', chapter: 4 }],
     });
-
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe('provider-output');
   });
 
   it('keeps provider output authorization bound to progress at request entry', async () => {
     let release!: () => void;
+    let markProviderStarted!: () => void;
+    const providerStarted = new Promise<void>(resolve => { markProviderStarted = resolve; });
     const provider: HoidProvider = {
-      answer: vi.fn(() => new Promise<string>(resolve => {
-        release = () => resolve('Una Entidad bloqueada aparece aquí.');
-      })),
+      answer: vi.fn(() => {
+        markProviderStarted();
+        return new Promise<string>(resolve => {
+          release = () => resolve('Una Entidad bloqueada aparece aquí.');
+        });
+      }),
     };
     const catalog = new HoidKnowledgeCatalog([
       { id: 'snapshot-locked-output', aliases: ['Entidad bloqueada'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
@@ -112,11 +102,10 @@ describe('HoidService catalog authorization boundary', () => {
       question: 'Dame una explicación general sin nombres.',
       reading,
     });
-    await Promise.resolve();
+    await providerStarted;
     reading[0].chapter = 5;
     release();
     const result = await pending;
-
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe('provider-output');
   });

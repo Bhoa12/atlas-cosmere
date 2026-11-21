@@ -1,49 +1,38 @@
-import { HoidKnowledgeCatalog } from './catalog';
-import { HoidAnswerRequest } from './types';
+import { HoidKnowledgeCatalog } from "./catalog";
+import type { HoidAnswerRequest } from "./types";
 import {
   authorizeHoidCatalogAliasMentions,
   type HoidAliasDisclosurePort,
+  type HoidAliasDisclosureProgressWitness,
 } from "./aliasDisclosureBoundary";
 
 export type HoidContextDecision =
-  | { allowed: true; allowedEntityIds: string[] }
+  | { allowed: true; allowedEntityIds: string[]; progressWitness: HoidAliasDisclosureProgressWitness | null }
   | { allowed: false; lockedEntityIds: string[] };
 
-/**
- * Authorizes retrieval metadata before any provider is invoked. The caller must
- * never add locked entries to a prompt, vector query, or provider context.
- *
- * Entity first appearance and spelling/alias disclosure are independent:
- * every matched alias also needs an explicit host-owned authorization grant.
- */
-export function authorizeHoidContext(
+export async function authorizeHoidContext(
   request: HoidAnswerRequest,
   catalog: HoidKnowledgeCatalog,
   aliasDisclosurePort?: HoidAliasDisclosurePort | null,
-): HoidContextDecision {
+): Promise<HoidContextDecision> {
   const locked = catalog.lockedMatches(request.question, request.reading);
-  if (locked.length > 0) {
-    return { allowed: false, lockedEntityIds: locked.map(entry => entry.id) };
-  }
+  if (locked.length > 0) return { allowed: false, lockedEntityIds: locked.map(entry => entry.id) };
 
-  const aliasDecision = authorizeHoidCatalogAliasMentions(
+  const aliasDecision = await authorizeHoidCatalogAliasMentions(
     request.question,
     request.reading,
     catalog,
     aliasDisclosurePort,
   );
   if (aliasDecision.status !== "allowed") {
-    return {
-      allowed: false,
-      lockedEntityIds: catalog.findMatches(request.question).map(entry => entry.id),
-    };
+    return { allowed: false, lockedEntityIds: catalog.findMatches(request.question).map(entry => entry.id) };
   }
 
   return {
     allowed: true,
-    allowedEntityIds: catalog
-      .findMatches(request.question)
+    progressWitness: aliasDecision.progressWitness,
+    allowedEntityIds: catalog.findMatches(request.question)
       .filter(entry => catalog.isEntityMentionUnlocked(entry, request.reading))
-      .map(entry => entry.id)
+      .map(entry => entry.id),
   };
 }

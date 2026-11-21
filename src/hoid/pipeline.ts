@@ -12,6 +12,8 @@ import { validHoidQuestion } from "./requestValidation";
 import { validReadingPositions } from "./readingValidation";
 import {
   authorizeHoidCatalogAliasMentions,
+  sameHoidAliasProgressWitness,
+  type HoidAliasDisclosureDecision,
   type HoidAliasDisclosurePort,
 } from "./aliasDisclosureBoundary";
 
@@ -26,11 +28,7 @@ export interface ContextualHoidProvider extends HoidProvider {
   answerWithContext(request: HoidAnswerRequest, context: readonly ProviderKnowledgeContextEntry[]): Promise<string>;
 }
 
-/** Structured providers opt into claim-level evidence. */
-export type EvidenceBoundClaim = {
-  text: string;
-  evidenceIds: readonly string[];
-};
+export type EvidenceBoundClaim = { text: string; evidenceIds: readonly string[] };
 
 export interface EvidenceBoundHoidProvider {
   answerWithEvidence(
@@ -48,14 +46,12 @@ function providerSnapshots(
     question: request.question,
     reading: Object.freeze(reading),
   }) as unknown as HoidAnswerRequest;
-
   const providerContext = context.map(entry => Object.freeze({
     id: entry.id,
     kind: entry.kind,
     summary: entry.summary,
     firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
   })) as readonly ProviderKnowledgeContextEntry[];
-
   return { request: providerRequest, context: Object.freeze(providerContext) };
 }
 
@@ -66,23 +62,24 @@ function evidenceText(
   const allowed = new Set(context.map(item => item.id));
   const accepted = filterClaimsByAuthorizedIds(claims, allowed);
   if (accepted.length === 0) return null;
-
   let totalLength = 0;
   const parts: string[] = [];
   for (const claim of accepted) {
     const separatorLength = parts.length === 0 ? 0 : 2;
-    if (totalLength + separatorLength + claim.text.length > DEFAULT_MAX_PROVIDER_TEXT_LENGTH) {
-      return null;
-    }
+    if (totalLength + separatorLength + claim.text.length > DEFAULT_MAX_PROVIDER_TEXT_LENGTH) return null;
     parts.push(claim.text);
     totalLength += separatorLength + claim.text.length;
   }
-
   return validProviderText(parts.join("\n\n"), DEFAULT_MAX_PROVIDER_TEXT_LENGTH);
 }
 
 function blocked(reason: "reading-position" | "provider-output", text: string): HoidAnswer {
   return { blocked: true, reason, text };
+}
+
+function sameAliasDecision(initial: HoidAliasDisclosureDecision, final: HoidAliasDisclosureDecision): boolean {
+  return initial.status === "allowed" && final.status === "allowed" &&
+    sameHoidAliasProgressWitness(initial.progressWitness, final.progressWitness);
 }
 
 export class HoidPipeline {
@@ -101,24 +98,18 @@ export class HoidPipeline {
     })) as unknown as HoidKnowledgeEntry[];
   }
 
-  private aliasDisclosureAllowed(
+  private aliasDisclosureDecision(
     text: string,
     reading: HoidAnswerRequest["reading"],
     catalog: HoidKnowledgeCatalog,
-  ): boolean {
-    return authorizeHoidCatalogAliasMentions(
-      text,
-      reading,
-      catalog,
-      this.aliasDisclosurePort,
-    ).status === "allowed";
+  ): Promise<HoidAliasDisclosureDecision> {
+    return authorizeHoidCatalogAliasMentions(text, reading, catalog, this.aliasDisclosurePort);
   }
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
     if (request === null || typeof request !== "object" || Array.isArray(request)) {
       return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
     }
-
     const question = validHoidQuestion(request.question);
     const readingInput = validReadingPositions(request.reading);
     if (question === null || readingInput === null) {
@@ -128,7 +119,6 @@ export class HoidPipeline {
     const normalizedRequest: HoidAnswerRequest = { ...request, question, reading: readingInput };
     const blockedQuestion = guardQuestion(normalizedRequest);
     if (blockedQuestion) return blockedQuestion;
-
     const knowledge = this.knowledge;
     const catalog = new HoidKnowledgeCatalog(knowledge);
     const reading = authorizeReading(normalizedRequest.reading, catalogBookIds(knowledge));
@@ -136,17 +126,17 @@ export class HoidPipeline {
     if (catalog.lockedMatches(question, reading).length > 0) {
       return blocked("reading-position", "Esa pregunta incluye información que todavía no has desbloqueado. Hoid prefiere guardar ese misterio hasta que llegues a la parte correspondiente.");
     }
-    if (!this.aliasDisclosureAllowed(question, reading, catalog)) {
+
+    const questionAliasDecision = await this.aliasDisclosureDecision(question, reading, catalog);
+    if (questionAliasDecision.status !== "allowed") {
       return blocked("reading-position", "La pregunta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.");
     }
-
     if (!this.provider) {
       return { blocked: false, reason: "provider-unavailable", text: "No hay una fuente de IA configurada. Atlas no enviará esta pregunta a ningún servicio externo." };
     }
 
     const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, question));
     const snapshot = providerSnapshots(authorizedRequest, context);
-
     try {
       const provider = this.provider as Partial<EvidenceBoundHoidProvider & ContextualHoidProvider>;
       if (typeof provider.answerWithEvidence === "function") {
@@ -158,8 +148,9 @@ export class HoidPipeline {
         if (text === null || catalog.lockedMatches(text, reading).length > 0) {
           return blocked("provider-output", "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado.");
         }
-        if (!this.aliasDisclosureAllowed(text, reading, catalog)) {
-          return blocked("provider-output", "La respuesta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.");
+        const outputAliasDecision = await this.aliasDisclosureDecision(text, reading, catalog);
+        if (!sameAliasDecision(questionAliasDecision, outputAliasDecision)) {
+          return blocked("provider-output", "La respuesta contiene un nombre o una autorización de progreso que no coincide con la revisión utilizada al iniciar la consulta.");
         }
         return redactProviderAnswer(text, authorizedRequest);
       }
@@ -181,8 +172,9 @@ export class HoidPipeline {
       if (catalog.lockedMatches(safeText, reading).length > 0) {
         return blocked("provider-output", "He empezado a revelar información que todavía no has desbloqueado. Mejor dejemos ese misterio sellado por ahora.");
       }
-      if (!this.aliasDisclosureAllowed(safeText, reading, catalog)) {
-        return blocked("provider-output", "La respuesta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.");
+      const outputAliasDecision = await this.aliasDisclosureDecision(safeText, reading, catalog);
+      if (!sameAliasDecision(questionAliasDecision, outputAliasDecision)) {
+        return blocked("provider-output", "La respuesta contiene un nombre o una autorización de progreso que no coincide con la revisión utilizada al iniciar la consulta.");
       }
       return providerAnswer;
     } catch {

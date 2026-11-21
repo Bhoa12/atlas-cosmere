@@ -200,15 +200,15 @@ function setup(options?: {
   const refresh = options?.refresh ?? (() => progress);
   const resolve = options?.resolver ?? (() => active(assignments as readonly { id: string }[]));
   const validate = options?.validator ?? ((value: unknown) => validation(value as readonly unknown[]));
-  const load = vi.fn(options?.load ?? (async (claimIds: readonly string[]) =>
-    claimIds.map(claimId => Object.freeze({
+  const load = vi.fn(options?.load ?? (async (claimIds: readonly string[]) => {
+    return claimIds.map(claimId => Object.freeze({
       claimId,
       answer: Object.freeze({ claimId }),
-    })),
-  ));
-  const present = vi.fn(options?.present ?? (async (answer: unknown) =>
-    readyClaim((answer as { claimId: string }).claimId),
-  ));
+    }));
+  }));
+  const present = vi.fn(options?.present ?? (async (answer: unknown) => {
+    return readyClaim((answer as { claimId: string }).claimId);
+  }));
   const trustedAnswerPort = Object.freeze({ present }) as unknown as HoidTrustedScreenAnswerPort;
   const refreshCurrentProgress = vi.fn(refresh);
   const resolveApprovedAssignments = vi.fn(resolve);
@@ -457,7 +457,7 @@ describe("Hoid trusted cross-world topic comparison", () => {
     expect(fixture.load).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid explanation depth and never accepts a provider adapter as configuration", () => {
+  it("rejects provider adapters as configuration", () => {
     const fixture = setup();
     const invalid = createHoidTrustedTopicComparisonPresenter({
       loadApprovedClaims: fixture.load,

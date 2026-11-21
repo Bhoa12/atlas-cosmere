@@ -332,21 +332,8 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
   if (provenance !== undefined && (typeof provenance !== "string" || !PROVENANCE.has(provenance))) {
     return Object.freeze({ status: "invalid", reason: "invalid-provenance" });
   }
-  // Only verified editorial summaries participate in the claim fingerprint.
-  // Limited/unavailable records are canonicalized to metadata-only entries,
-  // so their narrative summary is deliberately excluded from this binding.
-  let summarySha256: string | null = null;
-  if (provenance === "verified") {
-    if (
-      typeof summary !== "string" ||
-      summary.length < 1 ||
-      summary.length > MAX_TEXT ||
-      summary !== summary.trim() ||
-      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(summary)
-    ) {
-      return Object.freeze({ status: "invalid", reason: "invalid-summary" });
-    }
-    summarySha256 = sha256Hex(summary);
+  if (typeof summary !== "string" || summary.trim().length < 1 || summary.length > MAX_TEXT) {
+    return Object.freeze({ status: "invalid", reason: "invalid-summary" });
   }
 
   const manifestResult = getHoidReadingManifest(scope.sourceBookId);
@@ -384,7 +371,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
     kind,
     sha256Hex(JSON.stringify(aliases)),
     provenance ?? null,
-    summarySha256,
+    sha256Hex(summary.trim()),
   ]) });
 }
 

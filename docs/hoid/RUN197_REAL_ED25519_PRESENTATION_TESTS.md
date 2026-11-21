@@ -36,7 +36,24 @@ The updated native Ed25519 workflow is required to run:
 - trusted bootstrap, promotion and revision-store suites
 - strict TypeScript checks for the Noble adapter and trusted presenter.
 
-This report does not claim a passing result until GitHub Actions completes on the final branch HEAD.
+Validated on final PR HEAD `538848824b92482229e81cf03a44ba24a446551f` on 2026-11-21:
+
+| Workflow | Tests | Result |
+|---|---:|---|
+| Trusted verified answer presentation | 53 across 5 files | Success |
+| Native Ed25519 and trusted host | 64 across 7 files | Success |
+| Source coverage audit | 230 across 15 files | Success |
+| Reading manifests | 46 across 5 files | Success |
+| Edition structure | 79 across 5 files | Success |
+
+All five workflows completed successfully. All associated strict TypeScript checks passed. The 472 test executions are cumulative across suites and include intentional overlap; they are not 472 unique test cases.
+
+Run links:
+- [Trusted verified presentation](https://github.com/Bhoa12/atlas-cosmere/actions/runs/44848944569)
+- [Native Ed25519 trusted host](https://github.com/Bhoa12/atlas-cosmere/actions/runs/44848944493)
+- [Source coverage](https://github.com/Bhoa12/atlas-cosmere/actions/runs/44848944433)
+- [Reading manifests](https://github.com/Bhoa12/atlas-cosmere/actions/runs/44848944416)
+- [Edition structure](https://github.com/Bhoa12/atlas-cosmere/actions/runs/44848944409)
 
 ## Isolation
 

@@ -12,6 +12,16 @@ export type HoidAliasDisclosureGrant = Readonly<{
   aliases: readonly string[];
 }>;
 
+export type HoidAliasDisclosurePortResult =
+  | Readonly<{
+      status: "authorized";
+      authorizedMatches: readonly HoidAliasDisclosureGrant[];
+      progressRevision: number;
+      progressFingerprint: string;
+    }>
+  | Readonly<{ status: "blocked" }>
+  | Readonly<{ status: "unavailable" }>;
+
 export type HoidAliasDisclosureProgressWitness = Readonly<{
   revision: number;
   fingerprint: string;

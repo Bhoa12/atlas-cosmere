@@ -39,6 +39,8 @@ function authorizeAllMatchedAliases(): HoidAliasDisclosurePort {
           id: match.id,
           aliases: [...match.aliases],
         })),
+        progressRevision: 1,
+        progressFingerprint: "e".repeat(64),
       };
     },
   };

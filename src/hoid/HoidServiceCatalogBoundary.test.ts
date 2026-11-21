@@ -84,10 +84,15 @@ describe('HoidService catalog authorization boundary', () => {
 
   it('keeps provider output authorization bound to progress at request entry', async () => {
     let release!: () => void;
+    let markProviderStarted!: () => void;
+    const providerStarted = new Promise<void>(resolve => { markProviderStarted = resolve; });
     const provider: HoidProvider = {
-      answer: vi.fn(() => new Promise<string>(resolve => {
-        release = () => resolve('Una Entidad bloqueada aparece aquí.');
-      })),
+      answer: vi.fn(() => {
+        markProviderStarted();
+        return new Promise<string>(resolve => {
+          release = () => resolve('Una Entidad bloqueada aparece aquí.');
+        });
+      }),
     };
     const catalog = new HoidKnowledgeCatalog([
       { id: 'snapshot-locked-output', aliases: ['Entidad bloqueada'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
@@ -97,7 +102,7 @@ describe('HoidService catalog authorization boundary', () => {
       question: 'Dame una explicación general sin nombres.',
       reading,
     });
-    await Promise.resolve();
+    await providerStarted;
     reading[0].chapter = 5;
     release();
     const result = await pending;

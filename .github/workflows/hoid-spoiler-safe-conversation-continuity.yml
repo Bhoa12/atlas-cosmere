@@ -18,11 +18,14 @@ on:
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationHistoryPolicy.ts"
       - "src/hoid/conversationHistoryPolicy.test.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryHydration.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
       - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
       - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
+      - "docs/hoid/RUN216_VERSIONED_CONVERSATION_HISTORY_HYDRATION.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
   pull_request:
     paths:
@@ -39,11 +42,14 @@ on:
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationHistoryPolicy.ts"
       - "src/hoid/conversationHistoryPolicy.test.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryHydration.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
       - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
       - "docs/hoid/RUN215_CANONICAL_STATIC_GREETING_INTEGRITY.md"
+      - "docs/hoid/RUN216_VERSIONED_CONVERSATION_HISTORY_HYDRATION.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
 
 permissions:
@@ -70,6 +76,7 @@ jobs:
           src/hoid/relationshipGateway.test.ts
           src/hoid/conversationGateway.test.ts
           src/hoid/conversationHistoryPolicy.test.ts
+          src/hoid/conversationHistoryHydration.test.ts
       - name: Type-check continuity boundaries and screen integration
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -81,4 +88,6 @@ jobs:
           src/hoid/relationshipGateway.ts
           src/hoid/conversationGateway.ts
           src/hoid/conversationHistoryPolicy.ts
+          src/hoid/conversationHistoryHydration.ts
+          src/hoid/conversationHistoryHydration.test.ts
           src/screens/HoidScreen.tsx

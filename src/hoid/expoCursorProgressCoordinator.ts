@@ -1,7 +1,5 @@
-import * as SQLite from "expo-sqlite";
-import { Platform } from "react-native";
+import { getExpoHoidDatabase } from "./expoHoidDatabase";
 import { createExpoSqliteHoidCursorProgressStore } from "./cursorSqliteProgressStore";
-import type { HoidSqliteDatabasePort } from "./sqliteProgressStore";
 import { HoidCursorProgressCoordinator } from "./cursorProgressCoordinator";
 
 let coordinatorPromise: Promise<HoidCursorProgressCoordinator> | null = null;
@@ -9,25 +7,16 @@ let coordinatorPromise: Promise<HoidCursorProgressCoordinator> | null = null;
 /**
  * Native composition boundary for cursor-native progress.
  *
- * This factory intentionally remains separate from the v1 application
- * composition until native migration and rollback tests have passed.
- * The shared promise prevents duplicate connections during React Strict Mode
- * remounts. Web remains unavailable until a separately tested transactional
- * store is supplied.
+ * The coordinator and future conversation-history stores obtain the same
+ * process-local SQLite handle from expoHoidDatabase.ts. The shared provider
+ * coalesces concurrent opens, including React Strict Mode remounts. Web
+ * remains unavailable until a separately tested transactional store exists.
  */
 export function createExpoHoidCursorProgressCoordinator(): Promise<HoidCursorProgressCoordinator> {
-  if (Platform.OS === "web") {
-    return Promise.reject(new Error(
-      "Hoid cursor progress currently requires native SQLite transactions.",
-    ));
-  }
-
   if (!coordinatorPromise) {
-    coordinatorPromise = SQLite.openDatabaseAsync("atlas-cosmere-hoid.db")
+    coordinatorPromise = getExpoHoidDatabase()
       .then(database => {
-        const store = createExpoSqliteHoidCursorProgressStore(
-          database as unknown as HoidSqliteDatabasePort,
-        );
+        const store = createExpoSqliteHoidCursorProgressStore(database);
         return new HoidCursorProgressCoordinator(store);
       })
       .catch(error => {

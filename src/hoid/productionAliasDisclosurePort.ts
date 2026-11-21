@@ -1,7 +1,7 @@
 import type { HoidAliasDisclosurePort, HoidAliasDisclosureRequest } from "./aliasDisclosureBoundary";
 import type { HoidCursorProgressStore } from "./cursorSqliteProgressStore";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
-import { resolveProductionHoidEntities, type HoidEntityResolutionResult } from "./entityResolver";
+import { resolveProductionHoidEntities } from "./entityResolver";
 import { validEditionBoundReadingPositions } from "./editionProgressValidation";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { isHoidKnowledgeKind } from "./knowledgeKinds";

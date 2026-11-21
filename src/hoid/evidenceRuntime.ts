@@ -238,6 +238,7 @@ function canonicalClaims(
     const keys = Reflect.ownKeys(value);
     if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
 
+    const seenInputIds = new Set<string>();
     const seen = new Set<string>();
     const claims: HoidApprovedClaim[] = [];
     for (let index = 0; index < value.length; index += 1) {
@@ -247,8 +248,34 @@ function canonicalClaims(
         !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
         descriptor.enumerable !== true
       ) return null;
+
+      // Reserve every raw claim ID before source validation so a rejected
+      // metadata-only claim cannot shadow a later claim with the same ID.
+      if (!isRecord(descriptor.value)) return null;
+      const idDescriptor = Object.getOwnPropertyDescriptor(descriptor.value, "id");
+      if (
+        !idDescriptor ||
+        !Object.prototype.hasOwnProperty.call(idDescriptor, "value") ||
+        idDescriptor.enumerable !== true ||
+        typeof idDescriptor.value !== "string" ||
+        idDescriptor.value !== idDescriptor.value.trim() ||
+        idDescriptor.value.length < 1 ||
+        idDescriptor.value.length > MAX_CLAIM_ID_LENGTH ||
+        !ENTITY_ID_PATTERN.test(idDescriptor.value) ||
+        seenInputIds.has(idDescriptor.value)
+      ) return null;
+      seenInputIds.add(idDescriptor.value);
+
       const attestation = validateHoidApprovedClaimAttestation(descriptor.value, knowledge);
-      if (attestation.status !== "valid" || seen.has(attestation.claim.id)) return null;
+      if (attestation.status !== "valid") {
+        // A claim whose evidence was downgraded to name-only metadata is
+        // omitted from the runtime, not allowed to invalidate unrelated
+        // verified claims. Integrity, shape and review failures still reject
+        // the registry as a whole.
+        if (attestation.reason === "unverified-source") continue;
+        return null;
+      }
+      if (seen.has(attestation.claim.id)) return null;
       seen.add(attestation.claim.id);
       claims.push(attestation.claim);
     }

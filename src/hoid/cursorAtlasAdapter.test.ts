@@ -4,7 +4,11 @@ import {
   emptyHoidCursorProgressSnapshot,
   type HoidCursorProgressSnapshot,
 } from "./cursorProgressLedger";
-import { createHoidReadingCursor } from "./readingManifest";
+import {
+  createHoidReadingCursor,
+  cursorToLegacyReadingPosition,
+} from "./readingManifest";
+import { isChapterBeyondCompletedReadingBoundary } from "./readingBoundary";
 
 function cursor(bookId: string, chapter: number) {
   const result = createHoidReadingCursor(bookId, chapter);
@@ -24,9 +28,10 @@ function snapshot(
 }
 
 describe("atlasProgressFromCursorSnapshot", () => {
-  it("projects a valid partial cursor to a display-only chapter counter", () => {
+  it("preserves the currently open chapter for Atlas display without marking it completed", () => {
+    const openCursor = cursor("tfe", 12);
     const result = atlasProgressFromCursorSnapshot(snapshot([
-      { bookId: "tfe", cursor: cursor("tfe", 12) },
+      { bookId: "tfe", cursor: openCursor },
     ]));
 
     expect(result.status).toBe("ready");
@@ -34,6 +39,29 @@ describe("atlasProgressFromCursorSnapshot", () => {
     expect(result.chaptersByBook.tfe).toBe(12);
     expect(result.completedByBook.tfe).toBeUndefined();
     expect(Object.getPrototypeOf(result.chaptersByBook)).toBeNull();
+
+    // The legacy authorization position is deliberately one chapter behind.
+    // The UI retains N so the community boundary can shield N and later.
+    expect(cursorToLegacyReadingPosition(openCursor)).toEqual({
+      bookId: "tfe",
+      chapter: 11,
+    });
+    expect(isChapterBeyondCompletedReadingBoundary(12, result.chaptersByBook.tfe)).toBe(true);
+    expect(isChapterBeyondCompletedReadingBoundary(11, result.chaptersByBook.tfe)).toBe(false);
+  });
+
+  it("keeps chapter one visible and shields its own chapter from community spoilers", () => {
+    const firstCursor = cursor("tfe", 1);
+    const result = atlasProgressFromCursorSnapshot(snapshot([
+      { bookId: "tfe", cursor: firstCursor },
+    ]));
+
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.chaptersByBook.tfe).toBe(1);
+    expect(cursorToLegacyReadingPosition(firstCursor)).toBeNull();
+    expect(result.completedByBook.tfe).toBeUndefined();
+    expect(isChapterBeyondCompletedReadingBoundary(1, result.chaptersByBook.tfe)).toBe(true);
   });
 
   it("preserves explicit completion without inventing a final chapter", () => {

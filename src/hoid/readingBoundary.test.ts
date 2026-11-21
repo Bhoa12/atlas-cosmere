@@ -239,17 +239,17 @@ describe("book-bound community spoiler authority", () => {
 
   it("reveals a whole work only for its explicit completed boundary", () => {
     const projected = projectHoidCursorPositionToBoundary({
-      bookId: "woa",
+      bookId: "tfe",
       completed: true,
     });
     expect(projected?.boundary.kind).toBe("completed");
-    expect(isCommunityPostBeyondReadingBoundary("woa", 75, projected?.boundary)).toBe(false);
+    expect(isCommunityPostBeyondReadingBoundary("tfe", 75, projected?.boundary)).toBe(false);
 
     const partial = projectHoidCursorPositionToBoundary({
-      bookId: "woa",
-      cursor: cursor("woa", 1),
+      bookId: "tfe",
+      cursor: cursor("tfe", 1),
     });
-    expect(isCommunityPostBeyondReadingBoundary("woa", 75, partial?.boundary)).toBe(true);
+    expect(isCommunityPostBeyondReadingBoundary("tfe", 75, partial?.boundary)).toBe(true);
   });
 
   it("rejects inconsistent, unknown-key and accessor-bearing boundaries", () => {

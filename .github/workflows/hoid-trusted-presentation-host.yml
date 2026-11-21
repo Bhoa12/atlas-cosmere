@@ -1,0 +1,64 @@
+name: Hoid trusted presentation host composition
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedPresentationHost.ts"
+      - "src/hoid/trustedPresentationHost.test.ts"
+      - "src/hoid/trustedPresentationHostAdapters.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.test.ts"
+      - "src/hoid/remoteTrustRevisionWitness.ts"
+      - "src/hoid/remoteTrustRevisionWitness.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "docs/hoid/TRUSTED_PRESENTATION_HOST_COMPOSITION.md"
+      - ".github/workflows/hoid-trusted-presentation-host.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedPresentationHost.ts"
+      - "src/hoid/trustedPresentationHost.test.ts"
+      - "src/hoid/trustedPresentationHostAdapters.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.test.ts"
+      - "src/hoid/remoteTrustRevisionWitness.ts"
+      - "src/hoid/remoteTrustRevisionWitness.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "docs/hoid/TRUSTED_PRESENTATION_HOST_COMPOSITION.md"
+      - ".github/workflows/hoid-trusted-presentation-host.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-presentation-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 20.19 for Noble Curves v2
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test trusted host composition and real cryptography
+        run: >-
+          npx vitest run
+          src/hoid/trustedPresentationHost.test.ts
+          src/hoid/trustedVerifiedAnswerPresentation.test.ts
+          src/hoid/remoteTrustRevisionWitness.test.ts
+          src/hoid/nobleEd25519VerificationAdapter.test.ts
+      - name: Type-check trusted host composition
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module ESNext --moduleResolution bundler --skipLibCheck
+          src/hoid/trustedPresentationHost.ts
+          src/hoid/trustedPresentationHostAdapters.ts
+          src/hoid/trustedVerifiedAnswerPresentation.ts
+          src/hoid/remoteTrustRevisionWitness.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts

@@ -56,7 +56,6 @@ describe("Hoid catalog immutable authorization snapshot", () => {
     expect(matches).toHaveLength(1);
 
     matches[0].aliases[0] = "Alias de salida manipulado";
-    matches[0].firstSafeAppearance.chapter = 1;
     (matches[0].evidenceUnlock as { bookId: string; chapter: number }).chapter = 1;
     matches[0].summary = "Texto de salida manipulado.";
 
@@ -92,12 +91,14 @@ describe("Hoid catalog immutable authorization snapshot", () => {
       firstSafeAppearance: { bookId: "tfe", chapter: 1 },
     };
 
-    expect(catalog.isEntityMentionUnlocked(forged, [{ bookId: "tfe", chapter: 5 }])).toBe(false);
+    // The caller's forged first-safe chapter is ignored; the catalog's
+    // retained chapter-five boundary remains authoritative.
+    expect(catalog.isEntityMentionUnlocked(forged, [{ bookId: "tfe", chapter: 1 }])).toBe(false);
+    expect(catalog.isEntityMentionUnlocked(forged, [{ bookId: "tfe", chapter: 5 }])).toBe(true);
     expect(catalog.isEntityMentionUnlocked({
-      ...original,
       id: "not-in-this-catalog",
     }, [{ bookId: "tfe", chapter: 5 }])).toBe(false);
-    expect(catalog.isEntityMentionUnlocked(original, [{ bookId: "tfe", chapter: 5 }])).toBe(true);
+    expect(catalog.isEntityMentionUnlocked({ id: original.id }, [{ bookId: "tfe", chapter: 5 }])).toBe(true);
   });
 
   it("rejects accessor-backed catalog entries without executing getters", () => {

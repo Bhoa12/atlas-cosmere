@@ -29,6 +29,9 @@ export type HoidKnowledgeEntry = {
   provenance?: HoidKnowledgeProvenance;
 };
 
+/** Name-match projection. Narrative summaries and evidence are never returned by findMatches(). */
+export type HoidKnowledgeMatch = Pick<HoidKnowledgeEntry, "id" | "aliases">;
+
 const MAX_CATALOG_ENTRIES = 512;
 const MAX_ALIASES_PER_ENTRY = 64;
 const MAX_ALIAS_LENGTH = 256;
@@ -196,9 +199,9 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     },
   };
 
-  // A malformed optional evidence tuple is omitted rather than promoted. This
-  // can preserve a safe name-only catalog entry, but it can never authorize a
-  // provider-facing summary because entriesForContext requires valid evidence.
+  // A malformed optional evidence tuple is omitted rather than promoted.
+  // Summary text and provenance are stripped below unless the complete
+  // edition-bound source/unlock tuple survives and provenance is verified.
   const source = Object.prototype.hasOwnProperty.call(record, "evidenceSource")
     ? canonicalRecord(record.evidenceSource, ["bookId", "chapter", "locatorId"])
     : null;
@@ -240,21 +243,27 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     };
   }
 
-  if (
+  const hasValidSummaryText =
     typeof record.summary === "string" &&
     record.summary.length > 0 &&
     record.summary.length <= MAX_SUMMARY_LENGTH &&
     record.summary === record.summary.trim() &&
-    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(record.summary)
-  ) {
-    entry.summary = record.summary;
-  }
-  if (
+    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(record.summary);
+  const hasValidProvenance =
     record.provenance === "verified" ||
     record.provenance === "limited" ||
-    record.provenance === "unavailable"
-  ) {
-    entry.provenance = record.provenance;
+    record.provenance === "unavailable";
+
+  // A summary is sensitive narrative context, not harmless catalog metadata.
+  // Keep it only when the complete evidence tuple survived canonicalization
+  // and the editorial provenance is explicitly verified. Otherwise the
+  // canonical entry is genuinely name-only: no summary text or provenance
+  // flag can leak through compatibility adapters such as validatedKnowledge().
+  if (entry.evidenceSource && entry.evidenceUnlock && hasValidProvenance) {
+    entry.provenance = record.provenance as HoidKnowledgeProvenance;
+    if (record.provenance === "verified" && hasValidSummaryText) {
+      entry.summary = record.summary as string;
+    }
   }
 
   return entry;
@@ -284,8 +293,34 @@ function cloneEntry(entry: HoidKnowledgeEntry): HoidKnowledgeEntry {
   };
 }
 
-function canonicalEntryIdentity(entry: HoidKnowledgeEntry): string {
-  return JSON.stringify(entry);
+function canonicalEntryId(value: unknown): string | null {
+  const record = canonicalRecord(value, ["id"], [
+    "aliases",
+    "kind",
+    "firstSafeAppearance",
+    "evidenceSource",
+    "evidenceUnlock",
+    "summary",
+    "provenance",
+  ]);
+  const id = record?.id;
+  if (
+    typeof id !== "string" ||
+    id.length === 0 ||
+    id.length > 128 ||
+    id !== id.trim() ||
+    /[\u0000-\u001F\u007F]/u.test(id)
+  ) return null;
+  return id;
+}
+
+function cloneMatch(entry: HoidKnowledgeEntry, matchedAliases: readonly string[]): HoidKnowledgeMatch {
+  return {
+    id: entry.id,
+    // Return only aliases that already occurred in the user's query. Other
+    // aliases may themselves be spoiler-bearing names and stay private.
+    aliases: [...matchedAliases],
+  };
 }
 
 /**
@@ -305,7 +340,8 @@ export function canonicalizeHoidKnowledgeEntry(value: unknown): HoidKnowledgeEnt
  * Canonicalize a complete untrusted catalog collection. Sparse arrays,
  * accessor-backed collections and oversized inputs fail closed as a whole.
  * Every member is detached, and all entries sharing a normalized ID are
- * rejected as a group. Returned objects are caller-owned copies.
+ * rejected as a group. Returned objects are caller-owned copies. This helper
+ * validates ingestion metadata; it does not authorize narrative disclosure.
  */
 export function canonicalizeHoidKnowledgeEntries(value: unknown): HoidKnowledgeEntry[] {
   const rawEntries = canonicalDenseArray(value, 0, MAX_CATALOG_ENTRIES);
@@ -340,15 +376,24 @@ export class HoidKnowledgeCatalog {
     );
   }
 
-  findMatches(text: string): HoidKnowledgeEntry[] {
+  /**
+   * Return only the name/identity projection. This method is safe for matching
+   * and spoiler checks at any reading position; callers must use
+   * entriesForContext() to obtain a summary after its independent evidence
+   * watermark has been reached.
+   */
+  findMatches(text: string): HoidKnowledgeMatch[] {
     if (typeof text !== "string" || text.length === 0 || text.length > 20_000) return [];
     const normalized = normalizeForCatalogMatch(text);
-    return this.#entries
-      .filter(entry => entry.aliases.some(alias => {
+    const matches: HoidKnowledgeMatch[] = [];
+    for (const entry of this.#entries) {
+      const matchedAliases = entry.aliases.filter(alias => {
         const normalizedAlias = normalizeForCatalogMatch(alias).trim();
         return normalizedAlias.length > 0 && containsCatalogAlias(normalized, normalizedAlias);
-      }))
-      .map(cloneEntry);
+      });
+      if (matchedAliases.length > 0) matches.push(cloneMatch(entry, matchedAliases));
+    }
+    return matches;
   }
 
   /**
@@ -357,11 +402,13 @@ export class HoidKnowledgeCatalog {
    * summary is safe to reveal. The supplied entry must match the catalog's
    * canonical snapshot; its caller-owned unlock metadata is never authoritative.
    */
-  isEntityMentionUnlocked(entry: HoidKnowledgeEntry, reading: readonly ReadingPosition[]): boolean {
-    const candidate = canonicalizeEntry(entry);
-    if (!candidate) return false;
-    const trusted = this.#entries.find(item => item.id === candidate.id);
-    if (!trusted || canonicalEntryIdentity(candidate) !== canonicalEntryIdentity(trusted)) return false;
+  isEntityMentionUnlocked(entry: Pick<HoidKnowledgeEntry, "id">, reading: readonly ReadingPosition[]): boolean {
+    // The caller supplies an identity only. The catalog, never the caller,
+    // supplies the first-safe chapter and every evidence/summary watermark.
+    const id = canonicalEntryId(entry);
+    if (!id) return false;
+    const trusted = this.#entries.find(item => item.id === id);
+    if (!trusted) return false;
 
     const position = buildReadingContext(reading)
       .find(item => item.bookId === trusted.firstSafeAppearance.bookId);
@@ -377,11 +424,11 @@ export class HoidKnowledgeCatalog {
    * summaries must use isEvidenceUnlocked(), never this first-appearance check.
    * @deprecated Prefer isEntityMentionUnlocked() for explicit semantics.
    */
-  isUnlocked(entry: HoidKnowledgeEntry, reading: readonly ReadingPosition[]): boolean {
+  isUnlocked(entry: Pick<HoidKnowledgeEntry, "id">, reading: readonly ReadingPosition[]): boolean {
     return this.isEntityMentionUnlocked(entry, reading);
   }
 
-  lockedMatches(text: string, reading: readonly ReadingPosition[]): HoidKnowledgeEntry[] {
+  lockedMatches(text: string, reading: readonly ReadingPosition[]): HoidKnowledgeMatch[] {
     return this.findMatches(text).filter(entry => !this.isEntityMentionUnlocked(entry, reading));
   }
 

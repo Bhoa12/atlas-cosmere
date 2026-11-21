@@ -56,8 +56,9 @@ describe("Hoid catalog immutable authorization snapshot", () => {
     expect(matches).toHaveLength(1);
 
     matches[0].aliases[0] = "Alias de salida manipulado";
-    (matches[0].evidenceUnlock as { bookId: string; chapter: number }).chapter = 1;
-    matches[0].summary = "Texto de salida manipulado.";
+    expect(matches[0]).not.toHaveProperty("evidenceUnlock");
+    expect(matches[0]).not.toHaveProperty("summary");
+    expect(matches[0]).not.toHaveProperty("firstSafeAppearance");
 
     expect(catalog.findMatches("Entidad sintética")).toHaveLength(1);
     expect(catalog.findMatches("Alias de salida manipulado")).toHaveLength(0);

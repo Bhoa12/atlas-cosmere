@@ -52,7 +52,9 @@ registry. It refreshes both the cursor snapshot and assignment activation
 receipt before returning a result; any change withholds the whole comparison.
 
 Entity comparisons additionally require each entity's own first-safe-appearance
-boundary. At least two distinct reviewed world IDs are required. The output is
+boundary. A work used as a comparison subject must be explicitly completed,
+because the current work-assignment schema has no chapter-scoped first-safe
+marker and revealing its world membership could itself be a spoiler. At least two distinct reviewed world IDs are required. The output is
 side-by-side only (`inference: none`): it does not infer similarity,
 equivalence, causality, chronology, hierarchy, influence or a relationship
 between worlds. Such conclusions require separate reviewed claims and

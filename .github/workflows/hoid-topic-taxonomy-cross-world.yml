@@ -9,6 +9,8 @@ on:
       - "src/hoid/topicTaxonomy.test.ts"
       - "src/hoid/topicComparison.ts"
       - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/trustedTopicComparison.ts"
+      - "src/hoid/trustedTopicComparison.test.ts"
       - "src/hoid/topicRecommendations.ts"
       - "src/hoid/topicRecommendations.test.ts"
       - "src/hoid/answerPresentation.ts"
@@ -27,6 +29,8 @@ on:
       - "src/hoid/readingContext.ts"
       - "package.json"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
+      - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
+      - ".github/workflows/hoid-trusted-topic-comparison.yml"
       - ".github/workflows/hoid-topic-taxonomy-cross-world.yml"
   pull_request:
     paths:
@@ -34,6 +38,8 @@ on:
       - "src/hoid/topicTaxonomy.test.ts"
       - "src/hoid/topicComparison.ts"
       - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/trustedTopicComparison.ts"
+      - "src/hoid/trustedTopicComparison.test.ts"
       - "src/hoid/topicRecommendations.ts"
       - "src/hoid/topicRecommendations.test.ts"
       - "src/hoid/answerPresentation.ts"
@@ -52,6 +58,8 @@ on:
       - "src/hoid/readingContext.ts"
       - "package.json"
       - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
+      - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
+      - ".github/workflows/hoid-trusted-topic-comparison.yml"
       - ".github/workflows/hoid-topic-taxonomy-cross-world.yml"
 
 permissions:
@@ -74,6 +82,7 @@ jobs:
           npx vitest run
           src/hoid/topicTaxonomy.test.ts
           src/hoid/topicComparison.test.ts
+          src/hoid/trustedTopicComparison.test.ts
           src/hoid/topicRecommendations.test.ts
           src/hoid/crossBookEvidence.test.ts
           src/hoid/readingAwareRecommendations.test.ts
@@ -85,6 +94,7 @@ jobs:
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
           src/hoid/topicTaxonomy.ts
           src/hoid/topicComparison.ts
+          src/hoid/trustedTopicComparison.ts
           src/hoid/topicRecommendations.ts
           src/hoid/answerPresentation.ts
           src/hoid/cursorReadingContext.ts

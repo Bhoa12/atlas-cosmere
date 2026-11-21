@@ -1,0 +1,95 @@
+name: Hoid trusted cross-world topic comparison
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedTopicComparison.ts"
+      - "src/hoid/trustedTopicComparison.test.ts"
+      - "src/hoid/topicComparison.ts"
+      - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
+      - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
+      - ".github/workflows/hoid-trusted-topic-comparison.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedTopicComparison.ts"
+      - "src/hoid/trustedTopicComparison.test.ts"
+      - "src/hoid/topicComparison.ts"
+      - "src/hoid/topicComparison.test.ts"
+      - "src/hoid/topicAssignmentActivation.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN204_TRUSTED_CROSS_WORLD_COMPARISON.md"
+      - "docs/hoid/TOPIC_TAXONOMY_AND_CROSS_WORLD_COMPARISONS.md"
+      - ".github/workflows/hoid-trusted-topic-comparison.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-cross-world-comparison:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test trusted comparison and legacy taxonomy contracts
+        run: >-
+          npx vitest run
+          src/hoid/trustedTopicComparison.test.ts
+          src/hoid/topicComparison.test.ts
+          src/hoid/topicTaxonomy.test.ts
+          src/hoid/trustedTopicAssignmentGuard.test.ts
+          src/hoid/trustedTopicRecommendations.test.ts
+          src/hoid/answerPresentation.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Type-check trusted comparison and trust boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/trustedTopicComparison.ts
+          src/hoid/topicComparison.ts
+          src/hoid/topicTaxonomy.ts
+          src/hoid/topicAssignmentActivation.ts
+          src/hoid/trustedTopicAssignmentGuard.ts
+          src/hoid/trustedTopicRecommendations.ts
+          src/hoid/trustedScreenAnswer.ts
+          src/hoid/trustedVerifiedAnswerPresentation.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/cursorReadingContext.ts
+          src/hoid/answerPresentation.ts

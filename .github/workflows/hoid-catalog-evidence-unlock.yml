@@ -30,6 +30,8 @@ on:
   pull_request:
     paths:
       - "src/hoid/catalog.ts"
+      - "src/hoid/catalogValidation.ts"
+      - "src/hoid/catalogValidation.test.ts"
       - "src/hoid/contextPolicy.ts"
       - "src/hoid/authorizedKnowledgeContext.ts"
       - "src/hoid/catalogEvidenceUnlock.test.ts"

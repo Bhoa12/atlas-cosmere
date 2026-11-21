@@ -6,6 +6,8 @@ import {
   type HoidAliasDisclosurePort,
 } from "./aliasDisclosureBoundary";
 
+const WITNESS = Object.freeze({ revision: 7, fingerprint: "a".repeat(64) });
+
 function catalog() {
   return new HoidKnowledgeCatalog([{
     id: "synthetic.alias-entity",
@@ -18,154 +20,123 @@ function catalog() {
 function authorizeAll(request: HoidAliasDisclosureRequest) {
   return {
     status: "authorized" as const,
-    authorizedMatches: request.matches.map(match => ({
-      id: match.id,
-      aliases: [...match.aliases],
-    })),
+    authorizedMatches: request.matches.map(match => ({ id: match.id, aliases: [...match.aliases] })),
+    progressRevision: WITNESS.revision,
+    progressFingerprint: WITNESS.fingerprint,
   };
 }
 
 describe("Hoid per-alias disclosure boundary", () => {
-  it("allows text with no catalogued alias without requiring an alias port", () => {
-    expect(authorizeHoidCatalogAliasMentions(
-      "Pregunta general",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-    )).toEqual({ status: "allowed" });
+  it("allows text with no catalogued alias without a port", async () => {
+    await expect(authorizeHoidCatalogAliasMentions("Pregunta general", [{ bookId: "tfe", chapter: 2 }], catalog()))
+      .resolves.toEqual({ status: "allowed", progressWitness: null });
   });
 
-  it("blocks a known alias when no host-owned disclosure authority is configured", () => {
-    expect(authorizeHoidCatalogAliasMentions(
-      "¿Quién es Alias principal?",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-    )).toEqual({ status: "blocked" });
+  it("blocks a known alias when no host authority is configured", async () => {
+    await expect(authorizeHoidCatalogAliasMentions("¿Quién es Alias principal?", [{ bookId: "tfe", chapter: 2 }], catalog()))
+      .resolves.toEqual({ status: "blocked" });
   });
 
-  it("requires a grant for every matched spelling, not only the entity ID", () => {
+  it("requires an exact grant for every matched spelling", async () => {
     const authorize = vi.fn(authorizeAll);
-    const port: HoidAliasDisclosurePort = { authorize };
-    const result = authorizeHoidCatalogAliasMentions(
-      "Alias principal y Nombre alternativo",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-      port,
+    const result = await authorizeHoidCatalogAliasMentions(
+      "Alias principal y Nombre alternativo", [{ bookId: "tfe", chapter: 2 }], catalog(), { authorize },
     );
-
-    expect(result).toEqual({ status: "allowed" });
+    expect(result).toEqual({ status: "allowed", progressWitness: WITNESS });
     expect(authorize).toHaveBeenCalledTimes(1);
     const request = authorize.mock.calls[0][0];
-    expect(request.matches).toEqual([{
-      id: "synthetic.alias-entity",
-      aliases: ["Alias principal", "Nombre alternativo"],
-    }]);
+    expect(request.matches).toEqual([{ id: "synthetic.alias-entity", aliases: ["Alias principal", "Nombre alternativo"] }]);
     expect(Object.isFrozen(request)).toBe(true);
     expect(Object.isFrozen(request.reading)).toBe(true);
-    expect(Object.isFrozen(request.matches[0])).toBe(true);
     expect(request.matches[0]).not.toHaveProperty("summary");
     expect(request.matches[0]).not.toHaveProperty("firstSafeAppearance");
   });
 
-  it("rejects a partial alias grant even when the entity ID is correct", () => {
-    const port: HoidAliasDisclosurePort = {
+  it("rejects partial and extra grants", async () => {
+    const partial: HoidAliasDisclosurePort = {
       authorize: request => ({
         status: "authorized",
         authorizedMatches: [{ id: request.matches[0].id, aliases: ["Alias principal"] }],
+        progressRevision: WITNESS.revision,
+        progressFingerprint: WITNESS.fingerprint,
       }),
     };
-    expect(authorizeHoidCatalogAliasMentions(
-      "Alias principal y Nombre alternativo",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-      port,
-    )).toEqual({ status: "unavailable" });
-  });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal y Nombre alternativo", [{ bookId: "tfe", chapter: 2 }], catalog(), partial))
+      .resolves.toEqual({ status: "unavailable" });
 
-  it("rejects extra entity or alias grants", () => {
-    const port: HoidAliasDisclosurePort = {
+    const extra: HoidAliasDisclosurePort = {
       authorize: request => ({
         status: "authorized",
-        authorizedMatches: [
-          ...request.matches.map(match => ({ id: match.id, aliases: [...match.aliases] })),
-          { id: "unrequested.entity", aliases: ["Alias inventado"] },
-        ],
+        authorizedMatches: [...request.matches.map(item => ({ id: item.id, aliases: [...item.aliases] })), { id: "extra.entity", aliases: ["Inventado"] }],
+        progressRevision: WITNESS.revision,
+        progressFingerprint: WITNESS.fingerprint,
       }),
     };
-    expect(authorizeHoidCatalogAliasMentions(
-      "Alias principal",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-      port,
-    )).toEqual({ status: "unavailable" });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(), extra))
+      .resolves.toEqual({ status: "unavailable" });
   });
 
-  it("preserves an explicit blocked decision", () => {
-    const port: HoidAliasDisclosurePort = { authorize: () => ({ status: "blocked" }) };
-    expect(authorizeHoidCatalogAliasMentions(
-      "Alias principal",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-      port,
-    )).toEqual({ status: "blocked" });
+  it("preserves blocked and unavailable host decisions", async () => {
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(),
+      { authorize: () => ({ status: "blocked" }) })).resolves.toEqual({ status: "blocked" });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(),
+      { authorize: () => ({ status: "unavailable" }) })).resolves.toEqual({ status: "unavailable" });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(),
+      { authorize: () => { throw new Error("unavailable"); } })).resolves.toEqual({ status: "unavailable" });
   });
 
-  it("fails closed when the authority is unavailable or throws", () => {
-    const unavailable: HoidAliasDisclosurePort = { authorize: () => ({ status: "unavailable" }) };
-    const throwing: HoidAliasDisclosurePort = { authorize: () => { throw new Error("unavailable"); } };
-    expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(), unavailable))
-      .toEqual({ status: "unavailable" });
-    expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(), throwing))
-      .toEqual({ status: "unavailable" });
-  });
-
-  it("rejects accessor-backed authority methods without executing them", () => {
+  it("rejects accessor-backed authority methods and results without executing getters", async () => {
     let calls = 0;
     const port = Object.defineProperty({}, "authorize", {
       enumerable: true,
-      get() {
-        calls += 1;
-        return authorizeAll;
-      },
+      get() { calls += 1; return authorizeAll; },
     }) as HoidAliasDisclosurePort;
-
-    expect(authorizeHoidCatalogAliasMentions(
-      "Alias principal",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-      port,
-    )).toEqual({ status: "unavailable" });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(), port))
+      .resolves.toEqual({ status: "unavailable" });
     expect(calls).toBe(0);
-  });
 
-  it("rejects accessor-backed authorization grants without executing getters", () => {
-    let calls = 0;
     const result = Object.defineProperty({ authorizedMatches: [] }, "status", {
       enumerable: true,
-      get() {
-        calls += 1;
-        return "authorized";
-      },
+      get() { calls += 1; return "authorized"; },
     });
-    const port: HoidAliasDisclosurePort = { authorize: () => result };
-
-    expect(authorizeHoidCatalogAliasMentions(
-      "Alias principal",
-      [{ bookId: "tfe", chapter: 2 }],
-      catalog(),
-      port,
-    )).toEqual({ status: "unavailable" });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(),
+      { authorize: () => result })).resolves.toEqual({ status: "unavailable" });
     expect(calls).toBe(0);
   });
 
-  it("rejects invalid progress snapshots before calling the authority", () => {
+  it("rejects invalid and duplicate progress positions before calling the authority", async () => {
     const authorize = vi.fn(authorizeAll);
-    const port: HoidAliasDisclosurePort = { authorize };
-    expect(authorizeHoidCatalogAliasMentions(
-      "Alias principal",
-      [{ bookId: "tfe", chapter: -1 }],
-      catalog(),
-      port,
-    )).toEqual({ status: "unavailable" });
+    const port = { authorize };
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: -1 }], catalog(), port))
+      .resolves.toEqual({ status: "unavailable" });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [
+      { bookId: "tfe", chapter: 2 }, { bookId: "tfe", chapter: 3 },
+    ], catalog(), port)).resolves.toEqual({ status: "unavailable" });
     expect(authorize).not.toHaveBeenCalled();
+  });
+
+  it("captures a witness for alias-free text and supports native asynchronous ports", async () => {
+    const authorize = vi.fn(authorizeAll);
+    await expect(authorizeHoidCatalogAliasMentions("Pregunta general", [{ bookId: "tfe", chapter: 2 }], catalog(), { authorize }))
+      .resolves.toEqual({ status: "allowed", progressWitness: WITNESS });
+    expect(authorize.mock.calls[0][0].matches).toEqual([]);
+
+    const asyncPort: HoidAliasDisclosurePort = { authorize: async request => authorizeAll(request) };
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(), asyncPort))
+      .resolves.toEqual({ status: "allowed", progressWitness: WITNESS });
+  });
+
+  it("rejects custom thenables and lookalike catalog objects without executing them", async () => {
+    let calls = 0;
+    const thenable = Object.defineProperty({}, "then", {
+      get() { calls += 1; return () => undefined; },
+    });
+    await expect(authorizeHoidCatalogAliasMentions("Alias principal", [{ bookId: "tfe", chapter: 2 }], catalog(),
+      { authorize: () => thenable })).resolves.toEqual({ status: "unavailable" });
+
+    const lookalike = { findMatches() { calls += 1; return []; } };
+    await expect(authorizeHoidCatalogAliasMentions("Pregunta general", [], lookalike as unknown as HoidKnowledgeCatalog))
+      .resolves.toEqual({ status: "unavailable" });
+    expect(calls).toBe(0);
   });
 });

@@ -4,7 +4,9 @@ import { HoidKnowledgeCatalog } from './catalog';
 import { authorizeHoidContext } from './contextPolicy';
 import {
   authorizeHoidCatalogAliasMentions,
+  sameHoidAliasProgressWitness,
   type HoidAliasDisclosurePort,
+  type HoidAliasDisclosureProgressWitness,
 } from "./aliasDisclosureBoundary";
 import { buildAuthorizedKnowledgeContext } from './authorizedKnowledgeContext';
 import { snapshotProviderRequest } from './providerRequestSnapshot';
@@ -45,20 +47,11 @@ export class HoidService {
     const normalizedRequest: HoidAnswerRequest = { ...request, question, reading };
     const blocked = guardQuestion(normalizedRequest);
     if (blocked) return blocked;
-
-    // Freeze the reader state once at service entry. Every authorization step
-    // in this request must evaluate the same progress snapshot.
     const progressSnapshot = snapshotProviderRequest(normalizedRequest);
 
-    // Catalog first appearance and per-alias disclosure are separate gates.
-    // A name can be safe to mention while a later spelling for the same entity
-    // remains locked. No provider is called until both gates authorize it.
+    let progressWitness: HoidAliasDisclosureProgressWitness | null = null;
     if (this.catalog) {
-      const contextDecision = authorizeHoidContext(
-        progressSnapshot,
-        this.catalog,
-        this.aliasDisclosurePort,
-      );
+      const contextDecision = await authorizeHoidContext(progressSnapshot, this.catalog, this.aliasDisclosurePort);
       if (!contextDecision.allowed) {
         return {
           blocked: true,
@@ -66,6 +59,7 @@ export class HoidService {
           text: 'Esa pregunta podría revelar información que todavía no has alcanzado. Cuando avances en la lectura, Hoid podrá explicarla con seguridad.'
         };
       }
+      progressWitness = contextDecision.progressWitness;
     }
 
     if (!this.provider) {
@@ -79,15 +73,9 @@ export class HoidService {
     try {
       const providerRequest = snapshotProviderRequest({
         ...progressSnapshot,
-        ...(this.catalog
-          ? { knowledgeContext: buildAuthorizedKnowledgeContext(this.catalog, progressSnapshot.reading) }
-          : {}),
+        ...(this.catalog ? { knowledgeContext: buildAuthorizedKnowledgeContext(this.catalog, progressSnapshot.reading) } : {}),
       }, { includeAuthorizedKnowledgeContext: true });
-      const rawAnswer: unknown = await answerWithinTimeout(
-        this.provider.answer(providerRequest),
-        this.providerTimeoutMs,
-      );
-
+      const rawAnswer: unknown = await answerWithinTimeout(this.provider.answer(providerRequest), this.providerTimeoutMs);
       if (rawAnswer === null) {
         return {
           blocked: false,
@@ -113,18 +101,18 @@ export class HoidService {
             text: 'La respuesta podría revelar información que todavía no has alcanzado. Prefiero mantener ese misterio sellado hasta que avances en la lectura.'
           };
         }
-
-        const aliasDecision = authorizeHoidCatalogAliasMentions(
+        const aliasDecision = await authorizeHoidCatalogAliasMentions(
           answer,
           progressSnapshot.reading,
           this.catalog,
           this.aliasDisclosurePort,
         );
-        if (aliasDecision.status !== "allowed") {
+        if (aliasDecision.status !== "allowed" ||
+          !sameHoidAliasProgressWitness(progressWitness, aliasDecision.progressWitness)) {
           return {
             blocked: true,
             reason: 'provider-output',
-            text: 'La respuesta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.'
+            text: 'La respuesta contiene un nombre o una autorización de progreso que no coincide con la revisión utilizada al iniciar la consulta.'
           };
         }
       }
@@ -134,7 +122,7 @@ export class HoidService {
       return {
         blocked: false,
         reason: 'provider-unavailable',
-        text: 'La fuente de conocimiento no está disponible en este momento. No inventaré una respuesta ni expondré tu pregunta a otro servicio.'
+        text: 'La fuente de conocimiento no está disponible en este momento. Hoid no inventará una respuesta.'
       };
     }
   }

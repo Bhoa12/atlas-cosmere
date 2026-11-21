@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  HOID_STATIC_GREETING_ID,
+  HOID_STATIC_GREETING_KIND,
   canCommitHoidProgressScopedResponse,
   filterVisibleHoidMessages,
   isHoidConversationMessageVisible,
@@ -47,9 +49,33 @@ describe("Hoid conversation history spoiler invalidation", () => {
     expect(isHoidConversationMessageVisible({ emisor: "hoid", progressScope: scopeA }, null)).toBe(false);
   });
 
-  it("preserves user messages and the unscoped static greeting", () => {
+  it("preserves user messages and only the explicitly marked static greeting", () => {
     expect(isHoidConversationMessageVisible({ emisor: "usuario" }, null)).toBe(true);
-    expect(isHoidConversationMessageVisible({ emisor: "hoid" }, null)).toBe(true);
+    expect(isHoidConversationMessageVisible({
+      id: HOID_STATIC_GREETING_ID,
+      emisor: "hoid",
+      kind: HOID_STATIC_GREETING_KIND,
+    }, null)).toBe(true);
+    expect(isHoidConversationMessageVisible({ emisor: "hoid" }, null)).toBe(false);
+  });
+
+  it("hides legacy unscoped assistant messages even when a current scope exists", () => {
+    expect(isHoidConversationMessageVisible({ id: "legacy-answer", emisor: "hoid" }, scopeA)).toBe(false);
+    expect(isHoidConversationMessageVisible({
+      id: "spoofed-greeting",
+      emisor: "hoid",
+      kind: HOID_STATIC_GREETING_KIND,
+    }, scopeA)).toBe(false);
+  });
+
+  it("does not invoke accessor-backed static greeting markers", () => {
+    let invoked = false;
+    const hostile = Object.defineProperties({ emisor: "hoid" }, {
+      id: { enumerable: true, get: () => { invoked = true; return HOID_STATIC_GREETING_ID; } },
+      kind: { enumerable: true, value: HOID_STATIC_GREETING_KIND },
+    });
+    expect(isHoidConversationMessageVisible(hostile, null)).toBe(false);
+    expect(invoked).toBe(false);
   });
 
   it("fails closed for a malformed present scope", () => {
@@ -61,13 +87,17 @@ describe("Hoid conversation history spoiler invalidation", () => {
 
   it("filters stale assistant messages before rendering", () => {
     const messages = [
-      { id: "greeting", emisor: "hoid" as const },
+      {
+        id: HOID_STATIC_GREETING_ID,
+        emisor: "hoid" as const,
+        kind: HOID_STATIC_GREETING_KIND,
+      },
       { id: "user", emisor: "usuario" as const },
       { id: "old", emisor: "hoid" as const, progressScope: scopeA },
       { id: "current", emisor: "hoid" as const, progressScope: scopeB },
     ];
     expect(filterVisibleHoidMessages(messages, scopeB).map(message => message.id))
-      .toEqual(["greeting", "user", "current"]);
+      .toEqual([HOID_STATIC_GREETING_ID, "user", "current"]);
   });
 
   it("prunes stale answers without mutating the original history", () => {

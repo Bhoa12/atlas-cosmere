@@ -16,9 +16,12 @@ on:
       - "src/hoid/relationshipGateway.test.ts"
       - "src/hoid/conversationGateway.ts"
       - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "src/hoid/conversationHistoryPolicy.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
+      - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
   pull_request:
     paths:
@@ -33,9 +36,12 @@ on:
       - "src/hoid/relationshipGateway.test.ts"
       - "src/hoid/conversationGateway.ts"
       - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "src/hoid/conversationHistoryPolicy.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/README.md"
       - "docs/hoid/SPOILER_SAFE_CONVERSATION_CONTINUITY.md"
+      - "docs/hoid/RUN214_EXPLICIT_STATIC_GREETING_AND_FAIL_CLOSED_HISTORY.md"
       - ".github/workflows/hoid-spoiler-safe-conversation-continuity.yml"
 
 permissions:
@@ -72,4 +78,5 @@ jobs:
           src/hoid/entityResolver.ts
           src/hoid/relationshipGateway.ts
           src/hoid/conversationGateway.ts
+          src/hoid/conversationHistoryPolicy.ts
           src/screens/HoidScreen.tsx

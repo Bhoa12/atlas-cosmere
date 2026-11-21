@@ -1,10 +1,15 @@
+export const HOID_STATIC_GREETING_ID = "hoid-static-greeting-v1";
+export const HOID_STATIC_GREETING_KIND = "static-greeting" as const;
+
 export type HoidConversationProgressScope = Readonly<{
   revision: number;
   fingerprint: string;
 }>;
 
 export type HoidConversationHistoryMessage = Readonly<{
+  id?: string;
   emisor: "usuario" | "hoid";
+  kind?: typeof HOID_STATIC_GREETING_KIND;
   progressScope?: unknown;
 }>;
 
@@ -46,10 +51,20 @@ export function sameHoidConversationProgressScope(left: unknown, right: unknown)
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
+function hasOwnDataValue(value: object, key: string, expected: string): boolean {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return Boolean(
+    descriptor &&
+    Object.prototype.hasOwnProperty.call(descriptor, "value") &&
+    descriptor.enumerable === true &&
+    descriptor.value === expected
+  );
+}
+
 /**
- * User messages and the static greeting are not progress-scoped. Every Hoid
- * response produced from a ready gateway result must carry a valid scope.
- * A present but malformed scope is hidden rather than treated as legacy text.
+ * User-authored messages remain visible. Every Hoid message must either carry
+ * the exact current progress scope or be the one explicitly marked static
+ * greeting. Missing scope is never a legacy compatibility exemption.
  */
 export function isHoidConversationMessageVisible(value: unknown, currentScope: unknown): boolean {
   try {
@@ -63,15 +78,21 @@ export function isHoidConversationMessageVisible(value: unknown, currentScope: u
     if (role.value !== "hoid") return false;
 
     const scope = Object.getOwnPropertyDescriptor(value, "progressScope");
-    if (!scope) return true;
-    if (!Object.prototype.hasOwnProperty.call(scope, "value") || scope.enumerable !== true) return false;
-    return sameHoidConversationProgressScope(scope.value, currentScope);
+    if (scope) {
+      if (!Object.prototype.hasOwnProperty.call(scope, "value") || scope.enumerable !== true) return false;
+      return sameHoidConversationProgressScope(scope.value, currentScope);
+    }
+
+    return (
+      hasOwnDataValue(value, "id", HOID_STATIC_GREETING_ID) &&
+      hasOwnDataValue(value, "kind", HOID_STATIC_GREETING_KIND)
+    );
   } catch {
     return false;
   }
 }
 
-/** Filters stale assistant answers before the chat list is rendered. */
+/** Filters stale or unscoped assistant answers before the chat list is rendered. */
 export function filterVisibleHoidMessages<T extends HoidConversationHistoryMessage>(
   messages: readonly T[],
   currentScope: unknown,
@@ -80,7 +101,7 @@ export function filterVisibleHoidMessages<T extends HoidConversationHistoryMessa
   return messages.filter(message => isHoidConversationMessageVisible(message, currentScope));
 }
 
-/** Removes stale assistant answers from component state, preserving user text. */
+/** Removes stale assistant answers without mutating user-authored history. */
 export function pruneStaleHoidMessages<T extends HoidConversationHistoryMessage>(
   messages: readonly T[],
   currentScope: unknown,

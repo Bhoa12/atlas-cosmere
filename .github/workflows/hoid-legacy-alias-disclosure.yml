@@ -1,0 +1,61 @@
+name: Hoid legacy alias disclosure boundary
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/aliasDisclosureBoundary.ts"
+      - "src/hoid/aliasDisclosureBoundary.test.ts"
+      - "src/hoid/contextPolicy.ts"
+      - "src/hoid/HoidService.ts"
+      - "src/hoid/HoidServiceCatalogBoundary.test.ts"
+      - "src/hoid/pipeline.ts"
+      - "src/hoid/legacyAliasDisclosure.test.ts"
+      - "src/hoid/service.ts"
+      - ".github/workflows/hoid-legacy-alias-disclosure.yml"
+  pull_request:
+    paths:
+      - "src/hoid/aliasDisclosureBoundary.ts"
+      - "src/hoid/aliasDisclosureBoundary.test.ts"
+      - "src/hoid/contextPolicy.ts"
+      - "src/hoid/HoidService.ts"
+      - "src/hoid/HoidServiceCatalogBoundary.test.ts"
+      - "src/hoid/pipeline.ts"
+      - "src/hoid/legacyAliasDisclosure.test.ts"
+      - "src/hoid/service.ts"
+      - ".github/workflows/hoid-legacy-alias-disclosure.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  alias-disclosure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test alias disclosure and legacy provider routes
+        run: >-
+          npx vitest run
+          src/hoid/aliasDisclosureBoundary.test.ts
+          src/hoid/legacyAliasDisclosure.test.ts
+          src/hoid/HoidServiceCatalogBoundary.test.ts
+      - name: Type-check provider and catalog boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/aliasDisclosureBoundary.ts
+          src/hoid/contextPolicy.ts
+          src/hoid/HoidService.ts
+          src/hoid/pipeline.ts
+          src/hoid/service.ts
+          src/hoid/aliasDisclosureBoundary.test.ts
+          src/hoid/legacyAliasDisclosure.test.ts
+          src/hoid/HoidServiceCatalogBoundary.test.ts

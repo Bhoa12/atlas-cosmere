@@ -3,6 +3,7 @@ import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { buildAuthorizedKnowledgeContext } from "./authorizedKnowledgeContext";
 import { HoidService } from "./HoidService";
 import type { HoidAnswerRequest, HoidProvider, ReadingPosition } from "./types";
+import type { HoidAliasDisclosurePort, HoidAliasDisclosureRequest } from "./aliasDisclosureBoundary";
 import { getHoidReadingManifest } from "./readingManifest";
 import { snapshotProviderRequest } from "./providerRequestSnapshot";
 import { validReadingPositions } from "./readingValidation";
@@ -25,6 +26,21 @@ function entry(): HoidKnowledgeEntry {
     evidenceUnlock: { bookId: "twok", chapter: 4 },
     provenance: "verified",
     summary: "Resumen editorial sintético para probar el límite de divulgación.",
+  };
+}
+
+
+function authorizeAllMatchedAliases(): HoidAliasDisclosurePort {
+  return {
+    authorize(request: HoidAliasDisclosureRequest) {
+      return {
+        status: "authorized",
+        authorizedMatches: request.matches.map(match => ({
+          id: match.id,
+          aliases: [...match.aliases],
+        })),
+      };
+    },
   };
 }
 
@@ -142,7 +158,7 @@ describe("catalog entity appearance versus complete-summary unlock", () => {
     };
     const catalog = new HoidKnowledgeCatalog([entry()]);
 
-    const result = await new HoidService(provider, undefined, catalog).answer({
+    const result = await new HoidService(provider, undefined, catalog, authorizeAllMatchedAliases()).answer({
       question: "Explícame la Entidad de prueba.",
       reading: [{ bookId: "twok", chapter: 1 }],
     });
@@ -162,7 +178,7 @@ describe("catalog entity appearance versus complete-summary unlock", () => {
     };
     const catalog = new HoidKnowledgeCatalog([entry()]);
 
-    const result = await new HoidService(provider, undefined, catalog).answer({
+    const result = await new HoidService(provider, undefined, catalog, authorizeAllMatchedAliases()).answer({
       question: "Explícame la Entidad de prueba.",
       reading: [{ bookId: "twok", chapter: 4 }],
     });

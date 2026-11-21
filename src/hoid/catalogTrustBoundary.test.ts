@@ -42,9 +42,9 @@ describe("Hoid catalog immutable authorization snapshot", () => {
 
     expect(catalog.findMatches("Entidad sintética")).toHaveLength(1);
     expect(catalog.findMatches("Alias manipulado")).toHaveLength(0);
-    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }])).toHaveLength(1);
+    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 5 }])).toHaveLength(1);
     expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 2 }])).toHaveLength(0);
-    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }])[0].summary)
+    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 5 }])[0].summary)
       .toBe("Resumen editorial sintético, creado únicamente para probar el aislamiento del catálogo.");
   });
 
@@ -60,20 +60,20 @@ describe("Hoid catalog immutable authorization snapshot", () => {
 
     expect(catalog.findMatches("Entidad sintética")).toHaveLength(1);
     expect(catalog.findMatches("Alias de salida manipulado")).toHaveLength(0);
-    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }])[0].summary)
+    expect(catalog.entriesForContext([{ bookId: "tfe", chapter: 5 }])[0].summary)
       .toBe("Resumen editorial sintético, creado únicamente para probar el aislamiento del catálogo.");
   });
 
   it("returns detached context entries whose mutation cannot change the retained summary", () => {
     const catalog = new HoidKnowledgeCatalog([entry()]);
-    const contextEntries = catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }]);
+    const contextEntries = catalog.entriesForContext([{ bookId: "tfe", chapter: 5 }]);
     expect(contextEntries).toHaveLength(1);
 
     contextEntries[0].summary = "Resumen sustituido por el consumidor.";
     contextEntries[0].evidenceSource!.locatorId = "otro-localizador";
     contextEntries[0].aliases.push("Alias añadido externamente");
 
-    const next = catalog.entriesForContext([{ bookId: "tfe", chapter: 4 }]);
+    const next = catalog.entriesForContext([{ bookId: "tfe", chapter: 5 }]);
     expect(next).toHaveLength(1);
     expect(next[0].summary).toBe(
       "Resumen editorial sintético, creado únicamente para probar el aislamiento del catálogo.",

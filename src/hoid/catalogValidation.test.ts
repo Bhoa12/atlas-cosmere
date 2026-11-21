@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { isValidKnowledgeEntry, validatedKnowledge } from "./catalogValidation";
 import { HoidKnowledgeEntry } from "./catalog";
 

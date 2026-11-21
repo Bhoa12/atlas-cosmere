@@ -23,13 +23,12 @@ export function createHoidSharedSqliteDatabaseProvider<TDatabase>(
   const get = (): Promise<TDatabase> => {
     if (databasePromise) return databasePromise;
 
-    let sharedPromise: Promise<TDatabase>;
-    sharedPromise = Promise.resolve()
+    const sharedPromise = Promise.resolve()
       .then(openDatabase)
       .catch(error => {
-        // Do not clear a newer attempt if the provider is ever extended with
-        // additional lifecycle behavior.
-        if (databasePromise === sharedPromise) databasePromise = null;
+        // A new attempt cannot start until this rejection handler runs because
+        // the current promise remains cached while the opener is in flight.
+        databasePromise = null;
         throw error;
       });
 

@@ -1,4 +1,6 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { resolveProductionHoidTopicAssignments } from "./topicAssignmentActivation";
+import { validateHoidTopicRecommendationAssignments } from "./trustedTopicAssignmentGuard";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
@@ -37,6 +39,8 @@ export type HoidTrustedTopicRecommendationPresenterConfig = Readonly<{
   trustedAnswerPort: HoidTrustedScreenAnswerPort;
   /** Required durable read-through from the host-owned SQLite progress coordinator. */
   refreshCurrentProgress: () => unknown | Promise<unknown>;
+  /** Trusted test/composition seam; production defaults to the signed local assignment resolver. */
+  resolveApprovedAssignments?: () => unknown;
 }>;
 
 export type HoidTrustedTopicRecommendationPresenter = Readonly<{
@@ -419,11 +423,12 @@ export function createHoidTrustedTopicRecommendationPresenter(
 ): HoidTrustedTopicRecommendationPresenter | null {
   const config = exactRecord(configInput, [
     "loadApprovedClaims", "trustedAnswerPort", "refreshCurrentProgress",
-  ]);
+  ], ["resolveApprovedAssignments"]);
   if (
     !config ||
     typeof config.loadApprovedClaims !== "function" ||
-    typeof config.refreshCurrentProgress !== "function"
+    typeof config.refreshCurrentProgress !== "function" ||
+    (config.resolveApprovedAssignments !== undefined && typeof config.resolveApprovedAssignments !== "function")
   ) return null;
 
   let presentDescriptor: PropertyDescriptor | undefined;
@@ -446,6 +451,9 @@ export function createHoidTrustedTopicRecommendationPresenter(
     progress: unknown,
   ) => unknown | Promise<unknown>;
   const refreshCurrentProgress = config.refreshCurrentProgress as () => unknown | Promise<unknown>;
+  const resolveApprovedAssignments = typeof config.resolveApprovedAssignments === "function"
+    ? config.resolveApprovedAssignments as () => unknown
+    : resolveProductionHoidTopicAssignments;
   const presentClaim = (presentDescriptor.value as HoidTrustedScreenAnswerPort["present"])
     .bind(config.trustedAnswerPort);
 
@@ -475,6 +483,30 @@ export function createHoidTrustedTopicRecommendationPresenter(
       const startedWorks = new Set(reading.context.positions.map(position => position.bookId));
       const recommendations = canonicalRecommendations(request.items, startedWorks);
       if (!recommendations) return withheld("invalid-recommendations");
+
+      // Re-resolve the signed production assignment registry at the final
+      // presentation boundary. Candidate metadata from the recommendation
+      // gateway is not itself proof that a work/topic/claim association exists.
+      let assignmentResolution: unknown;
+      try {
+        assignmentResolution = resolveApprovedAssignments();
+      } catch {
+        return withheld("invalid-recommendations");
+      }
+      const activeAssignments = exactRecord(assignmentResolution, [
+        "status", "assignments", "receipt",
+      ]);
+      if (
+        !activeAssignments ||
+        activeAssignments.status !== "active" ||
+        activeAssignments.receipt === null ||
+        typeof activeAssignments.receipt !== "object" ||
+        Array.isArray(activeAssignments.receipt) ||
+        !validateHoidTopicRecommendationAssignments(
+          recommendations.items,
+          activeAssignments.assignments,
+        )
+      ) return withheld("invalid-recommendations");
 
       const currentBefore = await readProgress(refreshCurrentProgress);
       const beforeIdentity = currentBefore === null ? null : progressIdentity(currentBefore);

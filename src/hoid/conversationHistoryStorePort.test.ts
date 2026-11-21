@@ -85,7 +85,6 @@ function makeStore(initial: unknown | null = null) {
 
 function recordFor(
   recordKey: HoidConversationStorageKey = key,
-  progress = scopeA,
   messages: unknown = [greeting(), userMessage(), assistantMessage()],
   storageRevision = 1,
 ) {
@@ -159,7 +158,7 @@ describe("provider-neutral Hoid conversation history storage port", () => {
   });
 
   it("uses compare-and-swap revisions to prevent lost updates", async () => {
-    const store = makeStore(recordFor(key, scopeA, [userMessage()], 4));
+    const store = makeStore(recordFor(key, [userMessage()], 4));
     const result = await saveHoidConversationHistory(
       store.port, key, 3, snapshot([userMessage("new-user")]), scopeA,
     );

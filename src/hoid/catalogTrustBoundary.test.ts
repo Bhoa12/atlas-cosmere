@@ -35,9 +35,11 @@ describe("Hoid catalog immutable authorization snapshot", () => {
 
     input.aliases[0] = "Alias manipulado";
     input.firstSafeAppearance.chapter = 1;
-    input.evidenceSource!.chapter = 9;
-    input.evidenceSource!.locatorId = "forged-locator";
-    input.evidenceUnlock!.chapter = 9;
+    const mutableInputSource = input.evidenceSource as { bookId: string; chapter: number; locatorId: string };
+    const mutableInputUnlock = input.evidenceUnlock as { bookId: string; chapter: number };
+    mutableInputSource.chapter = 9;
+    mutableInputSource.locatorId = "forged-locator";
+    mutableInputUnlock.chapter = 9;
     input.summary = "Resumen manipulado.";
 
     expect(catalog.findMatches("Entidad sintética")).toHaveLength(1);
@@ -55,7 +57,7 @@ describe("Hoid catalog immutable authorization snapshot", () => {
 
     matches[0].aliases[0] = "Alias de salida manipulado";
     matches[0].firstSafeAppearance.chapter = 1;
-    matches[0].evidenceUnlock!.chapter = 1;
+    (matches[0].evidenceUnlock as { bookId: string; chapter: number }).chapter = 1;
     matches[0].summary = "Texto de salida manipulado.";
 
     expect(catalog.findMatches("Entidad sintética")).toHaveLength(1);
@@ -70,7 +72,7 @@ describe("Hoid catalog immutable authorization snapshot", () => {
     expect(contextEntries).toHaveLength(1);
 
     contextEntries[0].summary = "Resumen sustituido por el consumidor.";
-    contextEntries[0].evidenceSource!.locatorId = "otro-localizador";
+    (contextEntries[0].evidenceSource as { bookId: string; chapter: number; locatorId: string }).locatorId = "otro-localizador";
     contextEntries[0].aliases.push("Alias añadido externamente");
 
     const next = catalog.entriesForContext([{ bookId: "tfe", chapter: 5 }]);

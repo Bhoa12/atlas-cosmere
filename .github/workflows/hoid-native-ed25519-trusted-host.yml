@@ -8,6 +8,8 @@ on:
       - "package.json"
       - "src/hoid/nobleEd25519VerificationAdapter.ts"
       - "src/hoid/nobleEd25519VerificationAdapter.test.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.test.ts"
       - "src/hoid/trustedHostBootstrap.ts"
       - "src/hoid/trustedHostBootstrap.test.ts"
       - "src/hoid/trustedHostPromotionAuthority.ts"
@@ -25,6 +27,8 @@ on:
       - "package.json"
       - "src/hoid/nobleEd25519VerificationAdapter.ts"
       - "src/hoid/nobleEd25519VerificationAdapter.test.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedVerifiedAnswerPresentation.test.ts"
       - "src/hoid/trustedHostBootstrap.ts"
       - "src/hoid/trustedHostBootstrap.test.ts"
       - "src/hoid/editorialReviewSignatures.ts"
@@ -58,6 +62,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/nobleEd25519VerificationAdapter.test.ts
+          src/hoid/trustedVerifiedAnswerPresentation.test.ts
           src/hoid/trustedHostBootstrap.test.ts
           src/hoid/trustedHostPromotionAuthority.test.ts
           src/hoid/editorialReviewSignatures.test.ts
@@ -68,6 +73,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020
           --module ESNext --moduleResolution bundler --skipLibCheck
           src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/trustedVerifiedAnswerPresentation.ts
           src/hoid/trustedHostBootstrap.ts
           src/hoid/trustedHostPromotionAuthority.ts
           src/hoid/editorialReviewSignatures.ts

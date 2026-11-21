@@ -51,3 +51,10 @@ La verificación criptográfica de afirmaciones no sustituye la política de pro
 ## Spoilers y privacidad
 
 La firma autentica metadatos y fingerprints, no añade conocimiento narrativo. Cada evidencia continúa sometida al desbloqueo N+1 de su obra. No se incorporan EPUBs, XHTML, pasajes ni texto protegido a esta capa.
+
+
+## End-to-end cryptographic test coverage
+
+The native Ed25519 workflow also runs `trustedVerifiedAnswerPresentation.test.ts` with `createHoidNobleEd25519VerificationPort`. The root registry and reviewer claim signatures in that fixture are generated with deterministic test-only seeds and verified by the same Noble Ed25519 adapter used by the host composition. This replaces the earlier hash-shaped test verifier for the trusted-presenter integration path. The seeds exist only in test code, are public fixtures, and must never be provisioned in an application or used for editorial approvals.
+
+The standalone adapter suite retains RFC 8032 known-answer coverage, strict (non-ZIP-215) verification, malformed-hex rejection, accessor rejection, Unicode UTF-8 handling, and fail-closed encoder behavior. Production still requires host-controlled root-key provisioning, reviewer-key custody, and a durable monotonic revision store.

@@ -39,10 +39,11 @@ A valid evidence scope with `limited` or `unavailable` provenance may retain
 that status for editorial diagnostics, but never retains summary text.
 The catalog's existing `entriesForContext()` check remains an independent
 authorization boundary.\n\nThe public `findMatches()` method is also narrowed to a name-only
-projection (`id`, kind, first-safe appearance and only the aliases that
-already matched the user's query). It never returns evidence or summary
+projection (`id`, kind and only the aliases that already matched the user's
+query). It never returns first-safe chapter metadata, evidence or summary
 fields, and it does not reveal other aliases that may themselves be
-spoiler-bearing. `lockedMatches()` uses this safe
+spoiler-bearing. Mention authorization accepts an identity only and resolves
+the first-safe boundary from the catalog's private snapshot. `lockedMatches()` uses this safe
 projection, while `entriesForContext()` is the only catalog method that
 returns narrative summaries, and only after the explicit evidence watermark
 is reached. Mention authorization compares the canonical identity fields,
@@ -62,6 +63,8 @@ Added `src/hoid/catalogSummaryBoundary.test.ts` with nine cases:
 - Ensure `findMatches()` never returns summaries, provenance or evidence, even
   for a valid verified entry before its unlock watermark.
 - Ensure matching one alias does not disclose other aliases from the same entry.
+- Ensure name-match results do not expose the first-safe chapter and that
+  mention authorization always resolves that boundary from the trusted catalog.
 
 Updated `catalogValidation.test.ts` so its malformed-evidence downgrade
 assertion checks that summary and provenance are absent.

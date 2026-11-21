@@ -24,6 +24,39 @@ export type HoidCursorBoundaryProjection = Readonly<{
   safeReadingPosition: ReadingPosition | null;
 }>;
 
+const MAX_FIRST_SAFE_CHAPTER = 100_000_000;
+
+/**
+ * Shared, fail-closed first-safe-appearance policy.
+ *
+ * completedThroughChapter is inclusive and must come from a validated
+ * completed-through projection, never from the currently open cursor chapter.
+ * Explicit whole-work completion is accepted only as the boolean true.
+ */
+export function isHoidFirstSafeAppearanceCompleted(
+  completedThroughChapter: unknown,
+  firstSafeAppearanceChapter: unknown,
+  workCompleted: unknown,
+): boolean {
+  if (
+    typeof firstSafeAppearanceChapter !== "number" ||
+    !Number.isSafeInteger(firstSafeAppearanceChapter) ||
+    firstSafeAppearanceChapter < 1 ||
+    firstSafeAppearanceChapter > MAX_FIRST_SAFE_CHAPTER
+  ) return false;
+
+  if (workCompleted === true) return true;
+  if (
+    workCompleted !== false ||
+    typeof completedThroughChapter !== "number" ||
+    !Number.isSafeInteger(completedThroughChapter) ||
+    completedThroughChapter < 0 ||
+    completedThroughChapter > MAX_FIRST_SAFE_CHAPTER
+  ) return false;
+
+  return completedThroughChapter >= firstSafeAppearanceChapter;
+}
+
 const POSITION_KEYS = new Set(["bookId", "cursor", "completed", "order"]);
 const MAX_ORDER = 1_000_000;
 

@@ -1,5 +1,6 @@
 import { buildReadingContext } from './readingContext';
 import { isEvidenceUnlocked } from './evidenceScope';
+import { isHoidFirstSafeAppearanceCompleted } from "./readingBoundary";
 import { ReadingPosition } from './types';
 
 import type { HoidKnowledgeKind } from "./knowledgeKinds";
@@ -95,7 +96,11 @@ export class HoidKnowledgeCatalog {
     // catalog access cannot depend on the incidental order of UI updates.
     const position = buildReadingContext(reading)
       .find(item => item.bookId === entry.firstSafeAppearance.bookId);
-    return Boolean(position && (position.completed || position.chapter >= entry.firstSafeAppearance.chapter));
+    return Boolean(position && isHoidFirstSafeAppearanceCompleted(
+      position.chapter,
+      entry.firstSafeAppearance.chapter,
+      position.completed,
+    ));
   }
 
   /**

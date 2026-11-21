@@ -11,6 +11,7 @@ import {
 } from '../hoid/answerPresentation';
 import type { HoidExplanationDepth } from '../hoid/explanationDepth';
 import type { HoidTrustedScreenAnswerPort } from '../hoid/trustedScreenAnswer';
+import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
@@ -77,8 +78,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       : {}),
   });
 
-  // Topic recommendations remain closed until each selected claim is routed through the signed presenter.
-  const topicRecommendationsTrustReady = false;
+  const trustedTopicRecommendationPresenter = trustedAnswerPort && topicApprovedClaimAnswerPort
+    ? createHoidTrustedTopicRecommendationPresenter({
+        loadApprovedClaims: topicApprovedClaimAnswerPort,
+        trustedAnswerPort,
+        refreshCurrentProgress: () => progressRefreshRef.current(),
+      })
+    : null;
+
+  // Topic recommendations remain unavailable until the host injects the same signed presenter used by narrative answers.
+  const topicRecommendationsTrustReady = trustedTopicRecommendationPresenter !== null;
 
   const [cargando, setCargando] = useState(false);
   const [canCancelAnswer, setCanCancelAnswer] = useState(false);
@@ -458,7 +467,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationSelectionKey(null);
     setTopicRecommendationMessage('');
 
-    if (!topicRecommendationsTrustReady) {
+    if (!topicRecommendationsTrustReady || !trustedTopicRecommendationPresenter) {
       setTopicRecommendationMessage('Las recomendaciones temáticas están temporalmente bloqueadas hasta que cada afirmación pase por la autoridad editorial Ed25519 del host.');
       return;
     }
@@ -495,6 +504,25 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         limit: 5,
       });
       if (result.status === 'ready') {
+        const verified = await trustedTopicRecommendationPresenter.present({
+          items: result.items,
+          progress: currentProgress,
+          progressRevision: result.progressRevision,
+          progressFingerprint: result.progressFingerprint,
+        });
+        if (verified.status !== 'ready') {
+          setTopicRecommendations([]);
+          setTopicRecommendationRevision(null);
+          setTopicRecommendationFingerprint(null);
+          setTopicRecommendationSelectionKey(null);
+          setTopicRecommendationMessage(
+            verified.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
+              : 'No puedo verificar las afirmaciones y sus firmas editoriales. No mostraré recomendaciones temáticas.',
+          );
+          return;
+        }
+
         const latestProgress = await progressRefreshRef.current();
         const latestProjection = latestProgress
           ? projectHoidCursorProgressSnapshot(latestProgress)
@@ -511,14 +539,14 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           setTopicRecommendationMessage('Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.');
           return;
         }
-        setTopicRecommendations(result.items);
-        setTopicRecommendationRevision(result.progressRevision);
-        setTopicRecommendationFingerprint(result.progressFingerprint);
-        setTopicRecommendationSelectionKey(selectedTopicIds.join('\n'));
+        setTopicRecommendations(verified.items);
+        setTopicRecommendationRevision(verified.progressRevision);
+        setTopicRecommendationFingerprint(verified.progressFingerprint);
+        setTopicRecommendationSelectionKey(selectedTopicIds.join('\\n'));
         setTopicRecommendationMessage(
-          result.items.length === 0
+          verified.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'
-            : 'Estas recomendaciones utilizan únicamente asociaciones editoriales aprobadas y evidencias ya desbloqueadas.',
+            : 'Estas recomendaciones utilizan afirmaciones firmadas, asociaciones editoriales aprobadas y evidencias ya desbloqueadas.',
         );
       } else if (result.status === 'none') {
         setTopicRecommendationSelectionKey(null);

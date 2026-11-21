@@ -11,6 +11,7 @@ on:
       - "src/hoid/contextPolicy.ts"
       - "src/hoid/authorizedKnowledgeContext.ts"
       - "src/hoid/catalogEvidenceUnlock.test.ts"
+      - "src/hoid/catalogTrustBoundary.test.ts"
       - "src/hoid/HoidService.ts"
       - "src/hoid/HoidServiceCatalogBoundary.test.ts"
       - "src/hoid/providerRequestSnapshot.ts"
@@ -21,6 +22,7 @@ on:
       - "src/hoid/readingManifest.ts"
       - "src/hoid/verifiedChapterLocators.ts"
       - "docs/hoid/CATALOG_EVIDENCE_UNLOCK_BOUNDARY.md"
+      - "docs/hoid/RUN207_CATALOG_SNAPSHOT_ISOLATION.md"
       - "src/hoid/PROVIDER_BOUNDARY.md"
       - ".github/workflows/hoid-catalog-evidence-unlock.yml"
   pull_request:
@@ -29,6 +31,7 @@ on:
       - "src/hoid/contextPolicy.ts"
       - "src/hoid/authorizedKnowledgeContext.ts"
       - "src/hoid/catalogEvidenceUnlock.test.ts"
+      - "src/hoid/catalogTrustBoundary.test.ts"
       - "src/hoid/HoidService.ts"
       - "src/hoid/HoidServiceCatalogBoundary.test.ts"
       - "src/hoid/providerRequestSnapshot.ts"
@@ -39,6 +42,7 @@ on:
       - "src/hoid/readingManifest.ts"
       - "src/hoid/verifiedChapterLocators.ts"
       - "docs/hoid/CATALOG_EVIDENCE_UNLOCK_BOUNDARY.md"
+      - "docs/hoid/RUN207_CATALOG_SNAPSHOT_ISOLATION.md"
       - "src/hoid/PROVIDER_BOUNDARY.md"
       - ".github/workflows/hoid-catalog-evidence-unlock.yml"
 
@@ -57,10 +61,11 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test catalog mention and summary boundaries
+      - name: Test catalog mention, summary and snapshot boundaries
         run: >-
           npx vitest run
           src/hoid/catalogEvidenceUnlock.test.ts
+          src/hoid/catalogTrustBoundary.test.ts
           src/hoid/evidenceScope.test.ts
           src/hoid/HoidServiceCatalogBoundary.test.ts
       - name: Type-check provider-facing catalog boundary
@@ -81,4 +86,5 @@ jobs:
           src/hoid/readingManifest.ts
           src/hoid/verifiedChapterLocators.ts
           src/hoid/catalogEvidenceUnlock.test.ts
+          src/hoid/catalogTrustBoundary.test.ts
           src/hoid/HoidServiceCatalogBoundary.test.ts

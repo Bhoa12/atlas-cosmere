@@ -32,7 +32,7 @@ citations or provider-authored comparison text.
 2. Resolve the active topic-assignment registry and its activation receipt.
 3. Validate the registry against approved claims and verified knowledge.
 4. Resolve each subject to exactly one assignment for the requested topic/dimension.
-5. Enforce each entity's first-safe-appearance boundary.
+5. Enforce each entity's first-safe-appearance boundary and require work subjects to be explicitly completed (the current work-assignment schema has no chapter-scoped first-safe marker).
 6. Load only the assigned claim IDs through the local approved-claim loader.
 7. Present every distinct claim through the shared trusted Ed25519 answer port.
 8. Rebind exact claim text digest, evidence IDs and citations to the validated assignment/evidence registry.
@@ -69,7 +69,7 @@ The dedicated suite covers:
 - signed presenter abstention;
 - progress changes during presentation;
 - activation receipt changes during presentation;
-- entity first-safe-appearance;
+- entity first-safe-appearance and explicit work completion;
 - same-world results;
 - malformed receipts and accessor rejection.
 

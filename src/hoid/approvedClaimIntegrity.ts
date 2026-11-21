@@ -342,7 +342,7 @@ function evidenceBinding(evidenceId: string, entryInput: unknown): EvidenceBindi
       summary.length < 1 ||
       summary.length > MAX_TEXT ||
       summary !== summary.trim() ||
-      /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(summary)
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(summary)
     ) {
       return Object.freeze({ status: "invalid", reason: "invalid-summary" });
     }

@@ -12,10 +12,7 @@ import {
 import type { HoidExplanationDepth } from '../hoid/explanationDepth';
 import type { HoidTrustedScreenAnswerPort } from '../hoid/trustedScreenAnswer';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
-import {
-  buildHoidCrossBookEvidenceSummary,
-  type HoidCrossBookEvidenceSummary,
-} from '../hoid/crossBookEvidence';
+import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';

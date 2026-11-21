@@ -75,7 +75,7 @@ export type HoidConversationHistoryHydrationResult =
         | "unsupported-version"
         | "invalid-progress"
         | "invalid-messages"
-        | "duplicate-message-id";
+;
     }>;
 
 type CanonicalRecord = Record<string, unknown>;
@@ -345,8 +345,9 @@ export function hydrateHoidConversationHistorySnapshot(
     });
   }
 
-  const safeMessages = canonical.messages.filter(message =>
-    message.emisor === "usuario" || message.id === HOID_STATIC_GREETING_ID,
+  const safeMessages = canonical.messages.filter(
+    (message): message is HoidPersistableUserMessage | HoidPersistableGreeting =>
+      message.emisor === "usuario" || message.id === HOID_STATIC_GREETING_ID,
   );
   const droppedAssistantCount = canonical.messages.length - safeMessages.length;
   return Object.freeze({

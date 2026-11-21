@@ -1,7 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 import { HoidService } from './HoidService';
 import { HoidKnowledgeCatalog } from './catalog';
+import type { HoidAliasDisclosurePort, HoidAliasDisclosureRequest } from "./aliasDisclosureBoundary";
 import { HoidProvider } from './types';
+
+function allowAllMatchedAliases(): HoidAliasDisclosurePort {
+  return {
+    authorize(request: HoidAliasDisclosureRequest) {
+      return {
+        status: "authorized",
+        authorizedMatches: request.matches.map(match => ({
+          id: match.id,
+          aliases: [...match.aliases],
+        })),
+      };
+    },
+  };
+}
 
 describe('HoidService catalog authorization boundary', () => {
   it('does not send a question about a locked catalog entry to a provider', async () => {
@@ -32,13 +47,18 @@ describe('HoidService catalog authorization boundary', () => {
     expect(provider.answer).not.toHaveBeenCalled();
   });
 
-  it('allows an unlocked catalog entry through the provider boundary', async () => {
+  it('allows an unlocked catalog entry only when every matched alias is explicitly authorized', async () => {
     const provider: HoidProvider = { answer: vi.fn(async () => 'Respuesta segura') };
     const catalog = new HoidKnowledgeCatalog([
       { id: 'verified-entry', aliases: ['Entidad segura'], kind: 'concept', firstSafeAppearance: { bookId: 'tfe', chapter: 5 } },
     ]);
 
-    const result = await new HoidService(provider, undefined, catalog).answer({
+    const result = await new HoidService(
+      provider,
+      undefined,
+      catalog,
+      allowAllMatchedAliases(),
+    ).answer({
       question: 'Háblame de la Entidad segura',
       reading: [{ bookId: 'tfe', chapter: 5 }],
     });

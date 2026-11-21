@@ -1,10 +1,25 @@
 import { HoidPipeline } from "./pipeline";
 import { HoidProvider } from "./types";
+import type { HoidAliasDisclosurePort } from "./aliasDisclosureBoundary";
 
 const request = {
   question: "Cuéntame sobre Thaidakar",
   reading: [{ bookId: "sh", chapter: 0 }],
 };
+
+function allowAllMatchedAliases(): HoidAliasDisclosurePort {
+  return {
+    authorize(input) {
+      return {
+        status: "authorized",
+        authorizedMatches: input.matches.map(match => ({
+          id: match.id,
+          aliases: [...match.aliases],
+        })),
+      };
+    },
+  };
+}
 
 describe("HoidPipeline", () => {
   it("fails closed before calling the provider when the question is locked", async () => {
@@ -58,15 +73,12 @@ describe("HoidPipeline", () => {
       reading: [{ bookId: "sh", chapter: 0 }],
     });
 
-    // The provider received a snapshot, while the post-provider guard still
-    // evaluates the canonical progress and blocks the locked term.
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe("provider-output");
   });
 
   it("fails closed when the runtime request is not an object", async () => {
     const provider: HoidProvider = { answer: jest.fn(async () => "respuesta") };
-
     const result = await new HoidPipeline(provider, []).answer(null as unknown as typeof request);
 
     expect(result.blocked).toBe(true);
@@ -76,7 +88,6 @@ describe("HoidPipeline", () => {
 
   it("rejects invalid input before spoiler checks or provider calls", async () => {
     const provider: HoidProvider = { answer: jest.fn(async () => "respuesta") };
-
     const result = await new HoidPipeline(provider, []).answer({
       question: "\u200B\u202E",
       reading: [],
@@ -137,7 +148,7 @@ describe("HoidPipeline", () => {
       summary: "Resumen editorial original y seguro.",
     }];
 
-    const result = await new HoidPipeline(provider, knowledge).answer({
+    const result = await new HoidPipeline(provider, knowledge, 15_000, allowAllMatchedAliases()).answer({
       question: "¿Qué es CONCEPTO_SEGURO?",
       reading: [{ bookId: "book-safe", chapter: 1 }],
     });
@@ -145,6 +156,7 @@ describe("HoidPipeline", () => {
     expect(result.blocked).toBe(false);
     expect((provider as unknown as { answerWithContext: jest.Mock }).answerWithContext).toHaveBeenCalled();
   });
+
   it("accepts evidence-bound claims only when every evidence id is in the authorized context", async () => {
     const provider = {
       answer: jest.fn(async () => "legacy response should not be used"),
@@ -163,7 +175,7 @@ describe("HoidPipeline", () => {
       summary: "Resumen editorial original y seguro.",
     }];
 
-    const result = await new HoidPipeline(provider, knowledge).answer({
+    const result = await new HoidPipeline(provider, knowledge, 15_000, allowAllMatchedAliases()).answer({
       question: "¿Qué es CONCEPTO_SEGURO?",
       reading: [{ bookId: "book-safe", chapter: 1 }],
     });
@@ -189,7 +201,6 @@ describe("HoidPipeline", () => {
     expect(result.reason).toBe("provider-output");
   });
 
-
   it("fails closed when individually valid evidence claims exceed the final output budget when combined", async () => {
     const provider = {
       answerWithEvidence: jest.fn(async () => [
@@ -214,5 +225,4 @@ describe("HoidPipeline", () => {
     expect(result.blocked).toBe(true);
     expect(result.reason).toBe("provider-output");
   });
-
 });

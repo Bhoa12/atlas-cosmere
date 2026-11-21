@@ -10,6 +10,10 @@ import { boundAuthorizedContext } from "./contextBudget";
 import { answerWithinTimeout } from "./providerTimeout";
 import { validHoidQuestion } from "./requestValidation";
 import { validReadingPositions } from "./readingValidation";
+import {
+  authorizeHoidCatalogAliasMentions,
+  type HoidAliasDisclosurePort,
+} from "./aliasDisclosureBoundary";
 
 export type ProviderKnowledgeContextEntry = Readonly<{
   id: string;
@@ -22,11 +26,7 @@ export interface ContextualHoidProvider extends HoidProvider {
   answerWithContext(request: HoidAnswerRequest, context: readonly ProviderKnowledgeContextEntry[]): Promise<string>;
 }
 
-/**
- * Structured providers opt into claim-level evidence. This contract is
- * intentionally separate from the legacy text provider so a provider cannot
- * claim evidence support merely by returning a string.
- */
+/** Structured providers opt into claim-level evidence. */
 export type EvidenceBoundClaim = {
   text: string;
   evidenceIds: readonly string[];
@@ -49,8 +49,6 @@ function providerSnapshots(
     reading: Object.freeze(reading),
   }) as unknown as HoidAnswerRequest;
 
-  // Retrieval aliases are an internal matching aid. They are not narrative
-  // context and must not cross the provider trust boundary.
   const providerContext = context.map(entry => Object.freeze({
     id: entry.id,
     kind: entry.kind,
@@ -69,9 +67,6 @@ function evidenceText(
   const accepted = filterClaimsByAuthorizedIds(claims, allowed);
   if (accepted.length === 0) return null;
 
-  // Every individual claim is bounded, but an evidence provider can return
-  // arbitrarily many individually valid claims. Enforce the legacy route's
-  // aggregate output limit before concatenating them.
   let totalLength = 0;
   const parts: string[] = [];
   for (const claim of accepted) {
@@ -86,6 +81,10 @@ function evidenceText(
   return validProviderText(parts.join("\n\n"), DEFAULT_MAX_PROVIDER_TEXT_LENGTH);
 }
 
+function blocked(reason: "reading-position" | "provider-output", text: string): HoidAnswer {
+  return { blocked: true, reason, text };
+}
+
 export class HoidPipeline {
   private readonly knowledge: HoidKnowledgeEntry[];
 
@@ -93,12 +92,26 @@ export class HoidPipeline {
     private readonly provider: HoidProvider | EvidenceBoundHoidProvider | null | undefined,
     knowledge: HoidKnowledgeEntry[],
     private readonly providerTimeoutMs = 15_000,
+    private readonly aliasDisclosurePort?: HoidAliasDisclosurePort,
   ) {
     this.knowledge = validatedKnowledge(knowledge).map(entry => Object.freeze({
       ...entry,
       aliases: Object.freeze([...entry.aliases]),
       firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
     })) as unknown as HoidKnowledgeEntry[];
+  }
+
+  private aliasDisclosureAllowed(
+    text: string,
+    reading: HoidAnswerRequest["reading"],
+    catalog: HoidKnowledgeCatalog,
+  ): boolean {
+    return authorizeHoidCatalogAliasMentions(
+      text,
+      reading,
+      catalog,
+      this.aliasDisclosurePort,
+    ).status === "allowed";
   }
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
@@ -113,15 +126,18 @@ export class HoidPipeline {
     }
 
     const normalizedRequest: HoidAnswerRequest = { ...request, question, reading: readingInput };
-    const blocked = guardQuestion(normalizedRequest);
-    if (blocked) return blocked;
+    const blockedQuestion = guardQuestion(normalizedRequest);
+    if (blockedQuestion) return blockedQuestion;
 
     const knowledge = this.knowledge;
     const catalog = new HoidKnowledgeCatalog(knowledge);
     const reading = authorizeReading(normalizedRequest.reading, catalogBookIds(knowledge));
     const authorizedRequest = { question, reading };
     if (catalog.lockedMatches(question, reading).length > 0) {
-      return { blocked: true, reason: "reading-position", text: "Esa pregunta incluye información que todavía no has desbloqueado. Hoid prefiere guardar ese misterio hasta que llegues a la parte correspondiente." };
+      return blocked("reading-position", "Esa pregunta incluye información que todavía no has desbloqueado. Hoid prefiere guardar ese misterio hasta que llegues a la parte correspondiente.");
+    }
+    if (!this.aliasDisclosureAllowed(question, reading, catalog)) {
+      return blocked("reading-position", "La pregunta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.");
     }
 
     if (!this.provider) {
@@ -140,11 +156,12 @@ export class HoidPipeline {
         }
         const text = evidenceText(claims, snapshot.context);
         if (text === null || catalog.lockedMatches(text, reading).length > 0) {
-          return { blocked: true, reason: "provider-output", text: "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado." };
+          return blocked("provider-output", "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado.");
         }
-        const providerAnswer = redactProviderAnswer(text, authorizedRequest);
-        if (providerAnswer.blocked) return providerAnswer;
-        return providerAnswer;
+        if (!this.aliasDisclosureAllowed(text, reading, catalog)) {
+          return blocked("provider-output", "La respuesta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.");
+        }
+        return redactProviderAnswer(text, authorizedRequest);
       }
 
       const legacy = this.provider as HoidProvider;
@@ -162,7 +179,10 @@ export class HoidPipeline {
       const providerAnswer = redactProviderAnswer(safeText, authorizedRequest);
       if (providerAnswer.blocked) return providerAnswer;
       if (catalog.lockedMatches(safeText, reading).length > 0) {
-        return { blocked: true, reason: "provider-output", text: "He empezado a revelar información que todavía no has desbloqueado. Mejor dejemos ese misterio sellado por ahora." };
+        return blocked("provider-output", "He empezado a revelar información que todavía no has desbloqueado. Mejor dejemos ese misterio sellado por ahora.");
+      }
+      if (!this.aliasDisclosureAllowed(safeText, reading, catalog)) {
+        return blocked("provider-output", "La respuesta contiene un nombre cuya divulgación no está autorizada para tu progreso actual.");
       }
       return providerAnswer;
     } catch {

@@ -13,11 +13,15 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).not.toContain("presentHoidExplanation(");
   });
 
-  it("keeps topic-derived narrative recommendations closed until their signed path exists", () => {
+  it("routes topic recommendations through the signed presenter and binds visible results to its trust session", () => {
     const screen = readFileSync(screenPath, "utf8");
-    expect(screen).toContain("const topicRecommendationsTrustReady = false");
-    expect(screen).toContain("Las recomendaciones temáticas están temporalmente bloqueadas");
-    expect(screen).toContain("topicRecommendationsTrustReady &&");
+    expect(screen).toContain("createHoidTrustedTopicRecommendationPresenter({");
+    expect(screen).toContain("const topicRecommendationsTrustReady = trustedTopicRecommendationPresenter !== null");
+    expect(screen).toContain("if (!topicRecommendationsTrustReady || !trustedAnswerPort || !trustedTopicRecommendationPresenter)");
+    expect(screen).toContain("trustedTopicRecommendationPresenter.present({");
+    expect(screen).toContain("setTopicRecommendationTrustPort(trustedAnswerPort)");
+    expect(screen).toContain("topicRecommendationTrustPort === trustedAnswerPort");
+    expect(screen).not.toContain("const topicRecommendationsTrustReady = false");
   });
 
   it("does not inject a synthetic or unprovisioned production presenter from App", () => {

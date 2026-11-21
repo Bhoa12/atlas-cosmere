@@ -33,22 +33,36 @@ The reviewer ID and timestamp are audit metadata only. They do not authenticate 
 
 ## Cross-world comparison
 
-compareHoidTopicsAcrossWorlds() accepts two to four subjects for the same topic and dimension. Each subject must have exactly one approved assignment and one evidence-runtime answer containing exactly one claim segment.
+The low-level `compareHoidTopicsAcrossWorlds()` helper remains a deterministic
+editorial/test utility. It accepts pre-rendered answers and a supplied progress
+snapshot, so it must not be called by a UI or treated as a production
+authorization boundary.
 
-Before inclusion, the service calls presentHoidEvidenceAnswer() with the supplied authoritative v2 progress snapshot. It then checks:
+Production presentation uses
+`createHoidTrustedTopicComparisonPresenter()` from
+`src/hoid/trustedTopicComparison.ts`. Its request accepts only topic,
+dimension and subject IDs. It derives world labels and claim IDs from the
+activated assignment registry, reads progress through the host-owned durable
+port, and loads claims through the local approved-claim renderer.
 
-- exact claim ID and approved-claim registry membership;
-- SHA-256 of the original approved claim text;
-- exact evidence-ID set;
-- one-to-one segment mapping;
-- exact source work, source chapter, locator, unlock work and unlock chapter against the verified knowledge registry;
-- an entity's first-safe-appearance boundary in the current reading context.
+Every distinct claim is passed through the shared trusted Ed25519 answer
+presenter. The comparison boundary then binds the exact claim digest, evidence
+ID set and citations back to the validated assignment and verified evidence
+registry. It refreshes both the cursor snapshot and assignment activation
+receipt before returning a result; any change withholds the whole comparison.
 
-At least two distinct reviewed world IDs are required. The result is a side-by-side presentation only (inference: none). It does not infer similarity, equivalence, causality, chronology, hierarchy, influence or a relationship between worlds. Those conclusions require separate reviewed editorial claims and evidence.
+Entity comparisons additionally require each entity's own first-safe-appearance
+boundary. At least two distinct reviewed world IDs are required. The output is
+side-by-side only (`inference: none`): it does not infer similarity,
+equivalence, causality, chronology, hierarchy, influence or a relationship
+between worlds. Such conclusions require separate reviewed claims and
+evidence.
 
-Missing, locked, ambiguous or mismatched assignments all produce the same unavailable result so the service does not disclose which subject has an unpublished assignment.
-
-The production entry point is bound to the empty source-controlled assignment registry and therefore abstains until reviewed records are committed.
+The former production convenience helper now abstains unconditionally. This
+prevents a future non-empty assignment registry from accidentally activating
+the unsigned low-level utility as a presentation bypass. The trusted
+comparison presenter remains inactive while the production assignment registry
+and activation receipt are empty.
 
 ## Topic-aware recommendations
 
@@ -92,6 +106,6 @@ The dedicated workflow runs:
 - topicRecommendations.test.ts
 - the existing cross-book evidence and reading-aware recommendation suites;
 - the existing answer-presentation and cursor-evidence suites;
-- strict TypeScript checks for the new services and their source/progress dependencies.
+- strict TypeScript checks for the new services and their source/progress dependencies;\n- the dedicated `hoid-trusted-topic-comparison.yml` workflow.
 
 Synthetic test fixtures are not production knowledge and are never inserted into the approved registry.

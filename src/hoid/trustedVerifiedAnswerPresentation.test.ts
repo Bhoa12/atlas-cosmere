@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ed25519 } from "@noble/curves/ed25519.js";
 import type { HoidKnowledgeEntry } from "./catalog";
 import {
   buildHoidApprovedClaimReviewSigningMessage,
@@ -8,17 +9,31 @@ import {
 } from "./editorialReviewSignatures";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaim } from "./approvedClaimIntegrity";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
-import { sha256Hex } from "./sha256";
+import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
 import { createHoidTrustedVerifiedAnswerPresenter } from "./trustedVerifiedAnswerPresentation";
 
 const repository = "Bhoa12/atlas-cosmere";
 const now = "2026-11-20T12:00:00.000Z";
-const rootKey = Object.freeze({ keyId: "root-2026", publicKeyHex: "11".repeat(32) });
+const rootSeed = Uint8Array.from(Array.from({ length: 32 }, (_, index) => index + 1));
+const reviewerSeed = Uint8Array.from(Array.from({ length: 32 }, (_, index) => index + 65));
+
+function hexFromBytes(value: Uint8Array): string {
+  return Array.from(value, byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function signMessage(message: string, seed: Uint8Array): string {
+  return hexFromBytes(ed25519.sign(new TextEncoder().encode(message), seed));
+}
+
+const rootKey = Object.freeze({
+  keyId: "root-2026",
+  publicKeyHex: hexFromBytes(ed25519.getPublicKey(rootSeed)),
+});
 const reviewerKey: HoidReviewerTrustKey = Object.freeze({
   keyId: "reviewer-key-1",
   reviewerId: "reviewer-a",
   algorithm: "Ed25519",
-  publicKeyHex: "22".repeat(32),
+  publicKeyHex: hexFromBytes(ed25519.getPublicKey(reviewerSeed)),
   status: "active",
   validFrom: "2026-01-01T00:00:00.000Z",
   validUntil: "2027-01-01T00:00:00.000Z",
@@ -37,10 +52,6 @@ const context = Object.freeze({
   promotionPlanFingerprint: "b".repeat(64),
   reviewBundleFingerprint: "c".repeat(64),
 });
-
-function fakeSignature(message: string, publicKeyHex: string): string {
-  return sha256Hex(message + "|" + publicKeyHex).repeat(2);
-}
 
 function locator(bookId: string, chapter: number): string {
   const manifest = getHoidReadingManifest(bookId);
@@ -103,7 +114,7 @@ function fixture(initialRevision = 2) {
     schemaVersion: 1 as const,
     algorithm: "Ed25519" as const,
     keyId: reviewerKey.keyId,
-    signatureHex: fakeSignature(claimMessage, reviewerKey.publicKeyHex),
+    signatureHex: signMessage(claimMessage, reviewerSeed),
   });
 
   const unsignedRegistry: HoidReviewerTrustRegistryUnsigned = Object.freeze({
@@ -120,7 +131,7 @@ function fixture(initialRevision = 2) {
     rootSignature: Object.freeze({
       algorithm: "Ed25519" as const,
       keyId: rootKey.keyId,
-      signatureHex: fakeSignature(registryMessage, rootKey.publicKeyHex),
+      signatureHex: signMessage(registryMessage, rootSeed),
     }),
   });
 
@@ -153,11 +164,7 @@ function fixture(initialRevision = 2) {
       return true;
     },
   });
-  const verifier = Object.freeze({
-    async verify(input: { publicKeyHex: string; message: string; signatureHex: string }) {
-      return input.signatureHex === fakeSignature(input.message, input.publicKeyHex);
-    },
-  });
+  const verifier = createHoidNobleEd25519VerificationPort();
   const clock = Object.freeze({ now: () => currentNow });
   const progressPort = Object.freeze({
     async readProgressSnapshot() {

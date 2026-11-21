@@ -29,6 +29,7 @@ import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
 import {
   HOID_STATIC_GREETING_ID,
   HOID_STATIC_GREETING_KIND,
+  HOID_STATIC_GREETING_TEXT,
   canCommitHoidProgressScopedResponse,
   filterVisibleHoidMessages,
   pruneStaleHoidMessages,
@@ -100,7 +101,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       id: HOID_STATIC_GREETING_ID,
       emisor: 'hoid',
       kind: HOID_STATIC_GREETING_KIND,
-      texto: 'Saludos, viajero de mundos. Soy Sagaz. Estoy usando el runtime estricto con el progreso de lectura vinculado a la edición. El registro editorial todavía está vacío, así que no inventaré hechos ni recurriré a respuestas libres.'
+      texto: HOID_STATIC_GREETING_TEXT
     }
   ]);
   const [input, setInput] = useState('');

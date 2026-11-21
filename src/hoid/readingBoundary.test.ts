@@ -5,6 +5,7 @@ import { isEvidenceUnlocked } from "./evidenceScope";
 import { createHoidReadingCursor } from "./readingManifest";
 import {
   isChapterBeyondCompletedReadingBoundary,
+  isCommunityPostBeyondReadingBoundary,
   projectHoidCursorPositionToBoundary,
 } from "./readingBoundary";
 
@@ -211,4 +212,82 @@ describe("Hoid reader spoiler boundary", () => {
     }
   });
 
+});
+
+
+describe("book-bound community spoiler authority", () => {
+  it("allows only posts ending before the currently open chapter", () => {
+    const projected = projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 7),
+    });
+    expect(projected).not.toBeNull();
+
+    expect(isCommunityPostBeyondReadingBoundary("twok", 6, projected?.boundary)).toBe(false);
+    expect(isCommunityPostBeyondReadingBoundary("twok", 7, projected?.boundary)).toBe(true);
+    expect(isCommunityPostBeyondReadingBoundary("twok", 8, projected?.boundary)).toBe(true);
+  });
+
+  it("fails closed when the boundary is missing or belongs to another work", () => {
+    const projected = projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 7),
+    });
+    expect(isCommunityPostBeyondReadingBoundary("twok", 1, undefined)).toBe(true);
+    expect(isCommunityPostBeyondReadingBoundary("tfe", 1, projected?.boundary)).toBe(true);
+  });
+
+  it("reveals a whole work only for its explicit completed boundary", () => {
+    const projected = projectHoidCursorPositionToBoundary({
+      bookId: "woa",
+      completed: true,
+    });
+    expect(projected?.boundary.kind).toBe("completed");
+    expect(isCommunityPostBeyondReadingBoundary("woa", 75, projected?.boundary)).toBe(false);
+
+    const partial = projectHoidCursorPositionToBoundary({
+      bookId: "woa",
+      cursor: cursor("woa", 75),
+    });
+    expect(isCommunityPostBeyondReadingBoundary("woa", 75, partial?.boundary)).toBe(true);
+  });
+
+  it("rejects inconsistent, unknown-key and accessor-bearing boundaries", () => {
+    expect(isCommunityPostBeyondReadingBoundary("twok", 7, {
+      kind: "in-progress",
+      bookId: "twok",
+      currentChapter: 7,
+      completedThroughChapter: 7,
+    })).toBe(true);
+
+    expect(isCommunityPostBeyondReadingBoundary("twok", 7, {
+      kind: "in-progress",
+      bookId: "twok",
+      currentChapter: 7,
+      completedThroughChapter: 6,
+      extra: true,
+    })).toBe(true);
+
+    let invoked = false;
+    const hostile = Object.create(null) as Record<string, unknown>;
+    Object.defineProperties(hostile, {
+      kind: { enumerable: true, get: () => { invoked = true; return "in-progress"; } },
+      bookId: { enumerable: true, value: "twok" },
+      currentChapter: { enumerable: true, value: 7 },
+      completedThroughChapter: { enumerable: true, value: 6 },
+    });
+    expect(isCommunityPostBeyondReadingBoundary("twok", 7, hostile)).toBe(true);
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects invalid comment identity and chapter metadata", () => {
+    const projected = projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 7),
+    });
+    expect(isCommunityPostBeyondReadingBoundary("unknown-work", 1, projected?.boundary)).toBe(true);
+    expect(isCommunityPostBeyondReadingBoundary("twok", 0, projected?.boundary)).toBe(true);
+    expect(isCommunityPostBeyondReadingBoundary("twok", "7", projected?.boundary)).toBe(true);
+    expect(isCommunityPostBeyondReadingBoundary("twok", 7.5, projected?.boundary)).toBe(true);
+  });
 });

@@ -8,6 +8,7 @@ describe("safe initial Atlas reading progress", () => {
 
     expect(Object.keys(initial.chaptersByBook)).toEqual([]);
     expect(Object.keys(initial.completedByBook)).toEqual([]);
+    expect(Object.keys(initial.communityBoundariesByBook)).toEqual([]);
     expect(toHoidReadingPositions(initial)).toEqual([]);
   });
 
@@ -16,17 +17,26 @@ describe("safe initial Atlas reading progress", () => {
 
     expect(Object.getPrototypeOf(initial.chaptersByBook)).toBeNull();
     expect(Object.getPrototypeOf(initial.completedByBook)).toBeNull();
+    expect(Object.getPrototypeOf(initial.communityBoundariesByBook)).toBeNull();
   });
 
-  it("returns independent maps for each new profile", () => {
+  it("returns independent immutable maps for each new profile", () => {
     const first = createEmptyAtlasReadingProgress();
     const second = createEmptyAtlasReadingProgress();
 
-    first.completedByBook.tfe = true;
-    first.chaptersByBook.twok = 1;
+    expect(first).not.toBe(second);
+    expect(first.completedByBook).not.toBe(second.completedByBook);
+    expect(first.chaptersByBook).not.toBe(second.chaptersByBook);
+    expect(first.communityBoundariesByBook).not.toBe(second.communityBoundariesByBook);
+    expect(Object.isFrozen(first.completedByBook)).toBe(true);
+    expect(Object.isFrozen(first.chaptersByBook)).toBe(true);
+    expect(Object.isFrozen(first.communityBoundariesByBook)).toBe(true);
 
+    expect(Reflect.set(first.completedByBook, "tfe", true)).toBe(false);
+    expect(Reflect.set(first.chaptersByBook, "twok", 1)).toBe(false);
     expect(Object.keys(second.completedByBook)).toEqual([]);
     expect(Object.keys(second.chaptersByBook)).toEqual([]);
+    expect(Object.keys(second.communityBoundariesByBook)).toEqual([]);
   });
 
   it("does not seed the former sample completions", () => {

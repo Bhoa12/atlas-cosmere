@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
-import { isChapterBeyondCompletedReadingBoundary } from '../hoid/readingBoundary';
+import { isCommunityPostBeyondReadingBoundary } from '../hoid/readingBoundary';
 
 export const CommunityScreen: React.FC = () => {
-  const { comentarios, agregarComentario, darLuzTormentosa, capituloActualPorLibro, librosLeidos } = useCosmere();
+  const { comentarios, agregarComentario, darLuzTormentosa, communityReadingBoundaryByBook } = useCosmere();
   const [sagaSeleccionada, setSagaSeleccionada] = useState<string>('Archivo de las Tormentas');
   const [libroSeleccionadoId, setLibroSeleccionadoId] = useState<string>('twok');
   const [nuevoTexto, setNuevoTexto] = useState('');
@@ -106,11 +106,10 @@ export const CommunityScreen: React.FC = () => {
           <Text style={styles.emptyText}>No hay teorías publicadas aún para este libro. ¡Sé el primero!</Text>
         }
         renderItem={({ item }) => {
-          const capUsuarioEnEseLibro = capituloActualPorLibro[item.libroId] || 0;
-          const esSpoiler = isChapterBeyondCompletedReadingBoundary(
+          const esSpoiler = isCommunityPostBeyondReadingBoundary(
+            item.libroId,
             item.capituloMaximo,
-            capUsuarioEnEseLibro,
-            librosLeidos[item.libroId] === true,
+            communityReadingBoundaryByBook[item.libroId],
           );
           const estaRevelado = reveladosManualmente[item.id];
 

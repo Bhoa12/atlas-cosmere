@@ -30,7 +30,7 @@ export type HoidKnowledgeEntry = {
 };
 
 /** Name-match projection. Narrative summaries and evidence are never returned by findMatches(). */
-export type HoidKnowledgeMatch = Pick<HoidKnowledgeEntry, "id" | "aliases" | "kind">;
+export type HoidKnowledgeMatch = Pick<HoidKnowledgeEntry, "id" | "aliases">;
 
 const MAX_CATALOG_ENTRIES = 512;
 const MAX_ALIASES_PER_ENTRY = 64;
@@ -320,7 +320,6 @@ function cloneMatch(entry: HoidKnowledgeEntry, matchedAliases: readonly string[]
     // Return only aliases that already occurred in the user's query. Other
     // aliases may themselves be spoiler-bearing names and stay private.
     aliases: [...matchedAliases],
-    kind: entry.kind,
   };
 }
 

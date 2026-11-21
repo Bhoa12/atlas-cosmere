@@ -29,6 +29,12 @@ export type HoidKnowledgeEntry = {
   provenance?: HoidKnowledgeProvenance;
 };
 
+/** Name-match projection. Narrative summaries and evidence are never returned by findMatches(). */
+export type HoidKnowledgeMatch = Pick<
+  HoidKnowledgeEntry,
+  "id" | "aliases" | "kind" | "firstSafeAppearance"
+>;
+
 const MAX_CATALOG_ENTRIES = 512;
 const MAX_ALIASES_PER_ENTRY = 64;
 const MAX_ALIAS_LENGTH = 256;
@@ -290,8 +296,25 @@ function cloneEntry(entry: HoidKnowledgeEntry): HoidKnowledgeEntry {
   };
 }
 
-function canonicalEntryIdentity(entry: HoidKnowledgeEntry): string {
-  return JSON.stringify(entry);
+function canonicalMentionIdentity(entry: HoidKnowledgeEntry): string {
+  // Mention authorization depends only on the canonical identity and its
+  // first-safe boundary. Evidence and summary metadata remain private to the
+  // catalog and are never accepted from a match projection.
+  return JSON.stringify({
+    id: entry.id,
+    aliases: entry.aliases,
+    kind: entry.kind,
+    firstSafeAppearance: entry.firstSafeAppearance,
+  });
+}
+
+function cloneMatch(entry: HoidKnowledgeEntry): HoidKnowledgeMatch {
+  return {
+    id: entry.id,
+    aliases: [...entry.aliases],
+    kind: entry.kind,
+    firstSafeAppearance: { ...entry.firstSafeAppearance },
+  };
 }
 
 /**
@@ -346,7 +369,13 @@ export class HoidKnowledgeCatalog {
     );
   }
 
-  findMatches(text: string): HoidKnowledgeEntry[] {
+  /**
+   * Return only the name/identity projection. This method is safe for matching
+   * and spoiler checks at any reading position; callers must use
+   * entriesForContext() to obtain a summary after its independent evidence
+   * watermark has been reached.
+   */
+  findMatches(text: string): HoidKnowledgeMatch[] {
     if (typeof text !== "string" || text.length === 0 || text.length > 20_000) return [];
     const normalized = normalizeForCatalogMatch(text);
     return this.#entries
@@ -354,7 +383,7 @@ export class HoidKnowledgeCatalog {
         const normalizedAlias = normalizeForCatalogMatch(alias).trim();
         return normalizedAlias.length > 0 && containsCatalogAlias(normalized, normalizedAlias);
       }))
-      .map(cloneEntry);
+      .map(cloneMatch);
   }
 
   /**
@@ -363,11 +392,11 @@ export class HoidKnowledgeCatalog {
    * summary is safe to reveal. The supplied entry must match the catalog's
    * canonical snapshot; its caller-owned unlock metadata is never authoritative.
    */
-  isEntityMentionUnlocked(entry: HoidKnowledgeEntry, reading: readonly ReadingPosition[]): boolean {
+  isEntityMentionUnlocked(entry: HoidKnowledgeEntry | HoidKnowledgeMatch, reading: readonly ReadingPosition[]): boolean {
     const candidate = canonicalizeEntry(entry);
     if (!candidate) return false;
     const trusted = this.#entries.find(item => item.id === candidate.id);
-    if (!trusted || canonicalEntryIdentity(candidate) !== canonicalEntryIdentity(trusted)) return false;
+    if (!trusted || canonicalMentionIdentity(candidate) !== canonicalMentionIdentity(trusted)) return false;
 
     const position = buildReadingContext(reading)
       .find(item => item.bookId === trusted.firstSafeAppearance.bookId);
@@ -383,11 +412,11 @@ export class HoidKnowledgeCatalog {
    * summaries must use isEvidenceUnlocked(), never this first-appearance check.
    * @deprecated Prefer isEntityMentionUnlocked() for explicit semantics.
    */
-  isUnlocked(entry: HoidKnowledgeEntry, reading: readonly ReadingPosition[]): boolean {
+  isUnlocked(entry: HoidKnowledgeEntry | HoidKnowledgeMatch, reading: readonly ReadingPosition[]): boolean {
     return this.isEntityMentionUnlocked(entry, reading);
   }
 
-  lockedMatches(text: string, reading: readonly ReadingPosition[]): HoidKnowledgeEntry[] {
+  lockedMatches(text: string, reading: readonly ReadingPosition[]): HoidKnowledgeMatch[] {
     return this.findMatches(text).filter(entry => !this.isEntityMentionUnlocked(entry, reading));
   }
 

@@ -352,11 +352,12 @@ describe("shared first-safe-appearance completion policy", () => {
     });
     expect(projection?.safeReadingPosition).toBeNull();
     expect(isHoidFirstSafeAppearanceCompleted(null, 1, false)).toBe(false);
-    const catalog = new HoidKnowledgeCatalog([{
+    const chapterOneEntry: HoidKnowledgeEntry = {
       ...entry,
       firstSafeAppearance: { bookId: "twok", chapter: 1 },
-    }]);
-    expect(catalog.isEntityMentionUnlocked(entry, [])).toBe(false);
+    };
+    const catalog = new HoidKnowledgeCatalog([chapterOneEntry]);
+    expect(catalog.isEntityMentionUnlocked(chapterOneEntry, [])).toBe(false);
   });
 });
 

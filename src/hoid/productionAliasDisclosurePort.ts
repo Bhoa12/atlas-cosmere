@@ -125,7 +125,7 @@ function canonicalEntitySource(value: unknown): boolean {
     typeof source.sourceBookId === "string" && ID_PATTERN.test(source.sourceBookId) &&
     typeof source.sourceChapter === "number" && Number.isSafeInteger(source.sourceChapter) && source.sourceChapter > 0 &&
     typeof source.locatorId === "string" && source.locatorId.length > 0 && source.locatorId.length <= 256 &&
-    !/[\\u0000-\\u001F\\u007F]/u.test(source.locatorId) &&
+    !/[\u0000-\u001F\u007F]/u.test(source.locatorId) &&
     typeof source.unlockBookId === "string" && ID_PATTERN.test(source.unlockBookId) &&
     typeof source.unlockChapter === "number" && Number.isSafeInteger(source.unlockChapter) && source.unlockChapter > 0 &&
     typeof source.editionId === "string" && source.editionId.length > 0 && source.editionId.length <= 128 &&

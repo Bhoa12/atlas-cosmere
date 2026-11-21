@@ -196,9 +196,9 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     },
   };
 
-  // A malformed optional evidence tuple is omitted rather than promoted. This
-  // can preserve a safe name-only catalog entry, but it can never authorize a
-  // provider-facing summary because entriesForContext requires valid evidence.
+  // A malformed optional evidence tuple is omitted rather than promoted.
+  // Summary text and provenance are stripped below unless the complete
+  // edition-bound source/unlock tuple survives and provenance is verified.
   const source = Object.prototype.hasOwnProperty.call(record, "evidenceSource")
     ? canonicalRecord(record.evidenceSource, ["bookId", "chapter", "locatorId"])
     : null;

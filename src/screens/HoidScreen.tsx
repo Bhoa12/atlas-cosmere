@@ -110,6 +110,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
   const [topicRecommendationFingerprint, setTopicRecommendationFingerprint] = useState<string | null>(null);
   const [topicRecommendationSelectionKey, setTopicRecommendationSelectionKey] = useState<string | null>(null);
+  const [topicRecommendationTrustPort, setTopicRecommendationTrustPort] = useState<HoidTrustedScreenAnswerPort | null>(null);
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
 
   const liveProgress = progressReaderRef.current();
@@ -135,6 +136,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
     setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationTrustPort(null);
     setTopicRecommendationMessage('');
   }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado, trustedAnswerPort]);
 
@@ -455,6 +457,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
     setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationTrustPort(null);
     setTopicRecommendationMessage('');
   };
 
@@ -465,6 +468,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
     setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationTrustPort(null);
     setTopicRecommendationMessage('');
 
     if (!topicRecommendationsTrustReady || !trustedTopicRecommendationPresenter) {
@@ -543,6 +547,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setTopicRecommendationRevision(verified.progressRevision);
         setTopicRecommendationFingerprint(verified.progressFingerprint);
         setTopicRecommendationSelectionKey(selectedTopicIds.join('\n'));
+        setTopicRecommendationTrustPort(trustedAnswerPort);
         setTopicRecommendationMessage(
           verified.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'
@@ -586,7 +591,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     liveProgressScope !== null &&
     topicRecommendationRevision === liveProgressScope.revision &&
     topicRecommendationFingerprint === liveProgressScope.fingerprint &&
-    topicRecommendationSelectionKey === selectedTopicIds.join('\n');
+    topicRecommendationSelectionKey === selectedTopicIds.join('\n') &&
+    topicRecommendationTrustPort === trustedAnswerPort;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>

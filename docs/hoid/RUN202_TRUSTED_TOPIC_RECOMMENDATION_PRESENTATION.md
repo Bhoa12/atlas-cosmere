@@ -21,9 +21,10 @@ the host-provided trusted presenter.
   recommendation matches only from the signed presentation segments.
 - HoidScreen enables topic recommendations only when this trusted port can be
   constructed. Without the host-injected signed presenter, the feature remains
-  disabled. It also clears already-rendered recommendations whenever the host
-  replaces the trusted-answer port, so a refreshed trust session cannot inherit
-  cached results from the previous authority instance.
+  disabled. Visible results are also bound to the exact trusted-answer port
+  instance that authenticated them. Replacing that port hides cached results
+  immediately during render and clears them in the subsequent effect, so a
+  refreshed trust session cannot inherit results from the previous authority.
 
 ## Invariants
 

@@ -34,16 +34,6 @@ const MAX_ALIASES_PER_ENTRY = 64;
 const MAX_ALIAS_LENGTH = 256;
 const MAX_SUMMARY_LENGTH = 4_000;
 const MAX_CHAPTER = 100_000_000;
-const ENTRY_KEYS = [
-  "id",
-  "aliases",
-  "kind",
-  "firstSafeAppearance",
-  "evidenceSource",
-  "evidenceUnlock",
-  "summary",
-  "provenance",
-] as const;
 const REQUIRED_ENTRY_KEYS = ["id", "aliases", "kind", "firstSafeAppearance"] as const;
 
 /**
@@ -54,12 +44,12 @@ const REQUIRED_ENTRY_KEYS = ["id", "aliases", "kind", "firstSafeAppearance"] as 
 function normalizeForCatalogMatch(value: string): string {
   return value
     .normalize('NFKD')
-    .replace(/[\\p{Cf}\\p{Mn}]/gu, '')
+    .replace(/[\p{Cf}\p{Mn}]/gu, '')
     .toLowerCase();
 }
 
 function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+  return value.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
 }
 
 function containsCatalogAlias(text: string, alias: string): boolean {
@@ -67,7 +57,7 @@ function containsCatalogAlias(text: string, alias: string): boolean {
   // Require a Unicode letter/number boundary around aliases. This prevents a
   // short catalog alias from matching inside an unrelated word while still
   // allowing names and multi-word aliases next to punctuation.
-  return new RegExp('(^|[^\\\\p{L}\\\\p{N}])' + escaped + '($|[^\\\\p{L}\\\\p{N}])', 'u').test(text);
+  return new RegExp('(^|[^\\p{L}\\p{N}])' + escaped + '($|[^\\p{L}\\p{N}])', 'u').test(text);
 }
 
 function canonicalRecord(
@@ -170,7 +160,7 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     id.length === 0 ||
     id.length > 128 ||
     id !== id.trim() ||
-    /[\\u0000-\\u001F\\u007F]/u.test(id)
+    /[\u0000-\u001F\u007F]/u.test(id)
   ) return null;
 
   if (!isHoidKnowledgeKind(record.kind)) return null;
@@ -185,7 +175,7 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
       rawAlias.length === 0 ||
       rawAlias.length > MAX_ALIAS_LENGTH ||
       rawAlias !== rawAlias.trim() ||
-      /[\\u0000-\\u001F\\u007F]/u.test(rawAlias)
+      /[\u0000-\u001F\u007F]/u.test(rawAlias)
     ) return null;
     const identity = normalizeForCatalogMatch(rawAlias);
     if (identity.length === 0 || seenAliases.has(identity)) return null;
@@ -255,7 +245,7 @@ function canonicalizeEntry(value: unknown): HoidKnowledgeEntry | null {
     record.summary.length > 0 &&
     record.summary.length <= MAX_SUMMARY_LENGTH &&
     record.summary === record.summary.trim() &&
-    !/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u.test(record.summary)
+    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(record.summary)
   ) {
     entry.summary = record.summary;
   }

@@ -37,14 +37,21 @@ function snapshot(options?: {
   tfeChapter?: number;
   twokChapter?: number;
   revision?: number;
+  completed?: boolean;
 }) {
+  const positions = options?.completed === false
+    ? [
+        Object.freeze({ bookId: "tfe", cursor: cursor("tfe", options?.tfeChapter ?? 3) }),
+        Object.freeze({ bookId: "twok", cursor: cursor("twok", options?.twokChapter ?? 3) }),
+      ]
+    : [
+        Object.freeze({ bookId: "tfe", completed: true as const }),
+        Object.freeze({ bookId: "twok", completed: true as const }),
+      ];
   return Object.freeze({
     schemaVersion: 2,
     revision: options?.revision ?? 7,
-    positions: Object.freeze([
-      Object.freeze({ bookId: "tfe", cursor: cursor("tfe", options?.tfeChapter ?? 3) }),
-      Object.freeze({ bookId: "twok", cursor: cursor("twok", options?.twokChapter ?? 3) }),
-    ]),
+    positions: Object.freeze(positions),
     updatedAt: UPDATED_AT,
   });
 }
@@ -313,6 +320,17 @@ describe("Hoid trusted cross-world topic comparison", () => {
     expect(fixture.load).not.toHaveBeenCalled();
   });
 
+  it("withholds a work comparison until each compared work is explicitly completed", async () => {
+    const progress = snapshot({ completed: false });
+    const fixture = setup({ progress });
+    await expect(fixture.presenter.present(fixture.input)).resolves.toEqual({
+      status: "withheld",
+      reason: "no-authorized-comparison",
+    });
+    expect(fixture.load).not.toHaveBeenCalled();
+  });
+
+
   it("binds claim text to the reviewed digest", async () => {
     const assignments = workAssignments().map(item =>
       item.subjectId === "tfe"
@@ -391,7 +409,7 @@ describe("Hoid trusted cross-world topic comparison", () => {
 
   it("enforces an entity's first-safe-appearance boundary independently of evidence unlocks", async () => {
     const assignments = entityAssignments();
-    const progress = snapshot({ tfeChapter: 3, twokChapter: 3 });
+    const progress = snapshot({ tfeChapter: 3, twokChapter: 3, completed: false });
     const input = {
       topicId: "investiture-system",
       dimensionId: "mechanism",

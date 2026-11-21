@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { HoidKnowledgeEntry } from "./catalog";
+import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { isEvidenceUnlocked } from "./evidenceScope";
 import { createHoidReadingCursor } from "./readingManifest";
 import {
   isChapterBeyondCompletedReadingBoundary,
   isCommunityPostBeyondReadingBoundary,
+  isHoidFirstSafeAppearanceCompleted,
   projectHoidCursorPositionToBoundary,
 } from "./readingBoundary";
 
@@ -291,3 +292,71 @@ describe("book-bound community spoiler authority", () => {
     expect(isCommunityPostBeyondReadingBoundary("twok", 7.5, projected?.boundary)).toBe(true);
   });
 });
+
+describe("shared first-safe-appearance completion policy", () => {
+  const entry: HoidKnowledgeEntry = {
+    id: "synthetic.first-safe-entity",
+    aliases: ["Entidad sintética"],
+    kind: "character",
+    firstSafeAppearance: { bookId: "twok", chapter: 7 },
+  };
+
+  it("does not disclose an entity while its first-safe chapter is open", () => {
+    const projection = projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 7),
+    });
+    expect(projection?.boundary).toMatchObject({
+      kind: "in-progress",
+      currentChapter: 7,
+      completedThroughChapter: 6,
+    });
+    expect(isHoidFirstSafeAppearanceCompleted(6, 7, false)).toBe(false);
+    const catalog = new HoidKnowledgeCatalog([entry]);
+    expect(catalog.isEntityMentionUnlocked(
+      entry,
+      projection?.safeReadingPosition ? [projection.safeReadingPosition] : [],
+    )).toBe(false);
+  });
+
+  it("authorizes the entity only after the first-safe chapter is completed", () => {
+    const projection = projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 8),
+    });
+    expect(projection?.boundary).toMatchObject({
+      kind: "in-progress",
+      currentChapter: 8,
+      completedThroughChapter: 7,
+    });
+    expect(isHoidFirstSafeAppearanceCompleted(7, 7, false)).toBe(true);
+    const catalog = new HoidKnowledgeCatalog([entry]);
+    expect(catalog.isEntityMentionUnlocked(
+      entry,
+      projection?.safeReadingPosition ? [projection.safeReadingPosition] : [],
+    )).toBe(true);
+  });
+
+  it("accepts explicit whole-work completion but rejects malformed markers and boundaries", () => {
+    expect(isHoidFirstSafeAppearanceCompleted(null, 7, true)).toBe(true);
+    expect(isHoidFirstSafeAppearanceCompleted(7, 0, false)).toBe(false);
+    expect(isHoidFirstSafeAppearanceCompleted(-1, 7, false)).toBe(false);
+    expect(isHoidFirstSafeAppearanceCompleted(7, Number.NaN, false)).toBe(false);
+    expect(isHoidFirstSafeAppearanceCompleted(7, 7, "true")).toBe(false);
+  });
+
+  it("keeps chapter one locked when no chapter has been completed", () => {
+    const projection = projectHoidCursorPositionToBoundary({
+      bookId: "twok",
+      cursor: cursor("twok", 1),
+    });
+    expect(projection?.safeReadingPosition).toBeNull();
+    expect(isHoidFirstSafeAppearanceCompleted(null, 1, false)).toBe(false);
+    const catalog = new HoidKnowledgeCatalog([{
+      ...entry,
+      firstSafeAppearance: { bookId: "twok", chapter: 1 },
+    }]);
+    expect(catalog.isEntityMentionUnlocked(entry, [])).toBe(false);
+  });
+});
+

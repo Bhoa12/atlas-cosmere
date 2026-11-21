@@ -289,6 +289,43 @@ function canonicalEntryIdentity(entry: HoidKnowledgeEntry): string {
 }
 
 /**
+ * Canonicalize one untrusted knowledge entry using the same structural,
+ * bibliography and manifest checks as the catalog constructor.
+ *
+ * Optional evidence metadata that is malformed is deliberately stripped by
+ * canonicalizeEntry: this can preserve a name-only entry, but cannot grant
+ * provider-facing summary access.
+ */
+export function canonicalizeHoidKnowledgeEntry(value: unknown): HoidKnowledgeEntry | null {
+  const canonical = canonicalizeEntry(value);
+  return canonical ? cloneEntry(canonical) : null;
+}
+
+/**
+ * Canonicalize a complete untrusted catalog collection. Sparse arrays,
+ * accessor-backed collections and oversized inputs fail closed as a whole.
+ * Every member is detached, and all entries sharing a normalized ID are
+ * rejected as a group. Returned objects are caller-owned copies.
+ */
+export function canonicalizeHoidKnowledgeEntries(value: unknown): HoidKnowledgeEntry[] {
+  const rawEntries = canonicalDenseArray(value, 0, MAX_CATALOG_ENTRIES);
+  if (!rawEntries) return [];
+
+  const canonical = rawEntries
+    .map(canonicalizeEntry)
+    .filter((entry): entry is HoidKnowledgeEntry => entry !== null);
+  const counts = new Map<string, number>();
+  for (const entry of canonical) {
+    const identity = entry.id.normalize("NFKC").toLowerCase();
+    counts.set(identity, (counts.get(identity) ?? 0) + 1);
+  }
+
+  return canonical
+    .filter(entry => counts.get(entry.id.normalize("NFKC").toLowerCase()) === 1)
+    .map(cloneEntry);
+}
+
+/**
  * Catalog metadata is intentionally separate from generated answers and source
  * text. The constructor takes a detached, validated snapshot. Public methods
  * return detached copies so a caller cannot mutate the authorization state
@@ -298,24 +335,9 @@ export class HoidKnowledgeCatalog {
   readonly #entries: readonly HoidKnowledgeEntry[];
 
   constructor(entries: readonly HoidKnowledgeEntry[] = []) {
-    const rawEntries = canonicalDenseArray(entries, 0, MAX_CATALOG_ENTRIES);
-    if (!rawEntries) {
-      this.#entries = Object.freeze([]);
-      return;
-    }
-
-    const canonical = rawEntries
-      .map(canonicalizeEntry)
-      .filter((entry): entry is HoidKnowledgeEntry => entry !== null);
-    const counts = new Map<string, number>();
-    for (const entry of canonical) {
-      const identity = entry.id.normalize("NFKC").toLowerCase();
-      counts.set(identity, (counts.get(identity) ?? 0) + 1);
-    }
-
-    this.#entries = Object.freeze(canonical
-      .filter(entry => counts.get(entry.id.normalize("NFKC").toLowerCase()) === 1)
-      .map(freezeEntry));
+    this.#entries = Object.freeze(
+      canonicalizeHoidKnowledgeEntries(entries).map(freezeEntry),
+    );
   }
 
   findMatches(text: string): HoidKnowledgeEntry[] {

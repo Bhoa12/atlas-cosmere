@@ -127,6 +127,41 @@ describe("Hoid approved-claim integrity", () => {
     });
   });
 
+  it("keeps metadata-only evidence attestations valid after unverified summaries are stripped", () => {
+    const limitedKnowledge: HoidKnowledgeEntry[] = [{
+      id: "e-limited",
+      aliases: ["Entidad de procedencia limitada"],
+      kind: "concept",
+      firstSafeAppearance: { bookId: "twok", chapter: 2 },
+      evidenceSource: { bookId: "twok", chapter: 2, locatorId: locator("twok", 2) },
+      evidenceUnlock: { bookId: "twok", chapter: 3 },
+      provenance: "limited",
+      summary: "Este texto se elimina antes de cualquier presentación.",
+    }];
+    const limitedCore = {
+      id: "claim-limited",
+      text: "Afirmación sintética que no debe entrar en contexto narrativo.",
+      intent: "explain" as const,
+      evidenceIds: ["e-limited"],
+      entityIds: ["e-limited"],
+    };
+    const attested = createHoidApprovedClaimAttestation(limitedCore, limitedKnowledge, reviewer);
+    expect(attested.status).toBe("valid");
+    if (attested.status !== "valid") return;
+
+    const canonicalKnowledge = [{
+      ...limitedKnowledge[0],
+      summary: undefined,
+    }];
+    const claim = {
+      ...limitedCore,
+      integrity: attested.integrity,
+      review: attested.review,
+    };
+    expect(validateHoidApprovedClaimAttestation(claim, canonicalKnowledge).status).toBe("valid");
+    expect(inspectHoidApprovedClaimEvidenceBinding("e-limited", canonicalKnowledge)).toEqual({ status: "valid" });
+  });
+
   it("rejects a locator substituted within the same chapter", () => {
     const claim = createAttestation();
     const changedKnowledge = knowledge.map(entry => entry.id === "e-alpha"

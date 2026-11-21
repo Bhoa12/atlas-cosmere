@@ -4,19 +4,17 @@ import {
 } from "./cursorProgressLedger";
 
 /**
- * Read-only compatibility projection for Atlas UI components that display the
- * chapter currently open in each work.
+ * Read-only compatibility projection for Atlas and Community UI components.
  *
- * The v2 cursor is authoritative. Its chapterNumber is the reader's current
- * open chapter, so this display projection preserves N exactly. It must never
- * be used as the completed-through position for spoiler authorization:
- * cursorToLegacyReadingPosition deliberately maps N to N-1 for that purpose.
+ * chaptersByBook preserves the currently open chapter so the Community spoiler
+ * shield can apply its exclusive N-1 boundary. The v2 snapshot remains
+ * authoritative; this projection must never unlock Hoid narrative evidence.
  */
 export type AtlasCursorProgressProjection =
   | Readonly<{
       status: "ready";
       snapshot: HoidCursorProgressSnapshot;
-      /** Current/open chapter for display only; never an authorization cursor. */
+      /** Current/open chapter for UI display and community spoiler shielding only. */
       chaptersByBook: Readonly<Record<string, number>>;
       completedByBook: Readonly<Record<string, true>>;
     }>
@@ -43,9 +41,9 @@ export function atlasProgressFromCursorSnapshot(
     }
 
     // Snapshot validation has already bound this cursor to its exact edition
-    // manifest. Preserve the open chapter for Atlas display; do not project
-    // through the legacy completed-through helper (which intentionally yields
-    // N-1 and null for chapter 1).
+    // manifest. Preserve N for the Community screen, whose boundary helper
+    // exposes only chapters strictly before N. Never use this display map as
+    // Hoid's evidence authorization position; that comes from the v2 boundary.
     chapters[position.bookId] = position.cursor.chapterNumber;
   }
 

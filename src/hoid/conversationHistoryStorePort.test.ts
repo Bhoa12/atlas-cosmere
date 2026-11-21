@@ -84,7 +84,7 @@ function makeStore(initial: unknown | null = null) {
 }
 
 function recordFor(
-  recordKey: typeof key = key,
+  recordKey: HoidConversationStorageKey = key,
   progress = scopeA,
   messages: unknown = [greeting(), userMessage(), assistantMessage()],
   storageRevision = 1,
@@ -96,7 +96,6 @@ function recordFor(
     conversationId: recordKey.conversationId,
     storageRevision,
     snapshot: snapshot(messages),
-    progress,
   };
 }
 

@@ -1,5 +1,6 @@
 import { isKnownHoidSource } from "./bibliography";
 import type { HoidTopicRecommendation } from "./topicRecommendations";
+import type { HoidPresentedCitation } from "./answerPresentation";
 import {
   getHoidTopicDefinition,
   getHoidTopicDimensionDefinition,
@@ -202,7 +203,7 @@ export function validateHoidTopicRecommendationAssignments(
       );
       if (matches.length !== 1) return false;
       const assignment = matches[0];
-      const citationIds = match.citations.map(citation => citation.evidenceId).sort();
+      const citationIds = match.citations.map((citation: HoidPresentedCitation) => citation.evidenceId).sort();
       if (
         assignment.claimTextSha256 !== sha256Hex(match.reasonText) ||
         !sameIds(assignment.evidenceIds, citationIds)

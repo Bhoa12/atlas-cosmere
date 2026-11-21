@@ -12,9 +12,12 @@ on:
       - "src/hoid/trustedVerifiedAnswerPresentation.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/explanationDepth.ts"
+      - "src/hoid/trustedTopicRecommendations.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "App.tsx"
       - "docs/hoid/RUN199_TRUSTED_SCREEN_PRESENTATION.md"
+      - "docs/hoid/RUN202_TRUSTED_TOPIC_RECOMMENDATION_PRESENTATION.md"
       - ".github/workflows/hoid-trusted-screen-presentation.yml"
   pull_request:
     paths:
@@ -25,9 +28,12 @@ on:
       - "src/hoid/trustedVerifiedAnswerPresentation.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/explanationDepth.ts"
+      - "src/hoid/trustedTopicRecommendations.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
       - "src/screens/HoidScreen.tsx"
       - "App.tsx"
       - "docs/hoid/RUN199_TRUSTED_SCREEN_PRESENTATION.md"
+      - "docs/hoid/RUN202_TRUSTED_TOPIC_RECOMMENDATION_PRESENTATION.md"
       - ".github/workflows/hoid-trusted-screen-presentation.yml"
   workflow_dispatch:
 
@@ -51,6 +57,7 @@ jobs:
           npx vitest run
           src/hoid/trustedScreenAnswer.test.ts
           src/hoid/trustedScreenIntegration.test.ts
+          src/hoid/trustedTopicRecommendations.test.ts
           src/hoid/trustedPresentationHost.test.ts
           src/hoid/trustedVerifiedAnswerPresentation.test.ts
           src/hoid/answerPresentation.test.ts
@@ -61,3 +68,4 @@ jobs:
           --module ESNext --moduleResolution bundler --skipLibCheck
           --allowSyntheticDefaultImports
           src/hoid/trustedScreenAnswer.ts
+          src/hoid/trustedTopicRecommendations.ts

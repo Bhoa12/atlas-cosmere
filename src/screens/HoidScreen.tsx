@@ -542,7 +542,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setTopicRecommendations(verified.items);
         setTopicRecommendationRevision(verified.progressRevision);
         setTopicRecommendationFingerprint(verified.progressFingerprint);
-        setTopicRecommendationSelectionKey(selectedTopicIds.join('\\n'));
+        setTopicRecommendationSelectionKey(selectedTopicIds.join('\n'));
         setTopicRecommendationMessage(
           verified.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'

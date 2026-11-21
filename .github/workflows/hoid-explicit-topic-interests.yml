@@ -11,6 +11,9 @@ on:
       - "src/hoid/topicInterestRecommendationsGateway.test.ts"
       - "src/hoid/topicApprovedClaimAnswerPort.ts"
       - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
+      - "src/hoid/trustedTopicRecommendations.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
@@ -30,6 +33,7 @@ on:
       - "docs/hoid/EXPLICIT_TOPIC_INTERESTS.md"
       - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
       - "docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md"
+      - "docs/hoid/RUN202_TRUSTED_TOPIC_RECOMMENDATION_PRESENTATION.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
   pull_request:
@@ -40,6 +44,9 @@ on:
       - "src/hoid/topicInterestRecommendationsGateway.test.ts"
       - "src/hoid/topicApprovedClaimAnswerPort.ts"
       - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
+      - "src/hoid/trustedTopicRecommendations.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
@@ -59,6 +66,7 @@ on:
       - "docs/hoid/EXPLICIT_TOPIC_INTERESTS.md"
       - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
       - "docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md"
+      - "docs/hoid/RUN202_TRUSTED_TOPIC_RECOMMENDATION_PRESENTATION.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
 
@@ -83,6 +91,7 @@ jobs:
           src/hoid/topicInterestContext.test.ts
           src/hoid/topicInterestRecommendationsGateway.test.ts
           src/hoid/topicApprovedClaimAnswerPort.test.ts
+          src/hoid/trustedTopicRecommendations.test.ts
           src/hoid/evidenceRuntime.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
           src/hoid/answerPresentation.test.ts
@@ -96,6 +105,7 @@ jobs:
           src/hoid/topicInterestContext.ts
           src/hoid/topicInterestRecommendationsGateway.ts
           src/hoid/topicApprovedClaimAnswerPort.ts
+          src/hoid/trustedTopicRecommendations.ts
           src/hoid/evidenceRuntime.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/answerPresentation.ts

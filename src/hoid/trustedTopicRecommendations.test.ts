@@ -3,6 +3,7 @@ import { createHoidReadingCursor } from "./readingManifest";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { sha256Hex } from "./sha256";
 import {
   createHoidTrustedTopicRecommendationPresenter,
   type HoidTrustedTopicRecommendationPresenterConfig,
@@ -115,11 +116,39 @@ function readyClaimResult(options?: {
   });
 }
 
+function approvedAssignment(overrides?: {
+  id?: string;
+  subjectId?: string;
+  claimTextSha256?: string;
+  evidenceIds?: readonly string[];
+}) {
+  return Object.freeze({
+    schemaVersion: 1,
+    id: overrides?.id ?? "assignment-topic-tress",
+    subjectKind: "work",
+    subjectId: overrides?.subjectId ?? "tress",
+    worldId: "cosmere",
+    worldLabel: "Cosmere",
+    topicId: "investiture-system",
+    dimensionId: "mechanism",
+    claimId: CLAIM_ID,
+    claimTextSha256: overrides?.claimTextSha256 ?? sha256Hex(CLAIM_TEXT),
+    evidenceIds: Object.freeze([...(overrides?.evidenceIds ?? [EVIDENCE_ID])].sort()),
+    review: Object.freeze({
+      status: "approved",
+      reviewerId: "reviewer-test",
+      reviewedAt: UPDATED_AT,
+    }),
+  });
+}
+
 function setup(options?: {
   progress?: unknown;
   refresh?: () => unknown | Promise<unknown>;
   records?: unknown;
   presentation?: unknown;
+  assignments?: readonly unknown[];
+  assignmentResolution?: unknown;
 }) {
   const progress = options?.progress ?? snapshot();
   const current = options?.refresh ?? (() => progress);
@@ -132,6 +161,11 @@ function setup(options?: {
     loadApprovedClaims,
     trustedAnswerPort,
     refreshCurrentProgress: current,
+    resolveApprovedAssignments: () => options?.assignmentResolution ?? Object.freeze({
+      status: "active",
+      assignments: options?.assignments ?? Object.freeze([approvedAssignment()]),
+      receipt: Object.freeze({}),
+    }),
   };
   const port = createHoidTrustedTopicRecommendationPresenter(config);
   if (!port) throw new Error("Fixture presenter unavailable");
@@ -277,7 +311,12 @@ describe("Hoid trusted topic recommendation presentation", () => {
   });
 
   it("verifies a repeated claim only once and reuses its signed segment", async () => {
-    const fixture = setup();
+    const fixture = setup({
+      assignments: [
+        approvedAssignment(),
+        approvedAssignment({ id: "assignment-topic-yumi", subjectId: "yumi" }),
+      ],
+    });
     const first = recommendation();
     const second = Object.freeze({
       ...first,
@@ -287,6 +326,67 @@ describe("Hoid trusted topic recommendation presentation", () => {
     const result = await fixture.port.present({ ...fixture.input, items: [first, second] });
     expect(result.status).toBe("ready");
     expect(fixture.present).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a candidate work that has no matching active approved assignment before loading claims", async () => {
+    const fixture = setup();
+    const forged = recommendation({ sourceId: "yumi" });
+    await expect(fixture.port.present({ ...fixture.input, items: [forged] })).resolves.toEqual({
+      status: "withheld",
+      reason: "invalid-recommendations",
+    });
+    expect(fixture.loadApprovedClaims).not.toHaveBeenCalled();
+  });
+
+  it("withholds when the production assignment authority is inactive", async () => {
+    const fixture = setup({
+      assignmentResolution: Object.freeze({
+        status: "inactive",
+        reason: "no-topic-assignments",
+      }),
+    });
+    await expect(fixture.port.present(fixture.input)).resolves.toEqual({
+      status: "withheld",
+      reason: "invalid-recommendations",
+    });
+    expect(fixture.loadApprovedClaims).not.toHaveBeenCalled();
+  });
+
+  it("rejects an assignment whose claim digest no longer matches the displayed claim", async () => {
+    const fixture = setup({
+      assignments: [approvedAssignment({ claimTextSha256: "0".repeat(64) })],
+    });
+    await expect(fixture.port.present(fixture.input)).resolves.toEqual({
+      status: "withheld",
+      reason: "invalid-recommendations",
+    });
+    expect(fixture.loadApprovedClaims).not.toHaveBeenCalled();
+  });
+
+  it("rejects an assignment whose evidence set differs from the signed citations", async () => {
+    const fixture = setup({
+      assignments: [approvedAssignment({ evidenceIds: ["different-evidence"] })],
+    });
+    await expect(fixture.port.present(fixture.input)).resolves.toEqual({
+      status: "withheld",
+      reason: "invalid-recommendations",
+    });
+    expect(fixture.loadApprovedClaims).not.toHaveBeenCalled();
+  });
+
+  it("rejects a resolver that throws without falling back to candidate metadata", async () => {
+    const fixture = setup();
+    const failing = createHoidTrustedTopicRecommendationPresenter({
+      loadApprovedClaims: fixture.loadApprovedClaims,
+      trustedAnswerPort: Object.freeze({ present: fixture.present }) as unknown as HoidTrustedScreenAnswerPort,
+      refreshCurrentProgress: () => fixture.progress,
+      resolveApprovedAssignments: () => { throw new Error("assignment registry unavailable"); },
+    });
+    expect(failing).not.toBeNull();
+    await expect(failing!.present(fixture.input)).resolves.toEqual({
+      status: "withheld",
+      reason: "invalid-recommendations",
+    });
   });
 
   it("rejects a trusted answer port whose descriptor trap throws", () => {

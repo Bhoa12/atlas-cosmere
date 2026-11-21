@@ -13,6 +13,8 @@ on:
       - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
       - "src/hoid/trustedTopicRecommendations.ts"
       - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/trustedTopicAssignmentGuard.ts"
+      - "src/hoid/trustedTopicAssignmentGuard.test.ts"
       - "src/hoid/trustedScreenAnswer.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
@@ -34,6 +36,7 @@ on:
       - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
       - "docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md"
       - "docs/hoid/RUN202_TRUSTED_TOPIC_RECOMMENDATION_PRESENTATION.md"
+      - "docs/hoid/RUN203_TOPIC_ASSIGNMENT_REVALIDATION.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
   pull_request:
@@ -46,6 +49,8 @@ on:
       - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
       - "src/hoid/trustedTopicRecommendations.ts"
       - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/trustedTopicAssignmentGuard.ts"
+      - "src/hoid/trustedTopicAssignmentGuard.test.ts"
       - "src/hoid/trustedScreenAnswer.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
@@ -67,6 +72,7 @@ on:
       - "docs/hoid/LOCAL_APPROVED_CLAIM_RENDERING.md"
       - "docs/hoid/CURSOR_NATIVE_RECOMMENDATION_ASSURANCE.md"
       - "docs/hoid/RUN202_TRUSTED_TOPIC_RECOMMENDATION_PRESENTATION.md"
+      - "docs/hoid/RUN203_TOPIC_ASSIGNMENT_REVALIDATION.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-explicit-topic-interests.yml"
 
@@ -92,6 +98,7 @@ jobs:
           src/hoid/topicInterestRecommendationsGateway.test.ts
           src/hoid/topicApprovedClaimAnswerPort.test.ts
           src/hoid/trustedTopicRecommendations.test.ts
+          src/hoid/trustedTopicAssignmentGuard.test.ts
           src/hoid/evidenceRuntime.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
           src/hoid/answerPresentation.test.ts
@@ -106,6 +113,7 @@ jobs:
           src/hoid/topicInterestRecommendationsGateway.ts
           src/hoid/topicApprovedClaimAnswerPort.ts
           src/hoid/trustedTopicRecommendations.ts
+          src/hoid/trustedTopicAssignmentGuard.ts
           src/hoid/evidenceRuntime.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/answerPresentation.ts

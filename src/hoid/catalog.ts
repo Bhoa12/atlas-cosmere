@@ -302,16 +302,17 @@ function canonicalMentionIdentity(entry: HoidKnowledgeEntry): string {
   // catalog and are never accepted from a match projection.
   return JSON.stringify({
     id: entry.id,
-    aliases: entry.aliases,
     kind: entry.kind,
     firstSafeAppearance: entry.firstSafeAppearance,
   });
 }
 
-function cloneMatch(entry: HoidKnowledgeEntry): HoidKnowledgeMatch {
+function cloneMatch(entry: HoidKnowledgeEntry, matchedAliases: readonly string[]): HoidKnowledgeMatch {
   return {
     id: entry.id,
-    aliases: [...entry.aliases],
+    // Return only aliases that already occurred in the user's query. Other
+    // aliases may themselves be spoiler-bearing names and stay private.
+    aliases: [...matchedAliases],
     kind: entry.kind,
     firstSafeAppearance: { ...entry.firstSafeAppearance },
   };
@@ -378,12 +379,15 @@ export class HoidKnowledgeCatalog {
   findMatches(text: string): HoidKnowledgeMatch[] {
     if (typeof text !== "string" || text.length === 0 || text.length > 20_000) return [];
     const normalized = normalizeForCatalogMatch(text);
-    return this.#entries
-      .filter(entry => entry.aliases.some(alias => {
+    const matches: HoidKnowledgeMatch[] = [];
+    for (const entry of this.#entries) {
+      const matchedAliases = entry.aliases.filter(alias => {
         const normalizedAlias = normalizeForCatalogMatch(alias).trim();
         return normalizedAlias.length > 0 && containsCatalogAlias(normalized, normalizedAlias);
-      }))
-      .map(cloneMatch);
+      });
+      if (matchedAliases.length > 0) matches.push(cloneMatch(entry, matchedAliases));
+    }
+    return matches;
   }
 
   /**

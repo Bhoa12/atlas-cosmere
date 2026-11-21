@@ -112,7 +112,6 @@ describe("Hoid canonical summary disclosure boundary", () => {
       id: trusted.id,
       aliases: trusted.aliases,
       kind: trusted.kind,
-      firstSafeAppearance: trusted.firstSafeAppearance,
     });
     expect(match).not.toHaveProperty("summary");
     expect(match).not.toHaveProperty("provenance");

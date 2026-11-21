@@ -45,7 +45,7 @@ export type HoidConversationHistoryStorePort = Readonly<{
     key: HoidConversationStorageKey,
     expectedStorageRevision: number | null,
     nextRecord: HoidConversationStorageRecord,
-  ) => Promise<unknown>;
+  ) => Promise<"saved" | "conflict">;
 }>;
 
 export type HoidConversationHistorySaveResult =

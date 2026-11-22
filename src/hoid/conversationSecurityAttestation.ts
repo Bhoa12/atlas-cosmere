@@ -3,8 +3,10 @@ import {
   type HoidConversationSecurityReadinessReason,
   type HoidConversationSecurityAlgorithm,
 } from "./conversationSecurityReadiness";
-import type { HoidEd25519VerificationPort } from "./editorialReviewSignatures";
+import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
 import { sha256Hex } from "./sha256";
+
+const signatureVerifier = createHoidNobleEd25519VerificationPort();
 
 export const HOID_NATIVE_SECURITY_ATTESTATION_SCHEMA_VERSION = 1 as const;
 export const HOID_NATIVE_SECURITY_ATTESTATION_KIND =
@@ -106,14 +108,12 @@ type CanonicalPorts = Readonly<{
   challenge: HoidNativeSecurityChallengePort;
   attestation: HoidNativeSecurityAttestationPort;
   trust: HoidNativeSecurityProviderTrustPort;
-  verifier: HoidEd25519VerificationPort;
 }>;
 
 type CanonicalRequest = Readonly<{
   challengePort: unknown;
   attestationPort: unknown;
   trustPort: unknown;
-  verifier: unknown;
   runtime: unknown;
   expectedAppIdentifier: string;
   expectedAppBuildId: string;
@@ -152,7 +152,6 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
     "challengePort",
     "attestationPort",
     "trustPort",
-    "verifier",
     "runtime",
     "expectedAppIdentifier",
     "expectedAppBuildId",
@@ -171,7 +170,6 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
     challengePort: record.challengePort,
     attestationPort: record.attestationPort,
     trustPort: record.trustPort,
-    verifier: record.verifier,
     runtime: record.runtime,
     expectedAppIdentifier: record.expectedAppIdentifier,
     expectedAppBuildId: record.expectedAppBuildId,
@@ -215,15 +213,13 @@ function canonicalPorts(request: CanonicalRequest): CanonicalPorts | null {
   ]);
   const attestationMethods = canonicalMethodPort(request.attestationPort, ["attest"]);
   const trustMethods = canonicalMethodPort(request.trustPort, ["readPinnedProviderKey"]);
-  const verifierMethods = canonicalMethodPort(request.verifier, ["verify"]);
-  if (!challengeMethods || !attestationMethods || !trustMethods || !verifierMethods) {
+  if (!challengeMethods || !attestationMethods || !trustMethods) {
     return null;
   }
 
   const challengeTarget = request.challengePort as object;
   const attestationTarget = request.attestationPort as object;
   const trustTarget = request.trustPort as object;
-  const verifierTarget = request.verifier as object;
 
   return Object.freeze({
     challenge: Object.freeze({
@@ -249,14 +245,6 @@ function canonicalPorts(request: CanonicalRequest): CanonicalPorts | null {
             targetPlatform: NativePlatform,
           ) => Promise<unknown>
         ).call(trustTarget, providerId, platform),
-    }),
-    verifier: Object.freeze({
-      verify: request =>
-        (
-          verifierMethods[0] as (
-            value: Parameters<HoidEd25519VerificationPort["verify"]>[0],
-          ) => Promise<boolean>
-        ).call(verifierTarget, request),
     }),
   });
 }
@@ -499,7 +487,7 @@ export async function verifyHoidNativeConversationSecurityProvider(
 
     let signatureValid = false;
     try {
-      signatureValid = await ports.verifier.verify({
+      signatureValid = await signatureVerifier.verify({
         publicKeyHex: pinnedKey.publicKeyHex,
         message: attestationStatement(attestation),
         signatureHex: attestation.signatureHex,

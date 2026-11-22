@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
+import { createHoidTestNativeSecurityTrustPort } from "./conversationProviderTrustRegistry.testFixtures";
 import {
   HOID_NATIVE_SECURITY_ATTESTATION_KIND,
   HOID_NATIVE_SECURITY_ATTESTATION_SCHEMA_VERSION,
@@ -123,14 +124,14 @@ function request(platform: "ios" | "android" = "ios") {
     attestationPort: Object.freeze({
       attest: async (value: string) => makeAttestation(value, platform),
     }),
-    trustPort: Object.freeze({
-      readPinnedProviderKey: async () => ({
+    trustPort: createHoidTestNativeSecurityTrustPort({
+      entry: {
         keyId: KEY_ID,
         providerId: PROVIDER_ID,
         platform,
         appIdentifier: APP_IDENTIFIER,
         publicKeyHex: PUBLIC_KEY_HEX,
-      }),
+      },
     }),
     runtime: {
       platform,

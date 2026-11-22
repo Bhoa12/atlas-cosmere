@@ -161,4 +161,14 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
     expect(result.summary.works[0].chapters).toEqual([1, 2]);
     expect(result.summary.works[0].evidenceIds).toEqual(["evidence.tfe.one", "evidence.tfe.two"]);
   });
+  it("summarizes the exact canonical presentation without re-reading raw answer progress", async () => {
+    const { presentHoidEvidenceAnswer } = await import("./answerPresentation");
+    const presented = presentHoidEvidenceAnswer(answer(), progress());
+    expect(presented.status).toBe("ready");
+    if (presented.status !== "ready") return;
+    const { summarizeHoidPresentedCrossBookEvidence } = await import("./crossBookEvidence");
+    expect(summarizeHoidPresentedCrossBookEvidence(presented)).toEqual(
+      buildHoidCrossBookEvidenceSummary(answer(), progress()),
+    );
+  });
 });

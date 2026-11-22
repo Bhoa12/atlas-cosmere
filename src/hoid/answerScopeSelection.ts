@@ -29,30 +29,33 @@ export function buildHoidAnswerScopeSelection(
   mode: HoidAnswerScopeMode,
   bookIds: readonly string[],
 ): HoidAnswerScopeSelectionResult {
-  if (mode === "automatic") {
-    return bookIds.length === 0
-      ? Object.freeze({ status: "unscoped" })
-      : Object.freeze({ status: "incomplete", reason: "invalid-selection" });
-  }
+  try {
+    if (!Array.isArray(bookIds) || Object.getPrototypeOf(bookIds) !== Array.prototype) {
+      return Object.freeze({ status: "incomplete", reason: "invalid-selection" });
+    }
 
-  if (!Array.isArray(bookIds) || Object.getPrototypeOf(bookIds) !== Array.prototype) {
+    if (mode === "automatic") {
+      return bookIds.length === 0
+        ? Object.freeze({ status: "unscoped" })
+        : Object.freeze({ status: "incomplete", reason: "invalid-selection" });
+    }
+
+    if (mode === "single-work" && bookIds.length !== 1) {
+      return Object.freeze({ status: "incomplete", reason: "one-work-required" });
+    }
+    if (mode === "cross-work" && (bookIds.length < 2 || bookIds.length > MAX_CROSS_WORK_SELECTION)) {
+      return Object.freeze({ status: "incomplete", reason: "two-to-four-works-required" });
+    }
+
+    // Pass the original array to the descriptor-based canonicalizer. Spreading
+    // first would execute accessor elements before the trust boundary checks them.
+    const scope = canonicalizeHoidAnswerBookScope({ mode, bookIds });
+    return scope
+      ? Object.freeze({ status: "ready", scope })
+      : Object.freeze({ status: "incomplete", reason: "invalid-selection" });
+  } catch {
     return Object.freeze({ status: "incomplete", reason: "invalid-selection" });
   }
-
-  if (mode === "single-work" && bookIds.length !== 1) {
-    return Object.freeze({ status: "incomplete", reason: "one-work-required" });
-  }
-  if (mode === "cross-work" && (bookIds.length < 2 || bookIds.length > MAX_CROSS_WORK_SELECTION)) {
-    return Object.freeze({ status: "incomplete", reason: "two-to-four-works-required" });
-  }
-
-  const scope = canonicalizeHoidAnswerBookScope({
-    mode,
-    bookIds: [...bookIds],
-  });
-  return scope
-    ? Object.freeze({ status: "ready", scope })
-    : Object.freeze({ status: "incomplete", reason: "invalid-selection" });
 }
 
 /** Pure reducer for the temporary work chips shown by HoidScreen. */

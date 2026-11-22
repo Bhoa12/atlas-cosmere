@@ -900,7 +900,7 @@ describe("HoidEvidenceRuntime", () => {
     const selector = vi.fn(async () => ["claim-alpha"]);
     const runtime = createRuntime(selector);
     const result = await runtime!.answer({
-      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      question: "¿Quién es Personaje Alfa?",
       reading: [{ bookId: "twok", chapter: 2 }],
       bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
     });

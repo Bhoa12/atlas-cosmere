@@ -564,7 +564,7 @@ This contract does not infer a Cosmere reading order, cross-book chronology or n
 
 Run 236 connects the provider-neutral edition-bound recommendation core to the actual Hoid screen through `editionBoundRecommendationPresentation.ts`.
 
-The adapter combines the validated cursor-v2 snapshot, deterministic edition-bound targets, metadata-only Spanish explanations and the exact progress revision/fingerprint used by the caller. It rejects invalid identities and revision mismatches.
+The adapter combines the validated cursor-v2 snapshot, deterministic edition-bound targets and metadata-only Spanish explanations. It derives the canonical progress revision and SHA-256 fingerprint from that same snapshot rather than accepting a caller-supplied identity, then rejects invalid snapshots and revision mismatches.
 
 `HoidScreen` now uses this adapter for both the catalogue-recommendation chat intent and the `Retomar y descubrir` panel. Multiple active works are rendered as explicit selection actions; selecting one recomputes the recommendation and verifies that the chosen work still has an open cursor. Recommendation UI state is hidden as soon as the live progress revision or fingerprint changes.
 

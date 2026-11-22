@@ -39,10 +39,22 @@ export type HoidEditionBoundRecommendation =
       target: HoidRecommendationNavigationTarget;
     }>;
 
+export type HoidResumeSelectionChoice = Readonly<{
+  sourceId: string;
+  title: string;
+  currentChapter: number;
+  completedThroughChapter: number | null;
+}>;
+
 export type HoidEditionBoundRecommendationResult =
   | Readonly<{
       status: "ready";
       items: readonly HoidEditionBoundRecommendation[];
+      progressRevision: number;
+    }>
+  | Readonly<{
+      status: "selection-required";
+      choices: readonly HoidResumeSelectionChoice[];
       progressRevision: number;
     }>
   | Readonly<{
@@ -100,6 +112,11 @@ function targetForChapter(
  * recommendation targets. A cursor identifies the chapter currently open;
  * the completed-through watermark is therefore chapterNumber - 1.
  *
+ * If several works are in progress, this returns an explicit selection
+ * requirement instead of silently replacing the reader's active work with
+ * discovery recommendations. The caller must pass one of the returned
+ * source IDs on the next invocation.
+ *
  * This function never chooses a Cosmere reading order, infers narrative
  * dependencies, changes progress or unlocks evidence. Unsegmented works stay
  * catalog-only, and an absent locator is reported as cursor-only rather than
@@ -136,14 +153,38 @@ export function recommendEditionBoundReadingNextSteps(
   let activePosition: PartialPosition | undefined;
   if (typeof activeBookId === "string") {
     activePosition = inProgress.find(position => position.bookId === activeBookId);
+    if (!activePosition) {
+      return Object.freeze({ status: "unavailable", reason: "invalid-active-work" });
+    }
   } else if (inProgress.length === 1) {
     activePosition = inProgress[0];
+  } else if (inProgress.length > 1) {
+    const choices: HoidResumeSelectionChoice[] = HOID_SOURCE_BIBLIOGRAPHY.flatMap(work => {
+      const position = inProgress.find(candidate => candidate.bookId === work.id);
+      if (!position) return [];
+      const currentChapter = position.cursor.chapterNumber;
+      return [Object.freeze({
+        sourceId: work.id,
+        title: work.title,
+        currentChapter,
+        completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
+      })];
+    });
+
+    return Object.freeze({
+      status: "selection-required",
+      choices: Object.freeze(choices),
+      progressRevision: validation.snapshot.revision,
+    });
   }
 
   const items: HoidEditionBoundRecommendation[] = [];
   if (safeLimit > 0 && activePosition) {
     const currentChapter = activePosition.cursor.chapterNumber;
-    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === activePosition.bookId);
+    // Capture the narrowed identifier before the callback; TypeScript cannot
+    // preserve narrowing of a mutable optional variable inside closures.
+    const activeSourceId = activePosition.bookId;
+    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === activeSourceId);
     if (!source) {
       return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
     }

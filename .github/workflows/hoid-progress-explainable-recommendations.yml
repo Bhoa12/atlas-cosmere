@@ -1,0 +1,58 @@
+name: Hoid progress-explainable edition recommendations
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/editionBoundRecommendations.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - ".github/workflows/hoid-progress-explainable-recommendations.yml"
+      - "docs/hoid/RUN235_PROGRESS_EXPLAINABLE_RECOMMENDATIONS.md"
+  pull_request:
+    paths:
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/editionBoundRecommendations.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - ".github/workflows/hoid-progress-explainable-recommendations.yml"
+      - "docs/hoid/RUN235_PROGRESS_EXPLAINABLE_RECOMMENDATIONS.md"
+
+permissions:
+  contents: read
+
+jobs:
+  progress-explainable-recommendations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test edition-bound recommendation contracts
+        run: >-
+          npx vitest run
+          src/hoid/editionBoundRecommendations.test.ts
+          src/hoid/editionBoundRecommendationExplanations.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/recommendations.test.ts
+          src/hoid/readingManifest.test.ts
+      - name: Type-check recommendation contracts
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/editionBoundRecommendations.ts
+          src/hoid/editionBoundRecommendationExplanations.ts
+          src/hoid/recommendations.ts
+          src/hoid/readingManifest.ts
+          src/hoid/cursorProgressLedger.ts

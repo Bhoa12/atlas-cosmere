@@ -1668,8 +1668,30 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     summaryKind: "original-editorial-summary",
     review: Object.freeze({ status: "pending-review" }),
   }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "tfe.chapter-011.vin-kelsier-camon-attack",
+    kind: "event",
+    aliases: Object.freeze(["Vin", "Kelsier", "Dockson", "Sazed", "Camon", "Inquisidores de Acero", "Ministerio", "Terrisanos"]),
+    firstSafeAppearance: Object.freeze({ bookId: "tfe", chapter: 11 }),
+    evidenceSource: Object.freeze({
+      bookId: "tfe",
+      chapter: 11,
+      locatorId: "nav:cosmere-epub-merged-v1:85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee:books/b000001/OEBPS/Text/011.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "tfe", chapter: 11 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "cosmere-epub-merged-v1",
+      navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      documentSha256: "c60a18a9ce32dc892111e09e36390672cfa7f30626bdf648394cd4f04e8b4ae2",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "ac7e05bf315a566f32da1f1dff741c7bbf80fb4b45bf76f3c0ce490c3bf47ce7" }),
+    summary: "Vin acompaña a Kelsier y Dockson a la antigua guarida de Camon, donde encuentran a casi toda la banda asesinada. La violencia de la escena la afecta de forma contradictoria: sus miembros la maltrataron, pero también le dieron refugio y comida. Kelsier sospecha que el ataque está relacionado con el Inquisidor de Acero que había perseguido a Vin y que la masacre pretende servir de advertencia. Sazed realiza un canto fúnebre de una tradición que conserva; después explica a Vin que respeta las verdades que encuentra en distintas religiones. En paralelo, Kelsier busca a Camon entre los mendigos a los que había enviado y descubre que el Ministerio lo ha torturado y ejecutado de manera ritual. Al reunirse con Vin, deduce que Camon pudo haber revelado o sospechado su condición alomántica. Kelsier decide continuar con el plan, aunque no puede asegurar qué sabe el Inquisidor.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
 
-]); 
+]);
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.
 const VALIDATED_BATCH = validateHoidEditorialDraftBatch(RAW_DRAFTS);

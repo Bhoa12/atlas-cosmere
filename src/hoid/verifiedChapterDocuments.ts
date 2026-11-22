@@ -109,6 +109,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       8: "5dc769cfdd8dfbfa91292ec9421b0ede94c8e1b05fd3560f9d9503b058e43d48",
       9: "e08f8b2845eb2d15ed9a1ad517d2207501ba0068f25797643e127919d92daedb",
       10: "a1a42419b3a0e8c63fdd15c6ec63d556dc11dfb3c3b9cffc04265d2c4a7ac472",
+      11: "c60a18a9ce32dc892111e09e36390672cfa7f30626bdf648394cd4f04e8b4ae2",
     }),
   }),
 });

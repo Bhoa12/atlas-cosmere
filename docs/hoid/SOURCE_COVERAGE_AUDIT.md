@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 70 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 71 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 66 | Original editorial summaries exist in staging |
-| Summaries pending review | 66 | None of those summaries is approved for production |
+| Original staged chapter summaries | 67 | Original editorial summaries exist in staging |
+| Summaries pending review | 67 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -33,7 +33,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `tfe` | El Imperio Final | 38 | 10 | 9 | Numeric chapters |
+| `tfe` | El Imperio Final | 38 | 11 | 10 | Numeric chapters |
 | `woa` | El Pozo de la Ascensión | 59 | 0 | 0 | Numeric chapters |
 | `hoa` | El Héroe de las Eras | 82 | 0 | 0 | Numeric chapters |
 | `aol` | Aleación de ley | 20 | 0 | 0 | Numeric chapters |
@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 66 summaries remain `pending-review`. The 80-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 67 summaries remain `pending-review`. The 85-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 70 inspected documents, 66 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 71 inspected documents, 67 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -287,3 +287,16 @@ The Library's Roshar omnibus EPUB was reselected and revalidated. ZIP CRC valida
 One original Spanish summary was added to editorial staging with the exact edition, navigation, locator and document provenance. Its summary SHA-256 is a9686d904b5cc7258477b6db18e7d965624dfa1d5051e2d380294909c101cbbd. It remains pending-review; the chapter-21 watermark requires reader cursor 22. The inventory is now 70 individually inspected chapter documents and 66 staged summaries, all pending independent review. Production knowledge and approved claims remain empty. The next continuation tasks are El Imperio Final chapter 11 and El Camino de los Reyes chapter 22. The current Library EPUB listing still does not contain cosmere.epub, so no new El Imperio Final chapter was inspected.
 
 No EPUB bytes, XHTML body, extracted passage, chapter title, image or private URI was committed. The chapter summary is original editorial prose and is not available to production retrieval.
+
+
+## Run 233 — El Imperio Final chapter 11 and Run 232 CI regression repair
+
+The exact Library file `cosmere.epub` was selected for this inspection. Its ZIP central directory passed CRC validation, the registered EPUB navigation digest matched `85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee`, and the previously recorded chapter-10 XHTML digest matched before chapter 11 was read. Chapter 11 resolved to one navigation entry, one OPF manifest item and one reading-spine member at `books/b000001/OEBPS/Text/011.xhtml`. The exact XHTML document is 21,417 bytes with SHA-256 `c60a18a9ce32dc892111e09e36390672cfa7f30626bdf648394cd4f04e8b4ae2`.
+
+One original Spanish summary, `tfe.chapter-011.vin-kelsier-camon-attack`, was staged with the edition, navigation, relative locator and document digest. Its summary SHA-256 is `ac7e05bf315a566f32da1f1dff741c7bbf80fb4b45bf76f3c0ce490c3bf47ce7`. It remains `pending-review`; its chapter-11 evidence watermark requires reader cursor 12. No claim was approved and production knowledge remains empty.
+
+The current inventory is **71 individually inspected chapter documents and 67 staged summaries**, all 67 pending independent review. The next metadata-only continuation tasks are El Imperio Final chapter 12 and El Camino de los Reyes chapter 22. The plan remains non-authorizing and still requires explicit local source selection for every future inspection.
+
+Run 232's final-head CI exposed two stale assertions shared by eight dependent workflows: the chapter-document test still expected El Camino de los Reyes chapter 21 to be absent, and the navigation audit still expected only 20 inspected Roshar documents. This run updates those expectations, adds positive digest assertions for both newly recorded documents, and preserves negative assertions for TFE chapter 12 and Roshar chapter 22.
+
+No EPUB bytes, XHTML body, extracted passage, image, reading progress, spoiler authorization, production claim or activation receipt was committed or changed.

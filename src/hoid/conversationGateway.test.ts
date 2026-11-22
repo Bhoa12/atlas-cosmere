@@ -89,6 +89,43 @@ describe("HoidConversationGateway", () => {
     }), undefined);
   });
 
+  it("forwards explicit scope through a resolved single-entity coreference route", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const identity = {
+      revision: projection.revision,
+      fingerprint: fingerprintHoidCursorProgressProjection(projection),
+    };
+    const context = createHoidConversationContext(["synthetic.entity-alpha"], identity);
+    if (!context) throw new Error("Contexto sintético no disponible");
+    const runtime = { answer: vi.fn(async () => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveCoreference: () => ({
+        status: "resolved",
+        entityId: "synthetic.entity-alpha",
+        context,
+        progressRevision: identity.revision,
+        progressFingerprint: identity.fingerprint,
+      }),
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Qué pasa con él?",
+      progress: current,
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      entityIds: ["synthetic.entity-alpha"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    }), undefined);
+  });
+
   it("rejects malformed explicit work scopes before runtime invocation", async () => {
     const current = snapshot(3);
     const { gateway, runtime } = setup(current);

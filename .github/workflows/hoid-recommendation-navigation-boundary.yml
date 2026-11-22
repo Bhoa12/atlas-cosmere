@@ -58,6 +58,7 @@ jobs:
           --moduleResolution node --skipLibCheck --esModuleInterop
           src/screens/HoidScreen.tsx
           src/hoid/editionBoundRecommendationNavigation.ts
+          src/hoid/editionBoundRecommendationNavigation.test.ts
           src/hoid/editionBoundRecommendationPresentation.ts
           src/hoid/editionBoundRecommendations.ts
           src/hoid/editionBoundRecommendationExplanations.ts

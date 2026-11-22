@@ -217,6 +217,11 @@ export async function resolveHoidConversationKeyForDecryption(
   }
 }
 
+/**
+ * Rotates only from the exact active version supplied by the caller. After
+ * compare-and-swap, it verifies both the new active key and retention of the
+ * previous key as decrypt-only. A manager that drops the old key is rejected.
+ */
 export async function rotateHoidConversationActiveKey(
   managerInput: unknown,
   principalIdInput: unknown,
@@ -234,6 +239,12 @@ export async function rotateHoidConversationActiveKey(
     expectedActiveKeyVersionInput >= MAX_KEY_VERSION
   ) return Object.freeze({ status: "invalid-input", reason: "invalid-key-version" });
 
+  const previous = await ensureHoidConversationActiveKey(manager, principalIdInput);
+  if (previous.status !== "ready") return previous;
+  if (previous.descriptor.keyVersion !== expectedActiveKeyVersionInput) {
+    return Object.freeze({ status: "conflict" });
+  }
+
   try {
     const outcome = await manager.rotateActiveKey(
       principalIdInput,
@@ -247,6 +258,20 @@ export async function rotateHoidConversationActiveKey(
     if (active.descriptor.keyVersion !== expectedActiveKeyVersionInput + 1) {
       return Object.freeze({ status: "invalid-key" });
     }
+
+    const retained = await resolveHoidConversationKeyForDecryption(
+      manager,
+      principalIdInput,
+      previous.descriptor.keyId,
+    );
+    if (retained.status === "unavailable") return retained;
+    if (
+      retained.status !== "ready" ||
+      retained.descriptor.keyVersion !== previous.descriptor.keyVersion ||
+      retained.descriptor.algorithm !== previous.descriptor.algorithm ||
+      retained.descriptor.state !== "decrypt-only"
+    ) return Object.freeze({ status: "invalid-key" });
+
     return active;
   } catch {
     return Object.freeze({ status: "unavailable" });

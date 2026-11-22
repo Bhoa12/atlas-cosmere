@@ -529,7 +529,7 @@ The Run 140 integration test exposed that the adapter forwarded the v2 snapshot 
 
 ## Run 145 — source coverage and evidence completeness
 
-`sourceCoverage.ts` exposes an immutable metadata-only inventory that separates bibliography entries, edition progress policies, verified navigation locators, individually inspected XHTML chapter documents, pending editorial summaries and production knowledge. It is descriptive only and never authorizes narrative content. The current inventory contains 24 works, 1,106 numbered-chapter navigation locators, 68 individually inspected chapter documents and 64 pending-review summaries; production knowledge and approved claims remain empty. Ambiguous chapter numbering and unsegmented volumes/collections remain blocked. See `docs/hoid/SOURCE_COVERAGE_AUDIT.md`.
+`sourceCoverage.ts` exposes an immutable metadata-only inventory that separates bibliography entries, edition progress policies, verified navigation locators, individually inspected XHTML chapter documents, pending editorial summaries and production knowledge. It is descriptive only and never authorizes narrative content. The current inventory contains 24 works, 1,106 numbered-chapter navigation locators, 69 individually inspected chapter documents and 65 pending-review summaries; production knowledge and approved claims remain empty. Ambiguous chapter numbering and unsegmented volumes/collections remain blocked. See `docs/hoid/SOURCE_COVERAGE_AUDIT.md`.
 
 
 ## Run 229 — verified chapter-document coverage
@@ -540,3 +540,8 @@ Run 229 revalidated the user's four available EPUB editions locally and added fo
 ## Run 230 — Roshar chapter 19/20 staging
 
 Run 230 revalidated the available Roshar omnibus and Danzante del Filo EPUBs and added edition-bound document fingerprints for El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20. Two original Spanish summaries are staged with exact source provenance and remain pending independent review. The current inventory is 68 inspected chapter documents and 64 pending-review summaries; Danzante del Filo is complete within its 20 numbered manifest units. Production knowledge and approved claims remain empty. The current Library EPUB filter did not return `cosmere.epub`, so no new Mistborn chapter was inspected. See `docs/hoid/RUN230_ROSHAR_CHAPTER_19_20_INGESTION.md`.
+
+
+## Run 231 — El Camino de los Reyes chapter 20
+
+Run 231 revalidated the selected Roshar omnibus EPUB and added the exact edition-bound SHA-256 fingerprint for El Camino de los Reyes chapter 20. The previous chapter digest matched, and the target was confirmed in one navigation entry, one OPF manifest item and the reading spine. One original Spanish summary is staged with source provenance and remains pending independent review; its earliest reader cursor is chapter 21. The inventory is now 69 inspected chapter documents and 65 pending-review summaries. Production knowledge and approved claims remain empty. The current EPUB-filtered Library listing did not return `cosmere.epub`, so no new El Imperio Final chapter was inspected. See `docs/hoid/RUN231_ROSHAR_CHAPTER20_INGESTION.md`.

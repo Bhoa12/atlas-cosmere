@@ -121,6 +121,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [explanationDepth, setExplanationDepth] = useState<HoidExplanationDepth>('detailed');
   const [recommendationPresentation, setRecommendationPresentation] = useState<HoidEditionBoundRecommendationPresentation | null>(null);
   const [recommendationMessage, setRecommendationMessage] = useState('');
+  const [recommendationSelectedBookId, setRecommendationSelectedBookId] = useState<string | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
   const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
@@ -146,6 +147,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     typedConversationContextRef.current = null;
     setRecommendationPresentation(null);
     setRecommendationMessage('');
+    setRecommendationSelectedBookId(null);
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
@@ -404,6 +406,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setCargandoRecomendaciones(true);
     setRecommendationPresentation(null);
     setRecommendationMessage('');
+    setRecommendationSelectedBookId(activeBookId ?? null);
 
     try {
       const currentProgress = await progressRefreshRef.current();
@@ -600,6 +603,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       liveProgress,
       progressRevision,
       progressFingerprint,
+      recommendationSelectedBookId ?? undefined,
     );
     if (handoff.status !== 'ready') {
       return 'Destino no disponible: el progreso o el manifiesto han cambiado. Actualiza las recomendaciones.';

@@ -10,6 +10,13 @@ on:
       - "src/hoid/answerScope.test.ts"
       - "src/hoid/answerScopeSelection.ts"
       - "src/hoid/answerScopeSelection.test.ts"
+      - "src/hoid/answerScopePresentation.ts"
+      - "src/hoid/answerScopePresentation.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/crossBookEvidence.ts"
+      - "src/hoid/crossBookEvidence.test.ts"
+      - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
+      - ".github/workflows/hoid-answer-scope-presentation.yml"
       - "src/hoid/conversationGateway.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
@@ -28,6 +35,13 @@ on:
       - "src/hoid/answerScope.test.ts"
       - "src/hoid/answerScopeSelection.ts"
       - "src/hoid/answerScopeSelection.test.ts"
+      - "src/hoid/answerScopePresentation.ts"
+      - "src/hoid/answerScopePresentation.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/crossBookEvidence.ts"
+      - "src/hoid/crossBookEvidence.test.ts"
+      - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
+      - ".github/workflows/hoid-answer-scope-presentation.yml"
       - "src/hoid/conversationGateway.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
@@ -60,6 +74,8 @@ jobs:
           npx vitest run
           src/hoid/answerScope.test.ts
           src/hoid/answerScopeSelection.test.ts
+          src/hoid/answerScopePresentation.test.ts
+          src/hoid/crossBookEvidence.test.ts
           src/hoid/conversationGateway.test.ts
           src/hoid/evidenceRuntime.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
@@ -69,6 +85,9 @@ jobs:
           --moduleResolution node --skipLibCheck --jsx react-native
           --esModuleInterop
           src/screens/HoidScreen.tsx
+          src/hoid/answerScopePresentation.ts
+          src/hoid/crossBookEvidence.ts
+          src/hoid/answerPresentation.ts
           src/hoid/answerScopeSelection.ts
           src/hoid/conversationGateway.ts
           src/hoid/cursorEvidenceRuntime.ts

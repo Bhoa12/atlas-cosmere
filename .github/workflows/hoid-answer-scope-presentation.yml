@@ -1,0 +1,80 @@
+name: Hoid answer-scope presentation boundary
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScopePresentation.ts"
+      - "src/hoid/answerScopePresentation.test.ts"
+      - "src/hoid/answerScopeSelection.ts"
+      - "src/hoid/answerScopeSelection.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/crossBookEvidence.ts"
+      - "src/hoid/crossBookEvidence.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/BOOK_SCOPE_POLICY.md"
+      - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
+      - ".github/workflows/hoid-answer-scope-presentation.yml"
+  pull_request:
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScopePresentation.ts"
+      - "src/hoid/answerScopePresentation.test.ts"
+      - "src/hoid/answerScopeSelection.ts"
+      - "src/hoid/answerScopeSelection.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/crossBookEvidence.ts"
+      - "src/hoid/crossBookEvidence.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/BOOK_SCOPE_POLICY.md"
+      - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
+      - ".github/workflows/hoid-answer-scope-presentation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  answer-scope-presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test scope selection, presentation and cross-work provenance
+        run: >-
+          npx vitest run
+          src/hoid/answerScope.test.ts
+          src/hoid/answerScopeSelection.test.ts
+          src/hoid/answerScopePresentation.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+          src/hoid/crossBookEvidence.test.ts
+      - name: Strict type-check HoidScreen and scope presentation
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native
+          --esModuleInterop
+          src/screens/HoidScreen.tsx
+          src/hoid/answerScope.ts
+          src/hoid/answerScopePresentation.ts
+          src/hoid/answerScopeSelection.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/selectionProtocol.ts
+          src/hoid/answerPresentation.ts
+          src/hoid/crossBookEvidence.ts

@@ -22,9 +22,10 @@ describe("Hoid answer-scope screen selection", () => {
   });
 
   it("requires two to four known works for cross-work mode", () => {
-    expect(buildHoidAnswerScopeSelection("cross-work", ["twok"]).status).toBe("incomplete");
-    expect(buildHoidAnswerScopeSelection("cross-work", ["twok", "edgedancer", "tfe", "elantris", "woa"]).status)
-      .toEqual({ status: "incomplete", reason: "two-to-four-works-required" });
+    const tooFew = buildHoidAnswerScopeSelection("cross-work", ["twok"]);
+    expect(tooFew).toEqual({ status: "incomplete", reason: "two-to-four-works-required" });
+    const tooMany = buildHoidAnswerScopeSelection("cross-work", ["twok", "edgedancer", "tfe", "elantris", "woa"]);
+    expect(tooMany).toEqual({ status: "incomplete", reason: "two-to-four-works-required" });
     expect(buildHoidAnswerScopeSelection("cross-work", ["edgedancer", "twok"])).toEqual({
       status: "ready",
       scope: { mode: "cross-work", bookIds: ["edgedancer", "twok"] },

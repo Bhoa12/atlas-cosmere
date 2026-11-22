@@ -2,6 +2,7 @@ import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
   presentHoidEvidenceAnswer,
   type HoidPresentedCitation,
+  type HoidAnswerPresentation,
 } from "./answerPresentation";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 
@@ -34,18 +35,14 @@ export type HoidCrossBookEvidenceResult =
 const WORK_ORDER = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
 
 /**
- * Builds a metadata-only work matrix from the final presentation boundary.
- * The answer is revalidated against the supplied live progress snapshot first;
- * each source therefore retains its own work-local unlock requirement.
+ * Build the metadata-only chapter matrix from the exact presentation already
+ * accepted by the trusted screen presenter. No second progress snapshot or raw
+ * answer object is read, so the matrix cannot drift from the text/citations
+ * that HoidScreen is about to render.
  */
-export function buildHoidCrossBookEvidenceSummary(
-  answer: HoidEvidenceAnswer | unknown,
-  progress: unknown,
+export function summarizeHoidPresentedCrossBookEvidence(
+  presentation: Extract<HoidAnswerPresentation, { status: "ready" }>,
 ): HoidCrossBookEvidenceResult {
-  const presentation = presentHoidEvidenceAnswer(answer, progress);
-  if (presentation.status !== "ready") {
-    return Object.freeze({ status: "unavailable", reason: "answer-not-authorized" });
-  }
   if (!presentation.segments || !presentation.layout) {
     return Object.freeze({ status: "unavailable", reason: "segment-provenance-required" });
   }
@@ -135,4 +132,19 @@ export function buildHoidCrossBookEvidenceSummary(
       segments: Object.freeze(segmentEvidence),
     }),
   });
+}
+
+/**
+ * Convenience boundary for non-screen callers: authorize the raw answer against
+ * the supplied progress snapshot, then summarize that exact canonical result.
+ */
+export function buildHoidCrossBookEvidenceSummary(
+  answer: HoidEvidenceAnswer | unknown,
+  progress: unknown,
+): HoidCrossBookEvidenceResult {
+  const presentation = presentHoidEvidenceAnswer(answer, progress);
+  if (presentation.status !== "ready") {
+    return Object.freeze({ status: "unavailable", reason: "answer-not-authorized" });
+  }
+  return summarizeHoidPresentedCrossBookEvidence(presentation);
 }

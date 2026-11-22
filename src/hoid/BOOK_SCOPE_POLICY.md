@@ -61,3 +61,11 @@ HoidConversationGateway valida y canonicaliza bookScope antes de resolver refere
 Cuando existe un ámbito explícito, las preguntas de relaciones no usan el atajo del grafo local sin ámbito. Se enrutan por el runtime estricto de evidencias para que cada afirmación satisfaga la política de una o varias obras. Sin ámbito explícito, se conserva la ruta local revisada existente.
 
 El ámbito solo se aplica a respuestas narrativas. Las consultas de progreso y las recomendaciones de catálogo siguen sus contratos propios y no se reinterpretan como respuestas narrativas.
+
+## Validación del ámbito en la presentación final
+
+Después de que la autoridad firmada haya validado el texto, las citas y los desbloqueos por capítulo, Hoid vuelve a comprobar que el conjunto de obras citado coincide exactamente con el ámbito seleccionado. Una respuesta de una sola obra no puede contener citas de otra; una comparación debe citar todas las obras seleccionadas y ninguna adicional.
+
+Las comparaciones explícitas requieren además procedencia por segmento. La matriz transversal se reconstruye desde la respuesta validada y el snapshot de progreso de la solicitud, y agrupa únicamente títulos y capítulos. Si falta una obra, una cita no coincide con la bibliografía, el mapeo por segmento no se valida o el conjunto de obras difiere del selector, se retiene toda la comparación; no se presenta una versión parcial.
+
+En modo automático, una respuesta cuyas citas abarcan varias obras también requiere procedencia por segmento completa; si no valida, se retiene la respuesta transversal en lugar de mostrarla parcialmente. Esta comprobación de presentación no sustituye la validación de desbloqueo del presentador firmado ni concede acceso narrativo.

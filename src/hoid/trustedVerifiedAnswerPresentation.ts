@@ -79,6 +79,23 @@ const MAX_SIGNED_CLAIMS = 512;
 const SIGNATURE_TIMEOUT_MS = 30_000;
 const PRESENTATION_STORE_TIMEOUT_MS = 3_000;
 
+/**
+ * Runtime provenance for presenters that completed the signed-claim,
+ * pinned-bootstrap and durable-revision verification path.
+ *
+ * A structurally compatible object is not sufficient authority to render
+ * narrative answers. This registry is intentionally module-private.
+ */
+const TRUSTED_VERIFIED_PRESENTERS = new WeakSet<object>();
+
+export function isHoidTrustedVerifiedAnswerPresenter(
+  value: unknown,
+): value is HoidTrustedVerifiedAnswerPresenter {
+  return value !== null &&
+    typeof value === "object" &&
+    TRUSTED_VERIFIED_PRESENTERS.has(value as object);
+}
+
 type UnknownMethod = (...args: unknown[]) => unknown;
 type Timed<T> =
   | Readonly<{ status: "value"; value: T }>
@@ -442,6 +459,8 @@ export async function createHoidTrustedVerifiedAnswerPresenter(
       }
     },
   });
+
+  TRUSTED_VERIFIED_PRESENTERS.add(presenter as object);
 
   return Object.freeze({
     status: "ready",

@@ -1,205 +1,288 @@
-import { describe, expect, it, vi } from "vitest";
-import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
-import { composeHoidNarrative } from "./narrativeComposition";
-import { createHoidTrustedScreenAnswerPort } from "./trustedScreenAnswer";
+import { describe, expect, it } from "vitest";
+import { ed25519 } from "@noble/curves/ed25519.js";
+import type { HoidKnowledgeEntry } from "./catalog";
+import {
+  buildHoidApprovedClaimReviewSigningMessage,
+  buildHoidReviewerTrustRegistrySigningMessage,
+  type HoidReviewerTrustKey,
+  type HoidReviewerTrustRegistryUnsigned,
+} from "./editorialReviewSignatures";
+import { createHoidApprovedClaimAttestation, type HoidApprovedClaim } from "./approvedClaimIntegrity";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
+import {
+  createHoidTrustedVerifiedAnswerPresenter,
+  isHoidTrustedVerifiedAnswerPresenter,
+} from "./trustedVerifiedAnswerPresentation";
+import {
+  createHoidTrustedScreenAnswerPort,
+  isHoidTrustedScreenAnswerPort,
+} from "./trustedScreenAnswer";
 
-function title(bookId: string): string {
-  const work = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === bookId);
-  if (!work) throw new Error("Test work is not in the bibliography");
-  return work.title;
+const repository = "Bhoa12/atlas-cosmere";
+const now = "2026-11-20T12:00:00.000Z";
+const rootSeed = Uint8Array.from(Array.from({ length: 32 }, (_, index) => index + 1));
+const reviewerSeed = Uint8Array.from(Array.from({ length: 32 }, (_, index) => index + 65));
+
+function hexFromBytes(value: Uint8Array): string {
+  return Array.from(value, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function citation(evidenceId: string, sourceBookId = "tfe") {
-  return Object.freeze({
-    evidenceId,
-    sourceBookId,
-    title: title(sourceBookId),
-    chapter: 1,
-    locatorId: sourceBookId + ".chapter-1",
+function signMessage(message: string, seed: Uint8Array): string {
+  return hexFromBytes(ed25519.sign(new TextEncoder().encode(message), seed));
+}
+
+const rootKey = Object.freeze({
+  keyId: "root-2026",
+  publicKeyHex: hexFromBytes(ed25519.getPublicKey(rootSeed)),
+});
+const reviewerKey: HoidReviewerTrustKey = Object.freeze({
+  keyId: "reviewer-key-1",
+  reviewerId: "reviewer-a",
+  algorithm: "Ed25519",
+  publicKeyHex: hexFromBytes(ed25519.getPublicKey(reviewerSeed)),
+  status: "active",
+  validFrom: "2026-01-01T00:00:00.000Z",
+  validUntil: "2027-01-01T00:00:00.000Z",
+  revokedAt: null,
+  allowedRepositoryFullNames: Object.freeze([repository]),
+});
+const context = Object.freeze({
+  schemaVersion: 1 as const,
+  repositoryFullName: repository,
+  pullRequestNumber: 196,
+  baseRef: "feat/hoid-ia-core-run195",
+  baseSha: "b8c17f638bc6ed738f18934b3f511479dff7371c",
+  headRef: "feat/hoid-ia-core-run196",
+  headSha: "c".repeat(40),
+  promotionManifestPath: "editorial/promotion-manifest.json",
+  promotionPlanFingerprint: "b".repeat(64),
+  reviewBundleFingerprint: "c".repeat(64),
+});
+
+function locator(bookId: string, chapter: number): string {
+  const manifest = getHoidReadingManifest(bookId);
+  if (manifest.status !== "ready") throw new Error("Manifest unavailable");
+  const unit = manifest.manifest.units.find(item => item.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Locator unavailable");
+  return unit.locatorId;
+}
+
+function progress(chapter: number) {
+  const cursor = createHoidReadingCursor("tfe", chapter);
+  if (cursor.status !== "ready") throw new Error("Cursor unavailable");
+  return {
+    schemaVersion: 2,
+    revision: 1,
+    positions: [{ bookId: "tfe", cursor: cursor.cursor }],
+    updatedAt: now,
+  };
+}
+
+function fixture(initialRevision = 2) {
+  let currentRevision = initialRevision;
+  let currentNow = now;
+  let currentProgress = progress(3);
+  const knowledge: HoidKnowledgeEntry[] = [{
+    id: "evidence-alpha",
+    aliases: ["Personaje Alfa"],
+    kind: "character",
+    firstSafeAppearance: { bookId: "tfe", chapter: 1 },
+    evidenceSource: { bookId: "tfe", chapter: 1, locatorId: locator("tfe", 1) },
+    evidenceUnlock: { bookId: "tfe", chapter: 2 },
+    provenance: "verified",
+    summary: "Resumen editorial original de prueba.",
+  }];
+  const core = Object.freeze({
+    id: "claim-alpha",
+    text: "Afirmación editorial aprobada y verificable.",
+    intent: "explain" as const,
+    evidenceIds: Object.freeze(["evidence-alpha"]),
   });
-}
-
-function readyPresentation(options?: {
-  bookIds?: readonly string[];
-  claimCount?: number;
-  includeSegments?: boolean;
-}) {
-  const bookIds = options?.bookIds ?? ["tfe"];
-  const claimCount = options?.claimCount ?? 1;
-  const claimIds = Array.from({ length: claimCount }, (_, index) => "claim-" + String(index + 1));
-  const evidenceIds = bookIds.map((_, index) => "evidence-" + String(index + 1));
-  const citations = bookIds.map((bookId, index) => citation(evidenceIds[index], bookId));
-  const segments = options?.includeSegments === false
-    ? undefined
-    : [{
-        claimId: claimIds[0],
-        text: "Afirmación editorial verificada.",
-        evidenceIds,
-      }];
-
-  if (claimCount > 1 && segments) {
-    for (let index = 1; index < claimCount; index += 1) {
-      segments.push({
-        claimId: claimIds[index],
-        text: "Otra afirmación editorial verificada.",
-        evidenceIds: [evidenceIds[index % evidenceIds.length]],
-      });
-    }
-  }
-
-  const layout = segments ? "plain" as const : undefined;
-  const composition = segments ? composeHoidNarrative({ segments }, layout) : null;
-  if (composition && composition.status !== "ready") throw new Error("Invalid presentation fixture");
-
-  return Object.freeze({
-    status: "ready" as const,
-    text: composition?.text ?? "Afirmación editorial verificada.",
-    claimIds: Object.freeze(claimIds),
-    evidenceIds: Object.freeze(evidenceIds),
-    citations: Object.freeze(citations),
-    ...(segments && composition ? {
-      layout,
-      segments: Object.freeze(segments.map(segment => Object.freeze({
-        ...segment,
-        evidenceIds: Object.freeze([...segment.evidenceIds]),
-        citations: Object.freeze(segment.evidenceIds.map(id => citations.find(item => item.evidenceId === id)!)),
-      }))),
-    } : {}),
+  const attestation = createHoidApprovedClaimAttestation(
+    core,
+    knowledge,
+    Object.freeze({ reviewerId: "reviewer-a", reviewedAt: "2026-11-18T10:00:00.000Z" }),
+  );
+  if (attestation.status !== "valid") throw new Error("Synthetic claim attestation failed");
+  const claim: HoidApprovedClaim = Object.freeze({
+    ...core,
+    integrity: attestation.integrity,
+    review: attestation.review,
   });
+  const claimMessage = buildHoidApprovedClaimReviewSigningMessage(
+    claim,
+    knowledge,
+    context,
+    reviewerKey.keyId,
+  );
+  if (!claimMessage) throw new Error("Claim signing message invalid");
+  const signature = Object.freeze({
+    schemaVersion: 1 as const,
+    algorithm: "Ed25519" as const,
+    keyId: reviewerKey.keyId,
+    signatureHex: signMessage(claimMessage, reviewerSeed),
+  });
+
+  const unsignedRegistry: HoidReviewerTrustRegistryUnsigned = Object.freeze({
+    schemaVersion: 1,
+    revision: 3,
+    issuedAt: "2026-11-01T00:00:00.000Z",
+    expiresAt: "2026-12-01T00:00:00.000Z",
+    keys: Object.freeze([reviewerKey]),
+  });
+  const registryMessage = buildHoidReviewerTrustRegistrySigningMessage(unsignedRegistry);
+  if (!registryMessage) throw new Error("Trust registry signing message invalid");
+  const trustRegistry = Object.freeze({
+    ...unsignedRegistry,
+    rootSignature: Object.freeze({
+      algorithm: "Ed25519" as const,
+      keyId: rootKey.keyId,
+      signatureHex: signMessage(registryMessage, rootSeed),
+    }),
+  });
+
+  const bootstrapConfiguration = Object.freeze({
+    schemaVersion: 1,
+    configurationId: "host-config-1",
+    trustDomainId: "cosmere-main",
+    rootKey,
+    minimumRegistryRevision: 2,
+    allowedRepositoryFullNames: Object.freeze([repository]),
+    provisionedAt: "2026-11-01T00:00:00.000Z",
+    expiresAt: "2026-12-01T00:00:00.000Z",
+  });
+  const bootstrapPort = Object.freeze({
+    async readPinnedConfiguration() {
+      return bootstrapConfiguration;
+    },
+  });
+  const revisionStore = Object.freeze({
+    async readMinimumRevision(input: { trustDomainId: string }) {
+      return input.trustDomainId === "cosmere-main" ? currentRevision : null;
+    },
+    async compareAndSetMinimumRevision(input: {
+      trustDomainId: string;
+      expectedRevision: number;
+      nextRevision: number;
+    }) {
+      if (input.trustDomainId !== "cosmere-main" || currentRevision !== input.expectedRevision) return false;
+      currentRevision = input.nextRevision;
+      return true;
+    },
+  });
+  const verifier = createHoidNobleEd25519VerificationPort();
+  const clock = Object.freeze({ now: () => currentNow });
+  const progressPort = Object.freeze({
+    async readProgressSnapshot() {
+      return currentProgress;
+    },
+  });
+  const answer = Object.freeze({
+    status: "authorized",
+    text: claim.text,
+    claimIds: Object.freeze([claim.id]),
+    evidenceIds: Object.freeze(["evidence-alpha"]),
+    sources: Object.freeze([Object.freeze({
+      evidenceId: "evidence-alpha",
+      sourceBookId: "tfe",
+      sourceChapter: 1,
+      locatorId: locator("tfe", 1),
+      unlockBookId: "tfe",
+      unlockChapter: 2,
+    })]),
+    segments: Object.freeze([Object.freeze({
+      claimId: claim.id,
+      text: claim.text,
+      evidenceIds: Object.freeze(["evidence-alpha"]),
+    })]),
+    layout: "plain",
+  });
+  const config = Object.freeze({
+    knowledge,
+    signedClaims: Object.freeze([Object.freeze({ claim, signature })]),
+    context,
+    trustRegistry,
+    verifier,
+    bootstrapPort,
+    revisionStore,
+    progressPort,
+    expectedRepositoryFullName: repository,
+    clock,
+  });
+  return {
+    config,
+    answer,
+    setNow(value: string) { currentNow = value; },
+    setRevision(value: number) { currentRevision = value; },
+    setProgress(chapter: number) { currentProgress = progress(chapter); },
+  };
 }
 
-describe("Hoid trusted screen answer boundary", () => {
-  it("renders only a ready result returned by the trusted presenter", async () => {
-    const output = readyPresentation();
-    const presenter = Object.freeze({ present: vi.fn(async () => output) });
-    const port = createHoidTrustedScreenAnswerPort(presenter);
+async function buildTrustedPort(data = fixture()) {
+  const build = await createHoidTrustedVerifiedAnswerPresenter(data.config);
+  if (build.status !== "ready") throw new Error("Trusted presenter fixture did not verify: " + build.reason);
+  const port = createHoidTrustedScreenAnswerPort(build.presenter);
+  if (!port) throw new Error("Verified presenter was not accepted by the screen boundary");
+  return { data, build, port };
+}
 
-    expect(port).not.toBeNull();
-    await expect(port!.present(Object.freeze({ status: "authorized" }), "brief")).resolves.toMatchObject({
+describe("Hoid trusted screen answer capability boundary", () => {
+  it("accepts a presenter only after root, reviewer, bootstrap and revision verification", async () => {
+    const { data, build, port } = await buildTrustedPort();
+    expect(isHoidTrustedVerifiedAnswerPresenter(build.presenter)).toBe(true);
+    expect(isHoidTrustedScreenAnswerPort(port)).toBe(true);
+
+    await expect(port.present(data.answer, "detailed")).resolves.toMatchObject({
       status: "ready",
-      presentation: { text: "Afirmación editorial verificada." },
+      presentation: {
+        text: "Afirmación editorial aprobada y verificable.",
+        citations: [{
+          sourceBookId: "tfe",
+          chapter: 1,
+          locatorId: locator("tfe", 1),
+        }],
+      },
       metrics: { claimCount: 1, evidenceCount: 1, workCount: 1 },
     });
   });
 
-  it("passes only the answer candidate to the presenter and never accepts caller progress", async () => {
-    const answer = Object.freeze({ status: "authorized", token: "candidate" });
-    const present = vi.fn(async () => readyPresentation());
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({ present }));
+  it("rejects a structurally compatible presenter that was not issued by signed verification", () => {
+    let invoked = false;
+    const forged = Object.freeze({
+      async present() {
+        invoked = true;
+        return { status: "ready" };
+      },
+    });
 
-    await port!.present(answer, "detailed");
-    expect(present).toHaveBeenCalledTimes(1);
-    expect(present).toHaveBeenCalledWith(answer);
+    expect(isHoidTrustedVerifiedAnswerPresenter(forged)).toBe(false);
+    expect(createHoidTrustedScreenAnswerPort(forged)).toBeNull();
+    expect(invoked).toBe(false);
   });
 
-  it("withholds when the trusted presenter rejects the answer", async () => {
-    const presenter = Object.freeze({
-      present: async () => Object.freeze({
-        status: "withheld",
-        reason: "locked-evidence",
-        text: "internal detail must not escape",
-      }),
-    });
-    const port = createHoidTrustedScreenAnswerPort(presenter);
+  it("rejects a proxy or copied presenter even when it exposes the same method", async () => {
+    const { build } = await buildTrustedPort();
+    const proxied = new Proxy(build.presenter, {});
+    const copied = Object.freeze({ present: build.presenter.present });
 
-    await expect(port!.present({}, "brief")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "presenter-withheld",
-    });
+    expect(isHoidTrustedVerifiedAnswerPresenter(proxied)).toBe(false);
+    expect(isHoidTrustedVerifiedAnswerPresenter(copied)).toBe(false);
+    expect(createHoidTrustedScreenAnswerPort(proxied)).toBeNull();
+    expect(createHoidTrustedScreenAnswerPort(copied)).toBeNull();
   });
 
-  it("rejects an unsupported explanation depth before calling the presenter", async () => {
-    const present = vi.fn(async () => readyPresentation());
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({ present }));
+  it("brands the exact screen port instance and rejects structural port injection", async () => {
+    const { port } = await buildTrustedPort();
+    const copied = Object.freeze({ present: port.present });
+    const forged = Object.freeze({ present: async () => ({ status: "ready" }) });
 
-    await expect(port!.present({}, "spoiler-mode")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "invalid-depth",
-    });
-    expect(present).not.toHaveBeenCalled();
+    expect(isHoidTrustedScreenAnswerPort(port)).toBe(true);
+    expect(isHoidTrustedScreenAnswerPort(copied)).toBe(false);
+    expect(isHoidTrustedScreenAnswerPort(forged)).toBe(false);
   });
 
-  it("rejects an output whose composed text does not match its evidence segments", async () => {
-    const output = {
-      ...readyPresentation(),
-      text: "Provider-authored replacement text.",
-    };
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => output,
-    }));
-
-    await expect(port!.present({}, "brief")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "presenter-withheld",
-    });
-  });
-
-  it("rejects citations whose title does not match the canonical bibliography", async () => {
-    const output = readyPresentation();
-    const tampered = {
-      ...output,
-      citations: [Object.freeze({ ...output.citations[0], title: "Título inventado" })],
-      segments: [Object.freeze({
-        ...output.segments![0],
-        citations: [Object.freeze({ ...output.citations![0], title: "Título inventado" })],
-      })],
-    };
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => tampered,
-    }));
-
-    await expect(port!.present({}, "brief")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "presenter-withheld",
-    });
-  });
-
-  it("requires segment-level provenance for detailed explanations", async () => {
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => readyPresentation({ includeSegments: false }),
-    }));
-
-    await expect(port!.present({}, "detailed")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "segment-provenance-required",
-    });
-  });
-
-  it("enforces the brief claim budget without truncating the answer", async () => {
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => readyPresentation({ claimCount: 4 }),
-    }));
-
-    await expect(port!.present({}, "brief")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "depth-budget-exceeded",
-    });
-  });
-
-  it("requires a genuinely cross-work segment for comparative depth", async () => {
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => readyPresentation(),
-    }));
-
-    await expect(port!.present({}, "comparative")).resolves.toMatchObject({
-      status: "withheld",
-      reason: "comparison-provenance-required",
-    });
-  });
-
-  it("allows comparative depth only when one segment cites multiple works", async () => {
-    const output = readyPresentation({ bookIds: ["tfe", "twok"] });
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => output,
-    }));
-
-    await expect(port!.present({}, "comparative")).resolves.toMatchObject({
-      status: "ready",
-      metrics: { workCount: 2 },
-    });
-  });
-
-  it("rejects accessor-backed presenter methods without invoking the getter", () => {
+  it("rejects an accessor-backed presenter without invoking its getter", () => {
     let invoked = false;
     const hostile = Object.defineProperty({}, "present", {
       enumerable: true,
@@ -213,35 +296,43 @@ describe("Hoid trusted screen answer boundary", () => {
     expect(invoked).toBe(false);
   });
 
-  it("withholds when the presenter throws", async () => {
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => {
-        throw new Error("private failure");
-      },
-    }));
+  it("withholds an answer when the trusted registry revision advances", async () => {
+    const { data, port } = await buildTrustedPort();
+    data.setRevision(4);
 
-    await expect(port!.present({}, "brief")).resolves.toMatchObject({
+    await expect(port.present(data.answer, "brief")).resolves.toMatchObject({
       status: "withheld",
       reason: "presenter-withheld",
     });
   });
 
-  it("rejects a segment whose citation is not part of the top-level citation set", async () => {
-    const output = readyPresentation();
-    const altered = {
-      ...output,
-      segments: [Object.freeze({
-        ...output.segments![0],
-        citations: [citation("evidence-alpha", "twok")],
-      })],
-    };
-    const port = createHoidTrustedScreenAnswerPort(Object.freeze({
-      present: async () => altered,
-    }));
+  it("withholds chapter evidence when the authoritative progress moves behind its unlock", async () => {
+    const { data, port } = await buildTrustedPort();
+    data.setProgress(2);
 
-    await expect(port!.present({}, "brief")).resolves.toMatchObject({
+    await expect(port.present(data.answer, "brief")).resolves.toMatchObject({
       status: "withheld",
       reason: "presenter-withheld",
     });
+  });
+
+  it("rejects an invalid explanation depth before attempting presentation", async () => {
+    const { data, port } = await buildTrustedPort();
+
+    await expect(port.present(data.answer, "spoiler-mode")).resolves.toMatchObject({
+      status: "withheld",
+      reason: "invalid-depth",
+    });
+  });
+
+  it("does not create a screen port when the signed presenter build is blocked", async () => {
+    const data = fixture();
+    const blocked = await createHoidTrustedVerifiedAnswerPresenter({
+      ...data.config,
+      signedClaims: [],
+    });
+
+    expect(blocked).toMatchObject({ status: "blocked", reason: "invalid-signed-claims" });
+    expect(createHoidTrustedScreenAnswerPort({ present: async () => ({ status: "ready" }) })).toBeNull();
   });
 });

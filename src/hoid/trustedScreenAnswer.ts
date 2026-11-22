@@ -11,7 +11,10 @@ import {
   type HoidExplanationMetrics,
 } from "./explanationDepth";
 import { composeHoidNarrative, type HoidNarrativeLayout } from "./narrativeComposition";
-import type { HoidTrustedVerifiedAnswerPresenter } from "./trustedVerifiedAnswerPresentation";
+import {
+  isHoidTrustedVerifiedAnswerPresenter,
+  type HoidTrustedVerifiedAnswerPresenter,
+} from "./trustedVerifiedAnswerPresentation";
 
 export type HoidTrustedScreenAnswerResult =
   | Readonly<{
@@ -42,6 +45,17 @@ type UnknownMethod = (...args: unknown[]) => unknown;
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
 const MAX_TEXT_LENGTH = 32_000;
 const TITLES = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title] as const));
+
+/** Only ports created from a cryptographically verified presenter are accepted by HoidScreen. */
+const TRUSTED_SCREEN_ANSWER_PORTS = new WeakSet<object>();
+
+export function isHoidTrustedScreenAnswerPort(
+  value: unknown,
+): value is HoidTrustedScreenAnswerPort {
+  return value !== null &&
+    typeof value === "object" &&
+    TRUSTED_SCREEN_ANSWER_PORTS.has(value as object);
+}
 
 const WITHHELD_TEXT =
   "Hoid no puede mostrar esta respuesta porque la autoridad de presentación o sus evidencias no han superado la validación.";
@@ -325,10 +339,13 @@ function resolvePresenterMethod(value: unknown): UnknownMethod | null {
 export function createHoidTrustedScreenAnswerPort(
   presenterInput: HoidTrustedVerifiedAnswerPresenter | unknown,
 ): HoidTrustedScreenAnswerPort | null {
+  // Structural compatibility is not authority. The presenter must be the
+  // exact instance issued after signed editorial verification.
+  if (!isHoidTrustedVerifiedAnswerPresenter(presenterInput)) return null;
   const present = resolvePresenterMethod(presenterInput);
   if (!present) return null;
 
-  return Object.freeze({
+  const port = Object.freeze({
     async present(answer: unknown, depthInput: unknown): Promise<HoidTrustedScreenAnswerResult> {
       if (!isHoidExplanationDepth(depthInput)) return withheld("invalid-depth");
       const budget = resolveHoidExplanationDepthBudget(depthInput);
@@ -382,4 +399,6 @@ export function createHoidTrustedScreenAnswerPort(
       });
     },
   });
+  TRUSTED_SCREEN_ANSWER_PORTS.add(port as object);
+  return port;
 }

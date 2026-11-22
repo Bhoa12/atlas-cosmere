@@ -10,7 +10,10 @@ import {
   type HoidPresentedSegment,
 } from '../hoid/answerPresentation';
 import type { HoidExplanationDepth } from '../hoid/explanationDepth';
-import type { HoidTrustedScreenAnswerPort } from '../hoid/trustedScreenAnswer';
+import {
+  isHoidTrustedScreenAnswerPort,
+  type HoidTrustedScreenAnswerPort,
+} from '../hoid/trustedScreenAnswer';
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
@@ -52,7 +55,13 @@ interface Mensaje {
   evidenciaTransversal?: HoidCrossBookEvidenceSummary;
 }
 
-export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort = null }) => {
+export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort: trustedAnswerPortInput = null }) => {
+  // A caller-supplied object with a compatible shape is not a trust grant.
+  // Only the module-private capability issued by the signed presenter factory
+  // may enable narrative answer dispatch.
+  const trustedAnswerPort = isHoidTrustedScreenAnswerPort(trustedAnswerPortInput)
+    ? trustedAnswerPortInput
+    : null;
   const {
     hoidCursorProgressSnapshot,
     getHoidCursorProgressSnapshot,

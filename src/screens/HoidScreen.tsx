@@ -379,12 +379,13 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
               responseScope = requestScope;
             } else {
               const requiresCrossWorkCoverage =
-                answerScopeSelection.status === 'ready' &&
-                answerScopeSelection.scope.mode === 'cross-work';
-              const crossBookResult =
-                requiresCrossWorkCoverage || answerScopeSelection.status === 'unscoped'
-                  ? buildHoidCrossBookEvidenceSummary(result.answer, currentProgress)
-                  : null;
+                (answerScopeSelection.status === 'ready' &&
+                  answerScopeSelection.scope.mode === 'cross-work') ||
+                (answerScopeSelection.status === 'unscoped' &&
+                  scopeValidation.sourceBookIds.length > 1);
+              const crossBookResult = requiresCrossWorkCoverage
+                ? buildHoidCrossBookEvidenceSummary(result.answer, currentProgress)
+                : null;
               const crossBookCoverageValid =
                 crossBookResult?.status === 'ready' &&
                 crossBookResult.summary.workCount === scopeValidation.sourceBookIds.length &&

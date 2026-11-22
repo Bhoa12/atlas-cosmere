@@ -1,0 +1,66 @@
+name: Hoid recommendation navigation boundary
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - ".github/workflows/hoid-recommendation-navigation-boundary.yml"
+      - "docs/hoid/RUN238_RECOMMENDATION_NAVIGATION_BOUNDARY.md"
+  pull_request:
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - ".github/workflows/hoid-recommendation-navigation-boundary.yml"
+      - "docs/hoid/RUN238_RECOMMENDATION_NAVIGATION_BOUNDARY.md"
+
+permissions:
+  contents: read
+
+jobs:
+  recommendation-navigation-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test navigation handoff and upstream progress contracts
+        run: >-
+          npx vitest run
+          src/hoid/editionBoundRecommendationNavigation.test.ts
+          src/hoid/editionBoundRecommendationPresentation.test.ts
+          src/hoid/editionBoundRecommendations.test.ts
+          src/hoid/editionBoundRecommendationExplanations.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/readingManifest.test.ts
+      - name: Strict type-check navigation boundary and dependencies
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --esModuleInterop
+          src/screens/HoidScreen.tsx
+          src/hoid/editionBoundRecommendationNavigation.ts
+          src/hoid/editionBoundRecommendationNavigation.test.ts
+          src/hoid/editionBoundRecommendationPresentation.ts
+          src/hoid/editionBoundRecommendations.ts
+          src/hoid/editionBoundRecommendationExplanations.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingManifest.ts

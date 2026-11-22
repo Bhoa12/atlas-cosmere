@@ -12,7 +12,9 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Run 175 added four, Run 176 added three Roshar documents, Run 178 added one Cosmere chapter, Run 181 added one Cosmere chapter, Run 191 added three Roshar chapters, Run 192 added El Imperio Final chapter 9, and Run 194 adds three more Roshar chapters.
+ * Earlier runs added the initial sparse allowlist. Run 229 revalidated the four
+ * supplied EPUB navigation documents and added the next exact XHTML digest for
+ * El Imperio Final, El Camino de los Reyes, Danzante del Filo and Esquirla del amanecer.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -36,6 +38,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       15: "43ff1d4f608fb3ec230923d92edadd09bc3c9606d72d506b547c7be43266f492",
       16: "1f9d38db4cde7a471586ff7ed5d88cbef7a72b3616020ca1c4d8f06093e7da32",
       17: "c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e",
+      18: "e8fec5f6b12f132a5469db8cc40afa90f31e675450c6b0f7050a64d94e6813cc",
     }),
   }),
   edgedancer: Object.freeze({
@@ -60,6 +63,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       16: "d3a247b59d08735b83baa9840ef9e5058cc3f2108c931d66f06d370c4d41a4dd",
       17: "250c26f671df7422277711bbefd1f72a381a5dd1791bb28d9efb50e7e8c1352c",
       18: "fc630c1dccc3e10f77d857bf6d4680cf6a004def6f6a3a2d9810a8906219f671",
+      19: "50771bbaad3f2767b1e4dd626b5bca7150ee980f858d83729d6469e70fefe9bd",
     }),
   }),
   dawnshard: Object.freeze({
@@ -84,6 +88,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       16: "d62fefc1ce3e6eab0a0cfa5fa8e08819d5d5a9d3a2b2d12015ffaa9411cd18a2",
       17: "85fe1ee6a0224ef0ebc04c8f3e327e30a6553f2623a7482be66d5a4e1b2af840",
       18: "6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b",
+      19: "fdfdc11b97d409903be789ffd09b885bc3ab1c039cfae4ccbf4047005300bac6",
     }),
   }),
   tfe: Object.freeze({
@@ -99,6 +104,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       7: "fd79119ff64538b1d9fbe0d5d40ff9db8215afd144a27071c7c35b19b5ed1ac3",
       8: "5dc769cfdd8dfbfa91292ec9421b0ede94c8e1b05fd3560f9d9503b058e43d48",
       9: "e08f8b2845eb2d15ed9a1ad517d2207501ba0068f25797643e127919d92daedb",
+      10: "a1a42419b3a0e8c63fdd15c6ec63d556dc11dfb3c3b9cffc04265d2c4a7ac472",
     }),
   }),
 });

@@ -111,10 +111,10 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(result).toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
 
-  it("rejects an empty progress fingerprint", () => {
+  it("rejects a malformed progress fingerprint", () => {
     const result = createHoidEditionBoundRecommendationPresentation(
       snapshot([{ bookId: "tfe", chapter: 9 }]),
-      { revision: 1, fingerprint: " " },
+      { revision: 1, fingerprint: "not-a-sha256-digest" },
       1,
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-progress" });

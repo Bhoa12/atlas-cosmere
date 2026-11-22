@@ -67,7 +67,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     ? trustedAnswerPortInput
     : null;
   const {
-    hoidCursorProgressSnapshot,
     getHoidCursorProgressSnapshot,
     refreshHoidCursorProgressSnapshot,
     progresoPersistenciaEstado,
@@ -154,7 +153,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationSelectionKey(null);
     setTopicRecommendationTrustPort(null);
     setTopicRecommendationMessage('');
-  }, [hoidCursorProgressSnapshot, progresoPersistenciaEstado, trustedAnswerPort]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort]);
 
   useEffect(() => () => {
     answerAbortControllerRef.current?.abort();

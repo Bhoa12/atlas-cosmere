@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import {
+  createHoidTestNativeSecurityTrustPort,
+  type TestProviderTrustEntry,
+} from "./conversationProviderTrustRegistry.testFixtures";
+import {
   HOID_NATIVE_SECURITY_ATTESTATION_KIND,
   HOID_NATIVE_SECURITY_ATTESTATION_SCHEMA_VERSION,
   verifyHoidNativeConversationSecurityProvider,
@@ -157,12 +161,17 @@ function harness(options: HarnessOptions = {}) {
     appIdentifier: APP_IDENTIFIER,
     publicKeyHex: PUBLIC_KEY_HEX,
   };
-  const trustPort = Object.freeze({
-    readPinnedProviderKey: async () => {
-      if (options.trustThrows) throw new Error("trust anchor unavailable");
-      return trustValue;
-    },
-  });
+  let trustPort: ReturnType<typeof createHoidTestNativeSecurityTrustPort>;
+  try {
+    trustPort = createHoidTestNativeSecurityTrustPort({
+      entry: trustValue as Partial<TestProviderTrustEntry>,
+      sourceThrows: options.trustThrows,
+    });
+  } catch {
+    // Malformed trust entries are represented by an unavailable signed source;
+    // the production registry factory itself rejects malformed entries.
+    trustPort = createHoidTestNativeSecurityTrustPort({ sourceThrows: true });
+  }
 
   const runtime = {
     platform,
@@ -414,7 +423,7 @@ describe("Hoid native conversation security attestation", () => {
     expect(invoked).toBe(false);
   });
 
-  it("rejects malformed pinned keys without exposing provider errors", async () => {
+  it("fails closed when a signed registry contains a malformed provider key", async () => {
     const test = harness({
       trustValue: {
         keyId: KEY_ID,
@@ -425,7 +434,24 @@ describe("Hoid native conversation security attestation", () => {
       },
     });
     const result = await verifyHoidNativeConversationSecurityProvider(test.request);
-    expect(reason(result)).toBe("trust-key-mismatch");
+    expect(reason(result)).toBe("trust-unavailable");
+  });
+
+  it("rejects an arbitrary structurally compatible trust port", async () => {
+    const test = harness();
+    const result = await verifyHoidNativeConversationSecurityProvider({
+      ...test.request,
+      trustPort: Object.freeze({
+        readPinnedProviderKey: async () => ({
+          keyId: KEY_ID,
+          providerId: PROVIDER_ID,
+          platform: "ios",
+          appIdentifier: APP_IDENTIFIER,
+          publicKeyHex: PUBLIC_KEY_HEX,
+        }),
+      }),
+    });
+    expect(reason(result)).toBe("invalid-request");
   });
 
   it("does not claim readiness when the signed capability provider identity differs", async () => {

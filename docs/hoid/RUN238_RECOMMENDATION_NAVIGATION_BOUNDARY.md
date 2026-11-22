@@ -34,6 +34,10 @@ It then:
 8. Checks that the work is still in progress at exactly that cursor, or that an
    unstarted work is being opened at chapter 1. Completed works and stale
    cursors are rejected.
+9. If several works are in progress, requires the exact explicitly selected
+   active work. A target for a different active work is rejected; a chapter-one
+   discovery target remains eligible after the reader has selected which active
+   work to resume.
 
 ## Result contract
 

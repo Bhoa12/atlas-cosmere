@@ -380,6 +380,15 @@ describe("Hoid native conversation security attestation", () => {
     expect(reason(result)).toBe("invalid-request");
   });
 
+  it("rejects attempts to inject an alternate signature verifier", async () => {
+    const test = harness();
+    const result = await verifyHoidNativeConversationSecurityProvider({
+      ...test.request,
+      verifier: { verify: async () => true },
+    });
+    expect(reason(result)).toBe("invalid-request");
+  });
+
   it("does not execute accessor properties on a hostile challenge port", async () => {
     let invoked = false;
     const hostile = Object.create(null) as Record<string, unknown>;

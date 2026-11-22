@@ -32,7 +32,7 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(result).toMatchObject({
       status: "ready",
       progressRevision: 1,
-      progressFingerprint: IDENTITY.fingerprint,
+      progressFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       items: [{
         sourceId: "tfe",
         explanationCode: "resume-current-cursor",

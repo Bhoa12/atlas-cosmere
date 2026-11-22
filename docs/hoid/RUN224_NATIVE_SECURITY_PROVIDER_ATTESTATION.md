@@ -12,8 +12,9 @@ returns a short-lived Ed25519-signed statement that binds its capability
 declaration to the application identifier, exact native build, platform and a
 fresh one-use challenge.
 
-The verifier uses the existing strict Ed25519 verification port. It does not
-introduce a second signature implementation.
+The verifier uses the existing strict Ed25519 verification adapter directly.
+The verification primitive is not supplied as a request dependency, so a
+caller cannot replace signature verification with an arbitrary callback.
 
 ## Protocol
 

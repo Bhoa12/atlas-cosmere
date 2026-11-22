@@ -53,7 +53,7 @@ function cipher(overrides: Partial<HoidAeadCipherPort> = {}): HoidAeadCipherPort
       _associatedData: string,
     ) => Object.freeze({
       nonce: "A".repeat(16),
-      ciphertext: "B".repeat(22),
+      ciphertext: "A".repeat(22),
     }),
     open: async (
       _ciphertext: string,
@@ -93,7 +93,7 @@ describe("Managed Hoid AEAD payload protector", () => {
         associatedData: string,
       ) => {
         aad = associatedData;
-        return { nonce: "A".repeat(16), ciphertext: "B".repeat(22) };
+        return { nonce: "A".repeat(16), ciphertext: "A".repeat(22) };
       },
     }));
     await protector.seal("payload", context);
@@ -138,7 +138,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       keyVersion: previous.keyVersion,
       algorithm: previous.algorithm,
       nonce: "A".repeat(16),
-      ciphertext: "B".repeat(22),
+      ciphertext: "A".repeat(22),
     });
     const protector = create(
       manager({ resolveForDecryption: async (_principal: string, _keyId: string) => previous }),
@@ -155,7 +155,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       keyVersion: 1,
       algorithm: "AES-256-GCM",
       nonce: "A".repeat(16),
-      ciphertext: "B".repeat(22),
+      ciphertext: "A".repeat(22),
       fallback: "plaintext",
     });
     await expect(create().open(envelope, context)).rejects.toThrow();
@@ -169,7 +169,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       keyVersion: 2,
       algorithm: "AES-256-GCM",
       nonce: "A".repeat(16),
-      ciphertext: "B".repeat(22),
+      ciphertext: "A".repeat(22),
     });
     await expect(create().open(envelope, context)).rejects.toThrow();
   });
@@ -183,6 +183,24 @@ describe("Managed Hoid AEAD payload protector", () => {
       keyVersion: 1,
       algorithm: "AES-256-GCM",
       nonce: "short",
+      ciphertext: "A".repeat(22),
+    });
+    const protector = create(manager(), cipher({
+      open: async () => { invoked = true; return "payload"; },
+    }));
+    await expect(protector.open(envelope, context)).rejects.toThrow();
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects non-canonical base64url trailing bits before calling the cipher", async () => {
+    let invoked = false;
+    const envelope = JSON.stringify({
+      schemaVersion: 1,
+      kind: "hoid-managed-aead-envelope",
+      keyId: key().keyId,
+      keyVersion: 1,
+      algorithm: "AES-256-GCM",
+      nonce: "A".repeat(16),
       ciphertext: "B".repeat(22),
     });
     const protector = create(manager(), cipher({
@@ -195,7 +213,7 @@ describe("Managed Hoid AEAD payload protector", () => {
   it("rejects an invalid cipher port without invoking accessors", () => {
     let invoked = false;
     const hostile = Object.defineProperties({}, {
-      seal: { enumerable: true, get: () => { invoked = true; return async () => ({ nonce: "A".repeat(16), ciphertext: "B".repeat(22) }); } },
+      seal: { enumerable: true, get: () => { invoked = true; return async () => ({ nonce: "A".repeat(16), ciphertext: "A".repeat(22) }); } },
       open: { enumerable: true, value: async () => "payload" },
     });
     expect(() => createManagedHoidConversationPayloadProtector(manager(), hostile)).toThrow(TypeError);
@@ -211,7 +229,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       keyVersion: 1,
       algorithm: "AES-256-GCM",
       nonce: "A".repeat(16),
-      ciphertext: "B".repeat(22),
+      ciphertext: "A".repeat(22),
     });
     await expect(create(
       manager({ resolveForDecryption: async (_principal: string, _keyId: string) => otherKey }),
@@ -232,7 +250,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       keyVersion: 1,
       algorithm: "AES-256-GCM",
       nonce: "A".repeat(16),
-      ciphertext: "B".repeat(22),
+      ciphertext: "A".repeat(22),
     });
     await expect(protector.open(envelope, context)).rejects.toThrow();
     expect(invoked).toBe(false);
@@ -250,7 +268,7 @@ describe("Managed Hoid AEAD payload protector", () => {
   it("rejects oversized plaintext before touching the cipher", async () => {
     let invoked = false;
     const protector = create(manager(), cipher({
-      seal: async () => { invoked = true; return { nonce: "A".repeat(16), ciphertext: "B".repeat(22) }; },
+      seal: async () => { invoked = true; return { nonce: "A".repeat(16), ciphertext: "A".repeat(22) }; },
     }));
     await expect(protector.seal("x".repeat(600_001), context)).rejects.toThrow();
     expect(invoked).toBe(false);
@@ -274,7 +292,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       cipher({
         seal: async () => ({
           nonce: "A".repeat(32),
-          ciphertext: "B".repeat(22),
+          ciphertext: "A".repeat(22),
         }),
       }),
     );

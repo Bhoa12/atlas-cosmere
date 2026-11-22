@@ -558,3 +558,18 @@ Run 232 revalidated the selected Roshar omnibus EPUB and added the exact edition
 `editionBoundRecommendations.ts` accepts the authoritative cursor-native v2 snapshot and validates it before creating navigation targets. Resume recommendations use the currently open chapter and carry a cursor bound to the exact manifest ID, edition ID and navigation digest. Unstarted works receive a chapter-one cursor only when their numbered-chapter manifest is available. Works with unresolved segmentation remain catalog-only; missing opaque locators are reported as cursor-only rather than replaced with guessed paths.
 
 This contract does not infer a Cosmere reading order, cross-book chronology or narrative dependencies. It never changes progress and grants no evidence unlock. See `docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md`.
+
+
+## HoidScreen recommendation presentation
+
+Run 236 connects the provider-neutral edition-bound recommendation core to the actual Hoid screen through `editionBoundRecommendationPresentation.ts`.
+
+The adapter combines the validated cursor-v2 snapshot, deterministic edition-bound targets and metadata-only Spanish explanations. It derives the canonical progress revision and SHA-256 fingerprint from that same snapshot rather than accepting a caller-supplied identity, then rejects invalid snapshots and revision mismatches.
+
+`HoidScreen` now uses this adapter for both the catalogue-recommendation chat intent and the `Retomar y descubrir` panel. Multiple active works are rendered as explicit selection actions; selecting one recomputes the recommendation and verifies that the chosen work still has an open cursor. Recommendation UI state is hidden as soon as the live progress revision or fingerprint changes.
+
+The recommendation panel is no longer gated on the narrative conversation gateway: progress and catalog explanations do not require an AI provider or an editorial answer runtime. The normal narrative path still requires the trusted signed presenter and strict evidence runtime.
+
+Cards display only metadata-derived explanations and target status. They do not navigate directly. A future navigation action must revalidate the edition-bound cursor against the current manifest and the Atlas navigation boundary immediately before opening a chapter.
+
+See `docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md` and the dedicated workflow `.github/workflows/hoid-screen-recommendation-integration.yml`.

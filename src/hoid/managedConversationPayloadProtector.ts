@@ -19,6 +19,7 @@ const MAX_PLAINTEXT_LENGTH = 600_000;
 const MAX_CIPHERTEXT_LENGTH = 850_000;
 const MAX_ENVELOPE_LENGTH = 900_000;
 const OPAQUE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/u;
 
 export type HoidAeadCipherPort = Readonly<{
@@ -152,11 +153,20 @@ function nonceLength(algorithm: HoidConversationAeadAlgorithm): number {
 }
 
 function validEncoded(value: unknown, min: number, max: number): value is string {
-  return typeof value === "string" &&
-    value.length >= min &&
-    value.length <= max &&
-    value.length % 4 !== 1 &&
-    BASE64URL_PATTERN.test(value);
+  if (
+    typeof value !== "string" ||
+    value.length < min ||
+    value.length > max ||
+    value.length % 4 === 1 ||
+    !BASE64URL_PATTERN.test(value)
+  ) return false;
+
+  const remainder = value.length % 4;
+  const lastValue = BASE64URL_ALPHABET.indexOf(value[value.length - 1]);
+  if (lastValue < 0) return false;
+  if (remainder === 2 && (lastValue & 0x0f) !== 0) return false;
+  if (remainder === 3 && (lastValue & 0x03) !== 0) return false;
+  return true;
 }
 
 function associatedData(

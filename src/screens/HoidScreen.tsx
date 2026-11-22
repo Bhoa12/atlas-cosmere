@@ -641,7 +641,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
               styles.recommendationButton,
               (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones) && styles.disabledButton,
             ]}
-            onPress={cargarRecomendaciones}
+            onPress={() => { void cargarRecomendaciones(); }}
           >
             <Text style={styles.recommendationButtonText}>Explorar</Text>
           </TouchableOpacity>

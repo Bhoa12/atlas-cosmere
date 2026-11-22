@@ -95,7 +95,9 @@ function signedAttestation(
   );
   return {
     ...unsigned,
-    signatureHex: hexFromBytes(signature),
+    signatureHex: typeof overrides.signatureHex === "string"
+      ? overrides.signatureHex
+      : hexFromBytes(signature),
   };
 }
 

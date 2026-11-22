@@ -235,7 +235,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         typedConversationContextRef.current = null;
         const presentation = createHoidEditionBoundRecommendationPresentation(
           currentProgress,
-          requestScope,
           3,
         );
         if (presentation.status === 'ready') {
@@ -416,13 +415,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         return;
       }
 
-      const progressIdentity = {
-        revision: projection.revision,
-        fingerprint: fingerprintHoidCursorProgressProjection(projection),
-      };
       const presentation = createHoidEditionBoundRecommendationPresentation(
         currentProgress,
-        progressIdentity,
         3,
         activeBookId,
       );

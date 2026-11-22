@@ -129,6 +129,35 @@ describe("edition-bound recommendation presentation adapter", () => {
     );
   });
 
+  it("uses one canonical snapshot even when an untrusted proxy changes between reads", () => {
+    const original = snapshot([{ bookId: "tfe", chapter: 9 }]);
+    const alternatePositions = snapshot([{ bookId: "tfe", chapter: 10 }]).positions;
+    let positionsReads = 0;
+    const unstable = new Proxy(original, {
+      getOwnPropertyDescriptor(target, property) {
+        const descriptor = Reflect.getOwnPropertyDescriptor(target, property);
+        if (property === "positions" && descriptor && "value" in descriptor) {
+          positionsReads += 1;
+          return {
+            ...descriptor,
+            value: positionsReads === 1 ? descriptor.value : alternatePositions,
+          };
+        }
+        return descriptor;
+      },
+    });
+
+    const result = createHoidEditionBoundRecommendationPresentation(unstable, 1);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+
+    expect(positionsReads).toBe(1);
+    expect(result.items[0].target).toMatchObject({
+      kind: "edition-cursor",
+      cursor: { bookId: "tfe", chapterNumber: 9 },
+    });
+  });
+
   it("changes the fingerprint when the cursor changes at the same revision", () => {
     const first = createHoidEditionBoundRecommendationPresentation(
       snapshot([{ bookId: "tfe", chapter: 9 }], 1),

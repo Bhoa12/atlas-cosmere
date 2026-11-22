@@ -10,7 +10,6 @@ import {
 } from "./knowledgeGraph";
 import {
   createHoidReadingCursor,
-  getHoidReadingManifest,
 } from "./readingManifest";
 import {
   prepareHoidRecommendationNavigationHandoff,

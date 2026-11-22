@@ -6,12 +6,12 @@ Run 242 comprobaba que el conjunto global de citas perteneciera exactamente al �
 
 ## Cambio
 
-\`validateHoidPresentedAnswerScope()\` ahora valida la estructura de segmentos cuando la presentación incluye \`layout\` y \`segments\`.
+`validateHoidPresentedAnswerScope()` ahora valida la estructura de segmentos cuando la presentación incluye `layout` y `segments`.
 
 Para cada segmento se exige:
 
-1. Un registro plano con exactamente \`claimId\`, \`text\`, \`evidenceIds\` y \`citations\`.
-2. Un \`claimId\` igual al elemento correspondiente de la lista canónica de afirmaciones.
+1. Un registro plano con exactamente `claimId`, `text`, `evidenceIds` y `citations`.
+2. Un `claimId` igual al elemento correspondiente de la lista canónica de afirmaciones.
 3. Texto no vacío, recortado y dentro del límite de longitud.
 4. IDs de evidencia densos, únicos y acotados.
 5. Una cita por cada ID de evidencia del segmento.
@@ -40,7 +40,7 @@ Esta comprobación no sustituye al presentador confiable. El presentador sigue v
 
 La validación claim-to-evidence es una comprobación de consistencia en la frontera de UI. No lee EPUB/XHTML, no desbloquea capítulos, no modifica progreso, no elige proveedores y no promueve afirmaciones a producción.
 
-Las presentaciones heredadas sin \`layout\` ni \`segments\` mantienen el contrato anterior. Si cualquiera de esos campos aparece, ambos deben estar presentes y el mapeo completo debe ser válido.
+Las presentaciones heredadas sin `layout` ni `segments` mantienen el contrato anterior. Si cualquiera de esos campos aparece, ambos deben estar presentes y el mapeo completo debe ser válido.
 
 ## Pruebas
 
@@ -48,7 +48,7 @@ Se añaden siete regresiones:
 
 - Aceptar un segmento que coincide exactamente con sus citas globales.
 - Rechazar una cita adicional introducida solo en el segmento.
-- Rechazar un \`claimId\` que no coincide con la lista canónica.
+- Rechazar un `claimId` que no coincide con la lista canónica.
 - Rechazar cambios de capítulo/localizador para un ID existente.
 - Rechazar evidencia global huérfana.
 - Rechazar getters sin ejecutarlos.

@@ -195,7 +195,6 @@ function canonicalProviderKeys(value: unknown): readonly ProviderKeyEntry[] | nu
 
     const entries: ProviderKeyEntry[] = [];
     const keyIds = new Set<string>();
-    const publicKeys = new Set<string>();
     let previousSortKey = "";
     for (let index = 0; index < value.length; index += 1) {
       const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
@@ -205,11 +204,10 @@ function canonicalProviderKeys(value: unknown): readonly ProviderKeyEntry[] | nu
         descriptor.enumerable !== true
       ) return null;
       const entry = canonicalProviderKey(descriptor.value);
-      if (!entry || keyIds.has(entry.keyId) || publicKeys.has(entry.publicKeyHex)) return null;
+      if (!entry || keyIds.has(entry.keyId)) return null;
       const sortKey = providerSortKey(entry);
       if (index > 0 && sortKey <= previousSortKey) return null;
       keyIds.add(entry.keyId);
-      publicKeys.add(entry.publicKeyHex);
       previousSortKey = sortKey;
       entries.push(entry);
     }
@@ -323,11 +321,26 @@ function parseCanonicalRegistry(value: unknown): CanonicalRegistry | null {
 
 type AsyncMethod<T> = (input: T) => Promise<unknown>;
 
-function resolveAsyncMethod<T>(value: unknown, name: string): AsyncMethod<T> | null {
-  const record = exactRecord(value, [name]);
-  if (!record || typeof record[name] !== "function") return null;
-  const method = record[name] as AsyncMethod<T>;
+function resolveAsyncMethod<T>(
+  value: unknown,
+  methodName: string,
+  expectedKeys: readonly string[],
+): AsyncMethod<T> | null {
+  const record = exactRecord(value, expectedKeys);
+  if (!record || typeof record[methodName] !== "function") return null;
+  const method = record[methodName] as AsyncMethod<T>;
   return (input: T) => method.call(value, input);
+}
+
+function resolveNoArgumentAsyncMethod(
+  value: unknown,
+  methodName: string,
+  expectedKeys: readonly string[],
+): (() => Promise<unknown>) | null {
+  const record = exactRecord(value, expectedKeys);
+  if (!record || typeof record[methodName] !== "function") return null;
+  const method = record[methodName] as () => Promise<unknown>;
+  return () => method.call(value);
 }
 
 type CanonicalDependencies = Readonly<{
@@ -344,23 +357,30 @@ function canonicalDependencies(
   sourceInput: unknown,
   revisionStoreInput: unknown,
 ): CanonicalDependencies | null {
-  const readSignedRegistry = resolveAsyncMethod<Record<string, never>>(
+  const readSignedRegistry = resolveNoArgumentAsyncMethod(
     sourceInput,
     "readSignedRegistry",
+    ["readSignedRegistry"],
   );
+  const revisionKeys = ["readMinimumRevision", "compareAndSetMinimumRevision"];
   const readMinimumRevision = resolveAsyncMethod<{ trustDomainId: string }>(
     revisionStoreInput,
     "readMinimumRevision",
+    revisionKeys,
   );
   const compareAndSetMinimumRevision = resolveAsyncMethod<{
     trustDomainId: string;
     expectedRevision: number;
     nextRevision: number;
-  }>(revisionStoreInput, "compareAndSetMinimumRevision");
+  }>(
+    revisionStoreInput,
+    "compareAndSetMinimumRevision",
+    revisionKeys,
+  );
   if (!readSignedRegistry || !readMinimumRevision || !compareAndSetMinimumRevision) return null;
 
   return Object.freeze({
-    readSignedRegistry: () => readSignedRegistry(Object.freeze({}) as Record<string, never>),
+    readSignedRegistry,
     readMinimumRevision,
     compareAndSetMinimumRevision,
   });

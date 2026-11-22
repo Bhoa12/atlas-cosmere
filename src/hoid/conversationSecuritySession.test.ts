@@ -32,6 +32,7 @@ const key = Object.freeze({
   principalId: "hlp1_" + "c".repeat(48),
   conversationId: "conversation-1",
 });
+let monotonicTime = 1_000;
 
 function bytesFromHex(value: string): Uint8Array {
   return new Uint8Array(value.match(/.{2}/g)?.map(part => Number.parseInt(part, 16)) ?? []);
@@ -184,9 +185,12 @@ describe("Hoid verified conversation security sessions", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
+    monotonicTime = 1_000;
+    vi.stubGlobal("performance", { now: () => monotonicTime });
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -265,8 +269,8 @@ describe("Hoid verified conversation security sessions", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     vi.setSystemTime(new Date("2026-11-22T02:59:30.000Z"));
-    vi.advanceTimersByTime(90_000);
-    expect(Date.now()).toBe(Date.parse("2026-11-22T03:01:00.000Z"));
+    monotonicTime += 90_000;
+    expect(Date.now()).toBe(Date.parse("2026-11-22T02:59:30.000Z"));
     expect(isHoidConversationSecuritySessionUsable(result.session, context())).toBe(false);
   });
 

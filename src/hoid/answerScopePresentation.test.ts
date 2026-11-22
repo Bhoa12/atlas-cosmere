@@ -12,7 +12,7 @@ function citation(
     sourceBookId,
     title,
     chapter,
-    locatorId: \`Text/\${sourceBookId}/chapter-\${chapter}.xhtml\`,
+    locatorId: `Text/${sourceBookId}/chapter-${chapter}.xhtml`,
   });
 }
 
@@ -272,4 +272,27 @@ describe("validateHoidPresentedAnswerScope", () => {
       reason: "invalid-presentation",
     });
   });
+
+  it("rejects top-level text that differs from the deterministic claim composition", () => {
+    const input = {
+      ...segmentedPresentation([tfe]),
+      text: "Texto adicional que no pertenece a los segmentos.",
+    };
+    expect(validateHoidPresentedAnswerScope(input)).toEqual({
+      status: "unavailable",
+      reason: "invalid-presentation",
+    });
+  });
+
+  it("rejects unsupported layouts even when the citation mapping is otherwise valid", () => {
+    const input = {
+      ...segmentedPresentation([tfe]),
+      layout: "freeform",
+    };
+    expect(validateHoidPresentedAnswerScope(input)).toEqual({
+      status: "unavailable",
+      reason: "invalid-presentation",
+    });
+  });
+
 });

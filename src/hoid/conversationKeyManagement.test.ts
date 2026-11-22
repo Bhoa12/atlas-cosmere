@@ -147,6 +147,49 @@ describe("Hoid conversation key lifecycle boundary", () => {
     if (result.status === "ready") expect(result.descriptor.keyVersion).toBe(2);
   });
 
+  it("rejects rotation when the new generation reuses the previous key ID", async () => {
+    const previous = descriptor(1);
+    const next = Object.freeze({ ...descriptor(2), keyId: previous.keyId });
+    let resolveCalled = false;
+    let reads = 0;
+    const result = await rotateHoidConversationActiveKey(
+      manager({
+        rotateActiveKey: async () => "rotated",
+        ensureActiveKey: async (_principal: string) => {
+          reads += 1;
+          return reads === 1 ? previous : next;
+        },
+        resolveForDecryption: async () => {
+          resolveCalled = true;
+          return descriptor(1, "decrypt-only");
+        },
+      }),
+      principalId,
+      1,
+    );
+    expect(result).toEqual({ status: "invalid-key" });
+    expect(resolveCalled).toBe(false);
+  });
+
+  it("rejects rotation when the new generation reuses the previous key handle", async () => {
+    const previous = descriptor(1);
+    const next = Object.freeze({ ...descriptor(2), keyHandle: previous.keyHandle });
+    let reads = 0;
+    const result = await rotateHoidConversationActiveKey(
+      manager({
+        rotateActiveKey: async () => "rotated",
+        ensureActiveKey: async (_principal: string) => {
+          reads += 1;
+          return reads === 1 ? previous : next;
+        },
+        resolveForDecryption: async () => descriptor(1, "decrypt-only"),
+      }),
+      principalId,
+      1,
+    );
+    expect(result).toEqual({ status: "invalid-key" });
+  });
+
   it("rejects a stale expected version before asking the manager to rotate", async () => {
     let rotated = false;
     const result = await rotateHoidConversationActiveKey(

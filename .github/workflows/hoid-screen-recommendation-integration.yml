@@ -1,0 +1,62 @@
+name: Hoid screen recommendation integration
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - ".github/workflows/hoid-screen-recommendation-integration.yml"
+      - "docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md"
+  pull_request:
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - ".github/workflows/hoid-screen-recommendation-integration.yml"
+      - "docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md"
+
+permissions:
+  contents: read
+
+jobs:
+  screen-recommendation-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test recommendation presentation and progress contracts
+        run: >-
+          npx vitest run
+          src/hoid/editionBoundRecommendationPresentation.test.ts
+          src/hoid/editionBoundRecommendations.test.ts
+          src/hoid/editionBoundRecommendationExplanations.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/readingManifest.test.ts
+      - name: Strict type-check recommendation adapter and screen
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native
+          --esModuleInterop
+          src/screens/HoidScreen.tsx
+          src/hoid/editionBoundRecommendationPresentation.ts
+          src/hoid/editionBoundRecommendations.ts
+          src/hoid/editionBoundRecommendationExplanations.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingManifest.ts

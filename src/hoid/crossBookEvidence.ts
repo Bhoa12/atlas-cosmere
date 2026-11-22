@@ -35,11 +35,6 @@ export type HoidCrossBookEvidenceResult =
 const WORK_ORDER = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
 
 /**
- * Builds a metadata-only work matrix from the final presentation boundary.
- * The answer is revalidated against the supplied live progress snapshot first;
- * each source therefore retains its own work-local unlock requirement.
- */
-/**
  * Build the metadata-only chapter matrix from the exact presentation already
  * accepted by the trusted screen presenter. No second progress snapshot or raw
  * answer object is read, so the matrix cannot drift from the text/citations

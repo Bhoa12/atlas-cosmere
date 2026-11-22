@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { createHoidEditionBoundRecommendationPresentation } from "./editionBoundRecommendationPresentation";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidReadingCursor } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T15:00:00.000Z";
@@ -110,6 +112,21 @@ describe("edition-bound recommendation presentation adapter", () => {
     if (first.status !== "ready" || second.status !== "ready") return;
     expect(first.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(second.progressFingerprint).toBe(first.progressFingerprint);
+  });
+
+  it("matches the exact fingerprint used by HoidScreen's live progress scope", () => {
+    const progress = snapshot([{ bookId: "tfe", chapter: 9 }]);
+    const projection = projectHoidCursorProgressSnapshot(progress);
+    expect(projection.status).toBe("ready");
+    if (projection.status !== "ready") return;
+
+    const presentation = createHoidEditionBoundRecommendationPresentation(progress, 1);
+    expect(presentation.status).toBe("ready");
+    if (presentation.status !== "ready") return;
+
+    expect(presentation.progressFingerprint).toBe(
+      fingerprintHoidCursorProgressProjection(projection),
+    );
   });
 
   it("changes the fingerprint when the cursor changes at the same revision", () => {

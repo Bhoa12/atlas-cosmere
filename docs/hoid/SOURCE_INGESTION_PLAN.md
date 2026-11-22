@@ -20,7 +20,8 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Individually inspected chapter documents | 66 |
 | Original staged summaries | 62 |
 | Summaries pending review | 62 |
-| Numbered-chapter works with every current manifest unit inspected | 1 |\n| Approved production claims | 0 |
+| Numbered-chapter works with every current manifest unit inspected | 1 |
+| Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
 These counts describe checked-in metadata. They do not assert that a private EPUB is currently selected or accessible.

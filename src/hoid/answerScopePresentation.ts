@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { composeHoidNarrative, HOID_NARRATIVE_LAYOUTS } from "./narrativeComposition";
 import {
   canonicalizeHoidAnswerBookScope,
   selectedEvidenceSatisfiesHoidBookScope,
@@ -178,6 +179,8 @@ function segmentProvenanceMatches(
   claimIds: readonly string[],
   evidenceIds: readonly string[],
   citations: readonly CitationIdentity[],
+  layout: unknown,
+  expectedText: string,
 ): boolean {
   try {
     if (
@@ -192,6 +195,7 @@ function segmentProvenanceMatches(
 
     const citationsById = new Map(citations.map(citation => [citation.evidenceId, citation]));
     const referencedEvidence = new Set<string>();
+    const compositionSegments: { claimId: string; text: string; evidenceIds: readonly string[] }[] = [];
 
     for (let index = 0; index < value.length; index += 1) {
       const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
@@ -238,10 +242,22 @@ function segmentProvenanceMatches(
       if (segmentEvidenceIds.some(id => !segmentCitations.some(citation => citation.evidenceId === id))) {
         return false;
       }
+      compositionSegments.push(Object.freeze({
+        claimId: segment.claimId,
+        text: segment.text,
+        evidenceIds: segmentEvidenceIds,
+      }));
     }
 
-    return referencedEvidence.size === evidenceIds.length &&
-      evidenceIds.every(id => referencedEvidence.has(id));
+    if (
+      referencedEvidence.size !== evidenceIds.length ||
+      !evidenceIds.every(id => referencedEvidence.has(id)) ||
+      typeof layout !== "string" ||
+      !(HOID_NARRATIVE_LAYOUTS as readonly string[]).includes(layout)
+    ) return false;
+
+    const composition = composeHoidNarrative({ segments: compositionSegments }, layout);
+    return composition.status === "ready" && composition.text === expectedText;
   } catch {
     return false;
   }
@@ -297,7 +313,14 @@ export function validateHoidPresentedAnswerScope(
 
   if (
     hasLayout &&
-    !segmentProvenanceMatches(presentation.segments, claimIds, evidenceIds, citations)
+    !segmentProvenanceMatches(
+      presentation.segments,
+      claimIds,
+      evidenceIds,
+      citations,
+      presentation.layout,
+      presentation.text,
+    )
   ) {
     return Object.freeze({ status: "unavailable", reason: "invalid-presentation" });
   }

@@ -6,10 +6,10 @@ Mantener el contexto de una respuesta dentro de la obra o conjunto de obras que 
 
 ## Contrato
 
-\`bookScope\` es opcional y solo admite registros planos cerrados:
+`bookScope` es opcional y solo admite registros planos cerrados:
 
-- \`{ mode: "single-work", bookIds: [bookId] }\`: una obra conocida.
-- \`{ mode: "cross-work", bookIds: [bookIdA, bookIdB, ...] }\`: entre dos y cuatro obras conocidas.
+- `{ mode: "single-work", bookIds: [bookId] }`: una obra conocida.
+- `{ mode: "cross-work", bookIds: [bookIdA, bookIdB, ...] }`: entre dos y cuatro obras conocidas.
 
 Los IDs deben existir en la bibliografía, ser únicos y estar expresados como datos propios enumerables. Se rechazan getters, símbolos, propiedades adicionales, arrays dispersos, IDs desconocidos y combinaciones de modo y cardinalidad incompatibles.
 
@@ -19,7 +19,7 @@ Los IDs deben existir en la bibliografía, ser únicos y estar expresados como d
 2. Canonicalizar el ámbito explícito.
 3. Recuperar únicamente evidencias con procedencia verificada y desbloqueo alcanzado en su propia obra.
 4. Filtrar las afirmaciones: todas sus evidencias deben permanecer dentro del ámbito.
-5. En \`cross-work\`, comprobar antes del proveedor que existe evidencia autorizada en cada obra solicitada.
+5. En `cross-work`, comprobar antes del proveedor que existe evidencia autorizada en cada obra solicitada.
 6. Enviar al selector solo los candidatos ya autorizados.
 7. Reconciliar los IDs seleccionados con los candidatos locales.
 8. Exigir que la respuesta final cubra todas las obras del ámbito y ninguna ajena.
@@ -27,7 +27,7 @@ Los IDs deben existir en la bibliografía, ser únicos y estar expresados como d
 
 ## Presupuesto
 
-El presupuesto \`minimumWorks\` se endurece al menos al número de obras declaradas. Si \`maxWorks\` no permite cubrir el ámbito, o el presupuesto exige más obras de las declaradas, la solicitud se rechaza antes del proveedor. No se recortan evidencias para forzar una respuesta.
+El presupuesto `minimumWorks` se endurece al menos al número de obras declaradas. Si `maxWorks` no permite cubrir el ámbito, o el presupuesto exige más obras de las declaradas, la solicitud se rechaza antes del proveedor. No se recortan evidencias para forzar una respuesta.
 
 ## Frontera del proveedor
 
@@ -51,11 +51,11 @@ La pantalla expone tres modos temporales:
 
 La selección se mantiene solo en memoria de pantalla. Cambiar el modo o las obras seleccionadas borra los contextos conversacionales tipados y reinicia el hilo visible para impedir que un seguimiento reutilice una respuesta generada bajo otro ámbito. No se escribe la selección en SQLite ni se guarda como preferencia permanente.
 
-El adaptador de selección es puro (\`answerScopeSelection.ts\`) y produce el mismo contrato cerrado que valida el runtime. La interfaz no concede permisos: una obra seleccionada sin evidencia desbloqueada sigue sin producir respuesta.
+El adaptador de selección es puro (`answerScopeSelection.ts`) y produce el mismo contrato cerrado que valida el runtime. La interfaz no concede permisos: una obra seleccionada sin evidencia desbloqueada sigue sin producir respuesta.
 
 ## Propagación por el gateway conversacional
 
-HoidConversationGateway valida y canonicaliza \`bookScope\` antes de resolver referencias o invocar el runtime. La selección canonicalizada se propaga por las rutas de entidad única, seguimiento tipado, seguimiento de grupo y consulta general.
+HoidConversationGateway valida y canonicaliza `bookScope` antes de resolver referencias o invocar el runtime. La selección canonicalizada se propaga por las rutas de entidad única, seguimiento tipado, seguimiento de grupo y consulta general.
 
 Cuando existe un ámbito explícito, las preguntas de relaciones no usan el atajo del grafo local sin ámbito. Se enrutan por el runtime estricto de evidencias para que cada afirmación satisfaga la política de una o varias obras. Sin ámbito explícito, se conserva la ruta local revisada existente.
 
@@ -71,9 +71,9 @@ En modo automático, una respuesta cuyas citas abarcan varias obras también req
 
 ## Run 243 — Integridad claim-to-evidence en la frontera de presentación
 
-Cuando una presentación incluye \`layout\` y \`segments\`, la validación de ámbito comprueba también el mapeo individual de cada afirmación:
+Cuando una presentación incluye `layout` y `segments`, la validación de ámbito comprueba también el mapeo individual de cada afirmación:
 
-- Cada segmento debe corresponder al \`claimId\` de la misma posición en la lista canónica.
+- Cada segmento debe corresponder al `claimId` de la misma posición en la lista canónica.
 - Cada segmento debe incluir una lista densa y única de IDs de evidencia.
 - Las citas del segmento deben coincidir campo por campo con las citas globales: ID, obra, título bibliográfico, capítulo y localizador opaco.
 - Ningún segmento puede introducir una cita que no exista en el conjunto global validado.
@@ -81,3 +81,10 @@ Cuando una presentación incluye \`layout\` y \`segments\`, la validación de á
 - Los registros y arrays se inspeccionan mediante descriptores de datos. Los getters, arrays dispersos, claves adicionales y estructuras malformadas se rechazan sin ejecutar código accesorio.
 
 Esta es una comprobación de consistencia y defensa en profundidad posterior al presentador confiable. No valida por sí sola el desbloqueo, no inspecciona EPUBs y no concede permisos narrativos. Las respuestas heredadas sin segmentación siguen sujetas al contrato anterior; cualquier respuesta que sí exponga segmentos debe pasar el mapeo completo antes de que HoidScreen los represente.
+
+
+## Run 244 — coherencia entre texto presentado y segmentos
+
+Cuando una presentación incluye `layout` y `segments`, la frontera de ámbito vuelve a componer el texto mediante el compositor determinista local. Se exige que el resultado coincida byte por byte con `presentation.text` y que el diseño pertenezca al enum cerrado de layouts. Esto añade defensa en profundidad frente a textos globales que no correspondan a las afirmaciones segmentadas. El compositor no reescribe el contenido de las afirmaciones; solo aplica el formato determinista permitido. Las presentaciones heredadas sin segmentación conservan el contrato previo.
+
+La validación confiable de `presentHoidEvidenceAnswer()` ya realiza esta comprobación; Run 244 la repite en la frontera de presentación por ámbito para que el panel transversal no dependa únicamente de una garantía aguas arriba.

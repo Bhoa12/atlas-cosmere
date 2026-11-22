@@ -29,8 +29,10 @@ algorithms it has been reviewed and tested to support.
 ## Rotation semantics
 
 Rotation creates a new active key and marks the previous key decrypt-only.
-Existing ciphertext remains readable by its exact key ID. The old key must
-not be destroyed merely because rotation succeeded.
+The lifecycle boundary verifies the exact new version and re-resolves the
+previous key to confirm it remains decrypt-only. Existing ciphertext remains
+readable by its exact key ID. The old key must not be destroyed merely because
+rotation succeeded.
 
 Key deletion is deliberately absent. It requires a separate migration and
 retention proof showing that no retained conversation envelope references the
@@ -54,10 +56,10 @@ version, principal ID, conversation ID, storage revision, key ID, key version
 and algorithm. A ciphertext copied to another principal, conversation,
 storage revision or key version must fail authentication.
 
-Nonce and ciphertext are canonical unpadded base64url strings. AES-GCM and
-ChaCha20-Poly1305 use a 12-byte nonce; XChaCha20-Poly1305 uses a 24-byte nonce.
-The cipher provider is responsible for actual AEAD authentication and must
-never reuse a nonce with the same key.
+Nonce and ciphertext are canonical unpadded base64url strings, including zero
+unused trailing bits. AES-GCM and ChaCha20-Poly1305 use a 12-byte nonce;
+XChaCha20-Poly1305 uses a 24-byte nonce. The cipher provider is responsible
+for actual AEAD authentication and must never reuse a nonce with the same key.
 
 ## Failure policy
 

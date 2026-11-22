@@ -1,0 +1,69 @@
+name: Hoid native provider trust registry
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/conversationProviderTrustRegistry.ts"
+      - "src/hoid/conversationProviderTrustRegistry.test.ts"
+      - "src/hoid/conversationProviderTrustRegistry.testFixtures.ts"
+      - "src/hoid/conversationSecurityAttestation.ts"
+      - "src/hoid/conversationSecurityAttestation.test.ts"
+      - "src/hoid/conversationSecuritySession.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "docs/hoid/RUN226_NATIVE_PROVIDER_TRUST_REGISTRY.md"
+      - ".github/workflows/hoid-native-provider-trust-registry.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationProviderTrustRegistry.ts"
+      - "src/hoid/conversationProviderTrustRegistry.test.ts"
+      - "src/hoid/conversationProviderTrustRegistry.testFixtures.ts"
+      - "src/hoid/conversationSecurityAttestation.ts"
+      - "src/hoid/conversationSecurityAttestation.test.ts"
+      - "src/hoid/conversationSecuritySession.test.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "docs/hoid/RUN226_NATIVE_PROVIDER_TRUST_REGISTRY.md"
+      - ".github/workflows/hoid-native-provider-trust-registry.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  native-provider-trust-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test signed provider registry and attestation boundary
+        run: >-
+          npx vitest run
+          src/hoid/conversationProviderTrustRegistry.test.ts
+          src/hoid/conversationSecurityAttestation.test.ts
+          src/hoid/conversationSecuritySession.test.ts
+          src/hoid/conversationSecurityReadiness.test.ts
+          src/hoid/conversationHistoryHydration.test.ts
+          src/hoid/conversationHistoryStorePort.test.ts
+      - name: Type-check provider trust registry
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/conversationProviderTrustRegistry.ts
+          src/hoid/conversationProviderTrustRegistry.test.ts
+          src/hoid/conversationProviderTrustRegistry.testFixtures.ts
+          src/hoid/conversationSecurityAttestation.ts
+          src/hoid/conversationSecurityAttestation.test.ts
+          src/hoid/conversationSecuritySession.ts
+          src/hoid/conversationSecuritySession.test.ts
+          src/hoid/conversationSecurityReadiness.ts
+          src/hoid/conversationHistoryStorePort.ts
+          src/hoid/conversationHistoryHydration.ts
+          src/hoid/conversationHistoryPolicy.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/sha256.ts

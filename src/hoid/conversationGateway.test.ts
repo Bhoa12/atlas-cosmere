@@ -74,6 +74,34 @@ describe("HoidConversationGateway", () => {
     expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("canonicalizes and forwards an explicit single-work scope to the strict runtime", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Qué se ha autorizado?",
+      progress: current,
+      bookScope: { mode: "single-work", bookIds: ["tfe"] },
+    });
+
+    expect(result.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      bookScope: { mode: "single-work", bookIds: ["tfe"] },
+    }), undefined);
+  });
+
+  it("rejects malformed explicit work scopes before runtime invocation", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Qué se ha autorizado?",
+      progress: current,
+      bookScope: { mode: "cross-work", bookIds: ["twok", "unknown-work"] },
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
   it("defaults to detailed depth and forwards its closed selection budget", async () => {
     const current = snapshot(3);
     const { gateway, runtime } = setup(current);
@@ -698,6 +726,34 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
     if (!context) throw new Error("Contexto sintético no disponible");
     return context;
   }
+
+  it("routes a scoped group follow-up through the strict evidence runtime, not the unscoped graph shortcut", async () => {
+    const current = snapshot(3);
+    const relationshipGateway = {
+      answer: vi.fn(() => ({ status: "unavailable" as const, reason: "entity-ambiguous" as const })),
+    };
+    const runtime = { answer: vi.fn(async () => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context: contextFor(current),
+      bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
+    });
+
+    expect(result.status).toBe("ready");
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      bookScope: { mode: "cross-work", bookIds: ["edgedancer", "twok"] },
+    }), undefined);
+  });
 
   it("routes an explicit group follow-up through the graph with only prior canonical IDs", async () => {
     const current = snapshot(3);

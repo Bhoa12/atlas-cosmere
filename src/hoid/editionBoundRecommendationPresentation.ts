@@ -45,7 +45,7 @@ export function createHoidEditionBoundRecommendationPresentation(
     !Number.isSafeInteger(progressIdentity.revision) ||
     progressIdentity.revision < 0 ||
     typeof progressIdentity.fingerprint !== "string" ||
-    progressIdentity.fingerprint.trim().length === 0
+    !/^[a-f0-9]{64}$/.test(progressIdentity.fingerprint)
   ) {
     return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
   }

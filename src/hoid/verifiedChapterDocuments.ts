@@ -12,9 +12,9 @@ type VerifiedChapterDocumentSource = Readonly<{
  * only chapters whose bytes were actually inspected appear here.
  *
  * No chapter text, title or extracted passage is stored.
- * Earlier runs added the initial sparse allowlist. Run 229 revalidated the four
- * supplied EPUB navigation documents and added the next exact XHTML digest for
- * El Imperio Final, El Camino de los Reyes, Danzante del Filo and Esquirla del amanecer.
+ * Earlier runs added the initial sparse allowlist. Run 229 added four chapter
+ * fingerprints; Run 230 revalidated the available Roshar editions and added
+ * El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -39,6 +39,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       16: "1f9d38db4cde7a471586ff7ed5d88cbef7a72b3616020ca1c4d8f06093e7da32",
       17: "c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e",
       18: "e8fec5f6b12f132a5469db8cc40afa90f31e675450c6b0f7050a64d94e6813cc",
+      19: "075a2440369deb756c3aab32e76596eb85c1c1e4e45c2255a8edf5447a1a9867",
     }),
   }),
   edgedancer: Object.freeze({
@@ -64,6 +65,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       17: "250c26f671df7422277711bbefd1f72a381a5dd1791bb28d9efb50e7e8c1352c",
       18: "fc630c1dccc3e10f77d857bf6d4680cf6a004def6f6a3a2d9810a8906219f671",
       19: "50771bbaad3f2767b1e4dd626b5bca7150ee980f858d83729d6469e70fefe9bd",
+      20: "db048fc62821ddc627d004048f608b8cc55aa2465cebca4c318ac38d1bbf6c63",
     }),
   }),
   dawnshard: Object.freeze({

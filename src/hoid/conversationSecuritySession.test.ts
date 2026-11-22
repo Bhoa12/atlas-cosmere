@@ -260,6 +260,16 @@ describe("Hoid verified conversation security sessions", () => {
     expect(isHoidConversationSecuritySessionUsable(result.session, context())).toBe(false);
   });
 
+  it("does not extend a session when the device wall clock is rolled back", async () => {
+    const result = await createSession();
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    vi.setSystemTime(new Date("2026-11-22T02:59:30.000Z"));
+    vi.advanceTimersByTime(90_000);
+    expect(Date.now()).toBe(Date.parse("2026-11-22T03:01:00.000Z"));
+    expect(isHoidConversationSecuritySessionUsable(result.session, context())).toBe(false);
+  });
+
   it("revokes a session and rejects all subsequent checks", async () => {
     const result = await createSession();
     expect(result.status).toBe("ready");

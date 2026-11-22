@@ -184,7 +184,7 @@ function parseCapabilities(value: unknown): CanonicalCapabilities | null {
   if (!keyVault || !cipher || !sqlite) return null;
 
   const algorithms = canonicalAlgorithms(cipher.algorithms);
-  if (!algorithms || algorithms.length === 0) return null;
+  if (!algorithms) return null;
 
   const expectedStorage = record.platform === "ios"
     ? "ios-keychain"

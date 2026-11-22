@@ -54,7 +54,7 @@ No summary was promoted. The production editorial registry and approved-claim re
 - No activation receipt.
 - Esquirla del amanecer remains complete only within its 19 numbered manifest units.
 
-The next continuation queue is El Imperio Final chapter 11, El Camino de los Reyes chapter 20 and Danzante del Filo chapter 21.
+The next continuation queue is El Imperio Final chapter 11 and El Camino de los Reyes chapter 20. Danzante del Filo is complete only within its 20 numbered manifest units.
 
 ## Copyright and data handling
 

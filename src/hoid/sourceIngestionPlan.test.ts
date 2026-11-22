@@ -6,34 +6,42 @@ describe("Hoid metadata-only source ingestion plan", () => {
     const plan = getHoidSourceIngestionPlan();
 
     expect(plan.catalogueWorkCount).toBe(24);
-    expect(plan.candidateCount).toBe(19);
+    expect(plan.candidateCount).toBe(18);
     expect(plan.blockedWorkCount).toBe(4);
-    expect(plan.continuationTaskCount).toBe(3);
+    expect(plan.continuationTaskCount).toBe(2);
     expect(plan.newWorkTaskCount).toBe(16);
-    expect(plan.completedNumberedChapterWorkCount).toBe(1);
+    expect(plan.completedNumberedChapterWorkCount).toBe(2);
     expect(plan.sourceAccessPerformed).toBe(false);
     expect(plan.authorizationEffect).toBe("none");
   });
 
-  it("continues the three incomplete inspected works at the first missing chapter", () => {
+  it("continues the two incomplete inspected works at the first missing chapter", () => {
     const plan = getHoidSourceIngestionPlan();
     const continuation = plan.tasks.filter(task => task.priority === "continue-inspected-work");
 
     expect(continuation.map(task => [task.workId, task.chapterNumber])).toEqual([
       ["tfe", 11],
       ["twok", 20],
-      ["edgedancer", 21],
     ]);
   });
 
-  it("marks Esquirla del amanecer complete only within its numbered-chapter manifest", () => {
+  it("marks Danzante del Filo and Esquirla del amanecer complete only within their numbered-chapter manifests", () => {
     const plan = getHoidSourceIngestionPlan();
-    expect(plan.completedWorks).toEqual([{
-      workId: "dawnshard",
-      title: "Esquirla del amanecer",
-      numberedChapterCount: 19,
-      scope: "numbered-chapters-only",
-    }]);
+    expect(plan.completedWorks).toEqual([
+      {
+        workId: "edgedancer",
+        title: "Danzante del Filo",
+        numberedChapterCount: 20,
+        scope: "numbered-chapters-only",
+      },
+      {
+        workId: "dawnshard",
+        title: "Esquirla del amanecer",
+        numberedChapterCount: 19,
+        scope: "numbered-chapters-only",
+      },
+    ]);
+    expect(plan.tasks.some(task => task.workId === "edgedancer")).toBe(false);
     expect(plan.tasks.some(task => task.workId === "dawnshard")).toBe(false);
   });
 

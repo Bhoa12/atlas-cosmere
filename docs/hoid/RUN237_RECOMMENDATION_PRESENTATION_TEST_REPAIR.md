@@ -39,3 +39,11 @@ The Run 236 integration workflow had 57 passing tests and 2 failing assertions
 across the five selected suites. The strict TypeScript step was skipped because
 the preceding test step failed. Run 237 must pass the complete workflow on its
 final HEAD before being called validated.
+
+
+## Additional screen identity parity check
+
+A follow-up regression test compares the adapter's snapshot-derived fingerprint
+with the exact projection fingerprint used by `HoidScreen` for its live view
+scope. This protects the render-time stale-result guard from accidental drift
+between the adapter and screen canonicalization paths.

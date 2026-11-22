@@ -186,10 +186,6 @@ function parseCapabilities(value: unknown): CanonicalCapabilities | null {
   const algorithms = canonicalAlgorithms(cipher.algorithms);
   if (!algorithms) return null;
 
-  const expectedStorage = record.platform === "ios"
-    ? "ios-keychain"
-    : "android-keystore";
-
   return Object.freeze({
     schemaVersion: HOID_CONVERSATION_SECURITY_CAPABILITIES_SCHEMA_VERSION,
     kind: HOID_CONVERSATION_SECURITY_CAPABILITIES_KIND,

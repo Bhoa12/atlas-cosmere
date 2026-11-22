@@ -1,0 +1,49 @@
+name: Hoid explicit answer book scope
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScope.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/selectionProtocol.test.ts"
+      - "src/hoid/BOOK_SCOPE_POLICY.md"
+      - ".github/workflows/hoid-book-scoped-answer-runtime.yml"
+  pull_request:
+    paths:
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScope.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/selectionProtocol.test.ts"
+      - "src/hoid/BOOK_SCOPE_POLICY.md"
+      - ".github/workflows/hoid-book-scoped-answer-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  book-scoped-answer-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run book-scope and evidence-boundary tests
+        run: npx vitest run src/hoid/answerScope.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/selectionProtocol.test.ts
+      - name: Type-check book-scope and evidence boundaries
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/answerScope.ts src/hoid/evidenceRuntime.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/selectionProtocol.ts src/hoid/evidenceScope.ts src/hoid/readingManifest.ts src/hoid/editionStructure.ts src/hoid/editionProgressValidation.ts src/hoid/readingValidation.ts src/hoid/recommendations.ts src/hoid/catalog.ts src/hoid/bibliography.ts src/hoid/types.ts

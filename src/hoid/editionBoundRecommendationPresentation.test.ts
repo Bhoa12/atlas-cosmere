@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { createHoidEditionBoundRecommendationPresentation } from "./editionBoundRecommendationPresentation";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidReadingCursor } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T15:00:00.000Z";
@@ -76,8 +78,12 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(result.items[0]).toMatchObject({
       sourceId: "elantris",
       reason: "resume-current-work",
-      currentChapter: 3,
+      target: {
+        kind: "edition-cursor",
+        cursor: { bookId: "elantris", chapterNumber: 3 },
+      },
     });
+    expect(result.items[0].detail).toContain("El cursor validado señala el capítulo 3.");
   });
 
   it("preserves catalog-only status for an unsegmented work", () => {
@@ -108,6 +114,50 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(second.progressFingerprint).toBe(first.progressFingerprint);
   });
 
+  it("matches the exact fingerprint used by HoidScreen's live progress scope", () => {
+    const progress = snapshot([{ bookId: "tfe", chapter: 9 }]);
+    const projection = projectHoidCursorProgressSnapshot(progress);
+    expect(projection.status).toBe("ready");
+    if (projection.status !== "ready") return;
+
+    const presentation = createHoidEditionBoundRecommendationPresentation(progress, 1);
+    expect(presentation.status).toBe("ready");
+    if (presentation.status !== "ready") return;
+
+    expect(presentation.progressFingerprint).toBe(
+      fingerprintHoidCursorProgressProjection(projection),
+    );
+  });
+
+  it("uses one canonical snapshot even when an untrusted proxy changes between reads", () => {
+    const original = snapshot([{ bookId: "tfe", chapter: 9 }]);
+    const alternatePositions = snapshot([{ bookId: "tfe", chapter: 10 }]).positions;
+    let positionsReads = 0;
+    const unstable = new Proxy(original, {
+      getOwnPropertyDescriptor(target, property) {
+        const descriptor = Reflect.getOwnPropertyDescriptor(target, property);
+        if (property === "positions" && descriptor && "value" in descriptor) {
+          positionsReads += 1;
+          return {
+            ...descriptor,
+            value: positionsReads === 1 ? descriptor.value : alternatePositions,
+          };
+        }
+        return descriptor;
+      },
+    });
+
+    const result = createHoidEditionBoundRecommendationPresentation(unstable, 1);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+
+    expect(positionsReads).toBe(1);
+    expect(result.items[0].target).toMatchObject({
+      kind: "edition-cursor",
+      cursor: { bookId: "tfe", chapterNumber: 9 },
+    });
+  });
+
   it("changes the fingerprint when the cursor changes at the same revision", () => {
     const first = createHoidEditionBoundRecommendationPresentation(
       snapshot([{ bookId: "tfe", chapter: 9 }], 1),
@@ -125,8 +175,9 @@ describe("edition-bound recommendation presentation adapter", () => {
   });
 
   it("rejects invalid progress and invalid active-work selections", () => {
+    // Revision zero is only valid for the canonical empty snapshot.
     expect(createHoidEditionBoundRecommendationPresentation(
-      { schemaVersion: 2, revision: 1, positions: [], updatedAt: UPDATED_AT },
+      { schemaVersion: 2, revision: 0, positions: [], updatedAt: UPDATED_AT },
       1,
     )).toEqual({ status: "unavailable", reason: "invalid-progress" });
 
@@ -135,6 +186,21 @@ describe("edition-bound recommendation presentation adapter", () => {
       1,
       "elantris",
     )).toEqual({ status: "unavailable", reason: "invalid-active-work" });
+  });
+
+  it("allows a canonical empty snapshot to discover the first verified numbered chapter", () => {
+    const result = createHoidEditionBoundRecommendationPresentation(snapshot(), 1);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.items[0]).toMatchObject({
+      sourceId: "tfe",
+      reason: "unread-source",
+      explanationCode: "start-first-numbered-chapter",
+      target: {
+        kind: "edition-cursor",
+        cursor: { bookId: "tfe", chapterNumber: 1 },
+      },
+    });
   });
 
   it("rejects a non-finite recommendation limit", () => {

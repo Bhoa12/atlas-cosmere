@@ -1,3 +1,4 @@
+import { validateHoidCursorProgressSnapshot } from "./cursorProgressLedger";
 import { fingerprintHoidCursorProgressSnapshot } from "./knowledgeGraph";
 import {
   explainEditionBoundRecommendationResult,
@@ -20,14 +21,14 @@ export type HoidEditionBoundRecommendationPresentation =
 
 /**
  * Compose the deterministic recommendation core and its metadata-only
- * explanation into a screen-ready view model bound to the exact validated
+ * explanation into a screen-ready view model bound to one canonicalized
  * cursor-v2 snapshot.
  *
- * The adapter derives the canonical revision and SHA-256 fingerprint itself;
- * callers cannot accidentally pair a valid recommendation with an identity
- * copied from a different snapshot. The screen must still re-read authoritative
- * progress before committing the view model and hide it when that identity
- * changes.
+ * The untrusted input is validated and copied exactly once. Fingerprinting and
+ * recommendation generation then consume that same immutable canonical
+ * snapshot, preventing accessor/proxy time-of-check-to-time-of-use drift.
+ * The screen must still re-read authoritative progress before committing the
+ * view model and hide it when that identity changes.
  *
  * This adapter does not open chapters, alter progress, inspect narrative
  * content, call a provider, or authorize evidence.
@@ -37,13 +38,19 @@ export function createHoidEditionBoundRecommendationPresentation(
   limit = 3,
   activeBookId?: unknown,
 ): HoidEditionBoundRecommendationPresentation {
-  const identity = fingerprintHoidCursorProgressSnapshot(progressInput);
+  const validation = validateHoidCursorProgressSnapshot(progressInput);
+  if (validation.status !== "valid") {
+    return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+  }
+
+  const canonicalProgress = validation.snapshot;
+  const identity = fingerprintHoidCursorProgressSnapshot(canonicalProgress);
   if (identity.status !== "ready") {
     return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
   }
 
   const recommendation = recommendEditionBoundReadingNextSteps(
-    progressInput,
+    canonicalProgress,
     limit,
     activeBookId,
   );

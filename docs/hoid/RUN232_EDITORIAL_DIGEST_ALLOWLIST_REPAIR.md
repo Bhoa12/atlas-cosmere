@@ -28,9 +28,9 @@ Both digests were already present in the corresponding source records and are ve
 ## Change
 
 - Added the two missing SHA-256 values to the expected digest sequence in the exact order used by `HOID_EDITORIAL_DRAFTS`.
-- Preserved the exact-length assertion of 65 drafts.
+- At the digest-repair commit, preserved the exact-length assertion for the then-current 65 drafts; after the chapter-21 addition in the same run, the final suite asserts 66 drafts.
 - Preserved the per-summary recomputation using `sha256Hex(draft.summary)`.
-- Preserved the requirement that all 65 drafts remain `pending-review`.
+- Preserved the requirement that every staged draft remain `pending-review`; the subsequent chapter-21 addition brings the final pending-review inventory to 66.
 - Preserved the empty production editorial registry assertion.
 
 No summary text, source digest, chapter watermark, reading progress, evidence authorization, production claim or activation receipt was changed. No spoiler gate was weakened.

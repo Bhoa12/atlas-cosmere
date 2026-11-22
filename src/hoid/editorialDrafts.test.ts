@@ -470,7 +470,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("keeps the chapter-eleven summaries unavailable until chapter twelve is completed", () => {
     const chapterElevenDrafts = HOID_EDITORIAL_DRAFTS.filter(draft => draft.evidenceSource.chapter === 11);
-    expect(chapterElevenDrafts).toHaveLength(3);
+    expect(chapterElevenDrafts).toHaveLength(4);
     for (const draft of chapterElevenDrafts) {
       expect(draft.evidenceUnlock).toEqual({ bookId: draft.evidenceSource.bookId, chapter: draft.evidenceSource.chapter });
       expect(draft.review.status).toBe("pending-review");

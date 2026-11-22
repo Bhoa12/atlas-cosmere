@@ -123,4 +123,25 @@ describe("Hoid versioned claim-selection protocol", () => {
       0,
     )).toBeNull();
   });
+  it("binds the local book scope into the request fingerprint without forwarding it", () => {
+    const baseInput = {
+      question: "¿Qué significa el concepto sintético?",
+      intent: "explain" as const,
+      candidates,
+      selectionBudget: budget,
+      reading: [{ bookId: "tfe", chapter: 4 }],
+    };
+    const tfeScope = createHoidClaimSelectionRequest({
+      ...baseInput,
+      bookScope: { mode: "single-work", bookIds: ["tfe"] },
+    });
+    const woaScope = createHoidClaimSelectionRequest({
+      ...baseInput,
+      bookScope: { mode: "single-work", bookIds: ["woa"] },
+    });
+    expect(tfeScope.requestFingerprint).not.toBe(woaScope.requestFingerprint);
+    expect(tfeScope).not.toHaveProperty("bookScope");
+    expect(tfeScope.schemaVersion).toBe(1);
+  });
+
 });

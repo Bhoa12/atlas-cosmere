@@ -203,32 +203,32 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
-      } else if (!conversationGateway) {
-        conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
-        respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
       } else if (intentPlan.mode === 'reading-progress') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-        const result = await conversationGateway.readingContext({ progress: currentProgress });
-        if (result.status === 'ready') {
-          responseScope = {
-            revision: result.progressRevision,
-            fingerprint: result.progressFingerprint,
-          };
-          const positions = result.context.positions;
-          respuesta = positions.length === 0
-            ? 'No hay obras iniciadas en el progreso guardado.'
-            : 'Este es tu progreso de lectura registrado:\\n\\n'
-              + positions.map(position => position.status === 'completed'
-                ? `• ${position.title}: obra marcada como terminada.`
-                : `• ${position.title}: estás en el capítulo ${position.currentChapter}; completado hasta ${position.completedThroughChapter ?? 'ningún capítulo'}.`
-              ).join('\\n')
-              + `\n\nTienes ${result.context.startedCount} obras con progreso registrado de ${result.context.catalogSize}. Hay ${result.context.trackableUnstartedCount} obras sin empezar con estructura verificada y ${result.context.untrackedWorkCount} obras cuya segmentación todavía no está verificada. Esto describe únicamente tu posición registrada, no es un resumen narrativo.`;
+        if (!conversationGateway) {
+          respuesta = 'El runtime de progreso no está disponible. No mostraré una posición estimada.';
         } else {
-          respuesta = result.reason === 'progress-changed'
-            ? 'Tu progreso ha cambiado mientras consultaba tu posición. He descartado el resultado; vuelve a preguntarme.'
-            : 'No puedo verificar el progreso actual. No mostraré una posición de lectura estimada.';
+          const result = await conversationGateway.readingContext({ progress: currentProgress });
+          if (result.status === 'ready') {
+            responseScope = {
+              revision: result.progressRevision,
+              fingerprint: result.progressFingerprint,
+            };
+            const positions = result.context.positions;
+            respuesta = positions.length === 0
+              ? 'No hay obras iniciadas en el progreso guardado.'
+              : 'Este es tu progreso de lectura registrado:\\n\\n'
+                + positions.map(position => position.status === 'completed'
+                  ? `• ${position.title}: obra marcada como terminada.`
+                  : `• ${position.title}: estás en el capítulo ${position.currentChapter}; completado hasta ${position.completedThroughChapter ?? 'ningún capítulo'}.`
+                ).join('\\n')
+                + `\\n\\nTienes ${result.context.startedCount} obras con progreso registrado de ${result.context.catalogSize}. Hay ${result.context.trackableUnstartedCount} obras sin empezar con estructura verificada y ${result.context.untrackedWorkCount} obras cuya segmentación todavía no está verificada. Esto describe únicamente tu posición registrada, no es un resumen narrativo.`;
+          } else {
+            respuesta = result.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado mientras consultaba tu posición. He descartado el resultado; vuelve a preguntarme.'
+              : 'No puedo verificar el progreso actual. No mostraré una posición de lectura estimada.';
+          }
         }
       } else if (intentPlan.mode === 'catalogue-recommendation') {
         conversationContextRef.current = null;
@@ -245,18 +245,18 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           };
           respuesta = presentation.items.length === 0
             ? 'No hay obras en curso que retomar ni obras sin empezar en el catálogo actual.'
-            : presentation.items.map(item => `${item.heading}\n${item.detail}`).join('\n\n')
-              + '\n\nEstas explicaciones utilizan únicamente tu progreso y los manifiestos de lectura. No establecen una cronología canónica ni desbloquean información narrativa.';
+            : presentation.items.map(item => `${item.heading}\\n${item.detail}`).join('\\n\\n')
+              + '\\n\\nEstas explicaciones utilizan únicamente tu progreso y los manifiestos de lectura. No establecen una cronología canónica ni desbloquean información narrativa.';
         } else if (presentation.status === 'selection-required') {
           responseScope = {
             revision: presentation.progressRevision,
             fingerprint: presentation.progressFingerprint,
           };
-          respuesta = `${presentation.heading}\n${presentation.detail}\n\n`
+          respuesta = `${presentation.heading}\\n${presentation.detail}\\n\\n`
             + presentation.choices.map(choice =>
               `• ${choice.title} · capítulo actual ${choice.currentChapter} · completado hasta ${choice.completedThroughChapter ?? 'ningún capítulo'}`,
-            ).join('\n')
-            + '\n\nAbre el panel «Retomar y descubrir» y selecciona la obra que quieres continuar.';
+            ).join('\\n')
+            + '\\n\\nAbre el panel «Retomar y descubrir» y selecciona la obra que quieres continuar.';
         } else {
           respuesta = presentation.reason === 'invalid-progress'
             ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
@@ -266,7 +266,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
-
+      } else if (!trustedAnswerPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         responseScope = requestScope;

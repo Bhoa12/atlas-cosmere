@@ -1,11 +1,13 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
-import { validEditionBoundReadingPositions } from "./editionProgressValidation";
+import {
+  validateHoidCursorProgressSnapshot,
+  type HoidCursorProgressPosition,
+} from "./cursorProgressLedger";
 import {
   createHoidReadingCursor,
   getHoidReadingManifest,
   type HoidReadingCursor,
 } from "./readingManifest";
-import { recommendReadingNextSteps } from "./recommendations";
 
 export type HoidRecommendationNavigationTarget =
   | Readonly<{
@@ -27,7 +29,7 @@ export type HoidEditionBoundRecommendation =
       title: string;
       reason: "resume-current-work";
       currentChapter: number;
-      completedThroughChapter: number;
+      completedThroughChapter: number | null;
       target: HoidRecommendationNavigationTarget;
     }>
   | Readonly<{
@@ -41,6 +43,7 @@ export type HoidEditionBoundRecommendationResult =
   | Readonly<{
       status: "ready";
       items: readonly HoidEditionBoundRecommendation[];
+      progressRevision: number;
     }>
   | Readonly<{
       status: "unavailable";
@@ -49,6 +52,7 @@ export type HoidEditionBoundRecommendationResult =
 
 const MAX_LIMIT = HOID_SOURCE_BIBLIOGRAPHY.length;
 const TITLES = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
+type PartialPosition = Extract<HoidCursorProgressPosition, { cursor: HoidReadingCursor }>;
 
 function targetForChapter(
   sourceId: string,
@@ -92,20 +96,21 @@ function targetForChapter(
 }
 
 /**
- * Convert metadata-only reading recommendations into exact edition-bound
- * navigation targets. This function never chooses a Cosmere reading order,
- * infers narrative dependencies, or unlocks evidence.
+ * Convert a validated cursor-native v2 snapshot into exact edition-bound
+ * recommendation targets. A cursor identifies the chapter currently open;
+ * the completed-through watermark is therefore chapterNumber - 1.
  *
- * A work with unresolved segmentation remains a catalog-only recommendation.
- * A numbered target is emitted only when the current manifest contains the
- * requested unit and its cursor validates against that exact manifest.
+ * This function never chooses a Cosmere reading order, infers narrative
+ * dependencies, changes progress or unlocks evidence. Unsegmented works stay
+ * catalog-only, and an absent locator is reported as cursor-only rather than
+ * replaced with a guessed EPUB path.
  */
 export function recommendEditionBoundReadingNextSteps(
-  readingInput: unknown,
+  progressInput: unknown,
   limit = 3,
   activeBookId?: unknown,
 ): HoidEditionBoundRecommendationResult {
-  if (!Number.isFinite(limit)) {
+  if (typeof limit !== "number" || !Number.isFinite(limit)) {
     return Object.freeze({ status: "unavailable", reason: "invalid-limit" });
   }
 
@@ -116,49 +121,56 @@ export function recommendEditionBoundReadingNextSteps(
     return Object.freeze({ status: "unavailable", reason: "invalid-active-work" });
   }
 
-  const reading = validEditionBoundReadingPositions(readingInput);
-  if (!reading) {
+  const validation = validateHoidCursorProgressSnapshot(progressInput);
+  if (validation.status !== "valid") {
     return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
   }
 
   const safeLimit = Math.min(MAX_LIMIT, Math.max(0, Math.floor(limit)));
-  const recommendations = recommendReadingNextSteps(reading, safeLimit, activeBookId);
-  const items: HoidEditionBoundRecommendation[] = [];
+  const positions = validation.snapshot.positions;
+  const startedIds = new Set(positions.map(position => position.bookId));
+  const inProgress = positions.filter(
+    (position): position is PartialPosition => "cursor" in position,
+  );
 
-  for (const recommendation of recommendations) {
-    const title = TITLES.get(recommendation.sourceId);
-    if (!title || title !== recommendation.title) {
+  let activePosition: PartialPosition | undefined;
+  if (typeof activeBookId === "string") {
+    activePosition = inProgress.find(position => position.bookId === activeBookId);
+  } else if (inProgress.length === 1) {
+    activePosition = inProgress[0];
+  }
+
+  const items: HoidEditionBoundRecommendation[] = [];
+  if (safeLimit > 0 && activePosition) {
+    const currentChapter = activePosition.cursor.chapterNumber;
+    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === activePosition.bookId);
+    if (!source) {
       return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
     }
+    items.push(Object.freeze({
+      sourceId: source.id,
+      title: source.title,
+      reason: "resume-current-work",
+      currentChapter,
+      completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
+      target: targetForChapter(source.id, currentChapter),
+    }));
+  }
 
-    if (recommendation.reason === "resume-current-work") {
-      if (
-        !Number.isSafeInteger(recommendation.currentChapter) ||
-        !Number.isSafeInteger(recommendation.completedThroughChapter) ||
-        recommendation.currentChapter !== recommendation.completedThroughChapter + 1
-      ) {
-        return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
-      }
-      items.push(Object.freeze({
-        sourceId: recommendation.sourceId,
-        title,
-        reason: "resume-current-work",
-        currentChapter: recommendation.currentChapter,
-        completedThroughChapter: recommendation.completedThroughChapter,
-        target: targetForChapter(recommendation.sourceId, recommendation.currentChapter),
-      }));
-    } else {
-      items.push(Object.freeze({
-        sourceId: recommendation.sourceId,
-        title,
-        reason: "unread-source",
-        target: targetForChapter(recommendation.sourceId, 1),
-      }));
-    }
+  for (const source of HOID_SOURCE_BIBLIOGRAPHY) {
+    if (items.length >= safeLimit) break;
+    if (startedIds.has(source.id)) continue;
+    items.push(Object.freeze({
+      sourceId: source.id,
+      title: source.title,
+      reason: "unread-source",
+      target: targetForChapter(source.id, 1),
+    }));
   }
 
   return Object.freeze({
     status: "ready",
     items: Object.freeze(items),
+    progressRevision: validation.snapshot.revision,
   });
 }

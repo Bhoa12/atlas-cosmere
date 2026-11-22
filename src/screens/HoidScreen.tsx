@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from '../hoid/cursorEvidenceRuntime';
@@ -26,6 +26,12 @@ import {
 } from '../hoid/editionBoundRecommendationPresentation';
 import { prepareHoidRecommendationNavigationHandoff } from '../hoid/editionBoundRecommendationNavigation';
 import { HOID_TOPIC_TAXONOMY, type HoidTopicId } from '../hoid/topicTaxonomy';
+import { HOID_SOURCE_BIBLIOGRAPHY } from '../hoid/bibliography';
+import {
+  buildHoidAnswerScopeSelection,
+  toggleHoidAnswerScopeBook,
+  type HoidAnswerScopeMode,
+} from '../hoid/answerScopeSelection';
 import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
   createHoidTopicInterestRecommendationGateway,
@@ -128,6 +134,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [topicRecommendationSelectionKey, setTopicRecommendationSelectionKey] = useState<string | null>(null);
   const [topicRecommendationTrustPort, setTopicRecommendationTrustPort] = useState<HoidTrustedScreenAnswerPort | null>(null);
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
+  const [answerScopeMode, setAnswerScopeMode] = useState<HoidAnswerScopeMode>('automatic');
+  const [answerScopeBookIds, setAnswerScopeBookIds] = useState<readonly string[]>([]);
+  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: Hoid aplicará el progreso de cada obra sin ampliar sus permisos.');
 
   const liveProgress = progressReaderRef.current();
   const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
@@ -165,6 +174,55 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setMensajes(previous => pruneStaleHoidMessages(previous, liveProgressScope));
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado]);
 
+  const resetConversationForAnswerScopeChange = () => {
+    conversationContextRef.current = null;
+    typedConversationContextRef.current = null;
+    answerAbortControllerRef.current?.abort();
+    answerAbortControllerRef.current = null;
+    setCanCancelAnswer(false);
+    setMensajes([{
+      id: HOID_STATIC_GREETING_ID,
+      emisor: 'hoid',
+      kind: HOID_STATIC_GREETING_KIND,
+      texto: HOID_STATIC_GREETING_TEXT,
+    }]);
+  };
+
+  const changeAnswerScopeMode = (mode: HoidAnswerScopeMode) => {
+    if (cargando || mode === answerScopeMode) return;
+    const nextIds = mode === 'automatic'
+      ? []
+      : mode === 'single-work'
+        ? answerScopeBookIds.slice(0, 1)
+        : answerScopeBookIds.slice(0, 4);
+    setAnswerScopeMode(mode);
+    setAnswerScopeBookIds(nextIds);
+    setAnswerScopeMessage(mode === 'automatic'
+      ? 'Ámbito automático: Hoid aplicará el progreso de cada obra sin ampliar sus permisos.'
+      : mode === 'single-work'
+        ? 'Selecciona exactamente una obra. Solo se considerarán afirmaciones cuya evidencia pertenezca a ella.'
+        : 'Selecciona entre dos y cuatro obras. Cada una debe aportar evidencia autorizada; si falta una, Hoid se abstendrá.');
+    resetConversationForAnswerScopeChange();
+  };
+
+  const toggleAnswerScopeBook = (bookId: string) => {
+    if (cargando || answerScopeMode === 'automatic') return;
+    const next = toggleHoidAnswerScopeBook(
+      { mode: answerScopeMode, bookIds: answerScopeBookIds },
+      bookId,
+    );
+    if (next.bookIds.join('\\n') === answerScopeBookIds.join('\\n')) return;
+    setAnswerScopeBookIds(next.bookIds);
+    setAnswerScopeMessage(answerScopeMode === 'single-work'
+      ? 'La respuesta narrativa quedará limitada a la obra seleccionada.'
+      : next.bookIds.length < 2
+        ? 'Selecciona al menos dos obras para comparar.'
+        : next.bookIds.length === 4
+          ? 'Has alcanzado el máximo de cuatro obras.'
+          : 'Cada obra seleccionada deberá aportar evidencia desbloqueada.');
+    resetConversationForAnswerScopeChange();
+  };
+
   const cancelarRespuesta = () => {
     const controller = answerAbortControllerRef.current;
     if (!controller) return;
@@ -192,6 +250,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
 
     try {
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
+      const answerScopeSelection = buildHoidAnswerScopeSelection(answerScopeMode, answerScopeBookIds);
       let respuesta: string;
       let citas: readonly HoidPresentedCitation[] | undefined;
       let segmentos: readonly HoidPresentedSegment[] | undefined;
@@ -262,6 +321,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
             : 'No puedo generar una recomendación válida con esos parámetros.';
         }
+      } else if (answerScopeSelection.status === 'incomplete') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        responseScope = requestScope;
+        respuesta = answerScopeSelection.reason === 'one-work-required'
+          ? 'Selecciona exactamente una obra para limitar esta respuesta narrativa.'
+          : answerScopeSelection.reason === 'two-to-four-works-required'
+            ? 'Selecciona entre dos y cuatro obras para una comparación narrativa.'
+            : 'La selección de obras no es válida. No enviaré la consulta al runtime.';
       } else if (!conversationGateway) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
@@ -283,6 +351,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           depth: explanationDepth,
           context: conversationContextRef.current ?? undefined,
           typedContext: typedConversationContextRef.current ?? undefined,
+          ...(answerScopeSelection.status === 'ready' ? { bookScope: answerScopeSelection.scope } : {}),
         }, { signal: controller.signal });
         if (result.status === 'ready' && result.answer.reason === 'request-cancelled') {
           responseScope = null;
@@ -705,6 +774,84 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       </View>
 
 
+      <View style={styles.answerScopePanel}>
+        <Text style={styles.recommendationTitle}>ÁMBITO DE RESPUESTA NARRATIVA</Text>
+        <Text style={styles.recommendationNote}>
+          Limita las evidencias por obra. Elegir un libro no desbloquea capítulos; cada fuente sigue su propio progreso.
+        </Text>
+        <View style={styles.answerScopeModeRow}>
+          {([
+            { value: 'automatic', label: 'Automático' },
+            { value: 'single-work', label: 'Una obra' },
+            { value: 'cross-work', label: 'Comparar 2–4' },
+          ] as const).map(option => {
+            const selected = answerScopeMode === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected, disabled: cargando }}
+                disabled={cargando}
+                onPress={() => changeAnswerScopeMode(option.value)}
+                style={[
+                  styles.answerScopeMode,
+                  selected && styles.answerScopeModeSelected,
+                  cargando && styles.disabledButton,
+                ]}
+              >
+                <Text style={[styles.topicChipText, selected && styles.topicChipTextSelected]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {answerScopeMode !== 'automatic' && (
+          <View>
+            <Text style={styles.answerScopeHint}>
+              {answerScopeMode === 'single-work'
+                ? 'Selecciona una obra del catálogo:'
+                : `Obras seleccionadas: ${answerScopeBookIds.length}/4`}
+            </Text>
+            <ScrollView
+              style={styles.answerScopeScroll}
+              contentContainerStyle={styles.topicChipRow}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              {HOID_SOURCE_BIBLIOGRAPHY.map(work => {
+                const selected = answerScopeBookIds.includes(work.id);
+                const atLimit = answerScopeMode === 'cross-work' && answerScopeBookIds.length >= 4 && !selected;
+                const disabled = cargando || atLimit;
+                return (
+                  <TouchableOpacity
+                    key={work.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected, disabled }}
+                    accessibilityLabel={`${selected ? 'Quitar' : 'Seleccionar'} ${work.title} para el ámbito narrativo`}
+                    disabled={disabled}
+                    onPress={() => toggleAnswerScopeBook(work.id)}
+                    style={[
+                      styles.topicChip,
+                      selected && styles.topicChipSelected,
+                      disabled && styles.disabledButton,
+                    ]}
+                  >
+                    <Text style={[styles.topicChipText, selected && styles.topicChipTextSelected]}>
+                      {work.title}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+        <Text style={styles.answerScopeMessage}>{answerScopeMessage}</Text>
+        <Text style={styles.recommendationNote}>
+          Este ámbito solo afecta a explicaciones narrativas; el progreso y las recomendaciones de catálogo mantienen sus propios contratos.
+        </Text>
+      </View>
+
       <View style={styles.topicInterestPanel}>
         <Text style={styles.recommendationTitle}>TEMAS QUE TE INTERESAN</Text>
         <Text style={styles.recommendationNote}>
@@ -899,6 +1046,13 @@ const styles = StyleSheet.create({
   recommendationButton: { backgroundColor: '#312e81', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
   recommendationButtonText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
   recommendationMessage: { color: '#cbd5e1', fontSize: 11, lineHeight: 16, marginTop: 8 },
+  answerScopePanel: { padding: 12, backgroundColor: '#111a2d', borderBottomWidth: 1, borderColor: '#334155' },
+  answerScopeModeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9 },
+  answerScopeMode: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, borderWidth: 1, borderColor: '#475569', backgroundColor: '#111827' },
+  answerScopeModeSelected: { borderColor: '#818cf8', backgroundColor: '#312e81' },
+  answerScopeHint: { color: '#cbd5e1', fontSize: 10, marginTop: 10 },
+  answerScopeScroll: { maxHeight: 142, marginTop: 4 },
+  answerScopeMessage: { color: '#c7d2fe', fontSize: 10, lineHeight: 15, marginTop: 8 },
   topicInterestPanel: { padding: 12, backgroundColor: '#0d1526', borderBottomWidth: 1, borderColor: '#1e293b' },
   topicChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9, marginBottom: 10 },
   topicChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: '#475569', backgroundColor: '#111827' },

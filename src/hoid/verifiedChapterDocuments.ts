@@ -13,8 +13,8 @@ type VerifiedChapterDocumentSource = Readonly<{
  *
  * No chapter text, title or extracted passage is stored.
  * Earlier runs added the initial sparse allowlist. Run 229 added four chapter
- * fingerprints; Run 230 revalidated the available Roshar editions and added
- * El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20.
+ * fingerprints; Run 230 added El Camino de los Reyes chapter 19 and Danzante
+ * del Filo chapter 20; Run 231 added El Camino de los Reyes chapter 20.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({

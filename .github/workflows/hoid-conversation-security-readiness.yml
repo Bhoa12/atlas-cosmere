@@ -1,0 +1,41 @@
+name: Hoid native conversation security readiness
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/conversationSecurityReadiness.test.ts"
+      - "docs/hoid/RUN223_NATIVE_CONVERSATION_SECURITY_READINESS.md"
+      - ".github/workflows/hoid-conversation-security-readiness.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/conversationSecurityReadiness.test.ts"
+      - "docs/hoid/RUN223_NATIVE_CONVERSATION_SECURITY_READINESS.md"
+      - ".github/workflows/hoid-conversation-security-readiness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-security-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test native security readiness gate
+        run: npx vitest run src/hoid/conversationSecurityReadiness.test.ts
+      - name: Type-check native security readiness gate
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/conversationSecurityReadiness.ts
+          src/hoid/conversationSecurityReadiness.test.ts

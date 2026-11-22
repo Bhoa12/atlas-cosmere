@@ -6,10 +6,10 @@ Mantener el contexto de una respuesta dentro de la obra o conjunto de obras que 
 
 ## Contrato
 
-`bookScope` es opcional y solo admite registros planos cerrados:
+\`bookScope\` es opcional y solo admite registros planos cerrados:
 
-- `{ mode: "single-work", bookIds: [bookId] }`: una obra conocida.
-- `{ mode: "cross-work", bookIds: [bookIdA, bookIdB, ...] }`: entre dos y cuatro obras conocidas.
+- \`{ mode: "single-work", bookIds: [bookId] }\`: una obra conocida.
+- \`{ mode: "cross-work", bookIds: [bookIdA, bookIdB, ...] }\`: entre dos y cuatro obras conocidas.
 
 Los IDs deben existir en la bibliografía, ser únicos y estar expresados como datos propios enumerables. Se rechazan getters, símbolos, propiedades adicionales, arrays dispersos, IDs desconocidos y combinaciones de modo y cardinalidad incompatibles.
 
@@ -19,7 +19,7 @@ Los IDs deben existir en la bibliografía, ser únicos y estar expresados como d
 2. Canonicalizar el ámbito explícito.
 3. Recuperar únicamente evidencias con procedencia verificada y desbloqueo alcanzado en su propia obra.
 4. Filtrar las afirmaciones: todas sus evidencias deben permanecer dentro del ámbito.
-5. En `cross-work`, comprobar antes del proveedor que existe evidencia autorizada en cada obra solicitada.
+5. En \`cross-work\`, comprobar antes del proveedor que existe evidencia autorizada en cada obra solicitada.
 6. Enviar al selector solo los candidatos ya autorizados.
 7. Reconciliar los IDs seleccionados con los candidatos locales.
 8. Exigir que la respuesta final cubra todas las obras del ámbito y ninguna ajena.
@@ -27,7 +27,7 @@ Los IDs deben existir en la bibliografía, ser únicos y estar expresados como d
 
 ## Presupuesto
 
-El presupuesto `minimumWorks` se endurece al menos al número de obras declaradas. Si `maxWorks` no permite cubrir el ámbito, o el presupuesto exige más obras de las declaradas, la solicitud se rechaza antes del proveedor. No se recortan evidencias para forzar una respuesta.
+El presupuesto \`minimumWorks\` se endurece al menos al número de obras declaradas. Si \`maxWorks\` no permite cubrir el ámbito, o el presupuesto exige más obras de las declaradas, la solicitud se rechaza antes del proveedor. No se recortan evidencias para forzar una respuesta.
 
 ## Frontera del proveedor
 
@@ -41,7 +41,6 @@ Hoid se abstiene cuando una obra solicitada no tiene evidencia desbloqueada sufi
 
 El ámbito contiene únicamente IDs de bibliografía. No incorpora EPUBs, XHTML, texto extraído, rutas privadas ni contenido protegido.
 
-
 ## Integración de selección en HoidScreen
 
 La pantalla expone tres modos temporales:
@@ -52,11 +51,11 @@ La pantalla expone tres modos temporales:
 
 La selección se mantiene solo en memoria de pantalla. Cambiar el modo o las obras seleccionadas borra los contextos conversacionales tipados y reinicia el hilo visible para impedir que un seguimiento reutilice una respuesta generada bajo otro ámbito. No se escribe la selección en SQLite ni se guarda como preferencia permanente.
 
-El adaptador de selección es puro (answerScopeSelection.ts) y produce el mismo contrato cerrado que valida el runtime. La interfaz no concede permisos: una obra seleccionada sin evidencia desbloqueada sigue sin producir respuesta.
+El adaptador de selección es puro (\`answerScopeSelection.ts\`) y produce el mismo contrato cerrado que valida el runtime. La interfaz no concede permisos: una obra seleccionada sin evidencia desbloqueada sigue sin producir respuesta.
 
 ## Propagación por el gateway conversacional
 
-HoidConversationGateway valida y canonicaliza bookScope antes de resolver referencias o invocar el runtime. La selección canonicalizada se propaga por las rutas de entidad única, seguimiento tipado, seguimiento de grupo y consulta general.
+HoidConversationGateway valida y canonicaliza \`bookScope\` antes de resolver referencias o invocar el runtime. La selección canonicalizada se propaga por las rutas de entidad única, seguimiento tipado, seguimiento de grupo y consulta general.
 
 Cuando existe un ámbito explícito, las preguntas de relaciones no usan el atajo del grafo local sin ámbito. Se enrutan por el runtime estricto de evidencias para que cada afirmación satisfaga la política de una o varias obras. Sin ámbito explícito, se conserva la ruta local revisada existente.
 
@@ -68,4 +67,17 @@ Después de que la autoridad firmada haya validado el texto, las citas y los des
 
 Las comparaciones explícitas requieren además procedencia por segmento. La matriz transversal se reconstruye desde la respuesta validada y el snapshot de progreso de la solicitud, y agrupa únicamente títulos y capítulos. Si falta una obra, una cita no coincide con la bibliografía, el mapeo por segmento no se valida o el conjunto de obras difiere del selector, se retiene toda la comparación; no se presenta una versión parcial.
 
-En modo automático, una respuesta cuyas citas abarcan varias obras también requiere procedencia por segmento completa; si no valida, se retiene la respuesta transversal en lugar de mostrarla parcialmente. Esta comprobación de presentación no sustituye la validación de desbloqueo del presentador firmado ni concede acceso narrativo.
+En modo automático, una respuesta cuyas citas abarcan varias obras también requiere procedencia por segmento completa; si esa procedencia no valida, se retiene la respuesta transversal en lugar de mostrarla parcialmente. Las respuestas de una sola obra conservan sus citas ordinarias por segmento.
+
+## Run 243 — Integridad claim-to-evidence en la frontera de presentación
+
+Cuando una presentación incluye \`layout\` y \`segments\`, la validación de ámbito comprueba también el mapeo individual de cada afirmación:
+
+- Cada segmento debe corresponder al \`claimId\` de la misma posición en la lista canónica.
+- Cada segmento debe incluir una lista densa y única de IDs de evidencia.
+- Las citas del segmento deben coincidir campo por campo con las citas globales: ID, obra, título bibliográfico, capítulo y localizador opaco.
+- Ningún segmento puede introducir una cita que no exista en el conjunto global validado.
+- Toda evidencia global debe respaldar al menos un segmento; no se admiten citas huérfanas.
+- Los registros y arrays se inspeccionan mediante descriptores de datos. Los getters, arrays dispersos, claves adicionales y estructuras malformadas se rechazan sin ejecutar código accesorio.
+
+Esta es una comprobación de consistencia y defensa en profundidad posterior al presentador confiable. No valida por sí sola el desbloqueo, no inspecciona EPUBs y no concede permisos narrativos. Las respuestas heredadas sin segmentación siguen sujetas al contrato anterior; cualquier respuesta que sí exponga segmentos debe pasar el mapeo completo antes de que HoidScreen los represente.

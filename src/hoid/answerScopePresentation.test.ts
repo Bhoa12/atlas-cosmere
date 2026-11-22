@@ -12,7 +12,7 @@ function citation(
     sourceBookId,
     title,
     chapter,
-    locatorId: `Text/${sourceBookId}/chapter-${chapter}.xhtml`,
+    locatorId: \`Text/\${sourceBookId}/chapter-\${chapter}.xhtml\`,
   });
 }
 
@@ -26,6 +26,29 @@ function presentation(
     claimIds: Object.freeze(["claim.answer"]),
     evidenceIds: Object.freeze([...evidenceIds]),
     citations: Object.freeze([...citations]),
+  });
+}
+
+function segmentedPresentation(
+  citations: readonly unknown[],
+  segmentOverrides: Readonly<{
+    claimId?: string;
+    evidenceIds?: readonly string[];
+    citations?: readonly unknown[];
+  }> = {},
+) {
+  const evidenceIds = citations.map(item => (item as { evidenceId: string }).evidenceId);
+  return Object.freeze({
+    ...presentation(citations),
+    layout: "plain",
+    segments: Object.freeze([
+      Object.freeze({
+        claimId: segmentOverrides.claimId ?? "claim.answer",
+        text: "Respuesta editorial verificada.",
+        evidenceIds: Object.freeze([...(segmentOverrides.evidenceIds ?? evidenceIds)]),
+        citations: Object.freeze([...(segmentOverrides.citations ?? citations)]),
+      }),
+    ]),
   });
 }
 
@@ -147,6 +170,7 @@ describe("validateHoidPresentedAnswerScope", () => {
       presentation([citation("evidence.tfe", "tfe", "El Imperio Final", 0)]),
     )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
   });
+
   it("rejects control characters in opaque locator identifiers", () => {
     const invalidCitation = {
       ...tfe,
@@ -157,6 +181,7 @@ describe("validateHoidPresentedAnswerScope", () => {
       reason: "invalid-presentation",
     });
   });
+
   it("rejects overlong evidence identifiers", () => {
     const longId = "e".repeat(129);
     const invalidCitation = {
@@ -166,5 +191,85 @@ describe("validateHoidPresentedAnswerScope", () => {
     expect(validateHoidPresentedAnswerScope(
       presentation([invalidCitation], [longId]),
     )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
+  });
+
+  it("accepts a segmented presentation when every claim maps to the exact top-level citations", () => {
+    expect(validateHoidPresentedAnswerScope(
+      segmentedPresentation([tfe, twok]),
+      { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    )).toEqual({ status: "ready", sourceBookIds: ["tfe", "twok"] });
+  });
+
+  it("rejects a segment that introduces a citation outside the canonical top-level set", () => {
+    expect(validateHoidPresentedAnswerScope(
+      segmentedPresentation([tfe], {
+        evidenceIds: ["evidence.tfe", "evidence.wor"],
+        citations: [tfe, wor],
+      }),
+      { mode: "single-work", bookIds: ["tfe"] },
+    )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
+  });
+
+  it("rejects a segment whose claim ID does not match the ordered claim list", () => {
+    expect(validateHoidPresentedAnswerScope(
+      segmentedPresentation([tfe], { claimId: "claim.unrelated" }),
+    )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
+  });
+
+  it("rejects a segment that changes the chapter or locator for an existing evidence ID", () => {
+    const altered = citation("evidence.tfe", "tfe", "El Imperio Final", 3);
+    expect(validateHoidPresentedAnswerScope(
+      segmentedPresentation([tfe], { citations: [altered] }),
+    )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
+  });
+
+  it("rejects top-level evidence that is not attached to any displayed claim", () => {
+    expect(validateHoidPresentedAnswerScope(
+      segmentedPresentation([tfe, twok], {
+        evidenceIds: ["evidence.tfe"],
+        citations: [tfe],
+      }),
+    )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
+  });
+
+  it("rejects accessor-backed segment fields without executing getters", () => {
+    let invoked = false;
+    const segment = {
+      text: "Respuesta editorial verificada.",
+      evidenceIds: ["evidence.tfe"],
+      citations: [tfe],
+    };
+    Object.defineProperty(segment, "claimId", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        invoked = true;
+        return "claim.answer";
+      },
+    });
+    const input = {
+      ...presentation([tfe]),
+      layout: "plain",
+      segments: [segment],
+    };
+
+    expect(validateHoidPresentedAnswerScope(input)).toEqual({
+      status: "unavailable",
+      reason: "invalid-presentation",
+    });
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects sparse segment arrays", () => {
+    const segments = new Array(1);
+    const input = {
+      ...presentation([tfe]),
+      layout: "plain",
+      segments,
+    };
+    expect(validateHoidPresentedAnswerScope(input)).toEqual({
+      status: "unavailable",
+      reason: "invalid-presentation",
+    });
   });
 });

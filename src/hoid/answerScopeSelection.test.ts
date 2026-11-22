@@ -38,6 +38,21 @@ describe("Hoid answer-scope screen selection", () => {
       .toEqual({ status: "incomplete", reason: "invalid-selection" });
   });
 
+  it("rejects sparse and accessor-backed selections without executing getters", () => {
+    expect(buildHoidAnswerScopeSelection("single-work", new Array(1)))
+      .toEqual({ status: "incomplete", reason: "invalid-selection" });
+    let invoked = false;
+    const ids = ["tfe"];
+    Object.defineProperty(ids, "0", {
+      enumerable: true,
+      configurable: true,
+      get: () => { invoked = true; return "tfe"; },
+    });
+    expect(buildHoidAnswerScopeSelection("single-work", ids))
+      .toEqual({ status: "incomplete", reason: "invalid-selection" });
+    expect(invoked).toBe(false);
+  });
+
   it("replaces the previous choice in single-work mode", () => {
     const first = toggleHoidAnswerScopeBook({ mode: "single-work", bookIds: [] }, "tfe");
     expect(first.bookIds).toEqual(["tfe"]);

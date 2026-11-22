@@ -8,19 +8,33 @@ on:
       - "src/hoid/conversationSecurityAttestation.ts"
       - "src/hoid/conversationSecurityAttestation.test.ts"
       - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/conversationSecuritySession.ts"
+      - "src/hoid/conversationSecuritySession.test.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
       - "src/hoid/nobleEd25519VerificationAdapter.ts"
       - "src/hoid/sha256.ts"
       - "docs/hoid/RUN224_NATIVE_SECURITY_PROVIDER_ATTESTATION.md"
+      - "docs/hoid/RUN225_VERIFIED_CONVERSATION_SECURITY_SESSION.md"
       - ".github/workflows/hoid-conversation-security-attestation.yml"
+      - ".github/workflows/hoid-conversation-security-session.yml"
   pull_request:
     paths:
       - "src/hoid/conversationSecurityAttestation.ts"
       - "src/hoid/conversationSecurityAttestation.test.ts"
       - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/conversationSecuritySession.ts"
+      - "src/hoid/conversationSecuritySession.test.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
       - "src/hoid/nobleEd25519VerificationAdapter.ts"
       - "src/hoid/sha256.ts"
       - "docs/hoid/RUN224_NATIVE_SECURITY_PROVIDER_ATTESTATION.md"
+      - "docs/hoid/RUN225_VERIFIED_CONVERSATION_SECURITY_SESSION.md"
       - ".github/workflows/hoid-conversation-security-attestation.yml"
+      - ".github/workflows/hoid-conversation-security-session.yml"
 
 permissions:
   contents: read
@@ -37,18 +51,26 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test signed native provider attestation
+      - name: Test verified native security sessions
         run: >-
           npx vitest run
+          src/hoid/conversationSecuritySession.test.ts
           src/hoid/conversationSecurityAttestation.test.ts
           src/hoid/conversationSecurityReadiness.test.ts
-      - name: Type-check signed native provider attestation
+          src/hoid/conversationHistoryHydration.test.ts
+          src/hoid/conversationHistoryStorePort.test.ts
+      - name: Type-check verified native security sessions
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
+          src/hoid/conversationSecuritySession.ts
+          src/hoid/conversationSecuritySession.test.ts
           src/hoid/conversationSecurityAttestation.ts
           src/hoid/conversationSecurityAttestation.test.ts
           src/hoid/conversationSecurityReadiness.ts
           src/hoid/conversationSecurityReadiness.test.ts
+          src/hoid/conversationHistoryStorePort.ts
+          src/hoid/conversationHistoryHydration.ts
+          src/hoid/conversationHistoryPolicy.ts
           src/hoid/nobleEd25519VerificationAdapter.ts
           src/hoid/sha256.ts

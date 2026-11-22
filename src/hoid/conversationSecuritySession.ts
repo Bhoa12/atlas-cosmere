@@ -42,6 +42,8 @@ type SessionRecord = Readonly<{
   algorithm: string;
   expiresAt: string;
   expiresAtMs: number;
+  issuedAtMonotonicMs: number;
+  maxDurationMs: number;
   capabilitiesFingerprint: string;
   attestationFingerprint: string;
 }>;
@@ -51,7 +53,8 @@ type SessionBlockedReason =
   | "verification-failed"
   | "invalid-session"
   | "session-expired"
-  | "runtime-mismatch";
+  | "runtime-mismatch"
+  | "clock-unavailable";
 
 type SessionState =
   | Readonly<{ status: "ready"; record: SessionRecord }>
@@ -70,7 +73,7 @@ export type HoidConversationSecuritySessionResult =
     }>
   | Readonly<{
       status: "blocked";
-      reason: "invalid-request" | "verification-failed";
+      reason: "invalid-request" | "verification-failed" | "clock-unavailable";
       verificationReason?: Extract<
         HoidNativeSecurityAttestationVerification,
         { status: "blocked" }
@@ -97,6 +100,22 @@ const REQUEST_KEYS = [
   "expectedAppBuildId",
 ] as const;
 const CONTEXT_KEYS = ["appIdentifier", "appBuildId", "platform"] as const;
+const MAX_SESSION_DURATION_MS = 120_000;
+
+function readMonotonicNow(): number | null {
+  try {
+    const clock = (globalThis as unknown as {
+      performance?: { now?: unknown };
+    }).performance;
+    if (!clock || typeof clock.now !== "function") return null;
+    const value = clock.now.call(clock) as unknown;
+    return typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 function exactRecord(value: unknown, allowedKeys: readonly string[]): DataRecord | null {
   try {
@@ -172,7 +191,13 @@ function sessionState(
   const record = sessions.get(sessionInput);
   if (!record) return Object.freeze({ status: "blocked", reason: "invalid-session" });
 
-  if (Date.now() >= record.expiresAtMs) {
+  const monotonicNow = readMonotonicNow();
+  if (
+    monotonicNow === null ||
+    monotonicNow < record.issuedAtMonotonicMs ||
+    monotonicNow - record.issuedAtMonotonicMs >= record.maxDurationMs ||
+    Date.now() >= record.expiresAtMs
+  ) {
     sessions.delete(sessionInput);
     return Object.freeze({ status: "blocked", reason: "session-expired" });
   }
@@ -200,7 +225,12 @@ export async function createHoidConversationSecuritySession(
   if (!request) return Object.freeze({ status: "blocked", reason: "invalid-request" });
 
   try {
-    const now = new Date(Date.now()).toISOString();
+    const startedAtMs = Date.now();
+    const startedAtMonotonicMs = readMonotonicNow();
+    if (startedAtMonotonicMs === null) {
+      return Object.freeze({ status: "blocked", reason: "clock-unavailable" });
+    }
+    const now = new Date(startedAtMs).toISOString();
     const verification = await verifyHoidNativeConversationSecurityProvider({
       ...request,
       now,
@@ -214,7 +244,20 @@ export async function createHoidConversationSecuritySession(
     }
 
     const expiresAtMs = Date.parse(verification.expiresAt);
-    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    const maxDurationMs = Math.min(
+      expiresAtMs - startedAtMs,
+      MAX_SESSION_DURATION_MS,
+    );
+    const completedAtMonotonicMs = readMonotonicNow();
+    if (
+      !Number.isFinite(expiresAtMs) ||
+      !Number.isFinite(maxDurationMs) ||
+      maxDurationMs <= 0 ||
+      completedAtMonotonicMs === null ||
+      completedAtMonotonicMs < startedAtMonotonicMs ||
+      completedAtMonotonicMs - startedAtMonotonicMs >= maxDurationMs ||
+      expiresAtMs <= Date.now()
+    ) {
       return Object.freeze({
         status: "blocked",
         reason: "verification-failed",
@@ -231,6 +274,8 @@ export async function createHoidConversationSecuritySession(
       algorithm: verification.algorithm,
       expiresAt: verification.expiresAt,
       expiresAtMs,
+      issuedAtMonotonicMs: startedAtMonotonicMs,
+      maxDurationMs,
       capabilitiesFingerprint: verification.capabilitiesFingerprint,
       attestationFingerprint: verification.attestationFingerprint,
     });

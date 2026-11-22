@@ -1646,6 +1646,29 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-021.kaladin-gathers-teft-for-a-secret-plan",
+    kind: "event",
+    aliases: Object.freeze(["Kaladin", "Syl", "Roca", "Teft", "Puente Cuatro", "Sadeas", "Gaz"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 21 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 21,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-043.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 21 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "08954cd89c6ec48a8de4e6114338593cf65279acc5c17afd79627c1e827c761b",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "a9686d904b5cc7258477b6db18e7d965624dfa1d5051e2d380294909c101cbbd" }),
+    summary: "Tras la batalla, Kaladin se levanta pese a sus heridas y comprueba que los tres hombres que atendió siguen vivos, aunque uno necesita medicinas con urgencia. La prohibición de suministros y la orden de negar comida y paga a los heridos revelan que Sadeas pretende convertir su sufrimiento en una advertencia para los demás. Kaladin pide ayuda a las otras cuadrillas, pero casi todos lo rechazan; Roca ofrece parte de su ración y reconoce que la supervivencia del Puente Cuatro durante la última carga no puede explicarse solo como suerte. Mientras entrena, Syl le pregunta por qué mienten los hombres y ambos hablan de la locura, la corrupción y la pérdida del honor. Kaladin negocia con Gaz para que el Puente Cuatro realice una tarea fuera del campamento y después convence a Teft para unirse a él y a Roca. El capítulo termina cuando anuncia que buscarán un junco concreto.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]); 
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

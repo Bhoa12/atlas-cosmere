@@ -555,6 +555,6 @@ Run 232 revalidated the selected Roshar omnibus EPUB and added the exact edition
 
 ## Edition-bound recommendation targets
 
-`editionBoundRecommendations.ts` converts the existing metadata-only recommendation policy into exact reading-manifest targets. Resume recommendations carry a cursor bound to the current manifest ID, edition ID and navigation digest. Unstarted works receive a chapter-one cursor only when their numbered-chapter manifest is available. Works with unresolved segmentation remain catalog-only; missing opaque locators are reported as cursor-only rather than replaced with guessed paths.
+`editionBoundRecommendations.ts` accepts the authoritative cursor-native v2 snapshot and validates it before creating navigation targets. Resume recommendations use the currently open chapter and carry a cursor bound to the exact manifest ID, edition ID and navigation digest. Unstarted works receive a chapter-one cursor only when their numbered-chapter manifest is available. Works with unresolved segmentation remain catalog-only; missing opaque locators are reported as cursor-only rather than replaced with guessed paths.
 
 This contract does not infer a Cosmere reading order, cross-book chronology or narrative dependencies. It never changes progress and grants no evidence unlock. See `docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md`.

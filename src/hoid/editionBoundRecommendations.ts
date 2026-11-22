@@ -58,7 +58,9 @@ function targetForChapter(
   if (manifestResult.status !== "ready") {
     return Object.freeze({
       kind: "catalog-only",
-      reason: "segmentation-unverified",
+      reason: manifestResult.reason === "segmentation-unverified"
+        ? "segmentation-unverified"
+        : "unit-not-found",
     });
   }
 
@@ -130,12 +132,19 @@ export function recommendEditionBoundReadingNextSteps(
     }
 
     if (recommendation.reason === "resume-current-work") {
+      if (
+        !Number.isSafeInteger(recommendation.currentChapter) ||
+        !Number.isSafeInteger(recommendation.completedThroughChapter) ||
+        recommendation.currentChapter !== recommendation.completedThroughChapter + 1
+      ) {
+        return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+      }
       items.push(Object.freeze({
         sourceId: recommendation.sourceId,
         title,
         reason: "resume-current-work",
         currentChapter: recommendation.currentChapter,
-        completedThroughChapter: recommendation.completedThroughChapter ?? 0,
+        completedThroughChapter: recommendation.completedThroughChapter,
         target: targetForChapter(recommendation.sourceId, recommendation.currentChapter),
       }));
     } else {

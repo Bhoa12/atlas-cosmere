@@ -44,3 +44,9 @@ The Run 238 failure is reproduced from the recorded GitHub Actions logs. The fix
 - Parent: `9bb38f7ac13c2b35e92812b9f51c6c47b5b5bff9`
 - PR #131 and all earlier PRs remain untouched and unmerged.
 - `main` remains unchanged.
+
+## Follow-up found on the Run 239 HEAD
+
+The first Run 239 execution confirmed that the navigation Vitest suite now passes, including the new required-key regression test. Its strict type-check then exposed a separate workflow configuration defect: the command explicitly compiled `HoidScreen.tsx` but omitted a JSX mode, producing `TS17004: Cannot use JSX unless the '--jsx' flag is provided`.
+
+The workflow now passes `--jsx react-native` to the direct TypeScript invocation. This is a CI command correction only; it does not change application code or the project compiler policy. The workflow must be rerun on the updated HEAD before this second correction is considered validated.

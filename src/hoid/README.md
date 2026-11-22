@@ -550,3 +550,11 @@ Run 231 revalidated the selected Roshar omnibus EPUB and added the exact edition
 ## Run 232 — El Camino de los Reyes chapter 21
 
 Run 232 revalidated the selected Roshar omnibus EPUB and added the exact edition-bound SHA-256 fingerprint for El Camino de los Reyes chapter 21. The archive passed ZIP CRC validation, the registered navigation digest and chapter-20 predecessor digest matched, and the chapter target resolved to one navigation entry, one OPF manifest item and one reading-spine entry. One original Spanish summary is staged with exact source provenance and remains pending-review; its earliest reader cursor is chapter 22. The inventory is now 70 inspected chapter documents and 66 pending-review summaries. Production knowledge and approved claims remain empty. The current EPUB-filtered Library listing did not return cosmere.epub, so no new El Imperio Final chapter was inspected. See docs/hoid/RUN232_ROSHAR_CHAPTER21_INGESTION.md.
+
+
+
+## Edition-bound recommendation targets
+
+`editionBoundRecommendations.ts` accepts the authoritative cursor-native v2 snapshot and validates it before creating navigation targets. Resume recommendations use the currently open chapter and carry a cursor bound to the exact manifest ID, edition ID and navigation digest. Unstarted works receive a chapter-one cursor only when their numbered-chapter manifest is available. Works with unresolved segmentation remain catalog-only; missing opaque locators are reported as cursor-only rather than replaced with guessed paths.
+
+This contract does not infer a Cosmere reading order, cross-book chronology or narrative dependencies. It never changes progress and grants no evidence unlock. See `docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md`.

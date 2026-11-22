@@ -1,0 +1,54 @@
+name: Hoid edition-bound recommendation targets
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/editionBoundRecommendations.test.ts"
+      - "src/hoid/recommendations.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md"
+      - ".github/workflows/hoid-edition-bound-recommendations.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/editionBoundRecommendations.test.ts"
+      - "src/hoid/recommendations.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md"
+      - ".github/workflows/hoid-edition-bound-recommendations.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  edition-bound-recommendations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test edition-bound recommendation targets
+        run: >-
+          npx vitest run
+          src/hoid/editionBoundRecommendations.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/recommendations.test.ts
+          src/hoid/readingManifest.test.ts
+      - name: Type-check cursor-native recommendation boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/editionBoundRecommendations.ts
+          src/hoid/recommendations.ts
+          src/hoid/readingManifest.ts
+          src/hoid/cursorProgressLedger.ts

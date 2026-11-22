@@ -5,6 +5,7 @@ import {
 } from "./conversationSecurityReadiness";
 import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
 import { sha256Hex } from "./sha256";
+import { isHoidNativeSecurityProviderTrustRegistryPort } from "./conversationProviderTrustRegistry";
 
 const signatureVerifier = createHoidNobleEd25519VerificationPort();
 
@@ -40,7 +41,7 @@ export type HoidNativeSecurityAttestationPort = Readonly<{
 
 export type HoidNativeSecurityProviderTrustPort = Readonly<{
   /** Reads a provider public key pinned by the host outside the attestation payload. */
-  readPinnedProviderKey(providerId: string, platform: NativePlatform): Promise<unknown>;
+  readPinnedProviderKey(providerId: string, platform: NativePlatform, keyId: string): Promise<unknown>;
 }>;
 
 export type HoidNativeSecurityPinnedProviderKey = Readonly<{
@@ -212,6 +213,7 @@ function canonicalPorts(request: CanonicalRequest): CanonicalPorts | null {
     "consumeIssued",
   ]);
   const attestationMethods = canonicalMethodPort(request.attestationPort, ["attest"]);
+  if (!isHoidNativeSecurityProviderTrustRegistryPort(request.trustPort)) return null;
   const trustMethods = canonicalMethodPort(request.trustPort, ["readPinnedProviderKey"]);
   if (!challengeMethods || !attestationMethods || !trustMethods) {
     return null;
@@ -238,13 +240,14 @@ function canonicalPorts(request: CanonicalRequest): CanonicalPorts | null {
         ),
     }),
     trust: Object.freeze({
-      readPinnedProviderKey: (providerId: string, platform: NativePlatform) =>
+      readPinnedProviderKey: (providerId: string, platform: NativePlatform, keyId: string) =>
         (
           trustMethods[0] as (
             provider: string,
             targetPlatform: NativePlatform,
+            providerKeyId: string,
           ) => Promise<unknown>
-        ).call(trustTarget, providerId, platform),
+        ).call(trustTarget, providerId, platform, keyId),
     }),
   });
 }
@@ -472,6 +475,7 @@ export async function verifyHoidNativeConversationSecurityProvider(
       pinnedKeyValue = await ports.trust.readPinnedProviderKey(
         attestation.providerId,
         attestation.platform,
+        attestation.keyId,
       );
     } catch {
       return blocked("trust-unavailable");

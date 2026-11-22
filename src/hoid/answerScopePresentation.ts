@@ -109,7 +109,10 @@ function canonicalCitationIdentity(value: unknown): CitationIdentity | null {
     typeof record.locatorId !== "string" ||
     record.locatorId.length < 1 ||
     record.locatorId.length > 256 ||
-    Array.from(record.locatorId).some(character => {\n      const code = character.charCodeAt(0);\n      return code <= 0x1f || code === 0x7f;\n    })
+    Array.from(record.locatorId).some(character => {
+      const code = character.charCodeAt(0);
+      return code <= 0x1f || code === 0x7f;
+    })
   ) return null;
 
   return Object.freeze({

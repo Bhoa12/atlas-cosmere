@@ -10,9 +10,9 @@ Connect the progress-explainable, edition-bound recommendation contract to the a
 
 1. cursor-v2 snapshot validation and deterministic edition-bound recommendation;
 2. metadata-only Spanish explanation;
-3. the caller's progress revision and fingerprint.
+3. the canonical progress revision and SHA-256 fingerprint derived from the same snapshot.
 
-It rejects malformed identities (including non-canonical SHA-256 fingerprints) and any revision mismatch. The screen still re-reads the authoritative progress snapshot after the synchronous calculation and compares revision plus fingerprint before committing the view model.
+It derives the canonical identity internally and rejects invalid snapshots or any revision mismatch. The screen still re-reads the authoritative progress snapshot after the synchronous calculation and compares revision plus fingerprint before committing the view model.
 
 ## HoidScreen integration
 

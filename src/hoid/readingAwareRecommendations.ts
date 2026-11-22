@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { getHoidReadingManifest } from "./readingManifest";
 import type { HoidCursorReadingContext } from "./cursorReadingContext";
 import type { HoidRecommendation } from "./recommendations";
 
@@ -75,6 +76,28 @@ type CanonicalPosition = Readonly<{
   order?: number;
 }>;
 
+/**
+ * The exported composer is a public trust boundary, so a plausible chapter
+ * number is not enough. The current chapter and its completed-through
+ * predecessor must both exist in the exact checked-in edition manifest.
+ * This also rejects positions beyond a manifest's verified safe prefix.
+ */
+function hasManifestBoundChapterBoundary(
+  bookId: string,
+  currentChapter: number,
+  completedThroughChapter: number | null,
+): boolean {
+  const manifestResult = getHoidReadingManifest(bookId);
+  if (manifestResult.status !== "ready") return false;
+  const units = manifestResult.manifest.units;
+  const currentIndex = units.findIndex(unit => unit.chapterNumber === currentChapter);
+  if (currentIndex < 0) return false;
+  const expectedCompletedChapter = currentIndex === 0
+    ? null
+    : units[currentIndex - 1]?.chapterNumber ?? null;
+  return completedThroughChapter === expectedCompletedChapter;
+}
+
 function canonicalPosition(value: unknown): CanonicalPosition | null {
   const record = canonicalRecord(
     value,
@@ -122,10 +145,9 @@ function canonicalPosition(value: unknown): CanonicalPosition | null {
       completedThroughChapter === null ||
       (typeof completedThroughChapter === "number" &&
         Number.isSafeInteger(completedThroughChapter) &&
-        completedThroughChapter === currentChapter - 1)
+        completedThroughChapter >= 1)
     ) ||
-    (currentChapter === 1 && completedThroughChapter !== null) ||
-    (currentChapter > 1 && completedThroughChapter !== currentChapter - 1)
+    !hasManifestBoundChapterBoundary(bookId, currentChapter, completedThroughChapter)
   ) return null;
 
   return Object.freeze({
@@ -211,6 +233,8 @@ function canonicalUnreadCandidates(value: unknown, started: ReadonlySet<string>)
  * Prioritizes resuming works already present in the authoritative reading
  * snapshot, then appends metadata-only catalogue discovery candidates.
  * It never infers canonical reading order or narrative dependencies.
+ * In-progress chapter positions are independently checked against the exact
+ * edition manifest, including partial safe prefixes.
  */
 export function composeHoidReadingAwareRecommendations(
   contextInput: HoidCursorReadingContext | unknown,

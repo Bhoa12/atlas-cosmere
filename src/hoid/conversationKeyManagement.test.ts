@@ -27,10 +27,10 @@ function descriptor(
 
 function manager(overrides: Partial<HoidConversationKeyManagerPort> = {}): HoidConversationKeyManagerPort {
   return Object.freeze({
-    ensureActiveKey: async () => descriptor(),
-    resolveForDecryption: async (_principal, keyId) =>
+    ensureActiveKey: async (_principalId: string) => descriptor(),
+    resolveForDecryption: async (_principal: string, keyId: string) =>
       keyId === descriptor().keyId ? descriptor() : null,
-    rotateActiveKey: async () => "rotated",
+    rotateActiveKey: async (_principal: string, _expected: number) => "rotated",
     ...overrides,
   });
 }
@@ -48,7 +48,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects an identity that does not match the requested principal", async () => {
     const result = await ensureHoidConversationActiveKey(
-      manager({ ensureActiveKey: async () => ({ ...descriptor(), principalId: "hlp1_" + "b".repeat(48) }) }),
+      manager({ ensureActiveKey: async (_principal: string) => ({ ...descriptor(), principalId: "hlp1_" + "b".repeat(48) }) }),
       principalId,
     );
     expect(result).toEqual({ status: "invalid-key" });
@@ -56,7 +56,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects a decrypt-only key as the active encryption key", async () => {
     const result = await ensureHoidConversationActiveKey(
-      manager({ ensureActiveKey: async () => descriptor(1, "decrypt-only") }),
+      manager({ ensureActiveKey: async (_principal: string) => descriptor(1, "decrypt-only") }),
       principalId,
     );
     expect(result).toEqual({ status: "invalid-key" });
@@ -76,7 +76,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects descriptors with extra properties", async () => {
     const result = await ensureHoidConversationActiveKey(
-      manager({ ensureActiveKey: async () => ({ ...descriptor(), secret: "raw-key" }) }),
+      manager({ ensureActiveKey: async (_principal: string) => ({ ...descriptor(), secret: "raw-key" }) }),
       principalId,
     );
     expect(result).toEqual({ status: "invalid-key" });
@@ -84,7 +84,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects malformed key handles", async () => {
     const result = await ensureHoidConversationActiveKey(
-      manager({ ensureActiveKey: async () => ({ ...descriptor(), keyHandle: "raw-key-material" }) }),
+      manager({ ensureActiveKey: async (_principal: string) => ({ ...descriptor(), keyHandle: "raw-key-material" }) }),
       principalId,
     );
     expect(result).toEqual({ status: "invalid-key" });
@@ -93,7 +93,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
   it("resolves a previous decrypt-only key for reads", async () => {
     const previous = descriptor(1, "decrypt-only");
     const result = await resolveHoidConversationKeyForDecryption(
-      manager({ resolveForDecryption: async () => previous }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => previous }),
       principalId,
       previous.keyId,
     );
@@ -103,7 +103,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects a descriptor returned for a different key ID", async () => {
     const result = await resolveHoidConversationKeyForDecryption(
-      manager({ resolveForDecryption: async () => descriptor(2) }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => descriptor(2) }),
       principalId,
       descriptor(1).keyId,
     );
@@ -112,7 +112,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("fails closed when a key is absent from the vault", async () => {
     const result = await resolveHoidConversationKeyForDecryption(
-      manager({ resolveForDecryption: async () => null }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => null }),
       principalId,
       descriptor().keyId,
     );
@@ -121,24 +121,53 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects revoked or unknown key states", async () => {
     const result = await resolveHoidConversationKeyForDecryption(
-      manager({ resolveForDecryption: async () => ({ ...descriptor(), state: "revoked" }) }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => ({ ...descriptor(), state: "revoked" }) }),
       principalId,
       descriptor().keyId,
     );
     expect(result).toEqual({ status: "invalid-key" });
   });
 
-  it("rotates to exactly the next key version and returns the verified active key", async () => {
+  it("rotates to the next version and verifies that the previous key remains decrypt-only", async () => {
     const result = await rotateHoidConversationActiveKey(
       manager({
-        rotateActiveKey: async (_principal, expected) => expected === 1 ? "rotated" : "conflict",
-        ensureActiveKey: async () => descriptor(2),
+        rotateActiveKey: async (_principal: string, expected: number) => expected === 1 ? "rotated" : "conflict",
+        ensureActiveKey: async (_principal: string) => descriptor(2),
+        resolveForDecryption: async (_principal: string, keyId: string) =>
+          keyId === descriptor(1).keyId ? descriptor(1, "decrypt-only") : descriptor(2),
       }),
       principalId,
       1,
     );
     expect(result.status).toBe("ready");
     if (result.status === "ready") expect(result.descriptor.keyVersion).toBe(2);
+  });
+
+  it("rejects a stale expected version before asking the manager to rotate", async () => {
+    let rotated = false;
+    const result = await rotateHoidConversationActiveKey(
+      manager({
+        ensureActiveKey: async (_principal: string) => descriptor(2),
+        rotateActiveKey: async () => { rotated = true; return "rotated"; },
+      }),
+      principalId,
+      1,
+    );
+    expect(result).toEqual({ status: "conflict" });
+    expect(rotated).toBe(false);
+  });
+
+  it("rejects rotation when the previous key is not retained decrypt-only", async () => {
+    const result = await rotateHoidConversationActiveKey(
+      manager({
+        rotateActiveKey: async () => "rotated",
+        ensureActiveKey: async (_principal: string) => descriptor(2),
+        resolveForDecryption: async (_principal: string, _keyId: string) => descriptor(1, "active"),
+      }),
+      principalId,
+      1,
+    );
+    expect(result).toEqual({ status: "invalid-key" });
   });
 
   it("preserves a compare-and-swap conflict during rotation", async () => {
@@ -152,7 +181,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("rejects a rotation that reports success without advancing the key version", async () => {
     const result = await rotateHoidConversationActiveKey(
-      manager({ rotateActiveKey: async () => "rotated", ensureActiveKey: async () => descriptor(1) }),
+      manager({ rotateActiveKey: async () => "rotated", ensureActiveKey: async (_principal: string) => descriptor(1) }),
       principalId,
       1,
     );
@@ -171,7 +200,7 @@ describe("Hoid conversation key lifecycle boundary", () => {
 
   it("maps vault failures to unavailable", async () => {
     const result = await ensureHoidConversationActiveKey(
-      manager({ ensureActiveKey: async () => { throw new Error("keystore locked"); } }),
+      manager({ ensureActiveKey: async (_principal: string) => { throw new Error("keystore locked"); } }),
       principalId,
     );
     expect(result).toEqual({ status: "unavailable" });

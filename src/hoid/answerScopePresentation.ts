@@ -89,6 +89,8 @@ type CitationIdentity = Readonly<{
   evidenceId: string;
   sourceBookId: string;
   title: string;
+  chapter: number;
+  locatorId: string;
 }>;
 
 function canonicalCitationIdentity(value: unknown): CitationIdentity | null {
@@ -121,6 +123,8 @@ function canonicalCitationIdentity(value: unknown): CitationIdentity | null {
     evidenceId: record.evidenceId,
     sourceBookId: record.sourceBookId,
     title: record.title as string,
+    chapter: record.chapter,
+    locatorId: record.locatorId,
   });
 }
 
@@ -152,6 +156,94 @@ function denseCitationIdentities(value: unknown): readonly CitationIdentity[] | 
     return Object.freeze(result);
   } catch {
     return null;
+  }
+}
+
+function sameCitation(left: CitationIdentity, right: CitationIdentity): boolean {
+  return left.evidenceId === right.evidenceId &&
+    left.sourceBookId === right.sourceBookId &&
+    left.title === right.title &&
+    left.chapter === right.chapter &&
+    left.locatorId === right.locatorId;
+}
+
+/**
+ * Check the claim-to-evidence mapping whenever a segmented presentation is
+ * supplied. This is defense in depth: a segment cannot introduce a citation
+ * absent from the canonical top-level citation set, change its chapter or
+ * locator, or leave top-level evidence unattached to any displayed claim.
+ */
+function segmentProvenanceMatches(
+  value: unknown,
+  claimIds: readonly string[],
+  evidenceIds: readonly string[],
+  citations: readonly CitationIdentity[],
+): boolean {
+  try {
+    if (
+      !Array.isArray(value) ||
+      value.length !== claimIds.length ||
+      value.length < 1 ||
+      value.length > 12 ||
+      Object.getPrototypeOf(value) !== Array.prototype
+    ) return false;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return false;
+
+    const citationsById = new Map(citations.map(citation => [citation.evidenceId, citation]));
+    const referencedEvidence = new Set<string>();
+
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return false;
+
+      const segment = exactDataRecord(
+        descriptor.value,
+        ["claimId", "text", "evidenceIds", "citations"],
+        ["claimId", "text", "evidenceIds", "citations"],
+      );
+      if (
+        !segment ||
+        typeof segment.claimId !== "string" ||
+        segment.claimId !== claimIds[index] ||
+        typeof segment.text !== "string" ||
+        segment.text.length < 1 ||
+        segment.text.length > 4_000 ||
+        segment.text !== segment.text.trim()
+      ) return false;
+
+      const segmentEvidenceIds = denseIds(segment.evidenceIds, 16);
+      const segmentCitations = denseCitationIdentities(segment.citations);
+      if (
+        !segmentEvidenceIds ||
+        !segmentCitations ||
+        segmentEvidenceIds.length !== segmentCitations.length
+      ) return false;
+
+      const segmentEvidenceSet = new Set(segmentEvidenceIds);
+      for (const citation of segmentCitations) {
+        const globalCitation = citationsById.get(citation.evidenceId);
+        if (
+          !segmentEvidenceSet.has(citation.evidenceId) ||
+          !globalCitation ||
+          !sameCitation(citation, globalCitation)
+        ) return false;
+        referencedEvidence.add(citation.evidenceId);
+      }
+
+      if (segmentEvidenceIds.some(id => !segmentCitations.some(citation => citation.evidenceId === id))) {
+        return false;
+      }
+    }
+
+    return referencedEvidence.size === evidenceIds.length &&
+      evidenceIds.every(id => referencedEvidence.has(id));
+  } catch {
+    return false;
   }
 }
 
@@ -202,6 +294,13 @@ export function validateHoidPresentedAnswerScope(
     evidenceIds.length !== citations.length ||
     evidenceIds.some(id => !citations.some(citation => citation.evidenceId === id))
   ) return Object.freeze({ status: "unavailable", reason: "invalid-presentation" });
+
+  if (
+    hasLayout &&
+    !segmentProvenanceMatches(presentation.segments, claimIds, evidenceIds, citations)
+  ) {
+    return Object.freeze({ status: "unavailable", reason: "invalid-presentation" });
+  }
 
   const sourceBookIds = [...new Set(citations.map(citation => citation.sourceBookId))]
     .sort((left, right) => WORK_ORDER.get(left)! - WORK_ORDER.get(right)!);

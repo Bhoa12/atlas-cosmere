@@ -107,7 +107,9 @@ function sameCursor(left: HoidReadingCursor, right: HoidReadingCursor): boolean 
  * The expected revision/fingerprint must come from the presentation that
  * produced the target. The live progress snapshot is canonicalized once; its
  * exact identity is compared before the target is checked against the current
- * manifest and the reader's current cursor.
+ * manifest and the reader's current cursor. If several works are in progress,
+ * the caller must provide the exact explicitly selected active work; a target
+ * for another active work is rejected.
  *
  * A ready result is a metadata-only handoff, not a navigation side effect.
  * This module never opens a chapter, changes progress, reads EPUB bytes,

@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 68 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 69 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 64 | Original editorial summaries exist in staging |
-| Summaries pending review | 64 | None of those summaries is approved for production |
+| Original staged chapter summaries | 65 | Original editorial summaries exist in staging |
+| Summaries pending review | 65 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -55,7 +55,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 19 | 18 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 20 | 19 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 62 summaries remain `pending-review`. The 80-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 65 summaries remain `pending-review`. The 80-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -267,3 +267,14 @@ Two original Spanish summaries were added to editorial staging: `twok.chapter-01
 The current inventory is **68 individually inspected chapter documents and 64 staged summaries**, all 64 pending independent review. Production knowledge and approved claims remain empty. The next continuation queue is El Imperio Final chapter 11 and El Camino de los Reyes chapter 20. Danzante del Filo is now complete only within its 20 numbered manifest units; Esquirla del amanecer remains complete only within its 19 numbered manifest units.
 
 No EPUB bytes, XHTML body, chapter title, copied passage, extracted prose, image or private device URI was committed. No new Cosmere chapter was inspected because `cosmere.epub` was not present in the current EPUB-filtered Library listing.
+
+
+## Run 231 — El Camino de los Reyes chapter 20
+
+The selected Roshar omnibus EPUB passed ZIP CRC validation. Its navigation SHA-256 matched the registered edition value `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025`. Chapter 20 resolved to the single navigation target `Text/L1-042.xhtml`, exactly one OPF manifest item and one reading-spine entry. The preceding chapter-19 XHTML digest matched the existing allowlist. The chapter-20 document is 6,043 bytes with SHA-256 `54d359607c877ed3312095477855b1d824dab6e4f699d9a9f76979254b76f81d`.
+
+One original Spanish summary was added to editorial staging, bound to the exact edition, navigation digest, locator and document digest. It remains `pending-review`; its evidence watermark is chapter 20, so the earliest reader cursor is chapter 21. It is not available to production retrieval.
+
+The current inventory is **69 individually inspected chapter documents and 65 staged summaries**, all 65 pending independent review. The continuation queue advances El Camino de los Reyes to chapter 21. `cosmere.epub` was not present in the current EPUB-filtered Library listing, so El Imperio Final chapter 11 remains uninspected. No reading progress, spoiler authorization, production registry or activation receipt was changed.
+
+No EPUB, XHTML body, extracted prose, chapter title, image or private URI was committed.

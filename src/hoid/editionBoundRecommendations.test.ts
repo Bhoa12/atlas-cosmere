@@ -113,7 +113,8 @@ describe("edition-bound reading recommendation targets", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     const target = result.items[0].target;
-    if (target.kind !== "edition-cursor") return;
+    expect(target.kind).toBe("edition-cursor");
+    if (target.kind !== "edition-cursor") throw new Error("Elantris chapter-one cursor was not produced");
     expect(target.cursor.chapterNumber).toBe(1);
     expect(["verified", "cursor-only"]).toContain(target.locatorStatus);
     if (target.locatorStatus === "cursor-only") expect("locatorId" in target).toBe(false);

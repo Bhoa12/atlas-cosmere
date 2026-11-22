@@ -1,0 +1,49 @@
+name: Hoid trusted screen capability provenance
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/hoid/trustedScreenAnswer.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN228_TRUSTED_SCREEN_CAPABILITY_PROVENANCE.md"
+      - ".github/workflows/hoid-trusted-screen-capability-provenance.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedVerifiedAnswerPresentation.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/hoid/trustedScreenAnswer.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN228_TRUSTED_SCREEN_CAPABILITY_PROVENANCE.md"
+      - ".github/workflows/hoid-trusted-screen-capability-provenance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-screen-capability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test signed presenter and screen capability provenance
+        run: >-
+          npx vitest run
+          src/hoid/trustedScreenAnswer.test.ts
+          src/hoid/trustedVerifiedAnswerPresentation.test.ts
+      - name: Type-check trusted presenter and HoidScreen
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/trustedVerifiedAnswerPresentation.ts
+          src/hoid/trustedScreenAnswer.ts
+          src/screens/HoidScreen.tsx

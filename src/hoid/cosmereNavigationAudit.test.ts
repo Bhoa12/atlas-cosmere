@@ -70,12 +70,12 @@ describe("cosmere.epub navigation audit", () => {
 
   it("keeps TOC locators distinct from sparse chapter-body evidence", () => {
     for (const [bookId] of EXPECTED_COSMERE_LOCATORS) {
-      expect(getVerifiedChapterDocumentCount(bookId)).toBe(bookId === "tfe" ? 9 : 0);
+      expect(getVerifiedChapterDocumentCount(bookId)).toBe(bookId === "tfe" ? 10 : 0);
     }
-    expect(getVerifiedChapterDocumentCount("tfe")).toBe(9);
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(17);
-    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(18);
-    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(18);
+    expect(getVerifiedChapterDocumentCount("tfe")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(18);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(19);
+    expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(19);
     for (const bookId of ["wor", "ob", "row", "sawt"]) {
       expect(getVerifiedChapterDocumentCount(bookId)).toBe(0);
     }

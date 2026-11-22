@@ -152,25 +152,25 @@ describe("verified EPUB chapter document fingerprints", () => {
       "tfe",
       "cosmere-epub-merged-v1",
       "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
-      10,
+      11,
     )).toBeNull();
     expect(getVerifiedChapterDocumentSha256(
       "twok",
       "roshar-omnibus-v1",
       "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-      18,
+      19,
     )).toBeNull();
     expect(getVerifiedChapterDocumentSha256(
       "edgedancer",
       "edgedancer-epub-v1",
       "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
-      19,
+      20,
     )).toBeNull();
     expect(getVerifiedChapterDocumentSha256(
       "dawnshard",
       "dawnshard-epub-v1",
       "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
-      19,
+      20,
     )).toBeNull();
     expect(getVerifiedChapterDocumentCount("tfe")).toBe(10);
     expect(getVerifiedChapterDocumentCount("twok")).toBe(18);

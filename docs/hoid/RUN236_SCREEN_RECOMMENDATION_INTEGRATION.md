@@ -12,7 +12,7 @@ Connect the progress-explainable, edition-bound recommendation contract to the a
 2. metadata-only Spanish explanation;
 3. the caller's progress revision and fingerprint.
 
-It rejects malformed identities and any revision mismatch. The screen still re-reads the authoritative progress snapshot after the synchronous calculation and compares revision plus fingerprint before committing the view model.
+It rejects malformed identities (including non-canonical SHA-256 fingerprints) and any revision mismatch. The screen still re-reads the authoritative progress snapshot after the synchronous calculation and compares revision plus fingerprint before committing the view model.
 
 ## HoidScreen integration
 

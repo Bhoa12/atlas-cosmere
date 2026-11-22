@@ -20,7 +20,10 @@ import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
-import type { HoidRecommendation } from '../hoid/recommendations';
+import {
+  createHoidEditionBoundRecommendationPresentation,
+  type HoidEditionBoundRecommendationPresentation,
+} from '../hoid/editionBoundRecommendationPresentation';
 import { HOID_TOPIC_TAXONOMY, type HoidTopicId } from '../hoid/topicTaxonomy';
 import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
@@ -115,9 +118,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   ]);
   const [input, setInput] = useState('');
   const [explanationDepth, setExplanationDepth] = useState<HoidExplanationDepth>('detailed');
-  const [recomendaciones, setRecomendaciones] = useState<readonly HoidRecommendation[]>([]);
-  const [recommendationRevision, setRecommendationRevision] = useState<number | null>(null);
-  const [recommendationFingerprint, setRecommendationFingerprint] = useState<string | null>(null);
+  const [recommendationPresentation, setRecommendationPresentation] = useState<HoidEditionBoundRecommendationPresentation | null>(null);
   const [recommendationMessage, setRecommendationMessage] = useState('');
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
@@ -142,9 +143,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setCanCancelAnswer(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
-    setRecomendaciones([]);
-    setRecommendationRevision(null);
-    setRecommendationFingerprint(null);
+    setRecommendationPresentation(null);
     setRecommendationMessage('');
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
@@ -234,44 +233,40 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (intentPlan.mode === 'catalogue-recommendation') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-        const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
-        if (result.status === 'ready') {
+        const presentation = createHoidEditionBoundRecommendationPresentation(
+          currentProgress,
+          requestScope,
+          3,
+        );
+        if (presentation.status === 'ready') {
           responseScope = {
-            revision: result.progressRevision,
-            fingerprint: result.progressFingerprint,
+            revision: presentation.progressRevision,
+            fingerprint: presentation.progressFingerprint,
           };
-          const resumeItems = result.items.filter(
-            (item): item is Extract<HoidRecommendation, { reason: 'resume-current-work' }> =>
-              item.reason === 'resume-current-work',
-          );
-          const unreadItems = result.items.filter(item => item.reason === 'unread-source');
-          const recommendationSections: string[] = [];
-          if (resumeItems.length > 0) {
-            recommendationSections.push(
-              'Para retomar tus lecturas en curso:\\n'
-              + resumeItems.map((item, index) =>
-                `${index + 1}. ${item.title} · capítulo actual ${item.currentChapter} · completado hasta ${item.completedThroughChapter ?? 'ningún capítulo'}`
-              ).join('\\n')
-            );
-          }
-          if (unreadItems.length > 0) {
-            recommendationSections.push(
-              'Para descubrir obras que todavía no has empezado:\\n'
-              + unreadItems.map((item, index) => `${index + 1}. ${item.title}`).join('\\n')
-            );
-          }
-          respuesta = recommendationSections.length === 0
+          respuesta = presentation.items.length === 0
             ? 'No hay obras en curso que retomar ni obras sin empezar en el catálogo actual.'
-            : recommendationSections.join('\\n\\n')
-              + '\\n\\nLas obras nuevas siguen el orden del catálogo. No es una ruta canónica ni una recomendación argumental: no hay dependencias de lectura aprobadas para establecer ese orden.';
+            : presentation.items.map(item => `${item.heading}\n${item.detail}`).join('\n\n')
+              + '\n\nEstas explicaciones utilizan únicamente tu progreso y los manifiestos de lectura. No establecen una cronología canónica ni desbloquean información narrativa.';
+        } else if (presentation.status === 'selection-required') {
+          responseScope = {
+            revision: presentation.progressRevision,
+            fingerprint: presentation.progressFingerprint,
+          };
+          respuesta = `${presentation.heading}\n${presentation.detail}\n\n`
+            + presentation.choices.map(choice =>
+              `• ${choice.title} · capítulo actual ${choice.currentChapter} · completado hasta ${choice.completedThroughChapter ?? 'ningún capítulo'}`,
+            ).join('\n')
+            + '\n\nAbre el panel «Retomar y descubrir» y selecciona la obra que quieres continuar.';
         } else {
-          respuesta = result.reason === 'progress-changed'
-            ? 'Tu progreso de lectura ha cambiado mientras preparaba la lista. He descartado el resultado; vuelve a solicitarla.'
-            : result.reason === 'invalid-progress'
-              ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
-              : 'No puedo verificar el catálogo o el runtime de recomendaciones. No mostraré una lista alternativa.';
+          respuesta = presentation.reason === 'invalid-progress'
+            ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
+            : 'No puedo generar una recomendación válida con esos parámetros.';
         }
-      } else if (!trustedAnswerPort) {
+      } else if (!conversationGateway) {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
+
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         responseScope = requestScope;
@@ -402,69 +397,70 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     }
   };
 
-  const cargarRecomendaciones = async () => {
+  const cargarRecomendaciones = async (activeBookId?: string) => {
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
-    if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready' || !conversationGateway) return;
-    const currentProgress = await progressRefreshRef.current();
-    if (!currentProgress) {
-      setRecomendaciones([]);
-      setRecommendationRevision(null);
-      setRecommendationFingerprint(null);
-      setRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones.');
-      return;
-    }
+    if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready') return;
 
     setCargandoRecomendaciones(true);
-    setRecomendaciones([]);
-    setRecommendationRevision(null);
-    setRecommendationFingerprint(null);
+    setRecommendationPresentation(null);
     setRecommendationMessage('');
 
     try {
-      const result = await conversationGateway.recommend({ progress: currentProgress, limit: 3 });
-      if (result.status === 'ready') {
-        const latestProgress = await progressRefreshRef.current();
-        const latestProjection = latestProgress
-          ? projectHoidCursorProgressSnapshot(latestProgress)
-          : null;
-        if (
-          latestProjection?.status !== 'ready' ||
-          latestProjection.revision !== result.progressRevision ||
-          fingerprintHoidCursorProgressProjection(latestProjection) !== result.progressFingerprint
-        ) {
-          setRecomendaciones([]);
-          setRecommendationRevision(null);
-          setRecommendationFingerprint(null);
-          setRecommendationMessage('Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.');
-          return;
-        }
-        setRecomendaciones(result.items);
-        setRecommendationRevision(result.progressRevision);
-        setRecommendationFingerprint(result.progressFingerprint);
-        const resumeCount = result.items.filter(item => item.reason === 'resume-current-work').length;
-        const unreadCount = result.items.filter(item => item.reason === 'unread-source').length;
-        setRecommendationMessage(result.items.length === 0
-          ? 'No hay obras en curso que retomar ni obras sin empezar en el catálogo actual.'
-          : `Se priorizan ${resumeCount} obras en curso para retomar y después aparecen ${unreadCount} obras sin empezar. No es una ruta canónica.`);
-      } else {
-        setRecomendaciones([]);
-        setRecommendationRevision(null);
-        setRecommendationFingerprint(null);
-        setRecommendationMessage(result.reason === 'progress-changed'
-          ? 'Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.'
-          : 'No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
+      const currentProgress = await progressRefreshRef.current();
+      const projection = currentProgress
+        ? projectHoidCursorProgressSnapshot(currentProgress)
+        : null;
+      if (!currentProgress || projection?.status !== 'ready') {
+        setRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones.');
+        return;
       }
+
+      const progressIdentity = {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      };
+      const presentation = createHoidEditionBoundRecommendationPresentation(
+        currentProgress,
+        progressIdentity,
+        3,
+        activeBookId,
+      );
+      if (presentation.status === 'unavailable') {
+        setRecommendationMessage(
+          presentation.reason === 'invalid-active-work'
+            ? 'La obra seleccionada ya no tiene un cursor abierto. Actualiza las recomendaciones y vuelve a elegir.'
+            : 'No puedo verificar el progreso, el manifiesto o los parámetros. No mostraré recomendaciones.',
+        );
+        return;
+      }
+
+      // The synchronous adapter is still followed by a fresh authoritative read.
+      // This closes the interval between calculation and committing React state.
+      const latestProgress = await progressRefreshRef.current();
+      const latestProjection = latestProgress
+        ? projectHoidCursorProgressSnapshot(latestProgress)
+        : null;
+      if (
+        latestProjection?.status !== 'ready' ||
+        latestProjection.revision !== presentation.progressRevision ||
+        fingerprintHoidCursorProgressProjection(latestProjection) !== presentation.progressFingerprint
+      ) {
+        setRecommendationMessage('Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.');
+        return;
+      }
+
+      setRecommendationPresentation(presentation);
+      setRecommendationMessage(presentation.status === 'selection-required'
+        ? 'Hay varias obras en curso. Selecciona explícitamente cuál quieres reanudar.'
+        : `Se han preparado ${presentation.items.length} recomendaciones vinculadas al progreso y a sus manifiestos. No es una ruta canónica.`);
     } catch {
-      setRecomendaciones([]);
-      setRecommendationRevision(null);
-      setRecommendationFingerprint(null);
+      setRecommendationPresentation(null);
       setRecommendationMessage('No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
     } finally {
       setCargandoRecomendaciones(false);
     }
   };
-
 
   const toggleTopicInterest = (topicId: HoidTopicId) => {
     setSelectedTopicIds(previous => previous.includes(topicId)
@@ -595,11 +591,11 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const recommendationsAreCurrent =
-    recommendationRevision !== null &&
-    recommendationFingerprint !== null &&
+    recommendationPresentation !== null &&
+    recommendationPresentation.status !== 'unavailable' &&
     liveProgressScope !== null &&
-    recommendationRevision === liveProgressScope.revision &&
-    recommendationFingerprint === liveProgressScope.fingerprint;
+    recommendationPresentation.progressRevision === liveProgressScope.revision &&
+    recommendationPresentation.progressFingerprint === liveProgressScope.fingerprint;
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
   const topicRecommendationsAreCurrent =
     topicRecommendationsTrustReady &&
@@ -640,10 +636,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           </View>
           <TouchableOpacity
             accessibilityRole="button"
-            disabled={progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !conversationGateway}
+            disabled={progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones}
             style={[
               styles.recommendationButton,
-              (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones || !conversationGateway) && styles.disabledButton,
+              (progresoPersistenciaEstado !== 'ready' || cargandoRecomendaciones) && styles.disabledButton,
             ]}
             onPress={cargarRecomendaciones}
           >
@@ -654,13 +650,37 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         {recommendationMessage.length > 0 && (
           <Text style={styles.recommendationMessage}>{recommendationMessage}</Text>
         )}
-        {recommendationsAreCurrent && recomendaciones.map(item => (
+        {recommendationsAreCurrent && recommendationPresentation?.status === 'selection-required' && (
+          <View style={styles.recommendationSelection}>
+            <Text style={styles.recommendationItemText}>{recommendationPresentation.heading}</Text>
+            <Text style={styles.recommendationItemMeta}>{recommendationPresentation.detail}</Text>
+            {recommendationPresentation.choices.map(choice => (
+              <TouchableOpacity
+                key={choice.sourceId}
+                accessibilityRole="button"
+                accessibilityLabel={`Reanudar ${choice.title}, capítulo ${choice.currentChapter}`}
+                disabled={cargandoRecomendaciones}
+                onPress={() => { void cargarRecomendaciones(choice.sourceId); }}
+                style={[styles.recommendationChoice, cargandoRecomendaciones && styles.disabledButton]}
+              >
+                <Text style={styles.recommendationItemText}>
+                  {choice.title} · capítulo actual {choice.currentChapter}
+                </Text>
+                <Text style={styles.recommendationItemMeta}>{choice.detail}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        {recommendationsAreCurrent && recommendationPresentation?.status === 'ready' && recommendationPresentation.items.map(item => (
           <View key={item.sourceId} style={styles.recommendationItem}>
-            <Text style={styles.recommendationItemText}>{item.title}</Text>
-            <Text style={styles.recommendationItemMeta}>
-              {item.reason === 'resume-current-work'
-                ? `En curso · capítulo actual ${item.currentChapter} · completado hasta ${item.completedThroughChapter ?? 'ninguno'}`
-                : 'Todavía no empezada · orden de catálogo'}
+            <Text style={styles.recommendationItemText}>{item.heading}</Text>
+            <Text style={styles.recommendationItemMeta}>{item.detail}</Text>
+            <Text style={styles.recommendationTarget}>
+              {item.target.kind === 'catalog-only'
+                ? 'Solo catálogo · no existe un destino por capítulo verificado.'
+                : item.target.locatorStatus === 'verified'
+                  ? `Destino de edición verificado · capítulo ${item.target.cursor.chapterNumber}`
+                  : `Cursor de edición verificado · capítulo ${item.target.cursor.chapterNumber}; localizador no disponible`}
             </Text>
           </View>
         ))}
@@ -870,6 +890,9 @@ const styles = StyleSheet.create({
   topicChipTextSelected: { color: '#ffffff', fontWeight: '700' },
   topicRecommendationItem: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 8 },
   recommendationItem: { paddingVertical: 7, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 7 },
+  recommendationSelection: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#26344d' },
+  recommendationChoice: { paddingVertical: 8, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 5, borderRadius: 8 },
+  recommendationTarget: { color: '#a5b4fc', fontSize: 10, lineHeight: 15, marginTop: 5 },
   recommendationItemText: { color: '#f8fafc', fontSize: 12, fontWeight: '700' },
   recommendationItemMeta: { color: '#94a3b8', fontSize: 10, marginTop: 2 },
   disabledButton: { opacity: 0.45 },

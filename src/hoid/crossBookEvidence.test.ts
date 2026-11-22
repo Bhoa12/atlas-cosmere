@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildHoidCrossBookEvidenceSummary } from "./crossBookEvidence";
+import { presentHoidEvidenceAnswer } from "./answerPresentation";
+import {
+  buildHoidCrossBookEvidenceSummary,
+  summarizeHoidPresentedCrossBookEvidence,
+} from "./crossBookEvidence";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 
@@ -161,12 +165,10 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
     expect(result.summary.works[0].chapters).toEqual([1, 2]);
     expect(result.summary.works[0].evidenceIds).toEqual(["evidence.tfe.one", "evidence.tfe.two"]);
   });
-  it("summarizes the exact canonical presentation without re-reading raw answer progress", async () => {
-    const { presentHoidEvidenceAnswer } = await import("./answerPresentation");
+  it("summarizes the exact canonical presentation without re-reading raw answer progress", () => {
     const presented = presentHoidEvidenceAnswer(answer(), progress());
     expect(presented.status).toBe("ready");
     if (presented.status !== "ready") return;
-    const { summarizeHoidPresentedCrossBookEvidence } = await import("./crossBookEvidence");
     expect(summarizeHoidPresentedCrossBookEvidence(presented)).toEqual(
       buildHoidCrossBookEvidenceSummary(answer(), progress()),
     );

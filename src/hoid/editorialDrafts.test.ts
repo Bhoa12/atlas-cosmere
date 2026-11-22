@@ -85,6 +85,7 @@ describe("Hoid editorial draft staging", () => {
       "d0066c51f3e37b54796ea67d95da6c777bfa50dab86dc231e452b7e4279f1ba8",
       "16195eca1bce7f70756cc161521fb8d0c17bcd14030cf452ab3c8d3900e0712f",
       "771e397958ae5dcb8b73cd78cf5e68c3bb5be9ba7d8c2a01f2d1521ab3825943",
+      "75f015a49e22cb49a7546591bccc664cb04f7910123c5ffc19b3bdf445b7eaf7",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -105,7 +106,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(64);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(65);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -184,6 +185,7 @@ describe("Hoid editorial draft staging", () => {
       "dawnshard.chapter-018.rysn-negotiation-breaks",
       "twok.chapter-019.dalinar-ancient-vision-and-radiants",
       "edgedancer.chapter-020.lift-returns-to-azimir-and-aids-refugees",
+      "twok.chapter-020.kaladin-cannot-save-miasal",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).toContain(draft.evidenceSource.chapter);
@@ -581,5 +583,21 @@ describe("Hoid editorial draft staging", () => {
     expect(edgedancer.review.status).toBe("pending-review");
   });
 
+
+
+  it("keeps the Run 231 chapter-20 summary bound to its source and pending until the next reader cursor", () => {
+    const draft = HOID_EDITORIAL_DRAFTS.find(candidate => candidate.id === "twok.chapter-020.kaladin-cannot-save-miasal");
+    expect(draft).toBeDefined();
+    if (!draft) return;
+    expect(draft.evidenceSource).toMatchObject({ bookId: "twok", chapter: 20 });
+    expect(draft.evidenceUnlock).toEqual({ bookId: "twok", chapter: 20 });
+    expect(draft.sourceIntegrity).toEqual({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "54d359607c877ed3312095477855b1d824dab6e4f699d9a9f76979254b76f81d",
+    });
+    expect(draft.summaryIntegrity.sha256).toBe("75f015a49e22cb49a7546591bccc664cb04f7910123c5ffc19b3bdf445b7eaf7");
+    expect(draft.review.status).toBe("pending-review");
+  });
 
 });

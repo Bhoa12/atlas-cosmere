@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 2 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 68 |
-| Original staged summaries | 64 |
-| Summaries pending review | 64 |
+| Individually inspected chapter documents | 69 |
+| Original staged summaries | 65 |
+| Summaries pending review | 65 |
 | Numbered-chapter works with every current manifest unit inspected | 2 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
@@ -39,7 +39,7 @@ The current continuation candidates are:
 | Work | Next chapter to inspect |
 |---|---:|
 | El Imperio Final | 11 |
-| El Camino de los Reyes | 20 |
+| El Camino de los Reyes | 21 |
 
 
 Danzante del Filo has all 20 and Esquirla del amanecer has all 19 numbered manifest chapters fingerprinted; both are reported as completed within the `numbered-chapters-only` scope; this does not claim that unmodelled front/back matter or narrative evidence is complete. The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
@@ -240,3 +240,10 @@ The staging inventory remains 62 original summaries, all pending review. Run 229
 Run 230 inspected El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20 from the currently available Library EPUBs. Both archives passed CRC validation, their navigation fingerprints matched the registered editions, the exact targets appeared in navigation, the OPF manifest and the reading spine, and the preceding document digests matched. Two original Spanish summaries were added to staging with exact edition-bound provenance and N+1 reader unlock boundaries; both remain pending independent review.
 
 The metadata-only plan now reports 68 inspected chapter documents and 64 pending-review summaries. Its next continuation tasks are El Imperio Final chapter 11 and El Camino de los Reyes chapter 20. Danzante del Filo is complete only within its 20 numbered manifest units. The current EPUB-filtered Library listing did not include `cosmere.epub`, so El Imperio Final chapter 11 remains a candidate only. No production claim, progress mutation or activation receipt was created.
+
+
+## Run 231 — refreshed continuation queue
+
+Run 231 inspected El Camino de los Reyes chapter 20 from the selected Roshar omnibus EPUB. The ZIP CRC passed, the registered navigation digest matched, the target resolved to one navigation entry, one OPF manifest item and one reading-spine entry, and chapter 19's existing digest matched before chapter 20 was fingerprinted. The new document digest is edition-bound; no source bytes or prose were committed.
+
+One original Spanish summary was added to editorial staging with exact source provenance and a chapter-20 evidence watermark. It remains pending independent review and requires reader cursor 21. The current plan reports 69 inspected chapter documents and 65 pending-review summaries. Its continuation tasks are El Imperio Final chapter 11 and El Camino de los Reyes chapter 21. The current Library EPUB listing did not contain `cosmere.epub`, so El Imperio Final chapter 11 remains a metadata-only candidate. No production claim, progress mutation or activation receipt was created.

@@ -1623,6 +1623,29 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-020.kaladin-cannot-save-miasal",
+    kind: "event",
+    aliases: Object.freeze(["Kaladin", "Lirin", "Miasal", "Harl"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 20 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 20,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-042.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 20 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "54d359607c877ed3312095477855b1d824dab6e4f699d9a9f76979254b76f81d",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "75f015a49e22cb49a7546591bccc664cb04f7910123c5ffc19b3bdf445b7eaf7" }),
+    summary: "En un recuerdo situado siete años antes, Kaladin, todavía muy joven, intenta atender a Miasal tras una caída grave. Consigue controlar la hemorragia y aplicar lo que ha aprendido, pero la niña muere por la gravedad de sus lesiones. Después, Lirin revisa su intervención y le asegura que actuó correctamente; la conversación introduce una tensión entre la responsabilidad de ayudar y aceptar que no siempre es posible salvar a todos.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]); 
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

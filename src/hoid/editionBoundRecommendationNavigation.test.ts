@@ -62,13 +62,14 @@ function targetFor(progress: unknown) {
   return presentation.items[0].target;
 }
 
-function prepare(target: unknown, progress: unknown) {
+function prepare(target: unknown, progress: unknown, selectedActiveBookId?: string) {
   const currentIdentity = identity(progress);
   return prepareHoidRecommendationNavigationHandoff(
     target,
     progress,
     currentIdentity.revision,
     currentIdentity.fingerprint,
+    selectedActiveBookId,
   );
 }
 
@@ -166,6 +167,65 @@ describe("edition-bound recommendation navigation boundary", () => {
     expect(prepare(target, completed)).toEqual({
       status: "unavailable",
       reason: "work-completed",
+    });
+  });
+
+  it("requires an explicit active-work selection when several works are in progress", () => {
+    const twok = createHoidReadingCursor("twok", 21);
+    const elantris = createHoidReadingCursor("elantris", 3);
+    if (twok.status !== "ready" || elantris.status !== "ready") {
+      throw new Error("Multi-work cursor fixture unavailable");
+    }
+    const progress = {
+      schemaVersion: 2 as const,
+      revision: 1,
+      positions: [
+        { bookId: "twok", cursor: twok.cursor },
+        { bookId: "elantris", cursor: elantris.cursor },
+      ],
+      updatedAt: UPDATED_AT,
+    };
+    const twokTarget = targetFor(snapshotFor("twok", 21));
+    const elantrisTarget = targetFor(snapshotFor("elantris", 3));
+
+    expect(prepare(twokTarget, progress)).toEqual({
+      status: "unavailable",
+      reason: "selection-required",
+    });
+    expect(prepare(twokTarget, progress, "twok").status).toBe("ready");
+    expect(prepare(elantrisTarget, progress, "twok")).toEqual({
+      status: "unavailable",
+      reason: "selection-required",
+    });
+  });
+
+  it("allows an unread chapter-one discovery target after the active work was explicitly selected", () => {
+    const twok = createHoidReadingCursor("twok", 21);
+    const elantris = createHoidReadingCursor("elantris", 3);
+    if (twok.status !== "ready" || elantris.status !== "ready") {
+      throw new Error("Multi-work cursor fixture unavailable");
+    }
+    const progress = {
+      schemaVersion: 2 as const,
+      revision: 1,
+      positions: [
+        { bookId: "twok", cursor: twok.cursor },
+        { bookId: "elantris", cursor: elantris.cursor },
+      ],
+      updatedAt: UPDATED_AT,
+    };
+    const discoveryTarget = targetFor(emptySnapshot());
+
+    expect(prepare(discoveryTarget, progress, "twok").status).toBe("ready");
+  });
+
+  it("rejects a selected active work that is not in the current progress snapshot", () => {
+    const progress = snapshotFor("twok", 21);
+    const target = targetFor(progress);
+
+    expect(prepare(target, progress, "elantris")).toEqual({
+      status: "unavailable",
+      reason: "invalid-active-work",
     });
   });
 

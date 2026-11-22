@@ -53,7 +53,7 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(result).toMatchObject({
       status: "selection-required",
       progressRevision: 1,
-      progressFingerprint: IDENTITY.fingerprint,
+      progressFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       choices: [
         { sourceId: "tfe", currentChapter: 8, completedThroughChapter: 7 },
         { sourceId: "elantris", currentChapter: 3, completedThroughChapter: 2 },

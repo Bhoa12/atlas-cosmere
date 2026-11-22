@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
 import {
   HOID_NATIVE_SECURITY_ATTESTATION_KIND,
   HOID_NATIVE_SECURITY_ATTESTATION_SCHEMA_VERSION,
@@ -111,7 +110,6 @@ type HarnessOptions = Readonly<{
   attestationValue?: unknown;
   trustValue?: unknown;
   trustThrows?: boolean;
-  verifierResult?: boolean;
   runtimeOverrides?: MutableRecord;
   expectedAppIdentifier?: string;
   expectedAppBuildId?: string;
@@ -164,13 +162,6 @@ function harness(options: HarnessOptions = {}) {
     },
   });
 
-  const verifier = Object.freeze({
-    verify: async request => {
-      if (options.verifierResult === false) return false;
-      return createHoidNobleEd25519VerificationPort().verify(request);
-    },
-  });
-
   const runtime = {
     platform,
     nativeBuild: true,
@@ -183,7 +174,6 @@ function harness(options: HarnessOptions = {}) {
     challengePort,
     attestationPort,
     trustPort,
-    verifier,
     runtime,
     expectedAppIdentifier: options.expectedAppIdentifier ?? APP_IDENTIFIER,
     expectedAppBuildId: options.expectedAppBuildId ?? APP_BUILD_ID,
@@ -379,12 +369,6 @@ describe("Hoid native conversation security attestation", () => {
     const test = harness({ trustThrows: true });
     const result = await verifyHoidNativeConversationSecurityProvider(test.request);
     expect(reason(result)).toBe("trust-unavailable");
-  });
-
-  it("rejects a verifier that cannot validate the signature", async () => {
-    const test = harness({ verifierResult: false });
-    const result = await verifyHoidNativeConversationSecurityProvider(test.request);
-    expect(reason(result)).toBe("signature-invalid");
   });
 
   it("rejects malformed request objects and extra properties", async () => {

@@ -1,6 +1,7 @@
 import type { HoidApprovedClaimIntent } from "./approvedClaimIntegrity";
 import { sha256Hex } from "./sha256";
 import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
+import type { HoidAnswerBookScope } from "./answerScope";
 
 export type HoidClaimSelectionCandidate = Readonly<{
   id: string;
@@ -33,6 +34,8 @@ type CreateRequestInput = Readonly<{
   candidates: readonly HoidClaimSelectionCandidate[];
   selectionBudget: HoidAnswerSelectionBudget;
   reading: readonly ReadingPosition[];
+  /** Local-only scope binding; only its fingerprint crosses the provider boundary. */
+  bookScope?: HoidAnswerBookScope;
 }>;
 
 /**
@@ -65,11 +68,18 @@ export function createHoidClaimSelectionRequest(
   })).sort((left, right) =>
     left.bookId < right.bookId ? -1 : left.bookId > right.bookId ? 1 : 0
   );
+  const bookScopeSnapshot = input.bookScope
+    ? Object.freeze({
+        mode: input.bookScope.mode,
+        bookIds: Object.freeze([...input.bookScope.bookIds]),
+      })
+    : null;
   const requestFingerprint = sha256Hex(JSON.stringify({
     protocol: "hoid.claim-selection",
     schemaVersion: 1,
     question: input.question,
     intent: input.intent,
+    bookScope: bookScopeSnapshot,
     reading: readingSnapshot,
     selectionBudget,
     candidates: candidates.map(candidate => ({

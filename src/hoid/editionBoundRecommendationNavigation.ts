@@ -33,7 +33,9 @@ export type HoidRecommendationNavigationHandoffResult =
         | "locator-mismatch"
         | "work-completed"
         | "work-not-started"
-        | "cursor-mismatch";
+        | "cursor-mismatch"
+        | "selection-required"
+        | "invalid-active-work";
     }>;
 
 const TARGET_KEYS = new Set([
@@ -117,6 +119,7 @@ export function prepareHoidRecommendationNavigationHandoff(
   progressInput: unknown,
   expectedProgressRevision: unknown,
   expectedProgressFingerprint: unknown,
+  selectedActiveBookId?: unknown,
 ): HoidRecommendationNavigationHandoffResult {
   const validation = validateHoidCursorProgressSnapshot(progressInput);
   if (validation.status !== "valid") return unavailable("invalid-progress");
@@ -187,9 +190,25 @@ export function prepareHoidRecommendationNavigationHandoff(
     return unavailable("locator-mismatch");
   }
 
+  const inProgress = snapshot.positions.filter(
+    (candidate): candidate is Extract<typeof candidate, { cursor: HoidReadingCursor }> =>
+      "cursor" in candidate,
+  );
+  if (
+    selectedActiveBookId !== undefined &&
+    (typeof selectedActiveBookId !== "string" ||
+      !inProgress.some(candidate => candidate.bookId === selectedActiveBookId))
+  ) return unavailable("invalid-active-work");
+  if (inProgress.length > 1 && selectedActiveBookId === undefined) {
+    return unavailable("selection-required");
+  }
+
   const position = snapshot.positions.find(candidate => candidate.bookId === cursor.bookId);
   if (position) {
     if ("completed" in position) return unavailable("work-completed");
+    if (inProgress.length > 1 && cursor.bookId !== selectedActiveBookId) {
+      return unavailable("selection-required");
+    }
     if (!sameCursor(position.cursor, cursor)) return unavailable("cursor-mismatch");
   } else if (cursor.chapterNumber !== 1) {
     return unavailable("work-not-started");

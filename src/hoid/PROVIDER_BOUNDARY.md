@@ -111,3 +111,12 @@ El transporte sigue siendo responsable de pasar la señal al cliente HTTP/SDK. L
 El adaptador de referencia realiza como máximo un despacho de transporte por invocación. El núcleo no aplica reintentos automáticos: un error de transporte no se interpreta como prueba de que el servidor remoto no procesó la solicitud. Las invocaciones explícitas repetidas conservan el mismo payload y fingerprint cuando la pregunta, el progreso, el presupuesto y los candidatos son idénticos.
 
 El fingerprint es una clave de correlación, no una garantía de idempotencia remota ni una autorización para reproducir respuestas. Si un adaptador futuro implementa reintentos, debe documentar el comportamiento de idempotencia del proveedor, reutilizar exactamente el mismo snapshot, respetar el deadline y la señal originales, y no reintentar tras cancelación, timeout o una respuesta ya recibida. La respuesta final seguirá pasando por el parser local y por la reconciliación de IDs.
+
+
+## Ámbito explícito por obra
+
+La solicitud estricta puede incluir un ámbito local `bookScope` opcional con dos formas: `single-work` (una obra) o `cross-work` (entre dos y cuatro obras conocidas). El contrato se canonicaliza mediante IDs del catálogo, rechaza duplicados, getters, propiedades extra y obras desconocidas, y ordena los IDs para obtener una representación determinista.
+
+El ámbito solo restringe. No desbloquea evidencia, no sustituye el progreso y no se envía como permiso al proveedor. Antes de construir candidatos, Hoid exige que toda la evidencia de cada afirmación pertenezca al ámbito y que cada fuente haya superado por separado su `evidenceUnlock`. En un ámbito `cross-work`, el conjunto final seleccionado debe aportar evidencia de todas las obras solicitadas; si falta una, la respuesta se retiene.
+
+El ámbito se incorpora al fingerprint de la solicitud de selección para impedir que una selección de otra pregunta, progreso o alcance se reutilice. El proveedor sigue recibiendo únicamente candidatos ya autorizados y puede devolver únicamente sus IDs. La reconciliación y la cobertura final se vuelven a comprobar localmente.

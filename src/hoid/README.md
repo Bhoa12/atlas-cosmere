@@ -578,3 +578,12 @@ See `docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md` and the dedicated wo
 ## Ámbito de respuesta por obra
 
 El runtime estricto admite `bookScope` opcional para consultas limitadas a una obra o comparaciones entre varias obras. Este ámbito únicamente reduce los candidatos: cada evidencia sigue necesitando progreso válido y su propio umbral de desbloqueo. Las comparaciones deben cubrir todas las obras declaradas; si falta una fuente autorizada, Hoid se abstiene. Consulta [BOOK_SCOPE_POLICY.md](BOOK_SCOPE_POLICY.md), [EVIDENCE_RUNTIME.md](EVIDENCE_RUNTIME.md) y [PROVIDER_BOUNDARY.md](PROVIDER_BOUNDARY.md).
+
+
+## Ámbito narrativo explícito desde HoidScreen
+
+HoidScreen ofrece un selector temporal de ámbito: automático, una obra o comparación de dos a cuatro obras del catálogo. La selección no persiste y, al cambiarla, se descartan los contextos conversacionales anteriores para evitar que un seguimiento herede una referencia de otro ámbito.
+
+El adaptador answerScopeSelection.ts convierte la selección visual en el contrato cerrado HoidAnswerBookScope. HoidConversationGateway canonicaliza el ámbito y lo propaga por todas las rutas de respuesta. Las preguntas de relaciones con ámbito explícito pasan por el runtime estricto de evidencias, no por el atajo del grafo sin ámbito. El runtime sigue exigiendo progreso y evidencia desbloqueada por cada obra; la selección nunca concede acceso narrativo.
+
+El selector solo afecta a explicaciones narrativas. Las consultas de progreso y las recomendaciones de catálogo conservan sus propios contratos.

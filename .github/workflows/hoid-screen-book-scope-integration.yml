@@ -1,0 +1,76 @@
+name: Hoid screen book-scope integration
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScope.test.ts"
+      - "src/hoid/answerScopeSelection.ts"
+      - "src/hoid/answerScopeSelection.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/BOOK_SCOPE_POLICY.md"
+      - "src/hoid/README.md"
+      - "docs/hoid/RUN241_SCREEN_BOOK_SCOPE_INTEGRATION.md"
+      - ".github/workflows/hoid-screen-book-scope-integration.yml"
+  pull_request:
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScope.test.ts"
+      - "src/hoid/answerScopeSelection.ts"
+      - "src/hoid/answerScopeSelection.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/BOOK_SCOPE_POLICY.md"
+      - "src/hoid/README.md"
+      - "docs/hoid/RUN241_SCREEN_BOOK_SCOPE_INTEGRATION.md"
+      - ".github/workflows/hoid-screen-book-scope-integration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  screen-book-scope-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test screen scope, gateway and evidence boundaries
+        run: >-
+          npx vitest run
+          src/hoid/answerScope.test.ts
+          src/hoid/answerScopeSelection.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Strict type-check screen and scope integration
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native
+          --esModuleInterop
+          src/screens/HoidScreen.tsx
+          src/hoid/answerScopeSelection.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/selectionProtocol.ts

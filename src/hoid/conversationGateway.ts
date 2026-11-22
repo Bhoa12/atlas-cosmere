@@ -1,6 +1,7 @@
 import type { HoidCursorEvidenceRuntime } from "./cursorEvidenceRuntime";
 import type { HoidClaimIntent, HoidEvidenceAnswer, HoidRuntimeCallOptions } from "./evidenceRuntime";
 import type { HoidRecommendation } from "./recommendations";
+import { canonicalizeHoidAnswerBookScope, type HoidAnswerBookScope } from "./answerScope";
 import {
   isHoidExplanationDepth,
   resolveHoidExplanationDepthBudget,
@@ -126,7 +127,7 @@ async function readCurrentProgress(config: HoidConversationGatewayConfig): Promi
   return config.getCurrentProgress();
 }
 
-const REQUEST_KEYS = ["question", "progress", "intent", "context", "typedContext", "depth"] as const;
+const REQUEST_KEYS = ["question", "progress", "intent", "context", "typedContext", "depth", "bookScope"] as const;
 const RECOMMENDATION_KEYS = ["progress", "limit"] as const;
 const CONTEXT_KEYS = ["progress"] as const;
 const MAX_QUESTION_LENGTH = 4_000;
@@ -141,6 +142,7 @@ function canonicalRequest(value: unknown): Readonly<{
   selectionBudget: NonNullable<ReturnType<typeof resolveHoidExplanationDepthBudget>>;
   context?: unknown;
   typedContext?: unknown;
+  bookScope?: HoidAnswerBookScope;
 }> | null {
   const record = canonicalDataRecord(value, REQUEST_KEYS, ["question", "progress"]);
   if (!record) return null;
@@ -163,6 +165,13 @@ function canonicalRequest(value: unknown): Readonly<{
   const selectionBudget = resolveHoidExplanationDepthBudget(depth);
   if (!selectionBudget) return null;
 
+  let bookScope: HoidAnswerBookScope | undefined;
+  if (Object.prototype.hasOwnProperty.call(record, "bookScope")) {
+    const canonicalScope = canonicalizeHoidAnswerBookScope(record.bookScope);
+    if (!canonicalScope) return null;
+    bookScope = canonicalScope;
+  }
+
   return Object.freeze({
     question,
     progress: record.progress,
@@ -171,6 +180,7 @@ function canonicalRequest(value: unknown): Readonly<{
     selectionBudget,
     ...(Object.prototype.hasOwnProperty.call(record, "context") ? { context: record.context } : {}),
     ...(Object.prototype.hasOwnProperty.call(record, "typedContext") ? { typedContext: record.typedContext } : {}),
+    ...(bookScope ? { bookScope } : {}),
   });
 }
 
@@ -614,6 +624,7 @@ export class HoidConversationGateway {
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: [typedFollowUp.entityId],
+          ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         }, options);
       } catch {
         return unavailable("runtime-failed");
@@ -692,11 +703,59 @@ export class HoidConversationGateway {
       return unavailable("context-unavailable");
     }
 
+    // An explicit book scope bypasses the unscoped relationship-graph shortcut.
+    // The strict evidence runtime must enforce the requested work set and every
+    // per-book chapter threshold before any claim can be selected.
+    if (request.bookScope && followUp.status === "resolved") {
+      let answer: HoidEvidenceAnswer;
+      try {
+        answer = await this.config.runtime.answer({
+          question: request.question,
+          progress: request.progress,
+          intent: request.intent,
+          selectionBudget: request.selectionBudget,
+          entityIds: followUp.entityIds,
+          bookScope: request.bookScope,
+        }, options);
+      } catch {
+        return unavailable("runtime-failed");
+      }
+
+      let currentAfterScopedFollowUp: unknown;
+      try {
+        currentAfterScopedFollowUp = await readCurrentProgress(this.config);
+      } catch {
+        return unavailable("invalid-progress");
+      }
+      const afterScopedIdentity = progressIdentity(currentAfterScopedFollowUp);
+      if (!afterScopedIdentity) return unavailable("invalid-progress");
+      if (!sameProgress(requestedProgress, afterScopedIdentity)) return unavailable("progress-changed");
+
+      const conversationContext = createHoidConversationContext(followUp.entityIds, requestedProgress);
+      if (!conversationContext) return unavailable("context-unavailable");
+      const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
+      const typedConversationContext = buildTypedContextFromIds(
+        request.progress,
+        followUp.entityIds,
+        requestedProgress,
+        resolveEntityIds,
+      );
+      return Object.freeze({
+        status: "ready",
+        answer,
+        depth: request.depth,
+        conversationContext,
+        ...(typedConversationContext ? { typedConversationContext } : {}),
+        progressRevision: requestedProgress.revision,
+        progressFingerprint: requestedProgress.fingerprint,
+      });
+    }
+
     // Explicit relationship questions and narrowly recognized group follow-ups
-    // use only the local reviewed graph. A pronoun may enter this route only
-    // after a unique reviewed target has been resolved; two-member context is
-    // required so the counterpart cannot be guessed from a larger group.
-    if (relationshipQuestion || followUp.status === "resolved") {
+    // use only the local reviewed graph when no explicit work scope was requested.
+    // A pronoun may enter this route only after a unique reviewed target has
+    // been resolved; two-member context prevents guessing a counterpart.
+    if ((relationshipQuestion || followUp.status === "resolved") && !request.bookScope) {
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");
 
@@ -783,6 +842,7 @@ export class HoidConversationGateway {
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: [coreference.entityId],
+          ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         }, options);
       } catch {
         return unavailable("runtime-failed");
@@ -859,6 +919,7 @@ export class HoidConversationGateway {
         intent: request.intent,
         selectionBudget: request.selectionBudget,
         ...(entityIds === undefined ? {} : { entityIds }),
+        ...(request.bookScope ? { bookScope: request.bookScope } : {}),
       }, options);
     } catch {
       return unavailable("runtime-failed");

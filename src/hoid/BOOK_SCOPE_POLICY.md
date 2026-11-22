@@ -40,3 +40,24 @@ Hoid se abstiene cuando una obra solicitada no tiene evidencia desbloqueada sufi
 ## Privacidad y propiedad intelectual
 
 El ámbito contiene únicamente IDs de bibliografía. No incorpora EPUBs, XHTML, texto extraído, rutas privadas ni contenido protegido.
+
+
+## Integración de selección en HoidScreen
+
+La pantalla expone tres modos temporales:
+
+- **Automático:** no envía un ámbito explícito; se conserva el comportamiento general con autorización independiente por obra.
+- **Una obra:** exige exactamente un ID del catálogo.
+- **Comparar 2–4:** exige entre dos y cuatro IDs únicos del catálogo.
+
+La selección se mantiene solo en memoria de pantalla. Cambiar el modo o las obras seleccionadas borra los contextos conversacionales tipados y reinicia el hilo visible para impedir que un seguimiento reutilice una respuesta generada bajo otro ámbito. No se escribe la selección en SQLite ni se guarda como preferencia permanente.
+
+El adaptador de selección es puro (answerScopeSelection.ts) y produce el mismo contrato cerrado que valida el runtime. La interfaz no concede permisos: una obra seleccionada sin evidencia desbloqueada sigue sin producir respuesta.
+
+## Propagación por el gateway conversacional
+
+HoidConversationGateway valida y canonicaliza bookScope antes de resolver referencias o invocar el runtime. La selección canonicalizada se propaga por las rutas de entidad única, seguimiento tipado, seguimiento de grupo y consulta general.
+
+Cuando existe un ámbito explícito, las preguntas de relaciones no usan el atajo del grafo local sin ámbito. Se enrutan por el runtime estricto de evidencias para que cada afirmación satisfaga la política de una o varias obras. Sin ámbito explícito, se conserva la ruta local revisada existente.
+
+El ámbito solo se aplica a respuestas narrativas. Las consultas de progreso y las recomendaciones de catálogo siguen sus contratos propios y no se reinterpretan como respuestas narrativas.

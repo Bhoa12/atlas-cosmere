@@ -247,3 +247,12 @@ The metadata-only plan now reports 68 inspected chapter documents and 64 pending
 Run 231 inspected El Camino de los Reyes chapter 20 from the selected Roshar omnibus EPUB. The ZIP CRC passed, the registered navigation digest matched, the target resolved to one navigation entry, one OPF manifest item and one reading-spine entry, and chapter 19's existing digest matched before chapter 20 was fingerprinted. The new document digest is edition-bound; no source bytes or prose were committed.
 
 One original Spanish summary was added to editorial staging with exact source provenance and a chapter-20 evidence watermark. It remains pending independent review and requires reader cursor 21. The current plan reports 69 inspected chapter documents and 65 pending-review summaries. Its continuation tasks are El Imperio Final chapter 11 and El Camino de los Reyes chapter 21. The current Library EPUB listing did not contain `cosmere.epub`, so El Imperio Final chapter 11 remains a metadata-only candidate. No production claim, progress mutation or activation receipt was created.
+
+
+## Run 232 — refreshed continuation queue
+
+Run 232 reselected the Roshar omnibus EPUB and revalidated its ZIP CRC, registered navigation digest, chapter-20 predecessor digest, chapter-21 navigation target, unique OPF manifest entry and reading-spine membership. El Camino de los Reyes chapter 21 was fingerprinted from the exact XHTML bytes and one original Spanish summary was staged with edition-bound provenance and an N+1 watermark. The summary remains pending independent review.
+
+The current inventory is 70 individually inspected chapter documents and 66 pending-review summaries. The next metadata-only continuation tasks are El Imperio Final chapter 11 and El Camino de los Reyes chapter 22. cosmere.epub was not present in the current EPUB-filtered Library listing, so El Imperio Final chapter 11 remains uninspected. The planner continues to report source availability as unchecked and has no authorization effect. Production knowledge, approved claims and activation receipt remain empty.
+
+No EPUB, XHTML body, extracted prose, chapter title, image or private file URI was committed.

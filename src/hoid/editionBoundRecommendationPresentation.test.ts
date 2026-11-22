@@ -76,8 +76,12 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(result.items[0]).toMatchObject({
       sourceId: "elantris",
       reason: "resume-current-work",
-      currentChapter: 3,
+      target: {
+        kind: "edition-cursor",
+        cursor: { bookId: "elantris", chapterNumber: 3 },
+      },
     });
+    expect(result.items[0].detail).toContain("El cursor validado señala el capítulo 3.");
   });
 
   it("preserves catalog-only status for an unsegmented work", () => {
@@ -125,8 +129,9 @@ describe("edition-bound recommendation presentation adapter", () => {
   });
 
   it("rejects invalid progress and invalid active-work selections", () => {
+    // Revision zero is only valid for the canonical empty snapshot.
     expect(createHoidEditionBoundRecommendationPresentation(
-      { schemaVersion: 2, revision: 1, positions: [], updatedAt: UPDATED_AT },
+      { schemaVersion: 2, revision: 0, positions: [], updatedAt: UPDATED_AT },
       1,
     )).toEqual({ status: "unavailable", reason: "invalid-progress" });
 
@@ -135,6 +140,21 @@ describe("edition-bound recommendation presentation adapter", () => {
       1,
       "elantris",
     )).toEqual({ status: "unavailable", reason: "invalid-active-work" });
+  });
+
+  it("allows a canonical empty snapshot to discover the first verified numbered chapter", () => {
+    const result = createHoidEditionBoundRecommendationPresentation(snapshot(), 1);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.items[0]).toMatchObject({
+      sourceId: "tfe",
+      reason: "unread-source",
+      explanationCode: "start-first-numbered-chapter",
+      target: {
+        kind: "edition-cursor",
+        cursor: { bookId: "tfe", chapterNumber: 1 },
+      },
+    });
   });
 
   it("rejects a non-finite recommendation limit", () => {

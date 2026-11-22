@@ -57,12 +57,13 @@ The current Atlas host has no dedicated chapter-reader route. `App.tsx`
 mounts the Atlas catalogue, tools, Hoid, quizzes, community and profile; the
 existing book modal is a catalogue detail view, not an EPUB chapter reader.
 
-For that reason this run deliberately does **not** add a fake “open chapter”
-button, mutate the progress cursor, or route to the book synopsis modal as a
-substitute for reading. The new function is the final authorization boundary
-that a future reader host must call immediately before resolving the opaque
-locator. The host must still resolve the locator only inside the exact selected
-EPUB edition.
+HoidScreen now calls the validator against the live progress snapshot
+before displaying an edition-cursor target as revalidated. This is a
+display-time check only. For that reason this run deliberately does **not** add
+a fake “open chapter” button, mutate the progress cursor, or route to the book
+synopsis modal as a substitute for reading. A future reader host must call the
+same boundary again immediately before resolving the opaque locator, and must
+resolve it only inside the exact selected EPUB edition.
 
 ## Security and spoiler invariants
 

@@ -157,4 +157,14 @@ describe("validateHoidPresentedAnswerScope", () => {
       reason: "invalid-presentation",
     });
   });
+  it("rejects overlong evidence identifiers", () => {
+    const longId = "e".repeat(129);
+    const invalidCitation = {
+      ...tfe,
+      evidenceId: longId,
+    };
+    expect(validateHoidPresentedAnswerScope(
+      presentation([invalidCitation], [longId]),
+    )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
+  });
 });

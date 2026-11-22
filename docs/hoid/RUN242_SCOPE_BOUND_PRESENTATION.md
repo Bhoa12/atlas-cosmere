@@ -23,7 +23,7 @@ For explicit cross-work answers, Hoid additionally builds the existing metadata-
 
 The matrix displays only work titles and cited chapter numbers. It does not expose locators, source text, private paths or any new narrative material. If one selected work is absent, the mapping is incomplete, or segment provenance cannot be validated, the comparison text is withheld rather than shown partially.
 
-In automatic mode, a cross-work matrix is supplemental: it is displayed only when the existing summary validates. Single-work answers continue to show their ordinary per-segment citations.
+In automatic mode, any answer citing multiple works also requires a valid segment-level matrix; if that provenance is incomplete, the multi-work answer is withheld rather than displayed partially. Single-work answers continue to show their ordinary per-segment citations.
 
 ## User-visible behavior
 

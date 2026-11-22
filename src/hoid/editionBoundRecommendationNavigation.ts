@@ -190,10 +190,7 @@ export function prepareHoidRecommendationNavigationHandoff(
     return unavailable("locator-mismatch");
   }
 
-  const inProgress = snapshot.positions.filter(
-    (candidate): candidate is Extract<typeof candidate, { cursor: HoidReadingCursor }> =>
-      "cursor" in candidate,
-  );
+  const inProgress = snapshot.positions.filter(candidate => "cursor" in candidate);
   if (
     selectedActiveBookId !== undefined &&
     (typeof selectedActiveBookId !== "string" ||

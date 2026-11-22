@@ -36,21 +36,32 @@ function key(
 
 function manager(overrides: Partial<HoidConversationKeyManagerPort> = {}): HoidConversationKeyManagerPort {
   return Object.freeze({
-    ensureActiveKey: async () => key(),
-    resolveForDecryption: async (_principal, keyId) =>
+    ensureActiveKey: async (_principal: string) => key(),
+    resolveForDecryption: async (_principal: string, keyId: string) =>
       keyId === key().keyId ? key() : null,
-    rotateActiveKey: async () => "rotated",
+    rotateActiveKey: async (_principal: string, _expected: number) => "rotated",
     ...overrides,
   });
 }
 
 function cipher(overrides: Partial<HoidAeadCipherPort> = {}): HoidAeadCipherPort {
   return Object.freeze({
-    seal: async () => Object.freeze({
+    seal: async (
+      _plaintext: string,
+      _handle: string,
+      _algorithm: "AES-256-GCM" | "CHACHA20-POLY1305" | "XCHACHA20-POLY1305",
+      _associatedData: string,
+    ) => Object.freeze({
       nonce: "A".repeat(16),
       ciphertext: "B".repeat(22),
     }),
-    open: async () => "restored conversation payload",
+    open: async (
+      _ciphertext: string,
+      _nonce: string,
+      _handle: string,
+      _algorithm: "AES-256-GCM" | "CHACHA20-POLY1305" | "XCHACHA20-POLY1305",
+      _associatedData: string,
+    ) => "restored conversation payload",
     ...overrides,
   });
 }
@@ -75,7 +86,12 @@ describe("Managed Hoid AEAD payload protector", () => {
   it("binds principal, conversation, revision, key ID, version and algorithm as associated data", async () => {
     let aad = "";
     const protector = create(manager(), cipher({
-      seal: async (_plaintext, _handle, _algorithm, associatedData) => {
+      seal: async (
+        _plaintext: string,
+        _handle: string,
+        _algorithm: "AES-256-GCM" | "CHACHA20-POLY1305" | "XCHACHA20-POLY1305",
+        associatedData: string,
+      ) => {
         aad = associatedData;
         return { nonce: "A".repeat(16), ciphertext: "B".repeat(22) };
       },
@@ -97,7 +113,13 @@ describe("Managed Hoid AEAD payload protector", () => {
   it("opens an authenticated envelope using its exact key reference", async () => {
     let openedHandle = "";
     const protector = create(manager(), cipher({
-      open: async (_ciphertext, _nonce, handle) => {
+      open: async (
+        _ciphertext: string,
+        _nonce: string,
+        handle: string,
+        _algorithm: "AES-256-GCM" | "CHACHA20-POLY1305" | "XCHACHA20-POLY1305",
+        _associatedData: string,
+      ) => {
         openedHandle = handle;
         return "restored conversation payload";
       },
@@ -119,7 +141,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       ciphertext: "B".repeat(22),
     });
     const protector = create(
-      manager({ resolveForDecryption: async () => previous }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => previous }),
       cipher(),
     );
     await expect(protector.open(envelope, context)).resolves.toBe("restored conversation payload");
@@ -192,7 +214,7 @@ describe("Managed Hoid AEAD payload protector", () => {
       ciphertext: "B".repeat(22),
     });
     await expect(create(
-      manager({ resolveForDecryption: async () => otherKey }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => otherKey }),
       cipher(),
     ).open(envelope, context)).rejects.toThrow();
   });
@@ -200,7 +222,7 @@ describe("Managed Hoid AEAD payload protector", () => {
   it("rejects missing keys without trying another key", async () => {
     let invoked = false;
     const protector = create(
-      manager({ resolveForDecryption: async () => null }),
+      manager({ resolveForDecryption: async (_principal: string, _keyId: string) => null }),
       cipher({ open: async () => { invoked = true; return "payload"; } }),
     );
     const envelope = JSON.stringify({
@@ -219,7 +241,7 @@ describe("Managed Hoid AEAD payload protector", () => {
   it("rejects malformed contexts before touching the key manager", async () => {
     let invoked = false;
     const protector = create(manager({
-      ensureActiveKey: async () => { invoked = true; return key(); },
+      ensureActiveKey: async (_principal: string) => { invoked = true; return key(); },
     }), cipher());
     await expect(protector.seal("payload", { ...context, storageRevision: 0 })).rejects.toThrow();
     expect(invoked).toBe(false);
@@ -240,5 +262,24 @@ describe("Managed Hoid AEAD payload protector", () => {
     }));
     const envelope = await protector.seal("payload", context);
     await expect(protector.open(envelope, context)).rejects.toThrow("authentication failed");
+  });
+
+  it("uses a 24-byte nonce for XChaCha20-Poly1305", async () => {
+    const xchachaKey = Object.freeze({
+      ...key(),
+      algorithm: "XCHACHA20-POLY1305" as const,
+    });
+    const protector = create(
+      manager({ ensureActiveKey: async (_principal: string) => xchachaKey }),
+      cipher({
+        seal: async () => ({
+          nonce: "A".repeat(32),
+          ciphertext: "B".repeat(22),
+        }),
+      }),
+    );
+    const envelope = JSON.parse(await protector.seal("payload", context)) as Record<string, unknown>;
+    expect(envelope.nonce).toBe("A".repeat(32));
+    expect(envelope.algorithm).toBe("XCHACHA20-POLY1305");
   });
 });

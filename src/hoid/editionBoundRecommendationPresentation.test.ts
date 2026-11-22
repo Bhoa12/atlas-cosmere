@@ -4,7 +4,6 @@ import { createHoidEditionBoundRecommendationPresentation } from "./editionBound
 import { createHoidReadingCursor } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T15:00:00.000Z";
-const IDENTITY = Object.freeze({ revision: 1, fingerprint: "a".repeat(64) });
 
 type PositionFixture =
   | Readonly<{ bookId: string; chapter: number }>
@@ -28,7 +27,6 @@ describe("edition-bound recommendation presentation adapter", () => {
   it("binds a single-work resume explanation to the exact progress identity", () => {
     const result = createHoidEditionBoundRecommendationPresentation(
       snapshot([{ bookId: "tfe", chapter: 9 }]),
-      IDENTITY,
       1,
     );
     expect(result).toMatchObject({
@@ -50,7 +48,6 @@ describe("edition-bound recommendation presentation adapter", () => {
         { bookId: "tfe", chapter: 8 },
         { bookId: "elantris", chapter: 3 },
       ]),
-      IDENTITY,
       3,
     );
     expect(result).toMatchObject({
@@ -71,7 +68,6 @@ describe("edition-bound recommendation presentation adapter", () => {
         { bookId: "tfe", chapter: 8 },
         { bookId: "elantris", chapter: 3 },
       ]),
-      IDENTITY,
       2,
       "elantris",
     );
@@ -90,7 +86,6 @@ describe("edition-bound recommendation presentation adapter", () => {
       .map(work => ({ bookId: work.id, completed: true as const }));
     const result = createHoidEditionBoundRecommendationPresentation(
       snapshot(completed, 1),
-      IDENTITY,
       1,
     );
     expect(result.status).toBe("ready");
@@ -102,34 +97,41 @@ describe("edition-bound recommendation presentation adapter", () => {
     });
   });
 
-  it("rejects an identity whose revision does not match the validated snapshot", () => {
-    const result = createHoidEditionBoundRecommendationPresentation(
-      snapshot([{ bookId: "tfe", chapter: 9 }]),
-      { revision: 2, fingerprint: IDENTITY.fingerprint },
-      1,
-    );
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-progress" });
+  it("derives a canonical fingerprint from the exact snapshot contents", () => {
+    const progress = snapshot([{ bookId: "tfe", chapter: 9 }]);
+    const first = createHoidEditionBoundRecommendationPresentation(progress, 1);
+    const second = createHoidEditionBoundRecommendationPresentation(progress, 1);
+    expect(first.status).toBe("ready");
+    expect(second.status).toBe("ready");
+    if (first.status !== "ready" || second.status !== "ready") return;
+    expect(first.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(second.progressFingerprint).toBe(first.progressFingerprint);
   });
 
-  it("rejects a malformed progress fingerprint", () => {
-    const result = createHoidEditionBoundRecommendationPresentation(
-      snapshot([{ bookId: "tfe", chapter: 9 }]),
-      { revision: 1, fingerprint: "not-a-sha256-digest" },
+  it("changes the fingerprint when the cursor changes at the same revision", () => {
+    const first = createHoidEditionBoundRecommendationPresentation(
+      snapshot([{ bookId: "tfe", chapter: 9 }], 1),
       1,
     );
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-progress" });
+    const second = createHoidEditionBoundRecommendationPresentation(
+      snapshot([{ bookId: "tfe", chapter: 10 }], 1),
+      1,
+    );
+    expect(first.status).toBe("ready");
+    expect(second.status).toBe("ready");
+    if (first.status !== "ready" || second.status !== "ready") return;
+    expect(first.progressRevision).toBe(second.progressRevision);
+    expect(first.progressFingerprint).not.toBe(second.progressFingerprint);
   });
 
   it("rejects invalid progress and invalid active-work selections", () => {
     expect(createHoidEditionBoundRecommendationPresentation(
       { schemaVersion: 2, revision: 1, positions: [], updatedAt: UPDATED_AT },
-      IDENTITY,
       1,
     )).toEqual({ status: "unavailable", reason: "invalid-progress" });
 
     expect(createHoidEditionBoundRecommendationPresentation(
       snapshot([{ bookId: "tfe", chapter: 9 }]),
-      IDENTITY,
       1,
       "elantris",
     )).toEqual({ status: "unavailable", reason: "invalid-active-work" });
@@ -138,7 +140,6 @@ describe("edition-bound recommendation presentation adapter", () => {
   it("rejects a non-finite recommendation limit", () => {
     const result = createHoidEditionBoundRecommendationPresentation(
       snapshot(),
-      { revision: 0, fingerprint: "b".repeat(64) },
       Number.NaN,
     );
     expect(result).toEqual({ status: "unavailable", reason: "invalid-limit" });
@@ -147,7 +148,7 @@ describe("edition-bound recommendation presentation adapter", () => {
   it("does not mutate the authoritative progress snapshot", () => {
     const progress = snapshot([{ bookId: "tfe", chapter: 9 }]);
     const before = JSON.stringify(progress);
-    createHoidEditionBoundRecommendationPresentation(progress, IDENTITY, 1);
+    createHoidEditionBoundRecommendationPresentation(progress, 1);
     expect(JSON.stringify(progress)).toBe(before);
   });
 });

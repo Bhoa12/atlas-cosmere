@@ -545,3 +545,8 @@ Run 230 revalidated the available Roshar omnibus and Danzante del Filo EPUBs and
 ## Run 231 — El Camino de los Reyes chapter 20
 
 Run 231 revalidated the selected Roshar omnibus EPUB and added the exact edition-bound SHA-256 fingerprint for El Camino de los Reyes chapter 20. The previous chapter digest matched, and the target was confirmed in one navigation entry, one OPF manifest item and the reading spine. One original Spanish summary is staged with source provenance and remains pending independent review; its earliest reader cursor is chapter 21. The inventory is now 69 inspected chapter documents and 65 pending-review summaries. Production knowledge and approved claims remain empty. The current EPUB-filtered Library listing did not return `cosmere.epub`, so no new El Imperio Final chapter was inspected. See `docs/hoid/RUN231_ROSHAR_CHAPTER20_INGESTION.md`.
+
+
+## Run 232 — El Camino de los Reyes chapter 21
+
+Run 232 revalidated the selected Roshar omnibus EPUB and added the exact edition-bound SHA-256 fingerprint for El Camino de los Reyes chapter 21. The archive passed ZIP CRC validation, the registered navigation digest and chapter-20 predecessor digest matched, and the chapter target resolved to one navigation entry, one OPF manifest item and one reading-spine entry. One original Spanish summary is staged with exact source provenance and remains pending-review; its earliest reader cursor is chapter 22. The inventory is now 70 inspected chapter documents and 66 pending-review summaries. Production knowledge and approved claims remain empty. The current EPUB-filtered Library listing did not return cosmere.epub, so no new El Imperio Final chapter was inspected. See docs/hoid/RUN232_ROSHAR_CHAPTER21_INGESTION.md.

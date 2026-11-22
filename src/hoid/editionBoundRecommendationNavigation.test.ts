@@ -111,11 +111,14 @@ describe("edition-bound recommendation navigation boundary", () => {
     expect(target.kind).toBe("edition-cursor");
     if (target.kind !== "edition-cursor" || !target.locatorId) return;
 
-    const { locatorId: _locatorId, ...withoutLocator } = target;
-    expect(prepare({
-      ...withoutLocator,
-      locatorStatus: "cursor-only",
-    }, progress)).toEqual({
+    const downgradedTarget = {
+      kind: target.kind,
+      cursor: target.cursor,
+      editionId: target.editionId,
+      navigationSha256: target.navigationSha256,
+      locatorStatus: "cursor-only" as const,
+    };
+    expect(prepare(downgradedTarget, progress)).toEqual({
       status: "unavailable",
       reason: "locator-mismatch",
     });

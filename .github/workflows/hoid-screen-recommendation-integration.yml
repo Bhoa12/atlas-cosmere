@@ -12,6 +12,7 @@ on:
       - "src/hoid/editionBoundRecommendations.ts"
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingManifest.ts"
+      - "src/hoid/knowledgeGraph.ts"
       - ".github/workflows/hoid-screen-recommendation-integration.yml"
       - "docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md"
   pull_request:
@@ -23,6 +24,7 @@ on:
       - "src/hoid/editionBoundRecommendations.ts"
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingManifest.ts"
+      - "src/hoid/knowledgeGraph.ts"
       - ".github/workflows/hoid-screen-recommendation-integration.yml"
       - "docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md"
 

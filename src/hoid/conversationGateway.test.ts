@@ -97,7 +97,7 @@ describe("HoidConversationGateway", () => {
       revision: projection.revision,
       fingerprint: fingerprintHoidCursorProgressProjection(projection),
     };
-    const context = createHoidConversationContext(["synthetic.entity-alpha"], identity);
+    const context = createHoidConversationContext(["synthetic.entity-alpha", "synthetic.entity-beta"], identity);
     if (!context) throw new Error("Contexto sintético no disponible");
     const runtime = { answer: vi.fn(async () => answer) };
     const gateway = createHoidConversationGateway({

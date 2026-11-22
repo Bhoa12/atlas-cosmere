@@ -89,6 +89,7 @@ describe("Hoid editorial draft staging", () => {
       "5aa4b4ea911c1e5ab0bca7dfebb7105dbf1a44b69fed63c3b47d80f81d459055",
       "75f015a49e22cb49a7546591bccc664cb04f7910123c5ffc19b3bdf445b7eaf7",
       "a9686d904b5cc7258477b6db18e7d965624dfa1d5051e2d380294909c101cbbd",
+      "ac7e05bf315a566f32da1f1dff741c7bbf80fb4b45bf76f3c0ce490c3bf47ce7",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
@@ -109,7 +110,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(66);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(67);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -190,6 +191,7 @@ describe("Hoid editorial draft staging", () => {
       "edgedancer.chapter-020.lift-returns-to-azimir-and-aids-refugees",
       "twok.chapter-020.kaladin-cannot-save-miasal",
       "twok.chapter-021.kaladin-gathers-teft-for-a-secret-plan",
+      "tfe.chapter-011.vin-kelsier-camon-attack",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]).toContain(draft.evidenceSource.chapter);
@@ -619,6 +621,21 @@ describe("Hoid editorial draft staging", () => {
       documentSha256: "08954cd89c6ec48a8de4e6114338593cf65279acc5c17afd79627c1e827c761b",
     });
     expect(draft.summaryIntegrity.sha256).toBe("a9686d904b5cc7258477b6db18e7d965624dfa1d5051e2d380294909c101cbbd");
+    expect(draft.review.status).toBe("pending-review");
+  });
+
+  it("keeps the Run 233 El Imperio Final chapter-11 summary source-bound and pending until reader cursor 12", () => {
+    const draft = HOID_EDITORIAL_DRAFTS.find(candidate => candidate.id === "tfe.chapter-011.vin-kelsier-camon-attack");
+    expect(draft).toBeDefined();
+    if (!draft) return;
+    expect(draft.evidenceSource).toMatchObject({ bookId: "tfe", chapter: 11 });
+    expect(draft.evidenceUnlock).toEqual({ bookId: "tfe", chapter: 11 });
+    expect(draft.sourceIntegrity).toEqual({
+      editionId: "cosmere-epub-merged-v1",
+      navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+      documentSha256: "c60a18a9ce32dc892111e09e36390672cfa7f30626bdf648394cd4f04e8b4ae2",
+    });
+    expect(draft.summaryIntegrity.sha256).toBe("ac7e05bf315a566f32da1f1dff741c7bbf80fb4b45bf76f3c0ce490c3bf47ce7");
     expect(draft.review.status).toBe("pending-review");
   });
 

@@ -105,28 +105,20 @@ describe("edition-bound recommendation navigation boundary", () => {
     });
   });
 
-  it("preserves cursor-only targets without inventing an EPUB locator", () => {
-    const manifestResult = getHoidReadingManifest("twok");
-    expect(manifestResult.status).toBe("ready");
-    if (manifestResult.status !== "ready") return;
-    const unlocatedUnit = manifestResult.manifest.units.find(unit => !unit.locatorId);
-    expect(unlocatedUnit).toBeDefined();
-    if (!unlocatedUnit) return;
-
-    const progress = snapshotFor("twok", unlocatedUnit.chapterNumber);
+  it("does not allow a cursor-only downgrade when the manifest has a verified locator", () => {
+    const progress = snapshotFor("twok", 21);
     const target = targetFor(progress);
-    expect(target).toMatchObject({
-      kind: "edition-cursor",
-      locatorStatus: "cursor-only",
-    });
-    if (target.kind !== "edition-cursor") return;
-    expect("locatorId" in target).toBe(false);
+    expect(target.kind).toBe("edition-cursor");
+    if (target.kind !== "edition-cursor" || !target.locatorId) return;
 
-    const result = prepare(target, progress);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.handoff.locatorStatus).toBe("cursor-only");
-    expect("locatorId" in result.handoff).toBe(false);
+    const { locatorId: _locatorId, ...withoutLocator } = target;
+    expect(prepare({
+      ...withoutLocator,
+      locatorStatus: "cursor-only",
+    }, progress)).toEqual({
+      status: "unavailable",
+      reason: "locator-mismatch",
+    });
   });
 
   it("rejects a stale progress revision", () => {

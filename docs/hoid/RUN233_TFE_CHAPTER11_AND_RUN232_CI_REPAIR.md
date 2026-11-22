@@ -56,3 +56,8 @@ The next metadata-only candidates are El Imperio Final chapter 12 and El Camino 
 No EPUB, XHTML body, protected passage, image, reading progress, production registry or activation receipt was committed or modified. The source archive was used only in the local inspection environment and is not part of the repository.
 
 This run is based on `feat/hoid-ia-core-run232` at `c2cff09a2bb700b1c69f8d6a781a8b0e82fc94ad`. It does not modify `main`, PR #125, or earlier PR branches. No merge is performed.
+
+
+## Run 233 CI follow-up
+
+The first PR validation confirmed the chapter-document and navigation-audit updates, then exposed one additional stale staging assertion: the chapter-eleven editorial test still expected three summaries after the new TFE chapter-11 draft made the correct count four. The assertion now expects four and continues to verify that every chapter-11 summary remains pending until the reader completes chapter 12. A fresh CI attempt is required for the updated HEAD; no passing result is claimed yet.

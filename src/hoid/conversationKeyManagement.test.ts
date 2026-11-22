@@ -129,10 +129,14 @@ describe("Hoid conversation key lifecycle boundary", () => {
   });
 
   it("rotates to the next version and verifies that the previous key remains decrypt-only", async () => {
+    let reads = 0;
     const result = await rotateHoidConversationActiveKey(
       manager({
         rotateActiveKey: async (_principal: string, expected: number) => expected === 1 ? "rotated" : "conflict",
-        ensureActiveKey: async (_principal: string) => descriptor(2),
+        ensureActiveKey: async (_principal: string) => {
+          reads += 1;
+          return reads === 1 ? descriptor(1) : descriptor(2);
+        },
         resolveForDecryption: async (_principal: string, keyId: string) =>
           keyId === descriptor(1).keyId ? descriptor(1, "decrypt-only") : descriptor(2),
       }),
@@ -158,10 +162,14 @@ describe("Hoid conversation key lifecycle boundary", () => {
   });
 
   it("rejects rotation when the previous key is not retained decrypt-only", async () => {
+    let reads = 0;
     const result = await rotateHoidConversationActiveKey(
       manager({
         rotateActiveKey: async () => "rotated",
-        ensureActiveKey: async (_principal: string) => descriptor(2),
+        ensureActiveKey: async (_principal: string) => {
+          reads += 1;
+          return reads === 1 ? descriptor(1) : descriptor(2);
+        },
         resolveForDecryption: async (_principal: string, _keyId: string) => descriptor(1, "active"),
       }),
       principalId,

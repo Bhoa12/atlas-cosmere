@@ -147,4 +147,14 @@ describe("validateHoidPresentedAnswerScope", () => {
       presentation([citation("evidence.tfe", "tfe", "El Imperio Final", 0)]),
     )).toEqual({ status: "unavailable", reason: "invalid-presentation" });
   });
+  it("rejects control characters in opaque locator identifiers", () => {
+    const invalidCitation = {
+      ...tfe,
+      locatorId: "Text/tfe/\\u0000.xhtml",
+    };
+    expect(validateHoidPresentedAnswerScope(presentation([invalidCitation]))).toEqual({
+      status: "unavailable",
+      reason: "invalid-presentation",
+    });
+  });
 });

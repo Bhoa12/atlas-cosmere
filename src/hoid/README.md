@@ -573,3 +573,8 @@ The recommendation panel is no longer gated on the narrative conversation gatewa
 Cards display only metadata-derived explanations and target status. They do not navigate directly. A future navigation action must revalidate the edition-bound cursor against the current manifest and the Atlas navigation boundary immediately before opening a chapter.
 
 See `docs/hoid/RUN236_SCREEN_RECOMMENDATION_INTEGRATION.md` and the dedicated workflow `.github/workflows/hoid-screen-recommendation-integration.yml`.
+
+
+## Ámbito de respuesta por obra
+
+El runtime estricto admite `bookScope` opcional para consultas limitadas a una obra o comparaciones entre varias obras. Este ámbito únicamente reduce los candidatos: cada evidencia sigue necesitando progreso válido y su propio umbral de desbloqueo. Las comparaciones deben cubrir todas las obras declaradas; si falta una fuente autorizada, Hoid se abstiene. Consulta [BOOK_SCOPE_POLICY.md](BOOK_SCOPE_POLICY.md), [EVIDENCE_RUNTIME.md](EVIDENCE_RUNTIME.md) y [PROVIDER_BOUNDARY.md](PROVIDER_BOUNDARY.md).

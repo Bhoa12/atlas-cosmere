@@ -95,3 +95,14 @@ Each evidence entry also carries `evidenceSource`: a bibliography book ID, sourc
 If the reader has reached the entity's first appearance but not the summary's unlock chapter, retrieval excludes that evidence before provider invocation. The runtime returns metadata-only source citations with authorized answers so the UI and audit log can show exactly which work, chapter and locator supported the response.
 
 Cross-book claims still require every evidence ID to be independently authorized. Missing, malformed, unknown-work or future evidence scope fails closed.
+
+
+## Explicit book-scoped answers
+
+`HoidEvidenceRuntime.answer()` accepts an optional local `bookScope`:
+- `single-work` restricts every selected claim to evidence from exactly one known work.
+- `cross-work` restricts every selected claim to a closed set of two to four known works and requires the final selected evidence to cover every requested work.
+
+This scope is a narrowing filter only. The runtime still validates progress and each evidence unlock independently before candidate construction. A cross-work request with an unread or insufficiently authorized side abstains before provider invocation. A one-sided selector result is rejected after selection.
+
+The scope is canonicalized from exact own data properties, known bibliography IDs, a dense unique array and a closed mode/arity contract. Its canonical form is included in the selection request fingerprint but is not forwarded as a permission or raw progress field to the provider. The provider continues to receive only authorized candidates and returns only claim IDs.

@@ -1,4 +1,10 @@
 import { isKnownHoidSource } from "./bibliography";
+import {
+  canonicalizeHoidAnswerBookScope,
+  claimEvidenceMatchesHoidBookScope,
+  selectedEvidenceSatisfiesHoidBookScope,
+  type HoidAnswerBookScope,
+} from "./answerScope";
 import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { canonicalEvidenceScope, evidenceCitationFor, isEvidenceUnlocked, type HoidEvidenceCitation } from "./evidenceScope";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
@@ -478,8 +484,8 @@ export class HoidEvidenceRuntime {
     } catch {
       return blocked("invalid-input", "El presupuesto de explicación no puede validarse.");
     }
-    const selectionBudget = canonicalSelectionBudget(rawSelectionBudget);
-    if (!selectionBudget) {
+    const parsedSelectionBudget = canonicalSelectionBudget(rawSelectionBudget);
+    if (!parsedSelectionBudget) {
       return blocked("invalid-input", "El presupuesto de explicación no puede validarse.");
     }
 
@@ -502,6 +508,36 @@ export class HoidEvidenceRuntime {
       return blocked("invalid-input", "El ámbito de entidades no puede validarse. Hoid no ampliará el contexto.");
     }
 
+    let bookScope: HoidAnswerBookScope | undefined;
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(input, "bookScope");
+      if (descriptor) {
+        if (!Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+          return blocked("invalid-input", "El ámbito por obra no puede validarse. Hoid no ampliará el contexto.");
+        }
+        const canonicalScope = canonicalizeHoidAnswerBookScope(descriptor.value);
+        if (!canonicalScope) {
+          return blocked("invalid-input", "El ámbito por obra contiene obras desconocidas, duplicadas o una estructura no válida.");
+        }
+        bookScope = canonicalScope;
+      }
+    } catch {
+      return blocked("invalid-input", "El ámbito por obra no puede validarse.");
+    }
+
+    if (bookScope && (
+      parsedSelectionBudget.maxWorks < bookScope.bookIds.length ||
+      parsedSelectionBudget.minimumWorks > bookScope.bookIds.length
+    )) {
+      return blocked("invalid-input", "El presupuesto de obras no es compatible con el ámbito solicitado.");
+    }
+    const selectionBudget = bookScope
+      ? Object.freeze({
+          ...parsedSelectionBudget,
+          minimumWorks: Math.max(parsedSelectionBudget.minimumWorks, bookScope.bookIds.length),
+        })
+      : parsedSelectionBudget;
+
     const request: HoidAnswerRequest = { question, reading };
     const explicitGuard = guardQuestion(request);
     if (explicitGuard) return blocked("reading-position", explicitGuard.text);
@@ -516,12 +552,31 @@ export class HoidEvidenceRuntime {
     const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)
       .filter(entry => isEvidenceUnlocked(entry, reading));
     const authorizedEvidenceIds = new Set(authorizedContext.map(entry => entry.id));
+    const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
+
+    if (bookScope?.mode === "cross-work") {
+      const authorizedBookIds = new Set(
+        authorizedContext
+          .map(entry => entry.evidenceSource?.bookId)
+          .filter((bookId): bookId is string => typeof bookId === "string"),
+      );
+      if (!bookScope.bookIds.every(bookId => authorizedBookIds.has(bookId))) {
+        return abstain("no-authorized-evidence", "No hay evidencia autorizada en todas las obras solicitadas. Hoid no comparará obras fuera de tu progreso.");
+      }
+    }
+
     const candidates = this.claims
-      .filter(claim =>
-        claim.intent === intent &&
-        claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)) &&
-        (entityIds === undefined || entityIds.every(id => claim.entityIds?.includes(id) === true))
-      )
+      .filter(claim => {
+        if (
+          claim.intent !== intent ||
+          !claim.evidenceIds.every(id => authorizedEvidenceIds.has(id)) ||
+          (entityIds !== undefined && !entityIds.every(id => claim.entityIds?.includes(id) === true))
+        ) return false;
+        if (!bookScope) return true;
+        const evidenceBookIds = claim.evidenceIds.map(id => knowledgeById.get(id)?.evidenceSource?.bookId);
+        if (evidenceBookIds.some(bookId => typeof bookId !== "string")) return false;
+        return claimEvidenceMatchesHoidBookScope(evidenceBookIds as string[], bookScope);
+      })
       .slice(0, MAX_CANDIDATES);
 
     if (candidates.length === 0) {
@@ -542,6 +597,7 @@ export class HoidEvidenceRuntime {
         text: claim.text,
         evidenceIds: claim.evidenceIds,
       })),
+      ...(bookScope ? { bookScope } : {}),
     });
 
     const invocation = await invokeWithProviderDeadline(
@@ -586,12 +642,14 @@ export class HoidEvidenceRuntime {
     if (evidenceIds.length > Math.min(MAX_SELECTED_EVIDENCE_IDS, selectionBudget.maxEvidence)) {
       return blocked("invalid-selection", "La respuesta supera el presupuesto de evidencias. Hoid no reducirá las fuentes de forma silenciosa.");
     }
-    const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
     const selectedEntries = evidenceIds.map(id => knowledgeById.get(id));
     if (selectedEntries.some(entry => !entry || !entry.evidenceSource)) {
       return blocked("invalid-selection", "No se puede reconstruir toda la procedencia documental.");
     }
     const selectedWorkIds = new Set(selectedEntries.map(entry => entry!.evidenceSource!.bookId));
+    if (bookScope && !selectedEvidenceSatisfiesHoidBookScope([...selectedWorkIds], bookScope)) {
+      return blocked("invalid-selection", "La selección no cubre todas las obras solicitadas o incluye evidencia ajena al ámbito.");
+    }
     const selectedText = selectedClaims.map(claim => claim.text).join("\n\n");
     if (
       selectedWorkIds.size < selectionBudget.minimumWorks ||

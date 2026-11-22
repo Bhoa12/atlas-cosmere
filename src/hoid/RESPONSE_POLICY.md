@@ -90,3 +90,10 @@ La presentación local debe conservar, cuando sea posible, la distinción entre 
 El catálogo también es una frontera de autorización. Una recomendación estructural solo puede emitirse cuando el identificador candidato corresponde a **una única entrada válida**. Si varias entradas válidas comparten el mismo identificador, Hoid IA no elige según el orden de importación: rechaza la recomendación.
 
 Esto evita que metadatos conflictivos modifiquen de forma silenciosa el título o la justificación mostrada al lector. La deduplicación debe resolverse antes de esta frontera, mediante una fuente de catálogo verificable.
+
+
+## Ámbito explícito de respuesta por obra
+
+Cuando la interfaz o la solicitud identifica una obra concreta, Hoid debe tratarla como un filtro restrictivo de recuperación, no como una autorización. En modo `single-work`, todas las evidencias de cada afirmación seleccionable deben proceder de esa obra. En modo `cross-work`, todas deben pertenecer al conjunto explícito y la respuesta final debe cubrir cada obra solicitada.
+
+Cada obra conserva su propio progreso y umbral de evidencia. Si una de las obras de una comparación no tiene evidencia desbloqueada suficiente, Hoid debe abstenerse antes de invocar al proveedor. No debe completar el lado ausente con conocimiento previo, ni cambiar silenciosamente a otra obra.

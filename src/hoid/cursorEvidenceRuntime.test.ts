@@ -382,4 +382,35 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(providerSignal?.aborted).toBe(true);
   });
 
+  it("forwards a validated explicit book scope through the cursor-native facade", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
+      return ["claim-alpha"];
+    });
+    const { facade } = createFacade(selector);
+    const result = await facade.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      progress: snapshot([
+        { bookId: "twok", cursor: cursor("twok", 3) },
+        { bookId: "edgedancer", cursor: cursor("edgedancer", 4) },
+      ], 2),
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an invalid book scope at the cursor facade before selector invocation", async () => {
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const { facade } = createFacade(selector);
+    const result = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
+      bookScope: { mode: "single-work", bookIds: ["unknown-work"] },
+    });
+    expect(result.status).toBe("blocked");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
 });

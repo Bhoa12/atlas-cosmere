@@ -847,4 +847,99 @@ describe("HoidEvidenceRuntime", () => {
     expect(result.text).not.toContain("Afirmación editorial aprobada");
   });
 
+  it("filters every claim to an explicit single-work scope before provider selection", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
+      return ["claim-alpha"];
+    });
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(result.sources.every(source => source.sourceBookId === "twok")).toBe(true);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires a cross-work answer to cover every explicitly scoped work", async () => {
+    const scope = { mode: "cross-work", bookIds: ["twok", "edgedancer"] } as const;
+    const oneSidedRuntime = createRuntime(async () => ["claim-alpha"]);
+    const oneSided = await oneSidedRuntime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      bookScope: scope,
+    });
+    expect(oneSided.status).toBe("blocked");
+    expect(oneSided.reason).toBe("invalid-selection");
+
+    const completeRuntime = createRuntime(async () => ["claim-cross-book"]);
+    const complete = await completeRuntime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      bookScope: scope,
+    });
+    expect(complete.status).toBe("authorized");
+    expect(new Set(complete.sources.map(source => source.sourceBookId))).toEqual(
+      new Set(["twok", "edgedancer"]),
+    );
+  });
+
+  it("does not let a cross-work scope authorize a work outside reader progress", async () => {
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
+    });
+    expect(result.status).toBe("abstain");
+    expect(result.reason).toBe("no-authorized-evidence");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed or budget-incompatible book scopes before provider invocation", async () => {
+    const selector = vi.fn(async () => ["claim-alpha"]);
+    const runtime = createRuntime(selector);
+    const unknownWork = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      bookScope: { mode: "single-work", bookIds: ["not-in-catalog"] },
+    });
+    expect(unknownWork.status).toBe("blocked");
+    expect(unknownWork.reason).toBe("invalid-input");
+
+    const impossibleBudget = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      reading: [
+        { bookId: "twok", chapter: 2 },
+        { bookId: "edgedancer", chapter: 3 },
+      ],
+      bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
+      selectionBudget: {
+        maxClaims: 3,
+        maxEvidence: 4,
+        maxWorks: 1,
+        maxCharacters: 6_000,
+        minimumWorks: 1,
+        requireSegmentProvenance: true,
+        requireCrossWorkSegment: false,
+      },
+    });
+    expect(impossibleBudget.status).toBe("blocked");
+    expect(impossibleBudget.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
+  });
+
 });

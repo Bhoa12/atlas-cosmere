@@ -58,6 +58,34 @@ describe("composeHoidReadingAwareRecommendations", () => {
     ]);
   });
 
+  it("accepts the last chapter inside a partial verified safe prefix", () => {
+    const reading = context([{ bookId: "elantris", cursor: cursor("elantris", 47) }]);
+    expect(composeHoidReadingAwareRecommendations(reading, unread, 1)).toEqual([
+      {
+        sourceId: "elantris",
+        title: "Elantris",
+        reason: "resume-current-work",
+        currentChapter: 47,
+        completedThroughChapter: 46,
+      },
+    ]);
+  });
+
+  it("rejects a plausible chapter number beyond the exact manifest safe prefix", () => {
+    const reading = context([{ bookId: "elantris", cursor: cursor("elantris", 47) }]);
+    const invalid = {
+      ...reading,
+      positions: [{
+        bookId: "elantris",
+        title: "Elantris",
+        status: "in-progress",
+        currentChapter: 48,
+        completedThroughChapter: 47,
+      }],
+    };
+    expect(composeHoidReadingAwareRecommendations(invalid, unread, 1)).toBeNull();
+  });
+
   it("does not recommend explicitly completed works for resumption", () => {
     const reading = context([{ bookId: "tfe", completed: true }]);
     const result = composeHoidReadingAwareRecommendations(reading, unread.slice(1), 2);

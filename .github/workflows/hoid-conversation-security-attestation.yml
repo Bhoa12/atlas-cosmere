@@ -1,0 +1,54 @@
+name: Hoid native conversation security attestation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/conversationSecurityAttestation.ts"
+      - "src/hoid/conversationSecurityAttestation.test.ts"
+      - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN224_NATIVE_SECURITY_PROVIDER_ATTESTATION.md"
+      - ".github/workflows/hoid-conversation-security-attestation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationSecurityAttestation.ts"
+      - "src/hoid/conversationSecurityAttestation.test.ts"
+      - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN224_NATIVE_SECURITY_PROVIDER_ATTESTATION.md"
+      - ".github/workflows/hoid-conversation-security-attestation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-security-attestation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test signed native provider attestation
+        run: >-
+          npx vitest run
+          src/hoid/conversationSecurityAttestation.test.ts
+          src/hoid/conversationSecurityReadiness.test.ts
+      - name: Type-check signed native provider attestation
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/conversationSecurityAttestation.ts
+          src/hoid/conversationSecurityAttestation.test.ts
+          src/hoid/conversationSecurityReadiness.ts
+          src/hoid/conversationSecurityReadiness.test.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/sha256.ts

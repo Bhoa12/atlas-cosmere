@@ -40,6 +40,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       17: "c51c420645b3634d4c99791e215827fda7781a5f5d073ee8516673e61cb7d35e",
       18: "e8fec5f6b12f132a5469db8cc40afa90f31e675450c6b0f7050a64d94e6813cc",
       19: "075a2440369deb756c3aab32e76596eb85c1c1e4e45c2255a8edf5447a1a9867",
+      20: "54d359607c877ed3312095477855b1d824dab6e4f699d9a9f76979254b76f81d",
     }),
   }),
   edgedancer: Object.freeze({

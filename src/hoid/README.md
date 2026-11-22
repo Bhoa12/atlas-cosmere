@@ -529,4 +529,9 @@ The Run 140 integration test exposed that the adapter forwarded the v2 snapshot 
 
 ## Run 145 — source coverage and evidence completeness
 
-`sourceCoverage.ts` exposes an immutable metadata-only inventory that separates bibliography entries, edition progress policies, verified navigation locators, individually inspected XHTML chapter documents, pending editorial summaries and production knowledge. It is descriptive only and never authorizes narrative content. The current inventory contains 24 works, 1,106 numbered-chapter navigation locators, 29 individually inspected chapter documents and 29 pending-review summaries; production knowledge and approved claims remain empty. Ambiguous chapter numbering and unsegmented volumes/collections remain blocked. See `docs/hoid/SOURCE_COVERAGE_AUDIT.md`.
+`sourceCoverage.ts` exposes an immutable metadata-only inventory that separates bibliography entries, edition progress policies, verified navigation locators, individually inspected XHTML chapter documents, pending editorial summaries and production knowledge. It is descriptive only and never authorizes narrative content. The current inventory contains 24 works, 1,106 numbered-chapter navigation locators, 66 individually inspected chapter documents and 62 pending-review summaries; production knowledge and approved claims remain empty. Ambiguous chapter numbering and unsegmented volumes/collections remain blocked. See `docs/hoid/SOURCE_COVERAGE_AUDIT.md`.
+
+
+## Run 229 — verified chapter-document coverage
+
+Run 229 revalidated the user's four available EPUB editions locally and added four edition-bound XHTML SHA-256 fingerprints: El Imperio Final chapter 10, El Camino de los Reyes chapter 18, Danzante del Filo chapter 19 and Esquirla del amanecer chapter 19. No source text or chapter titles were stored. The 66 inspected document fingerprints are distinct from the 62 original summaries, which all remain pending review. Esquirla del amanecer is complete only within its 19 numbered manifest units.

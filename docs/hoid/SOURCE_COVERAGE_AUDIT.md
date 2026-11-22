@@ -16,7 +16,7 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 62 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 66 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
 | Original staged chapter summaries | 62 | Original editorial summaries exist in staging |
 | Summaries pending review | 62 | None of those summaries is approved for production |
@@ -33,7 +33,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `tfe` | El Imperio Final | 38 | 9 | 9 | Numeric chapters |
+| `tfe` | El Imperio Final | 38 | 10 | 9 | Numeric chapters |
 | `woa` | El Pozo de la Ascensión | 59 | 0 | 0 | Numeric chapters |
 | `hoa` | El Héroe de las Eras | 82 | 0 | 0 | Numeric chapters |
 | `aol` | Aleación de ley | 20 | 0 | 0 | Numeric chapters |
@@ -55,13 +55,13 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 17 | 17 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 18 | 17 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
 | `sawt` | Viento y Verdad | 11 | 0 | 0 | Only the safe numeric prefix through chapter 11 is locator-backed; chapter numbers 12 and 14 are ambiguous |
-| `edgedancer` | Danzante del Filo | 20 | 18 | 18 | Numeric chapters |
-| `dawnshard` | Esquirla del amanecer | 19 | 18 | 18 | Numeric chapters |
+| `edgedancer` | Danzante del Filo | 20 | 19 | 18 | Numeric chapters |
+| `dawnshard` | Esquirla del amanecer | 19 | 19 | 18 | Numeric chapters |
 
 ## Interpretation rules
 
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 62 inspected documents, 62 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 66 inspected documents, 62 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -233,3 +233,21 @@ The new document digests are:
 - `dawnshard` chapter 18: `6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b`
 
 All three original summaries are staging-only and pending editorial review. Their completed-through watermark is chapter N and the minimum eligible reader cursor is N+1. Production knowledge and approved claims remain empty. No EPUB bytes, XHTML bodies, source passages or private file paths were committed.
+
+
+## Run 229 — four additional chapter-document fingerprints
+
+The current Library copies of `cosmere.epub`, the Roshar omnibus, `Danzante del Filo` and `Esquirla del amanecer` were materialized locally for metadata and byte-integrity checks only. All four ZIP archives passed CRC validation. Their registered navigation fingerprints matched the checked-in edition values: Cosmere EPUB 3 navigation, Roshar omnibus EPUB 3 navigation, and the EPUB 2 NCX documents for the two standalone novellas.
+
+For each new target, the exact relative href was present in the selected navigation document, resolved to exactly one OPF manifest item, appeared in the reading spine, and its raw uncompressed XHTML bytes matched the SHA-256 added to the sparse allowlist. The immediately preceding chapter digest also matched the existing allowlist, confirming continuity with the already inspected prefix.
+
+| Work | New chapter document | Relative XHTML target | Bytes | Document SHA-256 | Earliest future reader cursor |
+|---|---:|---|---:|---|---:|
+| El Imperio Final | 10 | `books/b000001/OEBPS/Text/010.xhtml` | 42,882 | `a1a42419b3a0e8c63fdd15c6ec63d556dc11dfb3c3b9cffc04265d2c4a7ac472` | 11 |
+| El Camino de los Reyes | 18 | `L1-040.xhtml` | 59,816 | `e8fec5f6b12f132a5469db8cc40afa90f31e675450c6b0f7050a64d94e6813cc` | 19 |
+| Danzante del Filo | 19 | `Text/019.xhtml` | 21,124 | `50771bbaad3f2767b1e4dd626b5bca7150ee980f858d83729d6469e70fefe9bd` | 20 |
+| Esquirla del amanecer | 19 | `Text/19.xhtml` | 28,200 | `fdfdc11b97d409903be789ffd09b885bc3ab1c039cfae4ccbf4047005300bac6` | 20 |
+
+The inspected-document inventory is now 66 across the same four works. The staging inventory remains 62 original summaries, all pending independent review: Run 229 created no summaries and no claims. Production knowledge and approved claims remain empty. The planner now has three continuation tasks (El Imperio Final chapter 11, El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20); Esquirla del amanecer is complete only for its 19 numbered manifest chapters, not for unmodelled front/back matter or narrative evidence.
+
+No EPUB bytes, XHTML body, chapter title, copied passage, extracted prose, image or private device URI was committed. The new allowlist stores only edition-bound document digests.

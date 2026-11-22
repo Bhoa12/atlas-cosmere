@@ -13,14 +13,14 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Measure | Current value |
 |---|---:|
 | Catalogue works | 24 |
-| Works with a safe next chapter-body inspection candidate | 20 |
-| Continuations of already inspected works | 4 |
+| Works with a safe next chapter-body inspection candidate | 19 |
+| Continuations of already inspected works | 3 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 62 |
+| Individually inspected chapter documents | 66 |
 | Original staged summaries | 62 |
 | Summaries pending review | 62 |
-| Approved production claims | 0 |
+| Numbered-chapter works with every current manifest unit inspected | 1 |\n| Approved production claims | 0 |
 | Production knowledge entries | 0 |
 
 These counts describe checked-in metadata. They do not assert that a private EPUB is currently selected or accessible.
@@ -37,12 +37,11 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
-| El Imperio Final | 10 |
-| El Camino de los Reyes | 18 |
-| Danzante del Filo | 19 |
-| Esquirla del amanecer | 19 |
+| El Imperio Final | 11 |
+| El Camino de los Reyes | 19 |
+| Danzante del Filo | 20 |
 
-The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
+Esquirla del amanecer has all 19 numbered manifest chapters fingerprinted and is reported as completed within the `numbered-chapters-only` scope; this does not claim that unmodelled front/back matter or narrative evidence is complete. The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
 
 Arena blanca vol. 1–3 remain blocked until each volume is segmented independently. Arcanum ilimitado remains blocked until its internal works/sections receive independent units.
 
@@ -224,3 +223,12 @@ Three chapter bodies were inspected and staged as original summaries:
 The next deterministic continuation queue is El Imperio Final chapter 10, El Camino de los Reyes chapter 18, Danzante del Filo chapter 19 and Esquirla del amanecer chapter 19. The current Library EPUB filter did not return `cosmere.epub`; TFE chapter 10 remains a candidate only.
 
 All three new summaries remain pending review. The ingestion planner still has no authorization effect and does not claim source availability.
+
+
+## Run 229 — refreshed continuation queue
+
+Run 229 revalidated the four local EPUB edition fingerprints and added the next exact XHTML document digest for El Imperio Final chapter 10, El Camino de los Reyes chapter 18, Danzante del Filo chapter 19 and Esquirla del amanecer chapter 19. Each target was confirmed in navigation, the OPF manifest and the reading spine; the preceding chapter digest also matched.
+
+The current planner therefore exposes three continuation candidates: El Imperio Final chapter 11, El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20. Esquirla del amanecer moves to `completedWorks` only because all 19 numbered units in its current manifest have document fingerprints. This is not a claim of complete book coverage or editorial knowledge.
+
+The staging inventory remains 62 original summaries, all pending review. Run 229 did not create a summary, promote a claim, change progress or activate production knowledge. The planner remains metadata-only and source availability remains unchecked.

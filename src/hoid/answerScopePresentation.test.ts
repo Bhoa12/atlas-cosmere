@@ -295,4 +295,37 @@ describe("validateHoidPresentedAnswerScope", () => {
     });
   });
 
+
+  it.each([
+    ["numbered", "1. Primera afirmación.\\n\\n2. Segunda afirmación."],
+    ["grouped", "Bloque 1\\n• Primera afirmación.\\n\\n• Segunda afirmación."],
+  ] as const)("accepts canonical %s composition when its segments and citations match", (layout, text) => {
+    const input = Object.freeze({
+      status: "ready",
+      text,
+      claimIds: Object.freeze(["claim.first", "claim.second"]),
+      evidenceIds: Object.freeze(["evidence.tfe", "evidence.twok"]),
+      citations: Object.freeze([tfe, twok]),
+      layout,
+      segments: Object.freeze([
+        Object.freeze({
+          claimId: "claim.first",
+          text: "Primera afirmación.",
+          evidenceIds: Object.freeze(["evidence.tfe"]),
+          citations: Object.freeze([tfe]),
+        }),
+        Object.freeze({
+          claimId: "claim.second",
+          text: "Segunda afirmación.",
+          evidenceIds: Object.freeze(["evidence.twok"]),
+          citations: Object.freeze([twok]),
+        }),
+      ]),
+    });
+    expect(validateHoidPresentedAnswerScope(
+      input,
+      { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    )).toEqual({ status: "ready", sourceBookIds: ["tfe", "twok"] });
+  });
+
 });

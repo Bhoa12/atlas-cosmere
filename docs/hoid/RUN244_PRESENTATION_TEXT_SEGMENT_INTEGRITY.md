@@ -24,7 +24,7 @@ La primera validación de Run 243 detectó una plantilla literal escapada incorr
 
 - Rechazar texto global que no sea exactamente la composición de los segmentos.
 - Rechazar un layout fuera del enum cerrado.
-- Conservar la aceptación del formato `plain` válido y la correspondencia exacta de evidencias.
+- Aceptar composiciones canónicas `plain`, `numbered` y `grouped` cuando el texto y la procedencia coinciden.
 
 ## Límites de confianza
 

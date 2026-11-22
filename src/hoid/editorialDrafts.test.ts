@@ -85,6 +85,8 @@ describe("Hoid editorial draft staging", () => {
       "d0066c51f3e37b54796ea67d95da6c777bfa50dab86dc231e452b7e4279f1ba8",
       "16195eca1bce7f70756cc161521fb8d0c17bcd14030cf452ab3c8d3900e0712f",
       "771e397958ae5dcb8b73cd78cf5e68c3bb5be9ba7d8c2a01f2d1521ab3825943",
+      "7332568ccbb819b322df6b06d9ece8328707b5d6def9b5427a05c2e1d177a95f",
+      "5aa4b4ea911c1e5ab0bca7dfebb7105dbf1a44b69fed63c3b47d80f81d459055",
       "75f015a49e22cb49a7546591bccc664cb04f7910123c5ffc19b3bdf445b7eaf7",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {

@@ -17,9 +17,9 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Continuations of already inspected works | 2 |
 | New works ready to begin | 16 |
 | Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 69 |
-| Original staged summaries | 65 |
-| Summaries pending review | 65 |
+| Individually inspected chapter documents | 71 |
+| Original staged summaries | 67 |
+| Summaries pending review | 67 |
 | Numbered-chapter works with every current manifest unit inspected | 2 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
@@ -38,8 +38,8 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
-| El Imperio Final | 11 |
-| El Camino de los Reyes | 21 |
+| El Imperio Final | 12 |
+| El Camino de los Reyes | 22 |
 
 
 Danzante del Filo has all 20 and Esquirla del amanecer has all 19 numbered manifest chapters fingerprinted; both are reported as completed within the `numbered-chapters-only` scope; this does not claim that unmodelled front/back matter or narrative evidence is complete. The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
@@ -256,3 +256,12 @@ Run 232 reselected the Roshar omnibus EPUB and revalidated its ZIP CRC, register
 The current inventory is 70 individually inspected chapter documents and 66 pending-review summaries. The next metadata-only continuation tasks are El Imperio Final chapter 11 and El Camino de los Reyes chapter 22. cosmere.epub was not present in the current EPUB-filtered Library listing, so El Imperio Final chapter 11 remains uninspected. The planner continues to report source availability as unchecked and has no authorization effect. Production knowledge, approved claims and activation receipt remain empty.
 
 No EPUB, XHTML body, extracted prose, chapter title, image or private file URI was committed.
+
+
+## Run 233 — refreshed continuation queue
+
+The current Library copy of `cosmere.epub` was selected explicitly. Its ZIP CRC validation passed, the registered navigation digest matched, and El Imperio Final chapter 10's existing document digest matched. Chapter 11 was resolved from the EPUB navigation, confirmed as one OPF manifest item and one reading-spine member, and fingerprinted from its exact XHTML bytes. The new document digest is `c60a18a9ce32dc892111e09e36390672cfa7f30626bdf648394cd4f04e8b4ae2`.
+
+One original Spanish summary was added to editorial staging with exact source provenance and an N+1 evidence watermark. It remains pending independent review. The current metadata-only inventory is 71 inspected chapter documents and 67 pending-review summaries. The next continuation candidates are El Imperio Final chapter 12 and El Camino de los Reyes chapter 22. The planner still reports source availability as unchecked and has no authorization effect; production knowledge, approved claims and activation receipt remain empty.
+
+No EPUB bytes, XHTML body, extracted prose, image or private file URI was committed.

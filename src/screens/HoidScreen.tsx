@@ -590,6 +590,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     }
   };
 
+  // A recommendation view model is visible only for its exact validated progress revision and fingerprint.
   const recommendationsAreCurrent =
     recommendationPresentation !== null &&
     recommendationPresentation.status !== 'unavailable' &&

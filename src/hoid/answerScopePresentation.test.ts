@@ -150,7 +150,7 @@ describe("validateHoidPresentedAnswerScope", () => {
   it("rejects control characters in opaque locator identifiers", () => {
     const invalidCitation = {
       ...tfe,
-      locatorId: "Text/tfe/\\u0000.xhtml",
+      locatorId: "Text/tfe/" + String.fromCharCode(0) + ".xhtml",
     };
     expect(validateHoidPresentedAnswerScope(presentation([invalidCitation]))).toEqual({
       status: "unavailable",

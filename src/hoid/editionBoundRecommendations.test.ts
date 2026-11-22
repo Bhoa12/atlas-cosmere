@@ -104,15 +104,31 @@ describe("edition-bound reading recommendation targets", () => {
     }]);
   });
 
-  it("does not guess a resume target when multiple works are in progress", () => {
+  it("requires an explicit choice when several works are in progress", () => {
     const result = recommendEditionBoundReadingNextSteps(snapshot([
       { bookId: "tfe", chapter: 8 },
       { bookId: "elantris", chapter: 3 },
     ]), 2);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.items.every(item => item.reason === "unread-source")).toBe(true);
-    expect(result.items.some(item => item.sourceId === "tfe" || item.sourceId === "elantris")).toBe(false);
+    expect(result.status).toBe("selection-required");
+    if (result.status !== "selection-required") return;
+
+    expect(result.progressRevision).toBe(1);
+    expect(result.choices).toEqual([
+      {
+        sourceId: "tfe",
+        title: "El Imperio Final",
+        currentChapter: 8,
+        completedThroughChapter: 7,
+      },
+      {
+        sourceId: "elantris",
+        title: "Elantris",
+        currentChapter: 3,
+        completedThroughChapter: 2,
+      },
+    ]);
+    expect(Object.isFrozen(result.choices)).toBe(true);
+    expect(result.choices.every(Object.isFrozen)).toBe(true);
   });
 
   it("uses the explicit active work to resolve multiple in-progress cursors", () => {
@@ -129,6 +145,13 @@ describe("edition-bound reading recommendation targets", () => {
       currentChapter: 3,
       completedThroughChapter: 2,
     });
+  });
+
+  it("rejects an explicit active work that is not actually in progress", () => {
+    const result = recommendEditionBoundReadingNextSteps(snapshot([
+      { bookId: "tfe", completed: true },
+    ]), 1, "tfe");
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-active-work" });
   });
 
   it("never resumes a work explicitly marked complete", () => {

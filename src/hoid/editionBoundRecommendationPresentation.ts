@@ -1,3 +1,4 @@
+import { fingerprintHoidCursorProgressSnapshot } from "./knowledgeGraph";
 import {
   explainEditionBoundRecommendationResult,
   type HoidExplainedRecommendationResult,
@@ -5,11 +6,6 @@ import {
 import {
   recommendEditionBoundReadingNextSteps,
 } from "./editionBoundRecommendations";
-
-export type HoidRecommendationProgressIdentity = Readonly<{
-  revision: number;
-  fingerprint: string;
-}>;
 
 type ReadyExplanation = Extract<HoidExplainedRecommendationResult, { status: "ready" }>;
 type SelectionExplanation = Extract<HoidExplainedRecommendationResult, { status: "selection-required" }>;
@@ -24,29 +20,25 @@ export type HoidEditionBoundRecommendationPresentation =
 
 /**
  * Compose the deterministic recommendation core and its metadata-only
- * explanation into a screen-ready view model bound to one progress identity.
+ * explanation into a screen-ready view model bound to the exact validated
+ * cursor-v2 snapshot.
  *
- * The caller must derive the identity from the same authoritative cursor-v2
- * snapshot passed here, then re-read progress before committing this result.
- * A revision mismatch is rejected. The fingerprint is retained so the UI can
- * hide the view model immediately when progress changes.
+ * The adapter derives the canonical revision and SHA-256 fingerprint itself;
+ * callers cannot accidentally pair a valid recommendation with an identity
+ * copied from a different snapshot. The screen must still re-read authoritative
+ * progress before committing the view model and hide it when that identity
+ * changes.
  *
  * This adapter does not open chapters, alter progress, inspect narrative
  * content, call a provider, or authorize evidence.
  */
 export function createHoidEditionBoundRecommendationPresentation(
   progressInput: unknown,
-  progressIdentity: HoidRecommendationProgressIdentity,
   limit = 3,
   activeBookId?: unknown,
 ): HoidEditionBoundRecommendationPresentation {
-  if (
-    !progressIdentity ||
-    !Number.isSafeInteger(progressIdentity.revision) ||
-    progressIdentity.revision < 0 ||
-    typeof progressIdentity.fingerprint !== "string" ||
-    !/^[a-f0-9]{64}$/.test(progressIdentity.fingerprint)
-  ) {
+  const identity = fingerprintHoidCursorProgressSnapshot(progressInput);
+  if (identity.status !== "ready") {
     return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
   }
 
@@ -58,12 +50,12 @@ export function createHoidEditionBoundRecommendationPresentation(
   const explained = explainEditionBoundRecommendationResult(recommendation);
   if (explained.status === "unavailable") return explained;
 
-  if (explained.progressRevision !== progressIdentity.revision) {
+  if (explained.progressRevision !== identity.revision) {
     return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
   }
 
   return Object.freeze({
     ...explained,
-    progressFingerprint: progressIdentity.fingerprint,
+    progressFingerprint: identity.sha256,
   });
 }

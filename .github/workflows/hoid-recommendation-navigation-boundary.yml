@@ -55,7 +55,7 @@ jobs:
       - name: Strict type-check navigation boundary and dependencies
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
-          --moduleResolution node --skipLibCheck --esModuleInterop
+          --moduleResolution node --skipLibCheck --esModuleInterop --jsx react-native
           src/screens/HoidScreen.tsx
           src/hoid/editionBoundRecommendationNavigation.ts
           src/hoid/editionBoundRecommendationNavigation.test.ts

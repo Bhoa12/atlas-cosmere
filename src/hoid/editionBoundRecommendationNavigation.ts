@@ -155,7 +155,7 @@ export function prepareHoidRecommendationNavigationHandoff(
 
   if (
     record.kind !== "edition-cursor" ||
-    REQUIRED_CURSOR_TARGET_KEYS.some(key => !Object.prototype.hasOwnProperty.call(record, key)) ||
+    Array.from(REQUIRED_CURSOR_TARGET_KEYS).some(key => !Object.prototype.hasOwnProperty.call(record, key)) ||
     Object.keys(record).some(key => !REQUIRED_CURSOR_TARGET_KEYS.has(key) && key !== "locatorId") ||
     (Object.prototype.hasOwnProperty.call(record, "reason"))
   ) return unavailable("invalid-target");

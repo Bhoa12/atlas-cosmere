@@ -17,6 +17,7 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/CROSS_BOOK_EVIDENCE_AND_READING_AWARE_RECOMMENDATIONS.md"
       - "docs/hoid/RECOMMENDATION_POLICY.md"
+      - "docs/hoid/RUN227_MANIFEST_BOUND_READING_AWARE_RECOMMENDATIONS.md"
       - ".github/workflows/hoid-cross-book-reading-recommendations.yml"
   pull_request:
     paths:
@@ -32,6 +33,7 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/CROSS_BOOK_EVIDENCE_AND_READING_AWARE_RECOMMENDATIONS.md"
       - "docs/hoid/RECOMMENDATION_POLICY.md"
+      - "docs/hoid/RUN227_MANIFEST_BOUND_READING_AWARE_RECOMMENDATIONS.md"
       - ".github/workflows/hoid-cross-book-reading-recommendations.yml"
 
 permissions:

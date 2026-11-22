@@ -12,6 +12,7 @@ on:
       - "src/hoid/localPrincipalIdentity.ts"
       - "src/hoid/expoSqliteConversationHistoryStore.ts"
       - "docs/hoid/RUN221_CONVERSATION_KEY_LIFECYCLE_AND_MANAGED_AEAD.md"
+      - "docs/hoid/RUN222_KEY_ROTATION_AND_CANONICAL_ENVELOPE_HARDENING.md"
       - ".github/workflows/hoid-conversation-key-lifecycle.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "src/hoid/localPrincipalIdentity.ts"
       - "src/hoid/expoSqliteConversationHistoryStore.ts"
       - "docs/hoid/RUN221_CONVERSATION_KEY_LIFECYCLE_AND_MANAGED_AEAD.md"
+      - "docs/hoid/RUN222_KEY_ROTATION_AND_CANONICAL_ENVELOPE_HARDENING.md"
       - ".github/workflows/hoid-conversation-key-lifecycle.yml"
 
 permissions:

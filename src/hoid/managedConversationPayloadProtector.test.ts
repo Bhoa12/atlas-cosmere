@@ -161,6 +161,42 @@ describe("Managed Hoid AEAD payload protector", () => {
     await expect(create().open(envelope, context)).rejects.toThrow();
   });
 
+  it("rejects duplicate JSON envelope keys before invoking the cipher", async () => {
+    let invoked = false;
+    const canonical = JSON.stringify({
+      schemaVersion: 1,
+      kind: "hoid-managed-aead-envelope",
+      keyId: key().keyId,
+      keyVersion: 1,
+      algorithm: "AES-256-GCM",
+      nonce: "A".repeat(16),
+      ciphertext: "A".repeat(22),
+    });
+    const duplicated = canonical.replace(
+      '"schemaVersion":1,',
+      '"schemaVersion":1,"schemaVersion":1,',
+    );
+    const protector = create(manager(), cipher({
+      open: async () => { invoked = true; return "payload"; },
+    }));
+    await expect(protector.open(duplicated, context)).rejects.toThrow("Non-canonical");
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects whitespace or reordered fields in a non-canonical envelope", async () => {
+    const canonical = JSON.stringify({
+      schemaVersion: 1,
+      kind: "hoid-managed-aead-envelope",
+      keyId: key().keyId,
+      keyVersion: 1,
+      algorithm: "AES-256-GCM",
+      nonce: "A".repeat(16),
+      ciphertext: "A".repeat(22),
+    });
+    const protector = create();
+    await expect(protector.open(" " + canonical, context)).rejects.toThrow("Non-canonical");
+  });
+
   it("rejects a key version or algorithm that differs from the envelope", async () => {
     const envelope = JSON.stringify({
       schemaVersion: 1,

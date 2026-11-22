@@ -245,18 +245,18 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           };
           respuesta = presentation.items.length === 0
             ? 'No hay obras en curso que retomar ni obras sin empezar en el catálogo actual.'
-            : presentation.items.map(item => `${item.heading}\\n${item.detail}`).join('\\n\\n')
-              + '\\n\\nEstas explicaciones utilizan únicamente tu progreso y los manifiestos de lectura. No establecen una cronología canónica ni desbloquean información narrativa.';
+            : presentation.items.map(item => `${item.heading}\n${item.detail}`).join('\n\n')
+              + '\n\nEstas explicaciones utilizan únicamente tu progreso y los manifiestos de lectura. No establecen una cronología canónica ni desbloquean información narrativa.';
         } else if (presentation.status === 'selection-required') {
           responseScope = {
             revision: presentation.progressRevision,
             fingerprint: presentation.progressFingerprint,
           };
-          respuesta = `${presentation.heading}\\n${presentation.detail}\\n\\n`
+          respuesta = `${presentation.heading}\n${presentation.detail}\n\n`
             + presentation.choices.map(choice =>
               `• ${choice.title} · capítulo actual ${choice.currentChapter} · completado hasta ${choice.completedThroughChapter ?? 'ningún capítulo'}`,
-            ).join('\\n')
-            + '\\n\\nAbre el panel «Retomar y descubrir» y selecciona la obra que quieres continuar.';
+            ).join('\n')
+            + '\n\nAbre el panel «Retomar y descubrir» y selecciona la obra que quieres continuar.';
         } else {
           respuesta = presentation.reason === 'invalid-progress'
             ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
@@ -631,7 +631,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           <View style={{ flex: 1 }}>
             <Text style={styles.recommendationTitle}>RETOMAR Y DESCUBRIR</Text>
             <Text style={styles.recommendationNote}>
-              Primero lecturas en curso; después obras sin empezar. No establece un orden canónico.
+              Primero lecturas en curso; si hay varias, eliges cuál continuar. Después aparecen obras sin empezar. No establece un orden canónico.
             </Text>
           </View>
           <TouchableOpacity

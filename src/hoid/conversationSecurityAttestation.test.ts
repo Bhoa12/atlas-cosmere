@@ -85,7 +85,9 @@ function signedAttestation(
     challengeHex,
     issuedAt: "2026-11-22T03:00:00.000Z",
     expiresAt: "2026-11-22T03:01:00.000Z",
-    capabilitiesJson: JSON.stringify(capabilities()),
+    capabilitiesJson: JSON.stringify(
+      capabilities(overrides.platform === "android" ? "android" : "ios"),
+    ),
     ...overrides,
   };
   const signature = ed25519.sign(

@@ -255,7 +255,13 @@ export async function rotateHoidConversationActiveKey(
 
     const active = await ensureHoidConversationActiveKey(manager, principalIdInput);
     if (active.status !== "ready") return active;
-    if (active.descriptor.keyVersion !== expectedActiveKeyVersionInput + 1) {
+    if (
+      active.descriptor.keyVersion !== expectedActiveKeyVersionInput + 1 ||
+      active.descriptor.keyId === previous.descriptor.keyId ||
+      active.descriptor.keyHandle === previous.descriptor.keyHandle
+    ) {
+      // Every key generation must have a distinct immutable ID and handle.
+      // Reusing either could make historical ciphertext resolve to new material.
       return Object.freeze({ status: "invalid-key" });
     }
 

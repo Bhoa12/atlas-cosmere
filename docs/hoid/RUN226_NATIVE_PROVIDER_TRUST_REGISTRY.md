@@ -59,9 +59,16 @@ canonicalization helper; it does not sign anything.
 
 The host supplies HoidNativeSecurityTrustRegistryRevisionPort.
 
-Its readMinimumRevision() must return an already initialized positive integer.
-A missing floor is a hard failure; the adapter never bootstraps trust state from
-the registry it is trying to verify.
+Its readMinimumRevision() must return an already initialized positive integer
+from the authoritative trust authority. A missing floor is a hard failure; the
+adapter never bootstraps trust state from the registry it is trying to verify.
+
+A local rollback-resistant store remembers the highest revision already
+observed, but by itself it cannot prove that a newer remote revocation has been
+published while the device is offline or the registry source is stale. Timely
+revocation therefore requires the revision witness to report the current
+authoritative floor (or an equivalent freshness guarantee). The adapter does
+not claim immediate revocation when the host cannot obtain fresh trust state.
 
 compareAndSetMinimumRevision() must be atomic, linearizable and durable for the
 trust domain. It must be backed by a rollback-resistant native store or an
@@ -82,8 +89,10 @@ native provider to begin using its new key ID, and then publish a later
 revision marking the old key revoked. Multiple active key IDs may coexist
 during a controlled overlap; the attestation's exact key ID selects one entry.
 
-A revoked key is rejected on the next attestation lookup. Existing process-local
-security sessions remain bounded by their already-issued attestation expiry
+A revoked key is rejected on the next attestation lookup that obtains current
+registry and witness state. If the host is offline or its source/witness is
+stale, revocation freshness is not guaranteed. Existing process-local security
+sessions remain bounded by their already-issued attestation expiry
 (maximum 120 seconds); this run does not introduce immediate remote session
 revocation. Root-key rotation is deliberately not self-authorized: it requires
 an application release with a new out-of-band root pin.

@@ -64,3 +64,6 @@ The first PR validation confirmed the chapter-document and navigation-audit upda
 
 
 The next CI pass also exposed two coreference regression fixtures that still used TFE chapter 11 as an uninspected document. Since chapter 11 is now verified, both negative fixtures have been moved to chapter 12 and their reader cursor advanced accordingly. The rejection behavior is unchanged; the tests now target the first genuinely uninspected chapter.
+
+
+The staging inventory now feeds an 85-packet review bundle (67 summaries, 1 atomic claim, 14 entity dossiers and 3 relationship dossiers). The bundle is still review-only: its manifest grants no promotion authority and performs no production write.

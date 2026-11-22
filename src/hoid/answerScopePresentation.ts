@@ -72,6 +72,7 @@ function denseIds(value: unknown, maximum: number): readonly string[] | null {
         !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
         descriptor.enumerable !== true ||
         typeof descriptor.value !== "string" ||
+        descriptor.value.length > 128 ||
         !ID_PATTERN.test(descriptor.value) ||
         seen.has(descriptor.value)
       ) return null;
@@ -99,6 +100,7 @@ function canonicalCitationIdentity(value: unknown): CitationIdentity | null {
   if (
     !record ||
     typeof record.evidenceId !== "string" ||
+    record.evidenceId.length > 128 ||
     !ID_PATTERN.test(record.evidenceId) ||
     typeof record.sourceBookId !== "string" ||
     !TITLES.has(record.sourceBookId) ||

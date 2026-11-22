@@ -19,6 +19,8 @@ on:
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/BOOK_SCOPE_POLICY.md"
       - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
+      - "docs/hoid/RUN244_PRESENTATION_TEXT_SEGMENT_INTEGRITY.md"
+      - "docs/hoid/RUN243_CLAIM_EVIDENCE_BINDING.md"
       - ".github/workflows/hoid-answer-scope-presentation.yml"
   pull_request:
     paths:

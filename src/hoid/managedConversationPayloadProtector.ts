@@ -22,6 +22,14 @@ const OPAQUE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/u;
 
+/**
+ * The host supplies the actual reviewed AEAD implementation. seal() must
+ * generate each nonce with a cryptographically secure source and must never
+ * reuse a nonce with the same key handle. Required nonce sizes are 96 bits
+ * for AES-256-GCM and ChaCha20-Poly1305, and 192 bits for XChaCha20-Poly1305.
+ * Key bytes remain inside the native/provider boundary; only opaque handles
+ * cross this port. Unsupported algorithms must fail closed.
+ */
 export type HoidAeadCipherPort = Readonly<{
   seal: (
     plaintext: string,
@@ -319,6 +327,11 @@ export function createManagedHoidConversationPayloadProtector(
       }
       const envelope = canonicalEnvelope(parsed);
       if (!envelope) throw new Error("Invalid Hoid AEAD envelope");
+      // Require the exact serialization emitted by seal(). This rejects duplicate
+      // JSON keys, alternate property order and whitespace-based ambiguity.
+      if (JSON.stringify(envelope) !== ciphertextInput) {
+        throw new Error("Non-canonical Hoid AEAD envelope");
+      }
 
       const keyResult = await resolveHoidConversationKeyForDecryption(
         managerInput,

@@ -68,4 +68,4 @@ Después de que la autoridad firmada haya validado el texto, las citas y los des
 
 Las comparaciones explícitas requieren además procedencia por segmento. La matriz transversal se reconstruye desde la respuesta validada y el snapshot de progreso de la solicitud, y agrupa únicamente títulos y capítulos. Si falta una obra, una cita no coincide con la bibliografía, el mapeo por segmento no se valida o el conjunto de obras difiere del selector, se retiene toda la comparación; no se presenta una versión parcial.
 
-En modo automático, la matriz transversal es complementaria y solo se muestra cuando la procedencia por segmento valida. Esta comprobación de presentación no sustituye la validación de desbloqueo del presentador firmado ni concede acceso narrativo.
+En modo automático, una respuesta cuyas citas abarcan varias obras también requiere procedencia por segmento completa; si no valida, se retiene la respuesta transversal en lugar de mostrarla parcialmente. Esta comprobación de presentación no sustituye la validación de desbloqueo del presentador firmado ni concede acceso narrativo.

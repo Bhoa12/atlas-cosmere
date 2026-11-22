@@ -38,7 +38,6 @@ export type HoidAeadCipherPort = Readonly<{
 }>;
 
 type DataRecord = Record<string, unknown>;
-
 type CanonicalContext = HoidConversationPayloadProtectionContext;
 
 type CanonicalEnvelope = Readonly<{
@@ -129,10 +128,19 @@ function canonicalCipher(value: unknown): HoidAeadCipherPort | null {
     const sealMethod = sealDescriptor.value as HoidAeadCipherPort["seal"];
     const openMethod = openDescriptor.value as HoidAeadCipherPort["open"];
     return Object.freeze({
-      seal: (plaintext, keyHandle, algorithm, associatedData) =>
-        sealMethod.call(value, plaintext, keyHandle, algorithm, associatedData),
-      open: (ciphertext, nonce, keyHandle, algorithm, associatedData) =>
-        openMethod.call(value, ciphertext, nonce, keyHandle, algorithm, associatedData),
+      seal: (
+        plaintext: string,
+        keyHandle: string,
+        algorithm: HoidConversationAeadAlgorithm,
+        associatedData: string,
+      ) => sealMethod.call(value, plaintext, keyHandle, algorithm, associatedData),
+      open: (
+        ciphertext: string,
+        nonce: string,
+        keyHandle: string,
+        algorithm: HoidConversationAeadAlgorithm,
+        associatedData: string,
+      ) => openMethod.call(value, ciphertext, nonce, keyHandle, algorithm, associatedData),
     });
   } catch {
     return null;
@@ -147,6 +155,7 @@ function validEncoded(value: unknown, min: number, max: number): value is string
   return typeof value === "string" &&
     value.length >= min &&
     value.length <= max &&
+    value.length % 4 !== 1 &&
     BASE64URL_PATTERN.test(value);
 }
 

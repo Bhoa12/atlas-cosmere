@@ -4,10 +4,6 @@ import {
   validateHoidReadingCursor,
   type HoidReadingCursor,
 } from "./readingManifest";
-import type {
-  HoidRecommendationNavigationTarget,
-} from "./editionBoundRecommendations";
-
 export type HoidVerifiedRecommendationNavigationHandoff = Readonly<{
   cursor: HoidReadingCursor;
   manifestId: string;
@@ -49,13 +45,13 @@ const TARGET_KEYS = new Set([
   "locatorId",
   "reason",
 ]);
-const REQUIRED_CURSOR_TARGET_KEYS = [
+const REQUIRED_CURSOR_TARGET_KEYS = new Set([
   "kind",
   "cursor",
   "editionId",
   "navigationSha256",
   "locatorStatus",
-] as const;
+]);
 
 function unavailable(
   reason: Extract<HoidRecommendationNavigationHandoffResult, { status: "unavailable" }>["reason"],
@@ -155,7 +151,7 @@ export function prepareHoidRecommendationNavigationHandoff(
   if (
     record.kind !== "edition-cursor" ||
     REQUIRED_CURSOR_TARGET_KEYS.some(key => !Object.prototype.hasOwnProperty.call(record, key)) ||
-    Object.keys(record).some(key => !REQUIRED_CURSOR_TARGET_KEYS.includes(key as typeof REQUIRED_CURSOR_TARGET_KEYS[number]) && key !== "locatorId") ||
+    Object.keys(record).some(key => !REQUIRED_CURSOR_TARGET_KEYS.has(key) && key !== "locatorId") ||
     (Object.prototype.hasOwnProperty.call(record, "reason"))
   ) return unavailable("invalid-target");
 

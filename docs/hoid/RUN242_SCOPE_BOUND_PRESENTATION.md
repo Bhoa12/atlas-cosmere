@@ -19,7 +19,7 @@ This check is not an evidence grant and does not replace the trusted presenter's
 
 ## Cross-work chapter matrix
 
-For explicit cross-work answers, Hoid additionally builds the existing metadata-only cross-book evidence summary from the same answer and request progress snapshot. The comparison is displayed only when segment-level provenance validates and the resulting work set exactly matches the selected scope.
+For explicit cross-work answers, Hoid builds the metadata-only chapter matrix from the exact canonical presentation returned by the trusted screen presenter. It does not re-read the raw answer or a second progress object. The comparison is displayed only when segment-level provenance validates and the resulting work set exactly matches the selected scope.
 
 The matrix displays only work titles and cited chapter numbers. It does not expose locators, source text, private paths or any new narrative material. If one selected work is absent, the mapping is incomplete, or segment provenance cannot be validated, the comparison text is withheld rather than shown partially.
 

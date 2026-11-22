@@ -41,9 +41,21 @@ the preceding test step failed. Run 237 must pass the complete workflow on its
 final HEAD before being called validated.
 
 
-## Additional screen identity parity check
+## Additional consistency and TOCTOU hardening
 
-A follow-up regression test compares the adapter's snapshot-derived fingerprint
-with the exact projection fingerprint used by `HoidScreen` for its live view
-scope. This protects the render-time stale-result guard from accidental drift
-between the adapter and screen canonicalization paths.
+- A regression test compares the adapter's snapshot-derived fingerprint with
+  the exact projection fingerprint used by `HoidScreen` for its live view scope.
+- Code inspection found that the adapter originally validated the caller's
+  `unknown` object once for fingerprinting and then passed that same object to
+  the recommender for a second validation. An adversarial Proxy could return
+  different valid positions across those reads while keeping the revision
+  unchanged, pairing one snapshot's fingerprint with another snapshot's target.
+- The adapter now validates and canonicalizes the untrusted input once, then
+  passes the resulting immutable ledger snapshot to both fingerprinting and
+  recommendation generation.
+- A Proxy regression test changes the positions descriptor on a second read
+  and asserts that the adapter reads the untrusted object only once and keeps
+  the target bound to the first canonicalized cursor.
+
+This is a production-path consistency hardening; it does not change the ledger
+rules or grant additional reading access.

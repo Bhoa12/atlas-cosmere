@@ -24,6 +24,7 @@ import {
   createHoidEditionBoundRecommendationPresentation,
   type HoidEditionBoundRecommendationPresentation,
 } from '../hoid/editionBoundRecommendationPresentation';
+import { prepareHoidRecommendationNavigationHandoff } from '../hoid/editionBoundRecommendationNavigation';
 import { HOID_TOPIC_TAXONOMY, type HoidTopicId } from '../hoid/topicTaxonomy';
 import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
@@ -247,8 +248,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             : presentation.items.map(item => `${item.heading}\n${item.detail}`).join('\n\n')
               + '\n\nEstas explicaciones utilizan únicamente tu progreso y los manifiestos de lectura. No establecen una cronología canónica ni desbloquean información narrativa.';
         } else if (presentation.status === 'selection-required') {
-          responseScope = {
-            revision: presentation.progressRevision,
+          responseScope = {            revision: presentation.progressRevision,
             fingerprint: presentation.progressFingerprint,
           };
           respuesta = `${presentation.heading}\n${presentation.detail}\n\n`
@@ -497,8 +497,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       setTopicRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones temáticas.');
       return;
     }
-    const progressIdentity = {
-      revision: projection.revision,
+    const progressIdentity = {      revision: projection.revision,
       fingerprint: fingerprintHoidCursorProgressProjection(projection),
     };
     const context = createHoidTopicInterestContext(selectedTopicIds, progressIdentity);
@@ -591,6 +590,25 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     liveProgressScope !== null &&
     recommendationPresentation.progressRevision === liveProgressScope.revision &&
     recommendationPresentation.progressFingerprint === liveProgressScope.fingerprint;
+  const describeRecommendationNavigation = (
+    target: unknown,
+    progressRevision: number,
+    progressFingerprint: string,
+  ): string => {
+    const handoff = prepareHoidRecommendationNavigationHandoff(
+      target,
+      liveProgress,
+      progressRevision,
+      progressFingerprint,
+    );
+    if (handoff.status !== 'ready') {
+      return 'Destino no disponible: el progreso o el manifiesto han cambiado. Actualiza las recomendaciones.';
+    }
+    return handoff.handoff.locatorStatus === 'verified'
+      ? `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. La apertura requiere un lector de capítulos.`
+      : `Cursor revalidado · capítulo ${handoff.handoff.cursor.chapterNumber}; no hay localizador verificado. No se abrirá una ruta inventada.`;
+  };
+
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
   const topicRecommendationsAreCurrent =
     topicRecommendationsTrustReady &&
@@ -673,9 +691,11 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             <Text style={styles.recommendationTarget}>
               {item.target.kind === 'catalog-only'
                 ? 'Solo catálogo · no existe un destino por capítulo verificado.'
-                : item.target.locatorStatus === 'verified'
-                  ? `Destino de edición verificado · capítulo ${item.target.cursor.chapterNumber}`
-                  : `Cursor de edición verificado · capítulo ${item.target.cursor.chapterNumber}; localizador no disponible`}
+                : describeRecommendationNavigation(
+                    item.target,
+                    recommendationPresentation.progressRevision,
+                    recommendationPresentation.progressFingerprint,
+                  )}
             </Text>
           </View>
         ))}
@@ -747,8 +767,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         renderItem={({ item }) => (
           <View style={[styles.bubble, item.emisor === 'usuario' ? styles.userBubble : styles.hoidBubble]}>
             <Text style={styles.bubbleAuthor}>{item.emisor === 'usuario' ? 'TÚ' : 'HOID'}</Text>
-            {item.evidenciaTransversal && (
-              <View style={styles.citationBlock}>
+            {item.evidenciaTransversal && (              <View style={styles.citationBlock}>
                 <Text style={styles.citationHeading}>
                   EVIDENCIA TRANSVERSAL · {item.evidenciaTransversal.workCount} OBRAS
                 </Text>

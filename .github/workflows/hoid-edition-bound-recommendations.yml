@@ -9,7 +9,7 @@ on:
       - "src/hoid/editionBoundRecommendations.test.ts"
       - "src/hoid/recommendations.ts"
       - "src/hoid/readingManifest.ts"
-      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/cursorProgressLedger.ts"
       - "docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md"
       - ".github/workflows/hoid-edition-bound-recommendations.yml"
   pull_request:
@@ -18,7 +18,7 @@ on:
       - "src/hoid/editionBoundRecommendations.test.ts"
       - "src/hoid/recommendations.ts"
       - "src/hoid/readingManifest.ts"
-      - "src/hoid/editionProgressValidation.ts"
+      - "src/hoid/cursorProgressLedger.ts"
       - "docs/hoid/RUN234_EDITION_BOUND_RECOMMENDATION_TARGETS.md"
       - ".github/workflows/hoid-edition-bound-recommendations.yml"
 
@@ -41,14 +41,14 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/editionBoundRecommendations.test.ts
+          src/hoid/cursorProgressLedger.test.ts
           src/hoid/recommendations.test.ts
           src/hoid/readingManifest.test.ts
-          src/hoid/editionProgressValidation.test.ts
-      - name: Type-check recommendation and manifest boundaries
+      - name: Type-check cursor-native recommendation boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/editionBoundRecommendations.ts
           src/hoid/recommendations.ts
           src/hoid/readingManifest.ts
-          src/hoid/editionProgressValidation.ts
+          src/hoid/cursorProgressLedger.ts

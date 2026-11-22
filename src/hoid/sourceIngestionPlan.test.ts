@@ -21,8 +21,8 @@ describe("Hoid metadata-only source ingestion plan", () => {
 
     expect(continuation.map(task => [task.workId, task.chapterNumber])).toEqual([
       ["tfe", 11],
-      ["twok", 19],
-      ["edgedancer", 20],
+      ["twok", 20],
+      ["edgedancer", 21],
     ]);
   });
 
@@ -95,8 +95,8 @@ describe("Hoid metadata-only source ingestion plan", () => {
     const plan = getHoidSourceIngestionPlan();
 
     expect(plan.editorial).toEqual({
-      stagedSummaryCount: 62,
-      pendingReviewSummaryCount: 62,
+      stagedSummaryCount: 64,
+      pendingReviewSummaryCount: 64,
       productionKnowledgeEntryCount: 0,
       approvedClaimCount: 0,
     });

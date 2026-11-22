@@ -1577,6 +1577,52 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-019.dalinar-ancient-vision-and-radiants",
+    kind: "event",
+    aliases: Object.freeze(["Dalinar", "Taffa", "Seeli", "Caballeros Radiantes", "Esencia de Medianoche"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 19 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 19,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-041.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 19 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "075a2440369deb756c3aab32e76596eb85c1c1e4e45c2255a8edf5447a1a9867",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "c9c81203d247bdb1b67deaef107430589c3dae5cbfff606b2309f48b61cd785e" }),
+    summary: "Durante una de sus visiones, Dalinar aparece en una aldea de una época antigua y debe proteger a una mujer y a una niña de unas criaturas oscuras que cazan guiándose por el olor. Aunque está herido y desconcertado, improvisa armas y combate para mantenerlas a salvo. Cuando la situación se vuelve insostenible, dos Caballeros Radiantes llegan y derrotan a las criaturas; una de ellos cura las heridas de Dalinar y de la mujer. Dalinar descubre que se encuentra en Natanatan, en una época en que los Radiantes actúan como una fuerza común frente a amenazas que el presente considera legendarias. La visión le permite observar su organización y su deber de proteger a los reinos. Antes de despertar, la voz que lo guía le recomienda conservar la confianza en Sadeas, actuar con honor y evitar que las disputas lo desvíen de su propósito. Dalinar regresa al campamento con nuevas preguntas y la necesidad de unir a los altos príncipes.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+  Object.freeze({
+    schemaVersion: 1,
+    id: "edgedancer.chapter-020.lift-returns-to-azimir-and-aids-refugees",
+    kind: "event",
+    aliases: Object.freeze(["Lift", "Wyndle", "Tocón", "Ghenna", "Gawx", "Yeddaw", "Azimir"]),
+    firstSafeAppearance: Object.freeze({ bookId: "edgedancer", chapter: 20 }),
+    evidenceSource: Object.freeze({
+      bookId: "edgedancer",
+      chapter: 20,
+      locatorId: "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/020.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "edgedancer", chapter: 20 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "edgedancer-epub-v1",
+      navigationSha256: "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      documentSha256: "db048fc62821ddc627d004048f608b8cc55aa2465cebca4c318ac38d1bbf6c63",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "5aa4b4ea911c1e5ab0bca7dfebb7105dbf1a44b69fed63c3b47d80f81d459055" }),
+    summary: "Tras la tormenta, Lift descubre que la madre de Mik ha regresado para llevárselo y que la Tocón ha estado cuidando de los niños. Al hablar con ella y con la escriba Ghenna, comprende que la Tocón también ha despertado capacidades Radiantes y ha estado usando sus poderes para sanar. Lift recibe noticias de Gawx sobre la situación del imperio y decide volver a Azimir. Antes de marcharse, comparte con la Tocón lo que ha deducido y ayuda a los heridos que siguen llegando a Yeddaw, gastando la luz tormentosa que conserva. Wyndle la acompaña y ambos retoman el camino. Lift reconoce que todavía no sabe exactamente qué hará, pero decide prestar atención a quienes suelen quedar al margen.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]); 
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

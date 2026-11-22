@@ -16,10 +16,10 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 66 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 68 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 62 | Original editorial summaries exist in staging |
-| Summaries pending review | 62 | None of those summaries is approved for production |
+| Original staged chapter summaries | 64 | Original editorial summaries exist in staging |
+| Summaries pending review | 64 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
@@ -55,12 +55,12 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 18 | 17 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 19 | 18 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
 | `sawt` | Viento y Verdad | 11 | 0 | 0 | Only the safe numeric prefix through chapter 11 is locator-backed; chapter numbers 12 and 14 are ambiguous |
-| `edgedancer` | Danzante del Filo | 20 | 19 | 18 | Numeric chapters |
+| `edgedancer` | Danzante del Filo | 20 | 20 | 19 | Numeric chapters |
 | `dawnshard` | Esquirla del amanecer | 19 | 19 | 18 | Numeric chapters |
 
 ## Interpretation rules
@@ -251,3 +251,19 @@ For each new target, the exact relative href was present in the selected navigat
 The inspected-document inventory is now 66 across the same four works. The staging inventory remains 62 original summaries, all pending independent review: Run 229 created no summaries and no claims. Production knowledge and approved claims remain empty. The planner now has three continuation tasks (El Imperio Final chapter 11, El Camino de los Reyes chapter 19 and Danzante del Filo chapter 20); Esquirla del amanecer is complete only for its 19 numbered manifest chapters, not for unmodelled front/back matter or narrative evidence.
 
 No EPUB bytes, XHTML body, chapter title, copied passage, extracted prose, image or private device URI was committed. The new allowlist stores only edition-bound document digests.
+
+
+## Run 230 — two additional Roshar chapter documents and original summaries
+
+The current Library EPUB-filtered listing contained the Roshar omnibus and Danzante del Filo, but did not return `cosmere.epub`. Both available source archives passed ZIP CRC validation. Their registered navigation digests matched the edition allowlist; each target was resolved from navigation, matched to exactly one OPF manifest item, confirmed in the reading spine, and fingerprinted from the original uncompressed XHTML bytes. The immediately preceding chapter digest also matched the existing allowlist.
+
+| Work | Chapter | Relative XHTML target | Bytes | Document SHA-256 | Earliest future reader cursor |
+|---|---:|---|---:|---|---:|
+| El Camino de los Reyes | 19 | `Text/L1-041.xhtml` | 41,194 | `075a2440369deb756c3aab32e76596eb85c1c1e4e45c2255a8edf5447a1a9867` | 20 |
+| Danzante del Filo | 20 | `Text/020.xhtml` | 14,795 | `db048fc62821ddc627d004048f608b8cc55aa2465cebca4c318ac38d1bbf6c63` | 21 |
+
+Two original Spanish summaries were added to editorial staging: `twok.chapter-019.dalinar-ancient-vision-and-radiants` and `edgedancer.chapter-020.lift-returns-to-azimir-and-aids-refugees`. Both are bound to their exact edition, locator, document digest and summary digest. Both remain `pending-review`; their chapter-N evidence watermark requires the reader to complete N and reach cursor N+1. They do not alter progress or authorize production retrieval.
+
+The current inventory is **68 individually inspected chapter documents and 64 staged summaries**, all 64 pending independent review. Production knowledge and approved claims remain empty. The next continuation queue is El Imperio Final chapter 11, El Camino de los Reyes chapter 20 and Danzante del Filo chapter 21. Esquirla del amanecer remains complete only within its 19 numbered manifest units.
+
+No EPUB bytes, XHTML body, chapter title, copied passage, extracted prose, image or private device URI was committed. No new Cosmere chapter was inspected because `cosmere.epub` was not present in the current EPUB-filtered Library listing.

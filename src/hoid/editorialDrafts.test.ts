@@ -105,7 +105,7 @@ describe("Hoid editorial draft staging", () => {
 
   it("loads the original-summary batch as pending review, not as production knowledge", () => {
     expect(getHoidEditorialDraftStatus()).toBe("pending-review");
-    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(62);
+    expect(HOID_EDITORIAL_DRAFTS).toHaveLength(64);
     expect(HOID_EDITORIAL_DRAFTS[0].review.status).toBe("pending-review");
     expect(HOID_EDITORIAL_DRAFTS[0].summaryKind).toBe("original-editorial-summary");
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
@@ -118,7 +118,7 @@ describe("Hoid editorial draft staging", () => {
     expect(getHoidEditorialRegistryStatus()).toBe("empty");
   });
 
-  it("stages independently sourced chapter-one through chapter-eighteen drafts for the accessible EPUBs", () => {
+  it("stages independently sourced chapter-one through chapter-twenty drafts for the accessible EPUBs", () => {
     expect(HOID_EDITORIAL_DRAFTS.map(draft => draft.id)).toEqual([
       "twok.chapter-001.cenn-battle",
       "edgedancer.chapter-001.lift-departure",
@@ -182,9 +182,11 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-017.kaladin-leads-bridge-four",
       "edgedancer.chapter-018.lift-meets-arclo",
       "dawnshard.chapter-018.rysn-negotiation-breaks",
+      "twok.chapter-019.dalinar-ancient-vision-and-radiants",
+      "edgedancer.chapter-020.lift-returns-to-azimir-and-aids-refugees",
     ]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]).toContain(draft.evidenceSource.chapter);
+      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
         chapter: draft.evidenceSource.chapter,
@@ -561,4 +563,23 @@ describe("Hoid editorial draft staging", () => {
       expect(draft.review.status).toBe("pending-review");
     }
   });
+  it("keeps the Run 230 chapter-19 and chapter-20 summaries locked until their own next chapters are completed", () => {
+    const twok = HOID_EDITORIAL_DRAFTS.find(draft =>
+      draft.id === "twok.chapter-019.dalinar-ancient-vision-and-radiants",
+    );
+    const edgedancer = HOID_EDITORIAL_DRAFTS.find(draft =>
+      draft.id === "edgedancer.chapter-020.lift-returns-to-azimir-and-aids-refugees",
+    );
+    expect(twok).toBeDefined();
+    expect(edgedancer).toBeDefined();
+    if (!twok || !edgedancer) return;
+    expect(twok.evidenceSource).toMatchObject({ bookId: "twok", chapter: 19 });
+    expect(twok.evidenceUnlock).toEqual({ bookId: "twok", chapter: 19 });
+    expect(edgedancer.evidenceSource).toMatchObject({ bookId: "edgedancer", chapter: 20 });
+    expect(edgedancer.evidenceUnlock).toEqual({ bookId: "edgedancer", chapter: 20 });
+    expect(twok.review.status).toBe("pending-review");
+    expect(edgedancer.review.status).toBe("pending-review");
+  });
+
+
 });

@@ -510,4 +510,22 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(19);
   });
 
+  it("returns the two Run 230 Roshar chapter digests from revalidated local EPUB editions", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      19,
+    )).toBe("075a2440369deb756c3aab32e76596eb85c1c1e4e45c2255a8edf5447a1a9867");
+    expect(getVerifiedChapterDocumentSha256(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      20,
+    )).toBe("db048fc62821ddc627d004048f608b8cc55aa2465cebca4c318ac38d1bbf6c63");
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(19);
+    expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(20);
+  });
+
+
 });

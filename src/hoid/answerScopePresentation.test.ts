@@ -297,8 +297,8 @@ describe("validateHoidPresentedAnswerScope", () => {
 
 
   it.each([
-    ["numbered", "1. Primera afirmación.\\n\\n2. Segunda afirmación."],
-    ["grouped", "Bloque 1\\n• Primera afirmación.\\n\\n• Segunda afirmación."],
+    ["numbered", "1. Primera afirmación.\n\n2. Segunda afirmación."],
+    ["grouped", "Bloque 1\n• Primera afirmación.\n\n• Segunda afirmación."],
   ] as const)("accepts canonical %s composition when its segments and citations match", (layout, text) => {
     const input = Object.freeze({
       status: "ready",

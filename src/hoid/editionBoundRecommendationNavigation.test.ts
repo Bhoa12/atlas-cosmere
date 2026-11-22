@@ -347,4 +347,24 @@ describe("edition-bound recommendation navigation boundary", () => {
       reason: "invalid-progress",
     });
   });
+  it("rejects a target when any required data property is absent", () => {
+    const progress = snapshotFor("twok", 21);
+    const target = targetFor(progress);
+    if (target.kind !== "edition-cursor") throw new Error("Expected cursor target");
+
+    const missingLocatorStatus: Record<string, unknown> = { ...target };
+    delete missingLocatorStatus.locatorStatus;
+    expect(prepare(missingLocatorStatus, progress)).toEqual({
+      status: "unavailable",
+      reason: "invalid-target",
+    });
+
+    const missingEdition: Record<string, unknown> = { ...target };
+    delete missingEdition.editionId;
+    expect(prepare(missingEdition, progress)).toEqual({
+      status: "unavailable",
+      reason: "invalid-target",
+    });
+  });
+
 });

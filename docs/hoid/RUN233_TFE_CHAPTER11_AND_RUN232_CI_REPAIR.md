@@ -61,3 +61,6 @@ This run is based on `feat/hoid-ia-core-run232` at `c2cff09a2bb700b1c69f8d6a781a
 ## Run 233 CI follow-up
 
 The first PR validation confirmed the chapter-document and navigation-audit updates, then exposed one additional stale staging assertion: the chapter-eleven editorial test still expected three summaries after the new TFE chapter-11 draft made the correct count four. The assertion now expects four and continues to verify that every chapter-11 summary remains pending until the reader completes chapter 12. A fresh CI attempt is required for the updated HEAD; no passing result is claimed yet.
+
+
+The next CI pass also exposed two coreference regression fixtures that still used TFE chapter 11 as an uninspected document. Since chapter 11 is now verified, both negative fixtures have been moved to chapter 12 and their reader cursor advanced accordingly. The rejection behavior is unchanged; the tests now target the first genuinely uninspected chapter.

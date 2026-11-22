@@ -16,6 +16,7 @@ import {
 } from '../hoid/trustedScreenAnswer';
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
+import { buildHoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
@@ -32,6 +33,7 @@ import {
   toggleHoidAnswerScopeBook,
   type HoidAnswerScopeMode,
 } from '../hoid/answerScopeSelection';
+import { validateHoidPresentedAnswerScope } from '../hoid/answerScopePresentation';
 import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
   createHoidTopicInterestRecommendationGateway,
@@ -366,12 +368,48 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           const trustedResult = await trustedAnswerPort.present(result.answer, result.depth);
           if (trustedResult.status === 'ready') {
             const presentation = trustedResult.presentation;
-            respuesta = presentation.text;
-            citas = presentation.citations;
-            segmentos = presentation.segments;
-            formato = presentation.layout;
-            conversationContextRef.current = result.conversationContext ?? null;
-            typedConversationContextRef.current = result.typedConversationContext ?? null;
+            const scopeValidation = validateHoidPresentedAnswerScope(
+              presentation,
+              answerScopeSelection.status === 'ready' ? answerScopeSelection.scope : undefined,
+            );
+            if (scopeValidation.status !== 'ready') {
+              respuesta = 'No puedo verificar que las citas pertenezcan exactamente a las obras seleccionadas. No mostraré el contenido.';
+              conversationContextRef.current = null;
+              typedConversationContextRef.current = null;
+              responseScope = requestScope;
+            } else {
+              const requiresCrossWorkCoverage =
+                answerScopeSelection.status === 'ready' &&
+                answerScopeSelection.scope.mode === 'cross-work';
+              const crossBookResult =
+                requiresCrossWorkCoverage || answerScopeSelection.status === 'unscoped'
+                  ? buildHoidCrossBookEvidenceSummary(result.answer, currentProgress)
+                  : null;
+              const crossBookCoverageValid =
+                crossBookResult?.status === 'ready' &&
+                crossBookResult.summary.workCount === scopeValidation.sourceBookIds.length &&
+                crossBookResult.summary.works.every(work =>
+                  scopeValidation.sourceBookIds.includes(work.sourceBookId),
+                );
+
+              if (requiresCrossWorkCoverage && !crossBookCoverageValid) {
+                respuesta = 'No puedo verificar la procedencia por segmento y capítulo de todas las obras seleccionadas. No mostraré una comparación parcial.';
+                conversationContextRef.current = null;
+                typedConversationContextRef.current = null;
+                responseScope = requestScope;
+              } else {
+                respuesta = presentation.text;
+                citas = presentation.citations;
+                segmentos = presentation.segments;
+                formato = presentation.layout;
+                if (
+                  crossBookResult?.status === 'ready' &&
+                  crossBookResult.summary.workCount > 1
+                ) evidenciaTransversal = crossBookResult.summary;
+                conversationContextRef.current = result.conversationContext ?? null;
+                typedConversationContextRef.current = result.typedConversationContext ?? null;
+              }
+            }
           } else {
             respuesta = trustedResult.text;
             conversationContextRef.current = null;

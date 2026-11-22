@@ -31,7 +31,7 @@ anchor; this module does not manufacture trust out of dependency injection.
 Every check validates:
 
 - object identity against the private WeakMap;
-- expiration against the current Date.now();
+- expiration against both the current wall clock and a monotonic process clock;
 - exact app identifier;
 - exact app build identifier;
 - exact native platform.
@@ -42,6 +42,8 @@ A revoked or expired token is rejected on every subsequent operation.
 
 The session exists only in process memory. It is not written to SQLite, AsyncStorage, backups,
 conversation snapshots or provider context. Process restart invalidates every outstanding token.
+
+A missing, invalid or backwards-moving monotonic clock blocks or expires the session. The monotonic elapsed-time limit prevents moving the device wall clock backwards from extending an already issued session. Moving the wall clock forwards may expire a session early, which is an intentional fail-closed outcome.
 
 ## Storage wrappers
 

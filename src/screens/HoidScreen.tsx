@@ -16,7 +16,7 @@ import {
 } from '../hoid/trustedScreenAnswer';
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
-import { buildHoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
+import { summarizeHoidPresentedCrossBookEvidence } from '../hoid/crossBookEvidence';
 import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
@@ -384,7 +384,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 (answerScopeSelection.status === 'unscoped' &&
                   scopeValidation.sourceBookIds.length > 1);
               const crossBookResult = requiresCrossWorkCoverage
-                ? buildHoidCrossBookEvidenceSummary(result.answer, currentProgress)
+                ? summarizeHoidPresentedCrossBookEvidence(presentation)
                 : null;
               const crossBookCoverageValid =
                 crossBookResult?.status === 'ready' &&

@@ -378,4 +378,23 @@ describe("provider-neutral recommendation reader port", () => {
 
     expect(await operation).toEqual({ status: "unavailable", reason: "cancelled" });
   });
+
+  it("preserves a superseded result as a bounded reader outcome", async () => {
+    const progress = snapshotFor();
+    const reader = readerFor(async () => ({
+      status: "unavailable",
+      reason: "superseded",
+    }));
+
+    const result = await openHoidRecommendationChapter(
+      { reader, refreshCurrentProgress: async () => progress },
+      inputFor(targetFor(progress), progress),
+    );
+
+    expect(result).toEqual({
+      status: "unavailable",
+      reason: "superseded",
+    });
+  });
+
 });

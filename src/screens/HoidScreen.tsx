@@ -801,6 +801,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setReaderMessage('El progreso cambió durante la apertura. Se ha descartado el contenido; actualiza las recomendaciones.');
       } else if (result.reason === 'cancelled') {
         setReaderMessage('Apertura cancelada. No se ha modificado el progreso.');
+      } else if (result.reason === 'superseded') {
+        setReaderMessage('Se ha iniciado una apertura más reciente. Se ha descartado este resultado anterior.');
       } else {
         setReaderMessage('No se ha podido abrir el capítulo con seguridad. Comprueba la edición local y vuelve a intentarlo.');
       }

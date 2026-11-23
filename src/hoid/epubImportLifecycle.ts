@@ -8,6 +8,8 @@
 export interface HoidImportLifecycleGuard {
   activate(): number;
   beginOperation(): number;
+  /** Checks the owning screen lease without requiring the latest operation token. */
+  isActive(lease: unknown): lease is number;
   isCurrent(token: unknown): token is number;
   invalidate(): number;
   deactivate(lease: number): void;
@@ -29,6 +31,11 @@ export function createHoidImportLifecycleGuard(): HoidImportLifecycleGuard {
     beginOperation(): number {
       generation += 1;
       return generation;
+    },
+
+    isActive(lease: unknown): lease is number {
+      return mounted && activeLease !== null &&
+        typeof lease === "number" && lease === activeLease;
     },
 
     isCurrent(token: unknown): token is number {

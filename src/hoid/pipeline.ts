@@ -1,4 +1,4 @@
-import { HoidAnswer, HoidAnswerRequest, HoidProvider } from "./types";
+import { HoidAnswer, HoidAnswerClaim, HoidAnswerEvidence, HoidAnswerRequest, HoidProvider } from "./types";
 import { HoidKnowledgeCatalog, HoidKnowledgeEntry } from "./catalog";
 import { retrieveAuthorized } from "./retrieval";
 import { validatedKnowledge } from "./catalogValidation";
@@ -10,6 +10,8 @@ import { boundAuthorizedContext } from "./contextBudget";
 import { answerWithinTimeout } from "./providerTimeout";
 import { validHoidQuestion } from "./requestValidation";
 import { validReadingPositions } from "./readingValidation";
+import { evidenceCitationFor } from "./evidenceScope";
+import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
   authorizeHoidCatalogAliasMentions,
   sameHoidAliasProgressWitness,
@@ -60,6 +62,8 @@ export type ProviderKnowledgeContextEntry = Readonly<{
   id: string;
   kind: HoidKnowledgeEntry["kind"];
   firstSafeAppearance: Readonly<{ bookId: string; chapter: number }>;
+  /** Exact verified evidence location; no private EPUB locator is exposed. */
+  evidenceSource: Readonly<{ bookId: string; chapter: number }>;
   summary: string;
 }>;
 
@@ -76,40 +80,100 @@ export interface EvidenceBoundHoidProvider {
   ): Promise<readonly EvidenceBoundClaim[]>;
 }
 
+type ProviderSnapshots = Readonly<{
+  request: HoidAnswerRequest;
+  context: readonly ProviderKnowledgeContextEntry[];
+}>;
+
 function providerSnapshots(
   request: HoidAnswerRequest,
   context: HoidKnowledgeEntry[],
-): { request: HoidAnswerRequest; context: readonly ProviderKnowledgeContextEntry[] } {
+): ProviderSnapshots | null {
   const reading = request.reading.map(position => Object.freeze({ ...position }));
   const providerRequest = Object.freeze({
     question: request.question,
     reading: Object.freeze(reading),
   }) as unknown as HoidAnswerRequest;
-  const providerContext = context.map(entry => Object.freeze({
-    id: entry.id,
-    kind: entry.kind,
-    summary: entry.summary,
-    firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
-  })) as readonly ProviderKnowledgeContextEntry[];
-  return { request: providerRequest, context: Object.freeze(providerContext) };
+
+  const providerContext: ProviderKnowledgeContextEntry[] = [];
+  for (const entry of context) {
+    const citation = evidenceCitationFor(entry);
+    if (!citation) return null;
+    providerContext.push(Object.freeze({
+      id: entry.id,
+      kind: entry.kind,
+      summary: entry.summary ?? "",
+      firstSafeAppearance: Object.freeze({ ...entry.firstSafeAppearance }),
+      evidenceSource: Object.freeze({
+        bookId: citation.sourceBookId,
+        chapter: citation.sourceChapter,
+      }),
+    }));
+  }
+
+  return Object.freeze({
+    request: providerRequest,
+    context: Object.freeze(providerContext),
+  });
 }
 
-function evidenceText(
-  claims: unknown,
+type EvidenceBoundOutput = Readonly<{
+  text: string;
+  claims: readonly HoidAnswerClaim[];
+}>;
+
+/**
+ * Rebuild user-facing citations locally from the authorized catalog snapshot.
+ * Provider-supplied IDs are membership-checked; provider-supplied book names,
+ * chapters, locators and prose are never accepted as citation metadata.
+ */
+function evidenceOutput(
+  rawClaims: unknown,
   context: readonly ProviderKnowledgeContextEntry[],
-): string | null {
+): EvidenceBoundOutput | null {
   const allowed = new Set(context.map(item => item.id));
-  const accepted = filterClaimsByAuthorizedIds(claims, allowed);
+  const accepted = filterClaimsByAuthorizedIds(rawClaims, allowed);
   if (accepted.length === 0) return null;
-  let totalLength = 0;
+
+  const byId = new Map(context.map(item => [item.id, item] as const));
+  const answerClaims: HoidAnswerClaim[] = [];
   const parts: string[] = [];
+  let totalLength = 0;
+
   for (const claim of accepted) {
+    const evidence: HoidAnswerEvidence[] = [];
+    for (const evidenceId of claim.evidenceIds) {
+      const item = byId.get(evidenceId);
+      if (!item) return null;
+      const sourceWork = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === item.evidenceSource.bookId);
+      if (!sourceWork) return null;
+      evidence.push(Object.freeze({
+        evidenceId,
+        kind: item.kind,
+        source: Object.freeze({
+          bookId: sourceWork.id,
+          title: sourceWork.title,
+          chapter: item.evidenceSource.chapter,
+        }),
+      }));
+    }
+
     const separatorLength = parts.length === 0 ? 0 : 2;
     if (totalLength + separatorLength + claim.text.length > DEFAULT_MAX_PROVIDER_TEXT_LENGTH) return null;
     parts.push(claim.text);
     totalLength += separatorLength + claim.text.length;
+    answerClaims.push(Object.freeze({
+      text: claim.text,
+      evidence: Object.freeze(evidence),
+    }));
   }
-  return validProviderText(parts.join("\n\n"), DEFAULT_MAX_PROVIDER_TEXT_LENGTH);
+
+  const text = validProviderText(parts.join("\n\n"), DEFAULT_MAX_PROVIDER_TEXT_LENGTH);
+  if (text === null) return null;
+  return Object.freeze({
+    text,
+    claims: Object.freeze(answerClaims),
+  });
 }
 
 function blocked(reason: "reading-position" | "provider-output", text: string): HoidAnswer {
@@ -181,8 +245,14 @@ export class HoidPipeline {
       return { blocked: false, reason: "provider-unavailable", text: "No hay una fuente de IA configurada. Atlas no enviará esta pregunta a ningún servicio externo." };
     }
 
-    const context = boundAuthorizedContext(retrieveAuthorized(knowledge, reading, question));
+    const retrieved = retrieveAuthorized(knowledge, reading, question)
+      .filter(entry => evidenceCitationFor(entry) !== null);
+    const context = boundAuthorizedContext(retrieved);
     const snapshot = providerSnapshots(authorizedRequest, context);
+    if (!snapshot) {
+      return blocked("provider-output", "No puedo verificar la procedencia editorial del contexto. Hoid no utilizará esa información.");
+    }
+
     try {
       const provider = this.provider as Partial<EvidenceBoundHoidProvider & ContextualHoidProvider>;
       if (typeof provider.answerWithEvidence === "function") {
@@ -190,15 +260,20 @@ export class HoidPipeline {
         if (claims === null || !Array.isArray(claims)) {
           return { blocked: false, reason: "provider-unavailable", text: "La fuente de conocimiento no está disponible a tiempo. Hoid no inventará una respuesta." };
         }
-        const text = evidenceText(claims, snapshot.context);
-        if (text === null || catalog.lockedMatches(text, reading).length > 0) {
+        const output = evidenceOutput(claims, snapshot.context);
+        if (!output || catalog.lockedMatches(output.text, reading).length > 0) {
           return blocked("provider-output", "No puedo verificar que esa respuesta esté respaldada únicamente por conocimiento que ya hayas desbloqueado.");
         }
-        const outputAliasDecision = await this.aliasDisclosureDecision(text, reading, catalog);
+        const outputAliasDecision = await this.aliasDisclosureDecision(output.text, reading, catalog);
         if (!sameAliasDecision(questionAliasDecision, outputAliasDecision)) {
           return blocked("provider-output", "La respuesta contiene un nombre o una autorización de progreso que no coincide con la revisión utilizada al iniciar la consulta.");
         }
-        return redactProviderAnswer(text, authorizedRequest);
+        const answer = redactProviderAnswer(output.text, authorizedRequest);
+        if (answer.blocked) return answer;
+        return Object.freeze({
+          ...answer,
+          claims: output.claims,
+        });
       }
 
       const legacy = this.provider as HoidProvider;

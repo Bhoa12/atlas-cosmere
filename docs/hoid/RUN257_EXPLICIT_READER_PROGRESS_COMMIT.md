@@ -42,6 +42,7 @@ El último capítulo requiere una acción distinta: **Marcar libro como completa
 - solo acepta manifiestos con cobertura numérica completa;
 - exige que el capítulo indicado sea el último del manifiesto y el siguiente capítulo pendiente;
 - requiere la misma vinculación de progreso y compare-and-swap;
+- exige un objeto de confirmación canónico sin getters ni propiedades adicionales;
 - registra completion explícito; nunca se infiere de abrir o desplazarse por el capítulo.
 
 El fingerprint es una vinculación de frescura, no una firma ni una autorización narrativa.
@@ -49,7 +50,7 @@ El fingerprint es una vinculación de frescura, no una firma ni una autorizació
 ## Interfaz
 
 - Abrir un capítulo no cambia el ledger.
-- La acción de marcar como leído requiere confirmación expresa.
+- La acción de marcar como leído requiere confirmación expresa y un contrato que rechaza confirmaciones malformadas.
 - La finalización requiere confirmación separada y solo aparece para el último capítulo de una segmentación numérica completa.
 - Si el progreso cambió desde que se abrió el capítulo, no se escribe nada y se pide volver a solicitar una recomendación.
 - Si la edición solo tiene una cobertura parcial antes de un capítulo ambiguo, el lector no inventa el siguiente cursor ni ofrece completar la obra.

@@ -18,13 +18,8 @@ import type {
   HoidEpubReadableBlock,
 } from "../hoid/epubIngestion";
 import { useCosmere } from "../context/CosmereContext";
-import { projectHoidCursorProgressSnapshot } from "../hoid/cursorEvidenceRuntime";
-import { fingerprintHoidCursorProgressProjection } from "../hoid/knowledgeGraph";
-import { validateHoidReadingCursor } from "../hoid/readingManifest";
-import type {
-  HoidRecommendationReaderOpenRequest,
-  HoidRecommendationReaderPort,
-} from "../hoid/recommendationReaderPort";
+import { createHoidLocalEpubRecommendationReaderPort } from "../hoid/epubRecommendationReaderHost";
+import type { HoidRecommendationReaderPort } from "../hoid/recommendationReaderPort";
 import {
   createHoidEpubSourceDescriptor,
   getHoidEpubImportChoices,
@@ -135,107 +130,25 @@ export const HoidEpubImportPanel: React.FC<{
     const sourceId = source.sourceId;
     const workId = choice.workId;
     const editionId = choice.editionId;
-    const port: HoidRecommendationReaderPort = Object.freeze({
-      async openVerifiedChapter(request: HoidRecommendationReaderOpenRequest): Promise<unknown> {
-        const signal = request.signal;
-        const progressChangeEpoch = progressChangeEpochRef.current;
-        try {
-          if (signal?.aborted) return { status: "unavailable", reason: "cancelled" };
-          if (
-            sourceIdRef.current !== sourceId ||
-            !lifecycleRef.current.isCurrent(leaseRef.current)
-          ) return { status: "unavailable", reason: "reader-unavailable" };
-
-          const target = request.target;
-          if (target.cursor.bookId !== workId || target.editionId !== editionId) {
-            return { status: "unavailable", reason: "edition-unavailable" };
-          }
-          const cursor = validateHoidReadingCursor(target.cursor);
-          if (cursor.status !== "valid") return { status: "unavailable", reason: "locator-unavailable" };
-          const manifest = cursor.manifest;
-          if (
-            target.manifestId !== manifest.manifestId ||
-            target.editionId !== manifest.editionId ||
-            target.navigationSha256 !== manifest.navigationSha256 ||
-            target.locatorStatus !== "verified"
-          ) return { status: "unavailable", reason: "edition-unavailable" };
-
-          const unit = manifest.units.find(item =>
-            item.id === cursor.cursor.unitId &&
-            item.ordinal === cursor.cursor.ordinal &&
-            item.chapterNumber === cursor.cursor.chapterNumber
-          );
-          if (!unit?.locatorId || unit.locatorId !== target.locatorId) {
-            return { status: "unavailable", reason: "locator-unavailable" };
-          }
-          const locatorPrefix = "nav:" + manifest.editionId + ":" + manifest.navigationSha256 + ":";
-          if (!target.locatorId.startsWith(locatorPrefix)) {
-            return { status: "unavailable", reason: "locator-unavailable" };
-          }
-          const navigationHref = target.locatorId.slice(locatorPrefix.length);
-          if (navigationHref.length === 0 || navigationHref.length > 4096) {
-            return { status: "unavailable", reason: "locator-unavailable" };
-          }
-
-          const before = await progressRefreshRef.current();
-          if (signal?.aborted) return { status: "unavailable", reason: "cancelled" };
-          const beforeProjection = before ? projectHoidCursorProgressSnapshot(before) : null;
-          if (
-            beforeProjection?.status !== "ready" ||
-            beforeProjection.revision !== request.progressRevision ||
-            fingerprintHoidCursorProgressProjection(beforeProjection) !== request.progressFingerprint
-          ) return { status: "unavailable", reason: "stale-progress" };
-
-          const reader = epubRuntime.ingestion.readChapterContent;
-          if (typeof reader !== "function") {
-            return { status: "unavailable", reason: "reader-unavailable" };
-          }
-          const read = await reader(packageCandidate, navigationHref);
-          if (signal?.aborted) return { status: "unavailable", reason: "cancelled" };
-          if (read.status !== "candidate") {
-            return { status: "unavailable", reason: "locator-unavailable" };
-          }
-          if (
-            read.candidate.workId !== workId ||
-            read.candidate.editionId !== editionId ||
-            read.candidate.navigationHref !== navigationHref ||
-            !/^[a-f0-9]{64}$/.test(read.candidate.documentSha256)
-          ) return { status: "unavailable", reason: "locator-unavailable" };
-
-          const after = await progressRefreshRef.current();
-          if (signal?.aborted) return { status: "unavailable", reason: "cancelled" };
-          const afterProjection = after ? projectHoidCursorProgressSnapshot(after) : null;
-          if (
-            afterProjection?.status !== "ready" ||
-            afterProjection.revision !== request.progressRevision ||
-            fingerprintHoidCursorProgressProjection(afterProjection) !== request.progressFingerprint
-          ) return { status: "unavailable", reason: "stale-progress" };
-          if (progressChangeEpochRef.current !== progressChangeEpoch) {
-            return { status: "unavailable", reason: "stale-progress" };
-          }
-          if (
-            sourceIdRef.current !== sourceId ||
-            !lifecycleRef.current.isCurrent(leaseRef.current)
-          ) return { status: "unavailable", reason: "reader-unavailable" };
-
-          setOpenedChapter(Object.freeze({
-            workId,
-            title: choice.title,
-            chapterNumber: cursor.cursor.chapterNumber,
-            editionId,
-            blocks: read.candidate.blocks,
-          }));
-          setMessage("Capítulo abierto localmente. El texto permanece en memoria de esta pantalla y no se envía a Hoid ni se guarda.");
-          return {
-            status: "opened",
-            bookId: workId,
-            chapterNumber: cursor.cursor.chapterNumber,
-            editionId,
-            locatorId: target.locatorId,
-          };
-        } catch {
-          return { status: "unavailable", reason: signal?.aborted ? "cancelled" : "failed" };
-        }
+    const port = createHoidLocalEpubRecommendationReaderPort({
+      workId,
+      editionId,
+      packageCandidate,
+      ingestion: epubRuntime.ingestion,
+      refreshCurrentProgress: () => progressRefreshRef.current(),
+      isCurrent: () =>
+        sourceIdRef.current === sourceId &&
+        lifecycleRef.current.isCurrent(leaseRef.current),
+      getProgressChangeEpoch: () => progressChangeEpochRef.current,
+      onChapterOpened: (chapter, chapterNumber) => {
+        setOpenedChapter(Object.freeze({
+          workId,
+          title: choice.title,
+          chapterNumber,
+          editionId,
+          blocks: chapter.blocks,
+        }));
+        setMessage("Capítulo abierto localmente. El texto permanece en memoria de esta pantalla y no se envía a Hoid ni se guarda.");
       },
     });
 

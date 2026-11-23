@@ -88,3 +88,17 @@ Esta es una comprobación de consistencia y defensa en profundidad posterior al 
 Cuando una presentación incluye `layout` y `segments`, la frontera de ámbito vuelve a componer el texto mediante el compositor determinista local. Se exige que el resultado coincida byte por byte con `presentation.text` y que el diseño pertenezca al enum cerrado de layouts. Esto añade defensa en profundidad frente a textos globales que no correspondan a las afirmaciones segmentadas. El compositor no reescribe el contenido de las afirmaciones; solo aplica el formato determinista permitido. Las presentaciones heredadas sin segmentación conservan el contrato previo.
 
 La validación confiable de `presentHoidEvidenceAnswer()` ya realiza esta comprobación; Run 244 la repite en la frontera de presentación por ámbito para que el panel transversal no dependa únicamente de una garantía aguas arriba.
+
+
+## Run 245 — trazabilidad de capítulos por afirmación
+
+La matriz transversal conserva ahora dos niveles distintos:
+
+- **Resumen por obra:** reúne todos los capítulos y los IDs de evidencia utilizados en la respuesta completa.
+- **Traza por afirmación:** para cada `claimId`, agrupa por obra los capítulos exactos y los IDs de evidencia que respaldan ese segmento.
+
+La traza de cada afirmación se deriva exclusivamente de las citas del propio segmento, después de comprobar que cada cita coincide campo por campo con la cita global canónica. Las obras se ordenan según la bibliografía; los capítulos se ordenan numéricamente y los IDs de evidencia de forma determinista.
+
+HoidScreen muestra dentro de cada segmento los títulos y capítulos agrupados por obra. Para respuestas de una sola obra conserva la lista ordinaria de citas. Los IDs internos de evidencia y los localizadores opacos no se muestran al lector.
+
+Esta traza no crea una nueva autorización, no amplía el desbloqueo y no se reconstruye desde otro snapshot. Es una proyección metadata-only de la misma presentación que ya validó el presentador confiable. Si la procedencia del segmento no coincide con las citas globales, la matriz completa se retiene.

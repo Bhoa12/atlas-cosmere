@@ -293,15 +293,14 @@ function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promis
     try {
       signal.addEventListener("abort", onAbort, { once: true });
       removeListener = () => signal.removeEventListener("abort", onAbort);
-      if (isSignalAborted(signal)) { onAbort(); return; }
     } catch {
       onAbort();
-      return;
     }
 
-    // Keep the underlying promise observed after cancellation. A non-cooperative
-    // adapter may finish later, but its result cannot re-enter this pipeline.
+    // Attach handlers even if the signal raced with listener installation.
+    // This consumes a late rejection from an adapter that ignores cancellation.
     operation.then(finishResolve, finishReject);
+    if (!settled && isSignalAborted(signal)) onAbort();
   });
 }
 

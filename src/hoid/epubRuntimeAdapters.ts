@@ -930,7 +930,7 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
           attribute.local === "hidden" ||
           (attribute.local === "aria-hidden" && attribute.value.toLowerCase() === "true") ||
           (attribute.local === "style" &&
-            /(?:^|;)\\s*(?:display\\s*:\\s*none|visibility\\s*:\\s*hidden)(?:\\s*!important)?(?:;|$)/i.test(attribute.value))
+            /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)(?:\s*!important)?(?:;|$)/i.test(attribute.value))
         );
 
       const collectInlineText = (node: XmlElement): string => node.content

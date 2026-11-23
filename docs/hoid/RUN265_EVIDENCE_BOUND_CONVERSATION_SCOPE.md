@@ -11,7 +11,7 @@ Una pregunta de seguimiento no debe ampliar silenciosamente el conjunto de obras
 - versión de esquema y tipo de binding;
 - ámbito canónico de una o varias obras;
 - IDs bibliográficos de las obras;
-- números de capítulo citados por cada obra;
+- números de capítulo citados por cada obra (trazabilidad de la respuesta anterior, no un límite de recuperación adicional);
 - revisión y fingerprint del progreso que autorizó la respuesta.
 
 No contiene nombres de personajes, alias, texto de preguntas, prosa de respuesta, resúmenes, localizadores EPUB, XHTML ni contenido de capítulos.

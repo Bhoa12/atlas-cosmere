@@ -15,6 +15,22 @@ describe("Hoid EPUB import lifecycle guard", () => {
     expect(guard.isCurrent(token)).toBe(true);
   });
 
+  it("keeps the screen lease active while operation generations advance", () => {
+    const guard = createHoidImportLifecycleGuard();
+    const lease = guard.activate();
+    expect(guard.isActive(lease)).toBe(true);
+
+    const first = guard.beginOperation();
+    const second = guard.beginOperation();
+    expect(guard.isCurrent(first)).toBe(false);
+    expect(guard.isCurrent(second)).toBe(true);
+    expect(guard.isActive(lease)).toBe(true);
+
+    guard.deactivate(lease);
+    expect(guard.isActive(lease)).toBe(false);
+    expect(guard.isCurrent(second)).toBe(false);
+  });
+
   it("invalidates an earlier asynchronous completion when a newer operation starts", () => {
     const guard = createHoidImportLifecycleGuard();
     guard.activate();

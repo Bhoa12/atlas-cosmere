@@ -482,6 +482,36 @@ describe("concrete local EPUB runtime adapters", () => {
     await expect(runtime.digest.sha256(XHTML)).resolves.toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("extracts reader-safe text blocks and excludes executable, navigation and decorative markup", async () => {
+    const xml = createHoidXmldomXmlPort();
+    const document = strToU8(
+      '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Not body text</title></head>' +
+      '<body><h1>Chapter heading</h1><p>Hello <strong>reader</strong>.</p>' +
+      '<script>must not appear</script><style>.secret{display:none}</style>' +
+      '<nav><p>Navigation must not appear</p></nav><svg><text>SVG must not appear</text></svg>' +
+      '<ul><li>First item</li><li>Second item</li></ul></body></html>',
+    );
+    const blocks = await xml.extractReadableBlocks?.(document);
+    expect(blocks).toEqual([
+      { kind: "heading", text: "Chapter heading" },
+      { kind: "paragraph", text: "Hello reader." },
+      { kind: "list-item", text: "First item" },
+      { kind: "list-item", text: "Second item" },
+    ]);
+    expect(JSON.stringify(blocks)).not.toMatch(/must not appear|secret|SVG/);
+    expect(Object.isFrozen(blocks)).toBe(true);
+  });
+
+  it("rejects XHTML without a body or readable text instead of returning raw markup", async () => {
+    const xml = createHoidXmldomXmlPort();
+    await expect(xml.extractReadableBlocks?.(strToU8(
+      '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Only metadata</title></head></html>',
+    ))).rejects.toThrow();
+    await expect(xml.extractReadableBlocks?.(strToU8(
+      '<html xmlns="http://www.w3.org/1999/xhtml"><body><script>hidden</script></body></html>',
+    ))).rejects.toThrow();
+  });
+
   it("re-reads source bytes on every operation so replacement is observable", async () => {
     let current = makeZip();
     const archive = createHoidFflateArchivePort(() => current);

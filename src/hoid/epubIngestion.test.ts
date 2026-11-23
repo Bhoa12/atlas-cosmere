@@ -263,6 +263,34 @@ describe("offline EPUB ingestion core", () => {
     expect(fixture.xml.extractReadableBlocks).not.toHaveBeenCalled();
   });
 
+  it("settles cancellation promptly when an injected archive adapter ignores AbortSignal", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    const entries = await fixture.archive.listEntries(fixture.source.sourceId);
+    const controller = new AbortController();
+    let resolveEntries: (value: typeof entries) => void = () => {};
+    let markStarted: () => void = () => {};
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const pending = new Promise<typeof entries>(resolve => { resolveEntries = resolve; });
+    vi.spyOn(fixture.archive, "listEntries").mockImplementation(() => {
+      markStarted();
+      return pending;
+    });
+
+    const operation = fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+      controller.signal,
+    );
+    await started;
+    controller.abort();
+
+    await expect(operation).resolves.toEqual({ status: "rejected", reason: "cancelled" });
+    expect(fixture.xml.extractReadableBlocks).not.toHaveBeenCalled();
+    resolveEntries(entries);
+  });
+
   it("discards extracted blocks when cancellation arrives during asynchronous XHTML extraction", async () => {
     const fixture = makeFixture();
     const packageResult = await fixture.service.inspectPackage(fixture.source);

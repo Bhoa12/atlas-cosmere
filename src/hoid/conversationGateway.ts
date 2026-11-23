@@ -62,6 +62,7 @@ export type HoidConversationGatewayResult =
         | "invalid-request"
         | "invalid-progress"
         | "progress-changed"
+        | "cancelled"
         | "runtime-failed"
         | "entity-blocked"
         | "entity-ambiguous"
@@ -84,6 +85,7 @@ export type HoidConversationRecommendationResult =
         | "invalid-request"
         | "invalid-progress"
         | "progress-changed"
+        | "cancelled"
         | "runtime-unavailable"
         | "runtime-failed"
         | "invalid-recommendations";
@@ -390,6 +392,10 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
+function callerAborted(options?: HoidRuntimeCallOptions): boolean {
+  return options?.signal?.aborted === true;
+}
+
 const MAX_ENTITY_SCOPE_IDS = 8;
 const ENTITY_SCOPE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 
@@ -603,6 +609,7 @@ export class HoidConversationGateway {
   }
 
   async answer(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationGatewayResult> {
+    if (callerAborted(options)) return unavailable("cancelled");
     const request = canonicalRequest(input);
     if (!request) return unavailable("invalid-request");
 
@@ -616,6 +623,8 @@ export class HoidConversationGateway {
       return unavailable("invalid-progress");
     }
 
+    if (callerAborted(options)) return unavailable("cancelled");
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const beforeIdentity = progressIdentity(currentBefore);
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) {
@@ -656,6 +665,7 @@ export class HoidConversationGateway {
           ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -672,6 +682,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterTypedIdentity = progressIdentity(currentAfterTypedFollowUp);
       if (!afterTypedIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterTypedIdentity)) return unavailable("progress-changed");
@@ -757,6 +768,7 @@ export class HoidConversationGateway {
           bookScope: request.bookScope,
         }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -773,6 +785,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterScopedIdentity = progressIdentity(currentAfterScopedFollowUp);
       if (!afterScopedIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterScopedIdentity)) return unavailable("progress-changed");
@@ -846,6 +859,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterRelationshipIdentity = progressIdentity(currentAfterRelationship);
       if (!afterRelationshipIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterRelationshipIdentity)) {
@@ -894,6 +908,7 @@ export class HoidConversationGateway {
           ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -910,6 +925,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterCoreferenceIdentity = progressIdentity(currentAfterCoreference);
       if (!afterCoreferenceIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterCoreferenceIdentity)) {
@@ -981,6 +997,7 @@ export class HoidConversationGateway {
         ...(request.bookScope ? { bookScope: request.bookScope } : {}),
       }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -998,6 +1015,8 @@ export class HoidConversationGateway {
       return unavailable("invalid-progress");
     }
 
+    if (callerAborted(options)) return unavailable("cancelled");
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const afterIdentity = progressIdentity(currentAfter);
     if (!afterIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, afterIdentity)) {
@@ -1063,6 +1082,7 @@ export class HoidConversationGateway {
   }
 
   async recommend(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationRecommendationResult> {
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const request = canonicalRecommendationRequest(input);
     if (!request) return unavailableRecommendation("invalid-request");
 
@@ -1101,6 +1121,7 @@ export class HoidConversationGateway {
       options,
       runtimeOptions => recommend.call(this.config.runtime, request.progress, request.limit, runtimeOptions),
     );
+    if (invocation.status === "cancelled") return unavailableRecommendation("cancelled");
     if (invocation.status === "unavailable") return unavailableRecommendation("invalid-progress");
     if (invocation.status === "failed") {
       return unavailableRecommendation(invocation.progressChanged ? "progress-changed" : "runtime-failed");

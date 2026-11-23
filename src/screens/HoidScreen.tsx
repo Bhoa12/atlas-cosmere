@@ -426,7 +426,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           typedConversationContextRef.current = null;
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
-            : result.reason === 'invalid-progress'
+            : result.reason === 'cancelled'
+              ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
+              : result.reason === 'invalid-progress'
               ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
               : result.reason === 'context-ambiguous'
                 ? 'No puedo identificar con seguridad el referente. Repite los nombres de los personajes para evitar una suposición.'

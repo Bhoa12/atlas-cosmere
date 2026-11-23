@@ -9,17 +9,23 @@ export type HoidProgressChangeSubscription = (listener: () => void) => () => voi
 export type HoidProgressWatchVerification = "current" | "changed" | "invalid";
 
 export type HoidProgressWatchResult<T> =
-  | Readonly<{ status: "completed"; value: T; progressChanged: boolean }>
+  | Readonly<{ status: "completed"; value: T; progressChanged: false }>
   | Readonly<{ status: "failed"; progressChanged: boolean }>
+  | Readonly<{ status: "cancelled"; reason: "caller-aborted" }>
   | Readonly<{ status: "unavailable" }>;
 
+function callerCancelled(): HoidProgressWatchResult<never> {
+  return Object.freeze({ status: "cancelled", reason: "caller-aborted" });
+}
+
 /**
- * Optional, provider-neutral cancellation boundary for work tied to a reading
- * snapshot. A subscription is installed before a second durable read, closing
- * the gap between the gateway's initial freshness check and listener setup.
+ * Provider-neutral cancellation boundary for work tied to a reading snapshot.
+ * A subscription is installed before a second durable read, closing the gap
+ * between the gateway's initial freshness check and listener setup.
  *
- * The post-call freshness check in the gateway remains mandatory: notifications
- * are an optimization and cannot replace authoritative snapshot comparison.
+ * Caller cancellation and progress invalidation both discard late values,
+ * even when an adapter ignores AbortSignal. The post-call freshness check in
+ * the gateway remains mandatory: notifications cannot replace authorization.
  */
 export async function invokeWithHoidProgressChangeWatch<T>(input: Readonly<{
   subscribe?: HoidProgressChangeSubscription;
@@ -27,28 +33,34 @@ export async function invokeWithHoidProgressChangeWatch<T>(input: Readonly<{
   verifyCurrent: () => Promise<HoidProgressWatchVerification>;
   invoke: (options?: HoidRuntimeCallOptions) => T | Promise<T>;
 }>): Promise<HoidProgressWatchResult<T>> {
+  const callerSignal = input.options?.signal;
+  if (callerSignal?.aborted) return callerCancelled();
+
   if (!input.subscribe) {
     try {
-      return Object.freeze({
-        status: "completed",
-        value: await input.invoke(input.options),
-        progressChanged: false,
-      });
+      const value = await input.invoke(input.options);
+      return callerSignal?.aborted
+        ? callerCancelled()
+        : Object.freeze({ status: "completed", value, progressChanged: false });
     } catch {
-      return Object.freeze({ status: "failed", progressChanged: false });
+      return callerSignal?.aborted
+        ? callerCancelled()
+        : Object.freeze({ status: "failed", progressChanged: false });
     }
   }
 
   const controller = new AbortController();
   let progressChanged = false;
+  let callerAborted = false;
   let unsubscribe: (() => void) | undefined;
   let cleanupFailed = false;
   let outcome: HoidProgressWatchResult<T> = Object.freeze({ status: "unavailable" });
-  const callerSignal = input.options?.signal;
-  const forwardCallerAbort = () => controller.abort();
+  const forwardCallerAbort = () => {
+    callerAborted = true;
+    controller.abort();
+  };
 
-  if (callerSignal?.aborted) controller.abort();
-  else callerSignal?.addEventListener("abort", forwardCallerAbort, { once: true });
+  callerSignal?.addEventListener("abort", forwardCallerAbort, { once: true });
 
   try {
     const stop = input.subscribe(() => {
@@ -61,6 +73,8 @@ export async function invokeWithHoidProgressChangeWatch<T>(input: Readonly<{
       unsubscribe = stop;
       if (progressChanged) {
         outcome = Object.freeze({ status: "failed", progressChanged: true });
+      } else if (callerAborted || callerSignal?.aborted) {
+        outcome = callerCancelled();
       } else {
         let verification: HoidProgressWatchVerification;
         try {
@@ -69,9 +83,13 @@ export async function invokeWithHoidProgressChangeWatch<T>(input: Readonly<{
           verification = "invalid";
         }
 
-        if (verification === "invalid") {
+        if (progressChanged) {
+          outcome = Object.freeze({ status: "failed", progressChanged: true });
+        } else if (callerAborted || callerSignal?.aborted) {
+          outcome = callerCancelled();
+        } else if (verification === "invalid") {
           outcome = Object.freeze({ status: "unavailable" });
-        } else if (verification === "changed" || progressChanged) {
+        } else if (verification === "changed") {
           progressChanged = true;
           controller.abort();
           outcome = Object.freeze({ status: "failed", progressChanged: true });
@@ -81,15 +99,29 @@ export async function invokeWithHoidProgressChangeWatch<T>(input: Readonly<{
               ...(input.options ?? {}),
               signal: controller.signal,
             });
-            outcome = Object.freeze({ status: "completed", value, progressChanged });
+            if (progressChanged) {
+              outcome = Object.freeze({ status: "failed", progressChanged: true });
+            } else if (callerAborted || callerSignal?.aborted) {
+              outcome = callerCancelled();
+            } else {
+              outcome = Object.freeze({ status: "completed", value, progressChanged: false });
+            }
           } catch {
-            outcome = Object.freeze({ status: "failed", progressChanged });
+            if (progressChanged) {
+              outcome = Object.freeze({ status: "failed", progressChanged: true });
+            } else if (callerAborted || callerSignal?.aborted) {
+              outcome = callerCancelled();
+            } else {
+              outcome = Object.freeze({ status: "failed", progressChanged: false });
+            }
           }
         }
       }
     }
   } catch {
-    outcome = Object.freeze({ status: "unavailable" });
+    outcome = callerAborted || callerSignal?.aborted
+      ? callerCancelled()
+      : Object.freeze({ status: "unavailable" });
   } finally {
     callerSignal?.removeEventListener("abort", forwardCallerAbort);
     if (unsubscribe) {

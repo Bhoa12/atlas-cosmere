@@ -7,6 +7,8 @@ import {
 } from "./approvedClaimIntegrity";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { createHoidVerifiedAnswerPresenter } from "./verifiedAnswerPresentation";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { createHoidCursorAnswerProgressBinding } from "./cursorProgressFingerprint";
 
 const updatedAt = "2026-11-20T00:00:00.000Z";
 const reviewer = Object.freeze({ reviewerId: "test-reviewer", reviewedAt: "2026-11-20T00:00:00.000Z" });
@@ -184,4 +186,24 @@ describe("Hoid verified answer presentation authority", () => {
     expect(createHoidVerifiedAnswerPresenter(config)).toBeNull();
     expect(invoked).toBe(false);
   });
+  it("preserves the cursor freshness receipt through trusted claim reconstruction", () => {
+    const data = fixture();
+    const presenter = createHoidVerifiedAnswerPresenter({ knowledge: data.knowledge, claims: [data.claim] });
+    if (!presenter) throw new Error("Presenter unavailable");
+    const currentProgress = progress(3);
+    const projection = projectHoidCursorProgressSnapshot(currentProgress);
+    if (projection.status !== "ready") throw new Error("Projection unavailable");
+    const boundAnswer = {
+      ...data.answer,
+      progressBinding: createHoidCursorAnswerProgressBinding(projection),
+    };
+
+    expect(presenter.present(boundAnswer, currentProgress)).toMatchObject({ status: "ready" });
+    expect(presenter.present(boundAnswer, progress(4))).toMatchObject({
+      status: "withheld",
+      reason: "stale-progress",
+    });
+  });
+
+
 });

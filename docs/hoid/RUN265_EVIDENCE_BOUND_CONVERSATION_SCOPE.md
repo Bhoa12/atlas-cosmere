@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Una pregunta de seguimiento no debe ampliar silenciosamente el conjunto de obras de la respuesta anterior. El contexto conversacional se vincula al conjunto exacto de obras y capítulos que aportaron evidencia a la última respuesta autorizada, además de la identidad del progreso que permitió presentarla.
+Ningún turno posterior debe ampliar silenciosamente el conjunto de obras de la respuesta anterior. El contexto conversacional permanece vinculado al conjunto exacto de obras y capítulos que aportaron evidencia a la última respuesta autorizada, además de la identidad del progreso que permitió presentarla.
 
 ## Contrato
 
@@ -21,11 +21,11 @@ No contiene nombres de personajes, alias, texto de preguntas, prosa de respuesta
 `createHoidConversationScopeBinding()` solo crea el binding si `presentHoidEvidenceAnswer()` acepta la respuesta contra el progreso actual y los manifiestos de edición.
 
 - Con un ámbito explícito, todas las obras seleccionadas deben aportar evidencia.
-- En ámbito automático, las obras que realmente aportaron evidencia se convierten en el ámbito de seguimiento.
-- Una respuesta bloqueada, abstencionista, sin citas, sin capítulos localizables en un manifiesto verificado o con más obras de las permitidas no crea contexto reutilizable. Las obras que todavía no dispongan de segmentación y localizadores de capítulo verificables no generan un binding de seguimiento; no se inventa una posición numérica para ellas.
+- En ámbito automático, las obras que realmente aportaron evidencia se convierten en el ámbito inicial de la conversación.
+- Una respuesta bloqueada, abstencionista, sin citas, sin capítulos localizables en un manifiesto verificado o con más obras de las permitidas no crea un contexto inicial reutilizable. Las obras que todavía no dispongan de segmentación y localizadores de capítulo verificables no generan un binding de seguimiento; no se inventa una posición numérica.
 - Los capítulos visibles se reconstruyen desde las citas verificadas, no desde etiquetas del proveedor.
 
-## Validación de seguimiento
+## Validación y continuidad
 
 `validateHoidConversationScopeBinding()` vuelve a comprobar:
 
@@ -33,30 +33,34 @@ No contiene nombres de personajes, alias, texto de preguntas, prosa de respuesta
 2. catálogo de obras y orden canónico del ámbito;
 3. capítulos existentes en los manifiestos;
 4. revisión y fingerprint del progreso;
-5. igualdad con cualquier ámbito explícito elegido en la interfaz.
+5. igualdad con cualquier ámbito explícito elegido en la interfaz;
+6. identidad de capacidad del binding emitido por este módulo.
 
 Una discrepancia produce abstención. No se reintenta en modo automático ni se recurre al grafo relacional sin ámbito.
 
-## Integración en el gateway
+Una vez establecido, el ámbito activo se aplica a **todos** los turnos posteriores, incluidos los que parecen preguntas independientes y no contienen pronombres ni marcadores de seguimiento. El gateway envía el `bookScope` heredado al runtime estricto, que sigue aplicando los umbrales de capítulo desbloqueado por obra.
 
-Las rutas de seguimiento tipado, coreferencia singular y seguimiento grupal requieren un binding válido. El gateway pasa el ámbito heredado al runtime estricto como `bookScope`, que vuelve a aplicar los umbrales de evidencia por obra y capítulo.
-
-Una pregunta nueva e independiente no hereda el binding anterior: crea un ámbito nuevo a partir de las citas de su propia respuesta.
+- Una respuesta autorizada dentro del ámbito actual sustituye el binding por uno nuevo con sus citas y capítulos.
+- Una abstención conserva el binding anterior: un intento sin evidencia no libera el ámbito.
+- Un cambio explícito de ámbito se rechaza con `context-scope-mismatch`.
+- La falta o invalidez del binding se rechaza con `context-scope-unavailable`.
+- Para ampliar el ámbito automático, el usuario debe iniciar un tema nuevo o cambiar explícitamente la selección de obras.
 
 El binding nunca cruza la frontera del proveedor. Solo se pasa al gateway local y se utiliza para construir la solicitud canónica del runtime.
 
 ## Integración en HoidScreen
 
-La pantalla conserva el binding únicamente en memoria. Lo envía junto con los contextos ID-only, lo elimina al cambiar el ámbito, cambiar el progreso, cancelar, fallar o iniciar recomendaciones, y muestra al usuario las obras y capítulos que limitan el seguimiento.
+La pantalla conserva el binding únicamente en memoria. Lo envía junto con los contextos ID-only, lo invalida al cambiar el progreso, cancelar o reiniciar explícitamente el tema, y muestra al usuario las obras y capítulos que limitan la conversación.
 
-Si la presentación confiable y el binding no describen exactamente las mismas obras y los mismos capítulos citados, no se conserva el contexto.
+Los errores que no invalidan el progreso conservan el ámbito, pero eliminan los referentes de entidad para que no se reutilicen referencias ambiguas. El botón **Nuevo tema** libera el ámbito y reinicia el contexto conversacional sin alterar el progreso ni la selección de obras.
+
+Si la presentación confiable y el binding no describen exactamente las mismas obras y los mismos capítulos citados, no se conserva el contexto ni se muestra esa respuesta.
 
 ## Seguridad y spoilers
 
 - El fingerprint de progreso invalida el binding cuando cambia cualquier cursor o revisión.
 - El ámbito heredado limita el conjunto de obras; el runtime sigue aplicando los límites de capítulo desbloqueado de cada una.
-- Una petición con un ámbito diferente se rechaza con `context-scope-mismatch`.
-- La ausencia de binding se rechaza con `context-scope-unavailable`.
+- Las preguntas completas nuevas tampoco pueden ampliar silenciosamente el ámbito.
 - Los errores no incluyen nombres, alias, localizadores ni contenido privado.
 - El texto EPUB permanece local y no se envía a proveedores.
 

@@ -149,7 +149,7 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.readChapterContent).toHaveBeenCalledWith(
       dependencies.candidate,
       request.navigationHref,
-      undefined,
+      expect.any(AbortSignal),
     );
     expect(dependencies.onChapterOpened).toHaveBeenCalledWith(
       expect.objectContaining({ status: "reader-content", workId: request.workId }),
@@ -223,8 +223,14 @@ describe("local EPUB recommendation reader host", () => {
     let markReadStarted: () => void = () => {};
     const readStarted = new Promise<void>(resolve => { markReadStarted = resolve; });
     const pendingRead = new Promise<unknown>(resolve => { resolveRead = resolve; });
+    let receivedSignal: AbortSignal | undefined;
     const dependencies = dependenciesFor(progress, request.navigationHref, {
-      readChapterContent: vi.fn(() => {
+      readChapterContent: vi.fn((
+        _candidate: HoidEpubPackageInspectionCandidate,
+        _href: string,
+        signal?: AbortSignal,
+      ) => {
+        receivedSignal = signal;
         markReadStarted();
         return pendingRead;
       }) as HoidEpubIngestionService["readChapterContent"],
@@ -246,8 +252,10 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.readChapterContent).toHaveBeenCalledWith(
       dependencies.candidate,
       request.navigationHref,
-      controller.signal,
+      expect.any(AbortSignal),
     );
+    expect(receivedSignal).not.toBe(controller.signal);
+    expect(receivedSignal?.aborted).toBe(true);
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
   });
 
@@ -361,23 +369,29 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
   });
 
-  it("does not let an older open request present after a newer request succeeds", async () => {
+  it("aborts an older in-flight chapter read when a newer open starts", async () => {
     const progress = snapshotFor();
     const request = requestFor(progress);
-    let resolveFirstRead: (value: unknown) => void = () => {};
+    let firstSignal: AbortSignal | undefined;
     let markFirstReadStarted: () => void = () => {};
     const firstReadStarted = new Promise<void>(resolve => {
       markFirstReadStarted = resolve;
     });
-    const firstRead = new Promise<unknown>(resolve => {
-      resolveFirstRead = resolve;
-    });
     let readCount = 0;
-    const readChapterContent = vi.fn(() => {
+    const readChapterContent = vi.fn((
+      _candidate: HoidEpubPackageInspectionCandidate,
+      _href: string,
+      signal?: AbortSignal,
+    ) => {
       readCount += 1;
       if (readCount === 1) {
+        firstSignal = signal;
         markFirstReadStarted();
-        return firstRead;
+        return new Promise(resolve => {
+          const finish = () => resolve({ status: "rejected" as const, reason: "cancelled" as const });
+          if (signal?.aborted) finish();
+          else signal?.addEventListener("abort", finish, { once: true });
+        });
       }
       return Promise.resolve({
         status: "candidate" as const,
@@ -390,8 +404,11 @@ describe("local EPUB recommendation reader host", () => {
 
     const olderOperation = dependencies.port.openVerifiedChapter(request.request);
     await firstReadStarted;
+    expect(firstSignal?.aborted).toBe(false);
 
-    const newerResult = await dependencies.port.openVerifiedChapter(request.request);
+    const newerOperation = dependencies.port.openVerifiedChapter(request.request);
+    expect(firstSignal?.aborted).toBe(true);
+    const newerResult = await newerOperation;
     expect(newerResult).toEqual({
       status: "opened",
       bookId: request.workId,
@@ -399,17 +416,160 @@ describe("local EPUB recommendation reader host", () => {
       editionId: request.editionId,
       locatorId: request.request.target.locatorId,
     });
+    await expect(olderOperation).resolves.toEqual({
+      status: "unavailable",
+      reason: "superseded",
+    });
+    expect(readCount).toBe(2);
     expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let a malformed request supersede a valid open", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    let firstSignal: AbortSignal | undefined;
+    let resolveFirstRead: (value: unknown) => void = () => {};
+    let markFirstReadStarted: () => void = () => {};
+    const firstReadStarted = new Promise<void>(resolve => {
+      markFirstReadStarted = resolve;
+    });
+    const firstRead = new Promise<unknown>(resolve => {
+      resolveFirstRead = resolve;
+    });
+    const readChapterContent = vi.fn((
+      _candidate: HoidEpubPackageInspectionCandidate,
+      _href: string,
+      signal?: AbortSignal,
+    ) => {
+      firstSignal = signal;
+      markFirstReadStarted();
+      return firstRead;
+    }) as HoidEpubIngestionService["readChapterContent"];
+    const dependencies = dependenciesFor(progress, request.navigationHref, {
+      readChapterContent,
+    });
+
+    const validOperation = dependencies.port.openVerifiedChapter(request.request);
+    await firstReadStarted;
+    const malformed = new Proxy({}, {
+      ownKeys() { throw new Error("synthetic request trap"); },
+    });
+    await expect(dependencies.port.openVerifiedChapter(
+      malformed as unknown as HoidRecommendationReaderOpenRequest,
+    )).resolves.toEqual({
+      status: "unavailable",
+      reason: "edition-unavailable",
+    });
+    expect(firstSignal?.aborted).toBe(false);
 
     resolveFirstRead({
       status: "candidate",
       candidate: readerContent(request.workId, request.editionId, request.navigationHref),
     });
+    await expect(validOperation).resolves.toEqual({
+      status: "opened",
+      bookId: request.workId,
+      chapterNumber: request.request.target.cursor.chapterNumber,
+      editionId: request.editionId,
+      locatorId: request.request.target.locatorId,
+    });
+    expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it("settles an older durable progress read promptly when a newer open supersedes it", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    let resolveFirstRefresh: (value: unknown) => void = () => {};
+    let markFirstRefreshStarted: () => void = () => {};
+    const firstRefreshStarted = new Promise<void>(resolve => {
+      markFirstRefreshStarted = resolve;
+    });
+    const firstRefresh = new Promise<unknown>(resolve => {
+      resolveFirstRefresh = resolve;
+    });
+    let refreshCount = 0;
+    const refreshCurrentProgress = vi.fn(() => {
+      refreshCount += 1;
+      if (refreshCount === 1) {
+        markFirstRefreshStarted();
+        return firstRefresh;
+      }
+      return Promise.resolve(progress);
+    });
+    const dependencies = dependenciesFor(progress, request.navigationHref, {
+      refreshCurrentProgress,
+    });
+
+    const olderOperation = dependencies.port.openVerifiedChapter(request.request);
+    await firstRefreshStarted;
+    const newerResult = await dependencies.port.openVerifiedChapter(request.request);
+
+    expect(newerResult).toEqual({
+      status: "opened",
+      bookId: request.workId,
+      chapterNumber: request.request.target.cursor.chapterNumber,
+      editionId: request.editionId,
+      locatorId: request.request.target.locatorId,
+    });
     await expect(olderOperation).resolves.toEqual({
       status: "unavailable",
       reason: "superseded",
     });
+    expect(dependencies.readChapterContent).toHaveBeenCalledTimes(1);
     expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
+
+    // The underlying durable read may finish later, but its value is discarded.
+    resolveFirstRefresh(progress);
+    await Promise.resolve();
+  });
+
+  it("removes caller and source-session abort listeners after a successful open", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    const callerController = new AbortController();
+    const sessionController = new AbortController();
+    const callerAdded: EventListenerOrEventListenerObject[] = [];
+    const callerRemoved: EventListenerOrEventListenerObject[] = [];
+    const sessionAdded: EventListenerOrEventListenerObject[] = [];
+    const sessionRemoved: EventListenerOrEventListenerObject[] = [];
+
+    const trackedSignal = (
+      controller: AbortController,
+      added: EventListenerOrEventListenerObject[],
+      removed: EventListenerOrEventListenerObject[],
+    ): AbortSignal => ({
+      get aborted() { return controller.signal.aborted; },
+      addEventListener(
+        type: "abort",
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions,
+      ) {
+        added.push(listener);
+        controller.signal.addEventListener(type, listener, options);
+      },
+      removeEventListener(
+        type: "abort",
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | EventListenerOptions,
+      ) {
+        removed.push(listener);
+        controller.signal.removeEventListener(type, listener, options);
+      },
+    } as unknown as AbortSignal);
+
+    const callerSignal = trackedSignal(callerController, callerAdded, callerRemoved);
+    const sessionSignal = trackedSignal(sessionController, sessionAdded, sessionRemoved);
+    const dependencies = dependenciesFor(progress, request.navigationHref, { sessionSignal });
+
+    await expect(dependencies.port.openVerifiedChapter({
+      ...request.request,
+      signal: callerSignal,
+    })).resolves.toMatchObject({ status: "opened" });
+
+    expect(callerAdded).toHaveLength(1);
+    expect(sessionAdded).toHaveLength(1);
+    expect(callerRemoved).toEqual(callerAdded);
+    expect(sessionRemoved).toEqual(sessionAdded);
   });
 
 });

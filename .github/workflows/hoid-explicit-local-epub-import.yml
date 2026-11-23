@@ -27,6 +27,7 @@ on:
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
       - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
       - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
   pull_request:
     paths:
@@ -51,6 +52,7 @@ on:
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
       - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
 
@@ -78,6 +80,7 @@ jobs:
           src/hoid/epubImportSelection.test.ts
           src/hoid/epubImportLifecycle.test.ts
           src/hoid/epubIngestion.test.ts
+          src/hoid/recommendationReaderPort.test.ts
       - name: Strictly type-check platform and UI boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -90,6 +93,7 @@ jobs:
           src/hoid/epubImportLifecycle.test.ts
           src/hoid/epubImportSelection.test.ts
           src/hoid/epubIngestion.ts
+          src/hoid/recommendationReaderPort.ts
           src/hoid/editionStructure.ts
           src/hoid/bibliography.ts
           src/hoid/sourceCoverage.ts

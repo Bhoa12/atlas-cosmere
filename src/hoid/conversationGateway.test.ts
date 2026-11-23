@@ -1451,6 +1451,40 @@ describe("Hoid conversation scope continuity", () => {
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
+  it("routes a new relationship question through the strict runtime while a scope is active", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const resolveEntities: NonNullable<HoidConversationGatewayConfig["resolveEntities"]> = () => ({
+      status: "ready",
+      resolution: "not-found",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [],
+      truncated: false,
+    });
+    const runtime = { answer: vi.fn(async (_input: unknown) => authorizedAnswerForBook("twok")) };
+    const relationshipGateway = { answer: vi.fn() };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveEntities,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Cómo se relacionan estas dos ideas?",
+      progress: current,
+      scopeBinding: scopeBindingFor(current),
+    });
+    expect(result.status).toBe("ready");
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    }), undefined);
+  });
+
   it("retains the existing scope after a later answer abstains", async () => {
     const current = snapshot(3);
     const projection = projectHoidCursorProgressSnapshot(current);

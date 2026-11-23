@@ -1,5 +1,5 @@
 import { HoidPipeline } from "./pipeline";
-import { HoidProvider } from "./types";
+import { HoidAnswerRequest, HoidProvider } from "./types";
 
 describe("Hoid provider boundary", () => {
   it("never forwards caller-supplied knowledgeContext to a provider", async () => {
@@ -23,5 +23,42 @@ describe("Hoid provider boundary", () => {
 
     expect(result.blocked).toBe(false);
     expect(provider.answer).toHaveBeenCalledTimes(1);
+  });
+
+  it("never forwards local EPUB chapter text, blocks, or source handles to a provider", async () => {
+    const privateMarker = "SYNTHETIC_PRIVATE_EPUB_TEXT_MUST_STAY_LOCAL";
+    let received: HoidAnswerRequest | undefined;
+    const provider: HoidProvider = {
+      answer: jest.fn(async (request) => {
+        received = request;
+        return "Respuesta segura";
+      }),
+    };
+    const request = {
+      question: "Pregunta segura",
+      reading: [],
+      openedChapter: {
+        workId: "the-final-empire",
+        editionId: "synthetic-edition",
+        chapterNumber: 7,
+        blocks: [{ kind: "paragraph", text: privateMarker }],
+      },
+      readerContent: { blocks: [{ text: privateMarker }] },
+      rawXhtml: "<p>" + privateMarker + "</p>",
+      sourceHandle: { uri: "file:///private/synthetic-book.epub" },
+      packageCandidate: { opaque: "synthetic-local-handle" },
+    } as unknown as HoidAnswerRequest;
+
+    const result = await new HoidPipeline(provider, []).answer(request);
+
+    expect(result.blocked).toBe(false);
+    expect(provider.answer).toHaveBeenCalledTimes(1);
+    expect(received).toBeDefined();
+    expect(Object.keys(received as object).sort()).toEqual(["question", "reading"]);
+    expect(Object.isFrozen(received)).toBe(true);
+    expect(Object.isFrozen(received?.reading)).toBe(true);
+    expect(JSON.stringify(received)).not.toContain(privateMarker);
+    expect(JSON.stringify(received)).not.toContain("file:///private");
+    expect(JSON.stringify(received)).not.toContain("synthetic-local-handle");
   });
 });

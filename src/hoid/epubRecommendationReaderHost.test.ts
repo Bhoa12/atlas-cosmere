@@ -206,15 +206,21 @@ describe("local EPUB recommendation reader host", () => {
     const request = requestFor(progress);
     const controller = new AbortController();
     let resolveRead: (value: unknown) => void = () => {};
+    let markReadStarted: () => void = () => {};
+    const readStarted = new Promise<void>(resolve => { markReadStarted = resolve; });
     const pendingRead = new Promise<unknown>(resolve => { resolveRead = resolve; });
     const dependencies = dependenciesFor(progress, request.navigationHref, {
-      readChapterContent: vi.fn(() => pendingRead) as HoidEpubIngestionService["readChapterContent"],
+      readChapterContent: vi.fn(() => {
+        markReadStarted();
+        return pendingRead;
+      }) as HoidEpubIngestionService["readChapterContent"],
     });
     const operation = dependencies.port.openVerifiedChapter({
       ...request.request,
       signal: controller.signal,
     });
 
+    await readStarted;
     controller.abort();
     resolveRead({
       status: "candidate",
@@ -222,7 +228,34 @@ describe("local EPUB recommendation reader host", () => {
     });
 
     await expect(operation).resolves.toEqual({ status: "unavailable", reason: "cancelled" });
+    expect(dependencies.readChapterContent).toHaveBeenCalledTimes(1);
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
+  });
+
+  it("rejects accessor and Proxy requests without invoking getters", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    const dependencies = dependenciesFor(progress, request.navigationHref);
+    let getterCalls = 0;
+    const accessor = {
+      progressRevision: request.request.progressRevision,
+      progressFingerprint: request.request.progressFingerprint,
+    };
+    Object.defineProperty(accessor, "target", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return request.request.target;
+      },
+    });
+    await expect(dependencies.port.openVerifiedChapter(accessor as unknown as HoidRecommendationReaderOpenRequest))
+      .resolves.toEqual({ status: "unavailable", reason: "edition-unavailable" });
+    expect(getterCalls).toBe(0);
+
+    const hostile = new Proxy({}, { ownKeys() { throw new Error("proxy trap"); } });
+    await expect(dependencies.port.openVerifiedChapter(hostile as HoidRecommendationReaderOpenRequest))
+      .resolves.toEqual({ status: "unavailable", reason: "edition-unavailable" });
+    expect(dependencies.readChapterContent).not.toHaveBeenCalled();
   });
 
   it("refuses a host whose source lease is no longer current", async () => {

@@ -16,14 +16,14 @@ HoidCursorEvidenceRuntime valida primero el snapshot v2 completo, vuelve a valid
 6. El runtime existente vuelve a validar el progreso, filtra evidencias y exige que todas las fuentes cruzadas estén desbloqueadas.
 7. El selector recibe exclusivamente candidatos autorizados y la respuesta se renderiza desde el registro editorial local.
 8. Si la respuesta es autorizada, la fachada adjunta un recibo de frescura con la revisión y la huella de la misma proyección validada.
-9. El presentador confiable conserva el recibo y lo compara con el snapshot usado para mostrar la respuesta. Si no coincide, retiene texto y citas como stale-progress.
+9. El presentador confiable conserva el recibo y lo compara con la proyección usada para mostrar la respuesta. Si no coincide, retiene texto y citas como stale-progress.
 
 Un cursor con manifiesto obsoleto, unidad inexistente o capítulo ambiguo se rechaza antes de invocar al selector.
 
 ## API
 
 - projectHoidCursorProgressSnapshot(value): conversión pura y validada a ReadingPosition[].
-- HoidCursorEvidenceRuntime.answer({ question, progress, intent?, entityIds?, selectionBudget?, bookScope? }): respuesta vinculada al snapshot v2 exacto cuando queda autorizada.
+- HoidCursorEvidenceRuntime.answer({ question, progress, intent?, entityIds?, selectionBudget?, bookScope? }): respuesta vinculada al proyección v2 exacta cuando queda autorizada.
 - HoidCursorEvidenceRuntime.recommend(progress, limit?): recomendaciones basadas en progreso v2 y metadatos del catálogo.
 - createHoidCursorEvidenceRuntime(runtime): composición mediante inyección de dependencias.
 

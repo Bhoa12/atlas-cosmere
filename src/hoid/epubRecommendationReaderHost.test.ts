@@ -5,7 +5,10 @@ import type {
   HoidEpubPackageInspectionCandidate,
   HoidEpubReadableChapter,
 } from "./epubIngestion";
-import { createHoidLocalEpubRecommendationReaderPort } from "./epubRecommendationReaderHost";
+import {
+  createHoidLocalEpubRecommendationReaderPort,
+  type HoidReaderProgressBinding,
+} from "./epubRecommendationReaderHost";
 import {
   validateHoidCursorProgressSnapshot,
 } from "./cursorProgressLedger";
@@ -92,7 +95,11 @@ function dependenciesFor(
     refreshCurrentProgress: () => Promise<unknown>;
     isCurrent: () => boolean;
     getProgressChangeEpoch: () => number;
-    onChapterOpened: (chapter: HoidEpubReadableChapter, chapterNumber: number) => void;
+    onChapterOpened: (
+      chapter: HoidEpubReadableChapter,
+      chapterNumber: number,
+      progressBinding: HoidReaderProgressBinding,
+    ) => void;
     workId: string;
   }> = {},
 ) {
@@ -144,6 +151,10 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.onChapterOpened).toHaveBeenCalledWith(
       expect.objectContaining({ status: "reader-content", workId: request.workId }),
       request.request.target.cursor.chapterNumber,
+      {
+        revision: request.request.progressRevision,
+        fingerprint: request.request.progressFingerprint,
+      },
     );
   });
 

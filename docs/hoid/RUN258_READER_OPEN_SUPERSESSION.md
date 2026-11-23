@@ -31,3 +31,16 @@ La extracción XHTML no acepta actualmente un `AbortSignal`; por tanto, una lect
 - El reader port exterior conserva `superseded` como resultado acotado, sin convertirlo en un error de acknowledgement.
 
 Los fixtures son sintéticos; no se leen EPUB privados en CI.
+
+## Corrección del lease de pantalla
+
+La integración del panel tenía una confusión entre dos identidades distintas del guard de importación: el lease de la pantalla y el token de la última operación. Cada `beginOperation()` avanza la generación, por lo que el lease de montaje deja de ser un token `isCurrent()`, aunque la pantalla siga activa. Usar esa comprobación para el host podía bloquear aperturas y confirmaciones de progreso después de seleccionar e inspeccionar una fuente.
+
+Run 258 separa ahora ambas preguntas:
+
+- `isCurrent(token)` sigue validando que una operación asíncrona sea la más reciente.
+- `isActive(lease)` valida que la pantalla propietaria siga montada bajo el mismo lease, aunque hayan comenzado operaciones posteriores.
+
+El panel usa `isActive()` para la vida del lector y para las confirmaciones asociadas al capítulo abierto. Cada instancia del host captura además un flag de sesión que se desactiva cuando cambian fuente, obra, edición o candidato; una instancia anterior no puede presentar contenido después de que el efecto que la creó haya sido sustituido.
+
+Se añadieron pruebas para demostrar que el lease permanece activo a través de varias generaciones y deja de estarlo al desmontar la pantalla.

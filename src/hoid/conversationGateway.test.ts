@@ -1436,14 +1436,14 @@ describe("Hoid conversation scope continuity", () => {
     const runtime = {
       answer: vi.fn(async (_input: unknown) => authorizedAnswerForBook("twok")),
     };
-    const resolveEntities: NonNullable<HoidConversationGatewayConfig["resolveEntities"]> = () => ({
+    const resolveEntities = (() => ({
       status: "ready",
-      resolution: "not-found",
+      resolution: "matched",
       progressRevision: projection.revision,
       progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
-      matches: [],
+      matches: [{ id: "synthetic.entity-alpha" }, { id: "synthetic.entity-beta" }],
       truncated: false,
-    });
+    })) as unknown as NonNullable<HoidConversationGatewayConfig["resolveEntities"]>;
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -1468,14 +1468,8 @@ describe("Hoid conversation scope continuity", () => {
       { bookId: "twok", chapters: [1] },
     ]);
 
-    const context = createHoidConversationContext(
-      ["synthetic.entity-alpha", "synthetic.entity-beta"],
-      {
-        revision: projection.revision,
-        fingerprint: fingerprintHoidCursorProgressProjection(projection),
-      },
-    );
-    if (!context) throw new Error("Contexto sintético no disponible");
+    const context = first.conversationContext;
+    if (!context) throw new Error("La primera respuesta no creó contexto de pareja");
     const followUp = await gateway.answer({
       question: "¿Y entre ellos?",
       progress: current,

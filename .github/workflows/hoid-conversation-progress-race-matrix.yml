@@ -28,6 +28,7 @@ on:
       - "src/hoid/cursorProgressCoordinator.test.ts"
       - "src/context/CosmereContext.tsx"
       - "src/hoid/progressChangeWatch.ts"
+      - "src/hoid/progressChangeWatch.test.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationGatewayProgressRace.test.ts"
       - "src/hoid/cursorProgressFingerprint.ts"
@@ -36,6 +37,7 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/RUN248_PROGRESS_RACE_MATRIX.md"
       - "docs/hoid/RUN249_PROGRESS_CHANGE_SUBSCRIPTION.md"
+      - "docs/hoid/RUN250_CALLER_CANCELLATION.md"
       - ".github/workflows/hoid-conversation-progress-race-matrix.yml"
 
 permissions:
@@ -72,5 +74,6 @@ jobs:
           src/hoid/cursorProgressCoordinator.ts
           src/context/CosmereContext.tsx
           src/hoid/conversationGatewayProgressRace.test.ts
+          src/hoid/progressChangeWatch.test.ts
           src/hoid/conversationGateway.test.ts
           src/screens/HoidScreen.tsx

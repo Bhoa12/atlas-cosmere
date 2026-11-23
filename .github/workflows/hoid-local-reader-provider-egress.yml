@@ -1,0 +1,49 @@
+name: Hoid local reader provider egress boundary
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/pipeline.ts"
+      - "src/hoid/types.ts"
+      - "src/hoid/providerKnowledgeBoundary.test.ts"
+      - "src/hoid/providerRequestSnapshot.ts"
+      - "docs/hoid/RUN262_LOCAL_READER_PROVIDER_EGRESS.md"
+      - ".github/workflows/hoid-local-reader-provider-egress.yml"
+  pull_request:
+    paths:
+      - "src/hoid/pipeline.ts"
+      - "src/hoid/types.ts"
+      - "src/hoid/providerKnowledgeBoundary.test.ts"
+      - "src/hoid/providerRequestSnapshot.ts"
+      - "docs/hoid/RUN262_LOCAL_READER_PROVIDER_EGRESS.md"
+      - ".github/workflows/hoid-local-reader-provider-egress.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-reader-provider-egress:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test legacy and contextual provider egress isolation
+        run: >-
+          npx vitest run
+          src/hoid/providerKnowledgeBoundary.test.ts
+      - name: Strictly type-check provider request boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/pipeline.ts
+          src/hoid/providerRequestSnapshot.ts
+          src/hoid/providerKnowledgeBoundary.test.ts
+          src/hoid/types.ts

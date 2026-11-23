@@ -1429,6 +1429,28 @@ describe("HoidConversationGateway recommendation final-read cancellation", () =>
 
 
 describe("Hoid conversation scope continuity", () => {
+
+  it("keeps a conversation pinned when a complete-looking new question omits the old scope", async () => {
+    const current = snapshot(3);
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway: null,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+    const binding = scopeBindingFor(current);
+
+    const result = await gateway.answer({
+      question: "Una pregunta nueva con sujeto explícito.",
+      progress: current,
+      scopeBinding: binding,
+      bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-mismatch" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
   it("derives the first answer scope and reuses it for an automatic group follow-up", async () => {
     const current = snapshot(3);
     const projection = projectHoidCursorProgressSnapshot(current);
@@ -1468,18 +1490,31 @@ describe("Hoid conversation scope continuity", () => {
       { bookId: "twok", chapters: [1] },
     ]);
 
-    const context = first.conversationContext;
-    if (!context) throw new Error("La primera respuesta no creó contexto de pareja");
+    const unrelatedButSameConversation = await gateway.answer({
+      question: "Describe el concepto completo con una pregunta independiente.",
+      progress: current,
+      scopeBinding: first.conversationScopeBinding,
+    });
+    expect(unrelatedButSameConversation.status).toBe("ready");
+    expect(runtime.answer.mock.calls[1]?.[0]).toMatchObject({
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+    if (
+      unrelatedButSameConversation.status !== "ready" ||
+      !unrelatedButSameConversation.conversationScopeBinding ||
+      !unrelatedButSameConversation.conversationContext
+    ) throw new Error("La pregunta independiente no conservó el ámbito y contexto autorizados");
+
     const followUp = await gateway.answer({
       question: "¿Y entre ellos?",
       progress: current,
-      context,
-      scopeBinding: first.conversationScopeBinding,
+      context: unrelatedButSameConversation.conversationContext,
+      scopeBinding: unrelatedButSameConversation.conversationScopeBinding,
     });
 
     expect(followUp.status).toBe("ready");
-    expect(runtime.answer).toHaveBeenCalledTimes(2);
-    expect(runtime.answer.mock.calls[1]?.[0]).toMatchObject({
+    expect(runtime.answer).toHaveBeenCalledTimes(3);
+    expect(runtime.answer.mock.calls[2]?.[0]).toMatchObject({
       entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
       bookScope: { mode: "single-work", bookIds: ["twok"] },
     });

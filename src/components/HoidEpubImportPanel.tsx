@@ -104,16 +104,25 @@ export const HoidEpubImportPanel: React.FC<{
   const leaseRef = useRef<number | null>(null);
   const progressChangeEpochRef = useRef(0);
   const readerSessionEpochRef = useRef(0);
+  const readerSessionAbortRef = useRef<AbortController | null>(null);
   const markingProgressRef = useRef(false);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
+
+  const invalidateReaderSession = () => {
+    readerSessionEpochRef.current += 1;
+    const controller = readerSessionAbortRef.current;
+    readerSessionAbortRef.current = null;
+    try { controller?.abort(); } catch { /* Continue source cleanup. */ }
+    onReaderPortChange?.(null, null);
+  };
 
   useEffect(() => {
     const lease = lifecycleRef.current.activate();
     leaseRef.current = lease;
     return () => {
+      invalidateReaderSession();
       lifecycleRef.current.deactivate(lease);
       leaseRef.current = null;
-      onReaderPortChange?.(null, null);
       const sourceId = sourceIdRef.current;
       sourceIdRef.current = null;
       setOpenedChapter(null);
@@ -144,6 +153,8 @@ export const HoidEpubImportPanel: React.FC<{
     const readerSessionEpoch = readerSessionEpochRef.current + 1;
     readerSessionEpochRef.current = readerSessionEpoch;
     let readerSessionActive = true;
+    const sessionController = new AbortController();
+    readerSessionAbortRef.current = sessionController;
     const sourceId = source.sourceId;
     const workId = choice.workId;
     const editionId = choice.editionId;
@@ -153,6 +164,7 @@ export const HoidEpubImportPanel: React.FC<{
       packageCandidate,
       ingestion: epubRuntime.ingestion,
       refreshCurrentProgress: () => progressRefreshRef.current(),
+      sessionSignal: sessionController.signal,
       isCurrent: () =>
         readerSessionActive &&
         readerSessionEpochRef.current === readerSessionEpoch &&
@@ -185,6 +197,10 @@ export const HoidEpubImportPanel: React.FC<{
     onReaderPortChange?.(port, workId);
     return () => {
       readerSessionActive = false;
+      try { sessionController.abort(); } catch { /* Invalidate the session regardless. */ }
+      if (readerSessionAbortRef.current === sessionController) {
+        readerSessionAbortRef.current = null;
+      }
       if (readerSessionEpochRef.current === readerSessionEpoch) {
         readerSessionEpochRef.current += 1;
       }
@@ -214,6 +230,8 @@ export const HoidEpubImportPanel: React.FC<{
         return;
       }
 
+      // Stop reads through the old source before releasing its cached file.
+      invalidateReaderSession();
       const previousSourceId = sourceIdRef.current;
       sourceIdRef.current = result.source.sourceId;
       setPickedSource(result.source);
@@ -255,6 +273,7 @@ export const HoidEpubImportPanel: React.FC<{
       return;
     }
 
+    invalidateReaderSession();
     setSelectionOpen(false);
     setBusy(true);
     setSelectedChoice(choice);
@@ -426,6 +445,8 @@ export const HoidEpubImportPanel: React.FC<{
 
   const releaseSource = async () => {
     const operation = lifecycleRef.current.beginOperation();
+    invalidateReaderSession();
+    setOpenedChapter(null);
     const sourceId = sourceIdRef.current;
     sourceIdRef.current = null;
     setBusy(true);

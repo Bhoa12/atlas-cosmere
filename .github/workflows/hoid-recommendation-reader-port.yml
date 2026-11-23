@@ -9,6 +9,9 @@ on:
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
       - "src/hoid/epubRecommendationReaderHost.test.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
       - "src/hoid/editionBoundRecommendationNavigation.ts"
       - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.ts"
@@ -25,6 +28,9 @@ on:
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
       - "src/hoid/epubRecommendationReaderHost.test.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
       - "src/hoid/editionBoundRecommendationNavigation.ts"
       - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.ts"
@@ -60,6 +66,7 @@ jobs:
           src/hoid/editionBoundRecommendationFreshness.test.ts
           src/hoid/cursorProgressLedger.test.ts
           src/hoid/readingManifest.test.ts
+          src/hoid/epubImportLifecycle.test.ts
       - name: Strict type-check reader port and navigation boundary
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -69,3 +76,4 @@ jobs:
           src/hoid/editionBoundRecommendationNavigation.ts
           src/hoid/cursorProgressLedger.ts
           src/hoid/readingManifest.ts
+          src/hoid/epubImportLifecycle.ts

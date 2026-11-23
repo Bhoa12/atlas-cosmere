@@ -11,6 +11,11 @@ import type {
   HoidRecommendationReaderPort,
 } from "./recommendationReaderPort";
 
+export type HoidReaderProgressBinding = Readonly<{
+  revision: number;
+  fingerprint: string;
+}>;
+
 export type HoidLocalEpubRecommendationReaderHostDependencies = Readonly<{
   workId: string;
   editionId: string;
@@ -22,7 +27,11 @@ export type HoidLocalEpubRecommendationReaderHostDependencies = Readonly<{
   isCurrent: () => boolean;
   /** Monotonic in-memory epoch incremented by progress-change notifications. */
   getProgressChangeEpoch: () => number;
-  onChapterOpened: (chapter: HoidEpubReadableChapter, chapterNumber: number) => void;
+  onChapterOpened: (
+    chapter: HoidEpubReadableChapter,
+    chapterNumber: number,
+    progressBinding: HoidReaderProgressBinding,
+  ) => void;
 }>;
 
 function isAborted(signal: AbortSignal | undefined): boolean {
@@ -196,7 +205,14 @@ export function createHoidLocalEpubRecommendationReaderPort(
         }
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
 
-        dependencies.onChapterOpened(read.candidate, cursor.cursor.chapterNumber);
+        dependencies.onChapterOpened(
+          read.candidate,
+          cursor.cursor.chapterNumber,
+          Object.freeze({
+            revision: progressRevision as number,
+            fingerprint: progressFingerprint as string,
+          }),
+        );
         return Object.freeze({
           status: "opened",
           bookId: dependencies.workId,

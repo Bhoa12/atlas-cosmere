@@ -18,6 +18,10 @@ on:
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
       - "src/hoid/epubRecommendationReaderHost.test.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/context/CosmereContext.tsx"
+      - "docs/hoid/RUN257_EXPLICIT_READER_PROGRESS_COMMIT.md"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -45,6 +49,10 @@ on:
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
       - "src/hoid/epubRecommendationReaderHost.test.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/context/CosmereContext.tsx"
+      - "docs/hoid/RUN257_EXPLICIT_READER_PROGRESS_COMMIT.md"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -84,6 +92,7 @@ jobs:
           src/hoid/epubIngestion.test.ts
           src/hoid/recommendationReaderPort.test.ts
           src/hoid/epubRecommendationReaderHost.test.ts
+          src/hoid/cursorProgressCoordinator.test.ts
       - name: Strictly type-check platform and UI boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -99,6 +108,9 @@ jobs:
           src/hoid/recommendationReaderPort.ts
           src/hoid/epubRecommendationReaderHost.ts
           src/hoid/epubRecommendationReaderHost.test.ts
+          src/hoid/cursorProgressCoordinator.ts
+          src/hoid/cursorProgressCoordinator.test.ts
+          src/context/CosmereContext.tsx
           src/hoid/editionStructure.ts
           src/hoid/bibliography.ts
           src/hoid/sourceCoverage.ts

@@ -6,6 +6,7 @@ import {
 } from "./cursorProgressLedger";
 import {
   createHoidReadingCursor,
+  getHoidReadingManifest,
   validateHoidReadingCursor,
   type HoidReadingCursor,
 } from "./readingManifest";
@@ -13,6 +14,8 @@ import type {
   HoidCursorProgressStore,
   HoidCursorStoreLoadResult,
 } from "./cursorSqliteProgressStore";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 
 type StoreFailureReason = Extract<
   HoidCursorStoreLoadResult,
@@ -36,7 +39,9 @@ export type HoidCursorCoordinatorResult =
         | "reopen-requires-confirmation"
         | "not-completed"
         | "unsupported-position"
-        | "invalid-update";
+        | "invalid-update"
+        | "non-sequential-reader-advance"
+        | "progress-confirmation-required";
     }>
   | Readonly<{
       status: "unavailable";
@@ -49,6 +54,7 @@ export type HoidCursorCorrectionConfirmation = Readonly<{
 }>;
 
 export type HoidReopenConfirmation = Readonly<{ confirmed: true }>;
+export type HoidReaderProgressConfirmation = Readonly<{ confirmed: true }>;
 
 const MAX_ORDER = 1_000_000;
 const MAX_REVISION = Number.MAX_SAFE_INTEGER - 1;
@@ -263,6 +269,144 @@ export class HoidCursorProgressCoordinator {
       }
 
       return this.commitPosition({ bookId, cursor: validated.cursor });
+    });
+  }
+
+  /**
+   * Reload and bind the durable snapshot to the progress identity that
+   * authorized opening the chapter. Called only from serialized mutations.
+   */
+  private async loadSnapshotBoundToProgress(
+    expectedRevision: number,
+    expectedFingerprint: string,
+  ): Promise<HoidCursorCoordinatorResult> {
+    if (
+      !Number.isSafeInteger(expectedRevision) ||
+      expectedRevision < 0 ||
+      typeof expectedFingerprint !== "string" ||
+      !/^[a-f0-9]{64}$/.test(expectedFingerprint)
+    ) return this.rejected("invalid-update");
+
+    try {
+      const pendingInitialization = this.initialization;
+      if (pendingInitialization) {
+        await pendingInitialization;
+        if (this.initialization === pendingInitialization) this.initialization = null;
+      }
+
+      // Never trust the cached React/coordinator snapshot for this explicit
+      // mutation. Reload the durable ledger inside the same serialized queue.
+      const previousSnapshot = this.snapshot;
+      this.snapshot = null;
+      const pending = this.store.load()
+        .then(result => this.acceptLoad(result))
+        .catch(() => {
+          this.snapshot = null;
+          this.initialization = null;
+          return Object.freeze({ status: "unavailable" as const, reason: "storage-error" as const });
+        });
+      this.initialization = pending;
+      const loaded = await pending;
+      if (this.initialization === pending) this.initialization = null;
+      if (loaded.status !== "ready") return loaded;
+      if (previousSnapshot && !this.sameProgressSnapshot(previousSnapshot, loaded.snapshot)) {
+        this.notifyProgressChanged();
+      }
+
+      const projection = projectHoidCursorProgressSnapshot(loaded.snapshot);
+      if (projection.status !== "ready") {
+        return Object.freeze({ status: "unavailable" as const, reason: "corrupt-v2" as const });
+      }
+      if (
+        projection.revision !== expectedRevision ||
+        fingerprintHoidCursorProgressProjection(projection) !== expectedFingerprint
+      ) return Object.freeze({ status: "conflict" as const, snapshot: loaded.snapshot });
+
+      return Object.freeze({
+        status: "ready" as const,
+        operation: "refreshed" as const,
+        snapshot: loaded.snapshot,
+      });
+    } catch {
+      this.snapshot = null;
+      this.initialization = null;
+      return Object.freeze({ status: "unavailable" as const, reason: "storage-error" as const });
+    }
+  }
+
+  /**
+   * Register a chapter as read after explicit user confirmation. The chapter
+   * must be the one that was next when the reader opened it. The persisted
+   * cursor then moves to the following chapter, because a cursor denotes the
+   * chapter currently open in Atlas (not the last completed chapter).
+   */
+  markChapterReadIfCurrent(
+    bookId: string,
+    completedChapterNumber: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
+  ): Promise<HoidCursorCoordinatorResult> {
+    return this.serialize(async () => {
+      if (canonicalConfirmation(confirmation, false) === null) {
+        return this.rejected("progress-confirmation-required");
+      }
+      if (!isKnownWork(bookId)) return this.rejected("unknown-work");
+      if (!Number.isSafeInteger(completedChapterNumber) || completedChapterNumber < 1) {
+        return this.rejected("invalid-cursor");
+      }
+      const manifestResult = getHoidReadingManifest(bookId);
+      if (manifestResult.status !== "ready") return this.rejected("unsupported-position");
+      const manifest = manifestResult.manifest;
+      const completedUnit = manifest.units.find(unit => unit.chapterNumber === completedChapterNumber);
+      if (!completedUnit) return this.rejected("invalid-cursor");
+
+      const nextUnit = manifest.units.find(unit => unit.chapterNumber === completedChapterNumber + 1);
+      // Manifests intentionally cover numbered chapters only. Absence of a
+      // next numbered unit does not prove the entire EPUB has been finished.
+      if (!nextUnit) return this.rejected("unsupported-position");
+
+      const bound = await this.loadSnapshotBoundToProgress(expectedRevision, expectedFingerprint);
+      if (bound.status !== "ready") return bound;
+      const existing = bound.snapshot.positions.find(position => position.bookId === bookId);
+      if (existing && "completed" in existing) return this.rejected("already-completed");
+
+      const expectedOpenChapter = existing && "cursor" in existing
+        ? existing.cursor.chapterNumber + 1
+        : 1;
+      if (completedChapterNumber !== expectedOpenChapter) {
+        return this.rejected("non-sequential-reader-advance");
+      }
+
+      const nextCursor = createHoidReadingCursor(bookId, completedChapterNumber + 1);
+      if (nextCursor.status !== "ready") return this.rejected("unsupported-position");
+      return this.commitPosition({ bookId, cursor: nextCursor.cursor });
+    });
+  }
+
+  /**
+   * Mark a work complete only after the user explicitly attests that the whole
+   * work is finished, including unnumbered epilogues or appendices. The
+   * progress binding prevents an old reader screen from completing a newer
+   * reading session.
+   */
+  completeWorkIfCurrent(
+    bookId: string,
+    expectedRevision: number,
+    expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
+  ): Promise<HoidCursorCoordinatorResult> {
+    return this.serialize(async () => {
+      if (canonicalConfirmation(confirmation, false) === null) {
+        return this.rejected("progress-confirmation-required");
+      }
+      if (!isKnownWork(bookId)) return this.rejected("unknown-work");
+
+      const bound = await this.loadSnapshotBoundToProgress(expectedRevision, expectedFingerprint);
+      if (bound.status !== "ready") return bound;
+      const existing = bound.snapshot.positions.find(position => position.bookId === bookId);
+      if (existing && "completed" in existing) return this.unchanged();
+      return this.commitPosition({ bookId, completed: true });
     });
   }
 

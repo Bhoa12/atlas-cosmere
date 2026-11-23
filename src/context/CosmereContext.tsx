@@ -4,7 +4,11 @@ import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 import { createEmptyAtlasReadingProgress } from '../hoid/initialProgress';
 import { createExpoHoidCursorProgressCoordinator } from '../hoid/expoCursorProgressCoordinator';
-import { HoidCursorProgressCoordinator, type HoidCursorCoordinatorResult } from '../hoid/cursorProgressCoordinator';
+import {
+  HoidCursorProgressCoordinator,
+  type HoidCursorCoordinatorResult,
+  type HoidReaderProgressConfirmation,
+} from '../hoid/cursorProgressCoordinator';
 import type { HoidCursorProgressSnapshot } from '../hoid/cursorProgressLedger';
 import { createHoidReadingCursor } from '../hoid/readingManifest';
 import { atlasProgressFromCursorSnapshot } from '../hoid/cursorAtlasAdapter';
@@ -35,6 +39,21 @@ interface CosmereContextType {
   toggleReinoCognitivo: () => void;
   toggleLibroLeido: (libroId: string) => void;
   setCapituloLibro: (libroId: string, cap: number) => Promise<HoidCursorCoordinatorResult | null>;
+  /** Record a reader-confirmed chapter and move the cursor to the next chapter, if the opening snapshot is still current. */
+  markHoidChapterReadIfCurrent: (
+    libroId: string,
+    completedChapter: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
+  ) => Promise<HoidCursorCoordinatorResult | null>;
+  /** Record final-work completion only after explicit confirmation and a matching reader snapshot. */
+  completeHoidWorkIfCurrent: (
+    libroId: string,
+    expectedRevision: number,
+    expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
+  ) => Promise<HoidCursorCoordinatorResult | null>;
   hoidCursorProgressSnapshot: HoidCursorProgressSnapshot | null;
   /** Reads the coordinator's live snapshot, including commits not yet projected into React state. */
   getHoidCursorProgressSnapshot: () => HoidCursorProgressSnapshot | null;
@@ -177,6 +196,42 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return result;
   };
 
+  const markHoidChapterReadIfCurrent = async (
+    libroId: string,
+    completedChapter: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
+  ): Promise<HoidCursorCoordinatorResult | null> => {
+    if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
+    const result = await cursorProgressCoordinator.markChapterReadIfCurrent(
+      libroId,
+      completedChapter,
+      expectedRevision,
+      expectedFingerprint,
+      confirmation,
+    );
+    aplicarResultadoProgreso(result);
+    return result;
+  };
+
+  const completeHoidWorkIfCurrent = async (
+    libroId: string,
+    expectedRevision: number,
+    expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
+  ): Promise<HoidCursorCoordinatorResult | null> => {
+    if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
+    const result = await cursorProgressCoordinator.completeWorkIfCurrent(
+      libroId,
+      expectedRevision,
+      expectedFingerprint,
+      confirmation,
+    );
+    aplicarResultadoProgreso(result);
+    return result;
+  };
+
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {
     if (testsCompletadosExitosos[testId]) return false;
     setTestsCompletadosExitosos(prev => ({ ...prev, [testId]: true }));
@@ -247,6 +302,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       toggleReinoCognitivo,
       toggleLibroLeido,
       setCapituloLibro,
+      markHoidChapterReadIfCurrent,
+      completeHoidWorkIfCurrent,
       sumarPuntosTestUnico,
       setApodoActivo,
       setNombreUsuario,

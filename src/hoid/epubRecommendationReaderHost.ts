@@ -129,7 +129,6 @@ export function createHoidLocalEpubRecommendationReaderPort(
         if (cursor.status !== "valid" || cursor.cursor.bookId !== dependencies.workId) {
           return { status: "unavailable", reason: "edition-unavailable" };
         }
-        if (cursor.status !== "valid") return { status: "unavailable", reason: "locator-unavailable" };
         const manifest = cursor.manifest;
         if (
           targetRecord.manifestId !== manifest.manifestId ||

@@ -79,6 +79,7 @@ type CanonicalReaderAcknowledgement =
         | "edition-unavailable"
         | "locator-unavailable"
         | "cancelled"
+        | "stale-progress"
         | "reader-failed";
     }>
   | Readonly<{ status: "invalid" }>;
@@ -157,6 +158,7 @@ function canonicalizeAcknowledgement(
       case "edition-unavailable":
       case "locator-unavailable":
       case "cancelled":
+      case "stale-progress":
         return Object.freeze({ status: "unavailable", reason: record.reason });
       case "failed":
         return Object.freeze({ status: "unavailable", reason: "reader-failed" });

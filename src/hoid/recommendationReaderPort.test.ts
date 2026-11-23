@@ -10,7 +10,6 @@ import {
 } from "./knowledgeGraph";
 import {
   createHoidReadingCursor,
-  getHoidReadingManifest,
 } from "./readingManifest";
 import {
   openHoidRecommendationChapter,
@@ -127,30 +126,27 @@ describe("provider-neutral recommendation reader port", () => {
     expect(reader.openVerifiedChapter).not.toHaveBeenCalled();
   });
 
-  it("refuses cursor-only targets instead of guessing a file path", async () => {
-    const manifestResult = getHoidReadingManifest("tlm");
-    if (manifestResult.status !== "ready") throw new Error("Fixture manifest unavailable");
-    const unit = manifestResult.manifest.units.find(candidate => !candidate.locatorId);
-    if (!unit) throw new Error("Cursor-only fixture unit unavailable");
-    const cursor = createHoidReadingCursor("tlm", unit.chapterNumber);
-    if (cursor.status !== "ready") throw new Error("Cursor-only fixture cursor unavailable");
-
-    const progress = emptySnapshot();
-    const target = {
-      kind: "edition-cursor",
-      cursor: cursor.cursor,
-      editionId: manifestResult.manifest.editionId,
-      navigationSha256: manifestResult.manifest.navigationSha256,
-      locatorStatus: "cursor-only",
+  it("refuses a cursor-only downgrade when the manifest has a verified locator", async () => {
+    const progress = snapshotFor();
+    const target = targetFor(progress);
+    if (target.kind !== "edition-cursor" || !target.locatorId) {
+      throw new Error("Verified locator fixture unavailable");
+    }
+    const downgradedTarget = {
+      kind: target.kind,
+      cursor: target.cursor,
+      editionId: target.editionId,
+      navigationSha256: target.navigationSha256,
+      locatorStatus: "cursor-only" as const,
     };
     const reader = readerFor(vi.fn(async () => ({ status: "opened" })));
 
     const result = await openHoidRecommendationChapter(
       { reader, refreshCurrentProgress: async () => progress },
-      inputFor(target, progress),
+      inputFor(downgradedTarget, progress),
     );
 
-    expect(result).toEqual({ status: "unavailable", reason: "locator-unverified" });
+    expect(result).toEqual({ status: "unavailable", reason: "locator-mismatch" });
     expect(reader.openVerifiedChapter).not.toHaveBeenCalled();
   });
 

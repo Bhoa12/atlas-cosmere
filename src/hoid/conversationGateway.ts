@@ -392,6 +392,10 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
+function callerAborted(options?: HoidRuntimeCallOptions): boolean {
+  return options?.signal?.aborted === true;
+}
+
 const MAX_ENTITY_SCOPE_IDS = 8;
 const ENTITY_SCOPE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 
@@ -605,6 +609,7 @@ export class HoidConversationGateway {
   }
 
   async answer(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationGatewayResult> {
+    if (callerAborted(options)) return unavailable("cancelled");
     const request = canonicalRequest(input);
     if (!request) return unavailable("invalid-request");
 
@@ -618,6 +623,8 @@ export class HoidConversationGateway {
       return unavailable("invalid-progress");
     }
 
+    if (callerAborted(options)) return unavailable("cancelled");
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const beforeIdentity = progressIdentity(currentBefore);
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) {
@@ -675,6 +682,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterTypedIdentity = progressIdentity(currentAfterTypedFollowUp);
       if (!afterTypedIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterTypedIdentity)) return unavailable("progress-changed");
@@ -777,6 +785,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterScopedIdentity = progressIdentity(currentAfterScopedFollowUp);
       if (!afterScopedIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterScopedIdentity)) return unavailable("progress-changed");
@@ -850,6 +859,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterRelationshipIdentity = progressIdentity(currentAfterRelationship);
       if (!afterRelationshipIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterRelationshipIdentity)) {
@@ -915,6 +925,7 @@ export class HoidConversationGateway {
       } catch {
         return unavailable("invalid-progress");
       }
+      if (callerAborted(options)) return unavailable("cancelled");
       const afterCoreferenceIdentity = progressIdentity(currentAfterCoreference);
       if (!afterCoreferenceIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterCoreferenceIdentity)) {
@@ -1004,6 +1015,8 @@ export class HoidConversationGateway {
       return unavailable("invalid-progress");
     }
 
+    if (callerAborted(options)) return unavailable("cancelled");
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const afterIdentity = progressIdentity(currentAfter);
     if (!afterIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, afterIdentity)) {
@@ -1069,6 +1082,7 @@ export class HoidConversationGateway {
   }
 
   async recommend(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationRecommendationResult> {
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const request = canonicalRecommendationRequest(input);
     if (!request) return unavailableRecommendation("invalid-request");
 

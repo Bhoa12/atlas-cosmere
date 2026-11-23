@@ -414,8 +414,8 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
   });
 
-  it("binds an authorized answer to the exact validated cursor snapshot", async () => {
-    const { facade } = createFacade();
+  it("binds an authorized answer to the exact validated cursor projection", async () => {
+    const { facade, selector } = createFacade();
     const progress = snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }], 7);
     const projection = projectHoidCursorProgressSnapshot(progress);
     if (projection.status !== "ready") throw new Error("Projection unavailable");

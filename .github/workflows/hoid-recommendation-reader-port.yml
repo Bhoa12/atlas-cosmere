@@ -1,0 +1,61 @@
+name: Hoid recommendation reader port
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/recommendationReaderPort.ts"
+      - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.test.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
+      - ".github/workflows/hoid-recommendation-reader-port.yml"
+  pull_request:
+    paths:
+      - "src/hoid/recommendationReaderPort.ts"
+      - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.test.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
+      - ".github/workflows/hoid-recommendation-reader-port.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recommendation-reader-port:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test reader handoff and progress contracts
+        run: >-
+          npx vitest run
+          src/hoid/recommendationReaderPort.test.ts
+          src/hoid/editionBoundRecommendationNavigation.test.ts
+          src/hoid/editionBoundRecommendationFreshness.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/readingManifest.test.ts
+      - name: Strict type-check reader port and navigation boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --esModuleInterop
+          src/hoid/recommendationReaderPort.ts
+          src/hoid/editionBoundRecommendationNavigation.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingManifest.ts

@@ -7,6 +7,8 @@ on:
     paths:
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/epubRecommendationReaderHost.ts"
+      - "src/hoid/epubRecommendationReaderHost.test.ts"
       - "src/hoid/editionBoundRecommendationNavigation.ts"
       - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.ts"
@@ -20,6 +22,8 @@ on:
     paths:
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/epubRecommendationReaderHost.ts"
+      - "src/hoid/epubRecommendationReaderHost.test.ts"
       - "src/hoid/editionBoundRecommendationNavigation.ts"
       - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.ts"
@@ -49,6 +53,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/recommendationReaderPort.test.ts
+          src/hoid/epubRecommendationReaderHost.test.ts
           src/hoid/editionBoundRecommendationNavigation.test.ts
           src/hoid/editionBoundRecommendationFreshness.test.ts
           src/hoid/cursorProgressLedger.test.ts
@@ -58,6 +63,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --esModuleInterop
           src/hoid/recommendationReaderPort.ts
+          src/hoid/epubRecommendationReaderHost.ts
           src/hoid/editionBoundRecommendationNavigation.ts
           src/hoid/cursorProgressLedger.ts
           src/hoid/readingManifest.ts

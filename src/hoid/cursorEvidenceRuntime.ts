@@ -14,6 +14,7 @@ import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import { composeHoidReadingAwareRecommendations } from "./readingAwareRecommendations";
 import type { ReadingPosition } from "./types";
+import { createHoidCursorAnswerProgressBinding } from "./cursorProgressFingerprint";
 
 export type HoidCursorProgressProjection =
   | Readonly<{
@@ -154,7 +155,7 @@ export class HoidCursorEvidenceRuntime {
       return blockedAnswer("El progreso por cursores no puede validarse contra la edición. Hoid no consultará al selector.");
     }
 
-    return this.runtime.answer({
+    const answer = await this.runtime.answer({
       question: request.question,
       intent: intent as HoidClaimIntent,
       reading: [...projection.reading],
@@ -168,6 +169,14 @@ export class HoidCursorEvidenceRuntime {
         ? { bookScope: request.bookScope }
         : {}),
     }, options);
+    if (answer.status !== "authorized") return answer;
+
+    // Bind the result to the exact validated v2 projection used for selection.
+    // This receipt detects stale presentation; it is not a signature or grant.
+    return Object.freeze({
+      ...answer,
+      progressBinding: createHoidCursorAnswerProgressBinding(projection),
+    });
   }
 
   recommend(

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { presentHoidEvidenceAnswer } from "./answerPresentation";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { createHoidCursorAnswerProgressBinding } from "./cursorProgressFingerprint";
 
 const updatedAt = "2026-11-17T00:00:00.000Z";
 
@@ -322,4 +324,31 @@ describe("Hoid answer presentation", () => {
       progressAt(3),
     )).toMatchObject({ status: "withheld", reason: "invalid-answer" });
   });
+  it("accepts a cursor answer receipt only for the exact current snapshot", () => {
+    const originalProgress = progressAt(3);
+    const projection = projectHoidCursorProgressSnapshot(originalProgress);
+    if (projection.status !== "ready") throw new Error("Projection unavailable");
+    const boundAnswer = authorizedAnswer({
+      progressBinding: createHoidCursorAnswerProgressBinding(projection),
+    });
+
+    expect(presentHoidEvidenceAnswer(boundAnswer, originalProgress).status).toBe("ready");
+    expect(presentHoidEvidenceAnswer(boundAnswer, progressAt(4))).toMatchObject({
+      status: "withheld",
+      reason: "stale-progress",
+    });
+  });
+
+  it("rejects malformed cursor answer receipts without exposing the answer", () => {
+    const result = presentHoidEvidenceAnswer(
+      authorizedAnswer({
+        progressBinding: { schemaVersion: 1, revision: 1, fingerprint: "not-a-sha256" },
+      }),
+      progressAt(3),
+    );
+    expect(result).toMatchObject({ status: "withheld", reason: "invalid-answer" });
+    expect(result).not.toHaveProperty("citations");
+  });
+
+
 });

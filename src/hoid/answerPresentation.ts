@@ -2,6 +2,7 @@ import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
 import { composeHoidNarrative, type HoidNarrativeLayout } from "./narrativeComposition";
+import { validateHoidCursorAnswerProgressBinding } from "./cursorProgressFingerprint";
 
 export type HoidPresentedCitation = Readonly<{
   evidenceId: string;
@@ -30,7 +31,7 @@ export type HoidAnswerPresentation =
     }>
   | Readonly<{
       status: "withheld";
-      reason: "not-authorized" | "invalid-answer" | "invalid-progress" | "locked-evidence";
+      reason: "not-authorized" | "invalid-answer" | "invalid-progress" | "locked-evidence" | "stale-progress";
       text: string;
     }>;
 
@@ -281,7 +282,7 @@ export function presentHoidEvidenceAnswer(
 ): HoidAnswerPresentation {
   const answer = canonicalRecord(
     input,
-    ["status", "reason", "text", "claimIds", "evidenceIds", "sources", "segments", "layout"],
+    ["status", "reason", "text", "claimIds", "evidenceIds", "sources", "segments", "layout", "progressBinding"],
     ["status"],
   );
   if (!answer) return withheld("invalid-answer");
@@ -293,15 +294,16 @@ export function presentHoidEvidenceAnswer(
 
   const authorized = canonicalRecord(
     input,
-    ["status", "text", "claimIds", "evidenceIds", "sources", "segments", "layout"],
+    ["status", "text", "claimIds", "evidenceIds", "sources", "segments", "layout", "progressBinding"],
     ["status", "text", "claimIds", "evidenceIds", "sources"],
   );
   const hasSegments = Boolean(authorized && Object.prototype.hasOwnProperty.call(authorized, "segments"));
   const hasLayout = Boolean(authorized && Object.prototype.hasOwnProperty.call(authorized, "layout"));
+  const hasProgressBinding = Boolean(authorized && Object.prototype.hasOwnProperty.call(authorized, "progressBinding"));
   if (
     !authorized ||
     hasSegments !== hasLayout ||
-    Object.keys(authorized).length !== (hasSegments ? 7 : 5)
+    Object.keys(authorized).length !== (hasSegments ? 7 : 5) + (hasProgressBinding ? 1 : 0)
   ) return withheld("invalid-answer");
 
   const text = authorized.text;
@@ -327,6 +329,11 @@ export function presentHoidEvidenceAnswer(
 
   const projection = projectHoidCursorProgressSnapshot(progressInput);
   if (projection.status !== "ready") return withheld("invalid-progress");
+  if (hasProgressBinding) {
+    const bindingStatus = validateHoidCursorAnswerProgressBinding(authorized.progressBinding, projection);
+    if (bindingStatus === "invalid") return withheld("invalid-answer");
+    if (bindingStatus === "stale") return withheld("stale-progress");
+  }
   if (!sources.every(source => sourceIsUnlocked(source, projection.reading))) {
     return withheld("locked-evidence");
   }

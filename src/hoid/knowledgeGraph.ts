@@ -14,6 +14,8 @@ import {
   type HoidEvidenceCitation,
 } from "./evidenceScope";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
+export { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
@@ -303,29 +305,6 @@ function canonicalDefinition(value: unknown): readonly HoidKnowledgeGraphRelatio
   }
   relations.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   return Object.freeze(relations);
-}
-
-type ReadyHoidProgressProjection = Extract<
-  ReturnType<typeof projectHoidCursorProgressSnapshot>,
-  { status: "ready" }
->;
-
-export function fingerprintHoidCursorProgressProjection(projection: ReadyHoidProgressProjection): string {
-  const positions = projection.reading
-    .map((position): readonly [string, number | null, boolean, number | null] => [
-      position.bookId,
-      typeof position.chapter === "number" ? position.chapter : null,
-      position.completed === true,
-      typeof position.order === "number" ? position.order : null,
-    ])
-    .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
-  const started = [...projection.startedBookIds].sort();
-  return sha256Hex(JSON.stringify([
-    "hoid-cursor-progress-fingerprint-v1",
-    projection.revision,
-    positions,
-    started,
-  ]));
 }
 
 /** Fingerprint a validated v2 snapshot for stale-plan detection. */

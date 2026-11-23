@@ -9,6 +9,12 @@ on:
       - "src/hoid/verifiedAnswerPresentation.test.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/cursorProgressFingerprint.ts"
+      - "src/hoid/cursorProgressFingerprint.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/approvedClaimIntegrity.ts"
       - "src/hoid/approvedClaimIntegrity.test.ts"
       - "src/hoid/evidenceScope.ts"
@@ -17,6 +23,7 @@ on:
       - "src/hoid/SAFE_RESPONSE_INTEGRATION.md"
       - "src/hoid/VERIFIED_ANSWER_PRESENTATION.md"
       - "docs/hoid/RUN195_VERIFIED_ANSWER_PRESENTATION.md"
+      - "docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md"
       - ".github/workflows/hoid-verified-answer-presentation.yml"
   pull_request:
     paths:
@@ -24,6 +31,12 @@ on:
       - "src/hoid/verifiedAnswerPresentation.test.ts"
       - "src/hoid/answerPresentation.ts"
       - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/cursorProgressFingerprint.ts"
+      - "src/hoid/cursorProgressFingerprint.test.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/approvedClaimIntegrity.ts"
       - "src/hoid/approvedClaimIntegrity.test.ts"
       - "src/hoid/evidenceScope.ts"
@@ -32,6 +45,7 @@ on:
       - "src/hoid/SAFE_RESPONSE_INTEGRATION.md"
       - "src/hoid/VERIFIED_ANSWER_PRESENTATION.md"
       - "docs/hoid/RUN195_VERIFIED_ANSWER_PRESENTATION.md"
+      - "docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md"
       - ".github/workflows/hoid-verified-answer-presentation.yml"
 
 permissions:
@@ -50,6 +64,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test verified presentation authority
-        run: npx vitest run src/hoid/verifiedAnswerPresentation.test.ts src/hoid/answerPresentation.test.ts src/hoid/approvedClaimIntegrity.test.ts
+        run: npx vitest run src/hoid/verifiedAnswerPresentation.test.ts src/hoid/answerPresentation.test.ts src/hoid/approvedClaimIntegrity.test.ts src/hoid/cursorProgressFingerprint.test.ts src/hoid/cursorEvidenceRuntime.test.ts
       - name: Type-check verified presentation boundary
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/verifiedAnswerPresentation.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/verifiedAnswerPresentation.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/cursorProgressFingerprint.ts src/hoid/knowledgeGraph.ts

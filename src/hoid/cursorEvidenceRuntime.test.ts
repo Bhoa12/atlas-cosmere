@@ -8,6 +8,7 @@ import {
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
+import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -412,5 +413,26 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(result.status).toBe("blocked");
     expect(selector).not.toHaveBeenCalled();
   });
+
+  it("binds an authorized answer to the exact validated cursor projection", async () => {
+    const { facade, selector } = createFacade();
+    const progress = snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }], 7);
+    const projection = projectHoidCursorProgressSnapshot(progress);
+    if (projection.status !== "ready") throw new Error("Projection unavailable");
+    const result = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress,
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.progressBinding).toEqual({
+      schemaVersion: 1,
+      revision: 7,
+      fingerprint: fingerprintHoidCursorProgressProjection(projection),
+    });
+    expect(selector).toHaveBeenCalledTimes(1);
+    expect(selector.mock.calls[0][0]).not.toHaveProperty("progressBinding");
+  });
+
 
 });

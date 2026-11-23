@@ -23,6 +23,7 @@ import {
   type HoidClaimSelectionRequest,
 } from "./selectionProtocol";
 export type { HoidClaimSelectionCandidate, HoidClaimSelectionRequest, HoidClaimSelectionResponse } from "./selectionProtocol";
+import type { HoidCursorAnswerProgressBinding } from "./cursorProgressFingerprint";
 import {
   validateHoidApprovedClaimAttestation,
   type HoidApprovedClaim as AttestedHoidApprovedClaim,
@@ -76,6 +77,8 @@ export type HoidEvidenceAnswer = Readonly<{
   /** Present only when the answer preserves a validated claim-to-evidence map. */
   segments?: readonly HoidEvidenceAnswerSegment[];
   layout?: "plain" | "numbered" | "grouped";
+  /** Cursor-native freshness receipt; never an authorization or signature. */
+  progressBinding?: HoidCursorAnswerProgressBinding;
 }>;
 
 export type HoidEvidenceRecommendationResult =

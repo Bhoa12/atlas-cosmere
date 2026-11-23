@@ -9,13 +9,21 @@ on:
       - "src/hoid/answerPresentation.test.ts"
       - "src/hoid/answerClaimProvenance.test.ts"
       - "src/hoid/evidenceRuntime.test.ts"
-      - "docs/hoid/ANSWER_CLAIM_PROVENANCE.md"
       - "src/hoid/bibliography.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressFingerprint.ts"
+      - "src/hoid/cursorProgressFingerprint.test.ts"
+      - "src/hoid/verifiedAnswerPresentation.ts"
+      - "src/hoid/verifiedAnswerPresentation.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/readingManifest.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/ANSWER_CLAIM_PROVENANCE.md"
+      - "docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md"
       - "docs/hoid/RUN126_SOURCE_AWARE_ANSWER_PRESENTATION.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-answer-presentation.yml"
@@ -25,13 +33,21 @@ on:
       - "src/hoid/answerPresentation.test.ts"
       - "src/hoid/answerClaimProvenance.test.ts"
       - "src/hoid/evidenceRuntime.test.ts"
-      - "docs/hoid/ANSWER_CLAIM_PROVENANCE.md"
       - "src/hoid/bibliography.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressFingerprint.ts"
+      - "src/hoid/cursorProgressFingerprint.test.ts"
+      - "src/hoid/verifiedAnswerPresentation.ts"
+      - "src/hoid/verifiedAnswerPresentation.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/sha256.ts"
       - "src/hoid/readingManifest.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/ANSWER_CLAIM_PROVENANCE.md"
+      - "docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md"
       - "docs/hoid/RUN126_SOURCE_AWARE_ANSWER_PRESENTATION.md"
       - "src/hoid/README.md"
       - ".github/workflows/hoid-answer-presentation.yml"
@@ -52,6 +68,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test source-aware answer presentation
-        run: npx vitest run src/hoid/answerPresentation.test.ts src/hoid/answerClaimProvenance.test.ts src/hoid/evidenceRuntime.test.ts
+        run: npx vitest run src/hoid/answerPresentation.test.ts src/hoid/answerClaimProvenance.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/cursorProgressFingerprint.test.ts src/hoid/verifiedAnswerPresentation.test.ts src/hoid/cursorEvidenceRuntime.test.ts
       - name: Type-check presentation boundary and dependencies
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/answerPresentation.ts src/hoid/evidenceRuntime.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/answerPresentation.ts src/hoid/evidenceRuntime.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/cursorProgressFingerprint.ts src/hoid/verifiedAnswerPresentation.ts src/hoid/knowledgeGraph.ts

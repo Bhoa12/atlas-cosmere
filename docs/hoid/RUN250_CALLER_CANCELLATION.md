@@ -13,7 +13,7 @@ Asegurar que cancelar una consulta desde la interfaz o desde cualquier host inva
 - `cancelled / caller-aborted`: el llamador canceló la operación; cualquier valor tardío se descarta.
 - `unavailable`: no se pudo establecer o limpiar de forma segura la frontera de vigilancia.
 
-La señal del llamador se comprueba antes de instalar listeners o invocar el runtime. Si se aborta durante la verificación durable, el proveedor no se invoca. Si se aborta durante la llamada, el gateway descarta el valor resuelto aunque el proveedor ignore la señal.
+La señal del llamador se comprueba antes de instalar listeners o invocar el runtime. Si se aborta durante la verificación durable, el proveedor no se invoca. Si se aborta durante la llamada, el gateway descarta el valor resuelto aunque el proveedor ignore la señal. También vuelve a comprobar la señal después de cada lectura durable final, antes de devolver una respuesta o recomendación lista.
 
 ## Integración
 

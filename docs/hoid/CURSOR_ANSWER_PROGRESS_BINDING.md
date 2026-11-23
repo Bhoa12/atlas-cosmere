@@ -27,7 +27,7 @@ Un recibo malformado se rechaza como `invalid-answer`. Las respuestas heredadas 
 
 ## Límites de confianza
 
-El recibo es una **vinculación de frescura**, no una firma criptográfica, no una atestación del proveedor y no una autorización narrativa. El hash es reproducible por cualquier consumidor que conozca el snapshot. No autentica afirmaciones, revisores, fuentes ni identidad de `evidenceId`.
+El recibo es una **vinculación de frescura**, no una firma criptográfica, no una atestación del proveedor y no una autorización narrativa. El hash es reproducible por cualquier consumidor que conozca la proyección. No autentica afirmaciones, revisores, fuentes ni identidad de `evidenceId`.
 
 La autoridad editorial sigue siendo el registro de claims aprobado y `HoidVerifiedAnswerPresenter`. El desbloqueo por obra y capítulo sigue verificándose mediante el presentador confiable. El gateway conversacional conserva su comprobación independiente antes y después del trabajo asíncrono y antes de que HoidScreen confirme el texto en la interfaz.
 
@@ -39,7 +39,7 @@ La cobertura sintética comprueba:
 
 - estabilidad del fingerprint ante reordenación equivalente;
 - cambio de huella al cambiar la revisión o una posición bajo la misma revisión;
-- aceptación de un recibo ligado al proyección validada exacta;
+- aceptación de un recibo ligado a la proyección exacta validada;
 - rechazo de recibos antiguos, malformados, con campos extra o versión desconocida;
 - rechazo de getters y trampas de Proxy sin ejecutar getters;
 - propagación del recibo por el runtime de cursores y el presentador editorial confiable.

@@ -991,7 +991,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       const currentNavigationEntry = requireFile(entries, state.navigationPath);
       const currentNavigationBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentNavigationEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,
         signal,
       );
       if (await awaitWithSignal(digestBytes(dependencies.digest, currentNavigationBytes), signal) !== state.report.navigationDocumentSha256) {
@@ -1003,7 +1003,8 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       if (entry.uncompressedSize > HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes) reject("chapter-size-limit");
 
       const bytes = await readCheckedEntry(
-        dependencies.archive, state.source.sourceId, entry, HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        dependencies.archive, state.source.sourceId, entry,
+        HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes,
         signal,
       );
       let validXhtml = false;

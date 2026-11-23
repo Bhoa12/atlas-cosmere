@@ -1280,4 +1280,39 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
     expect(await pending).toEqual({ status: "unavailable", reason: "cancelled" });
   });
 
+  it("discards an answer if the caller aborts during the final durable progress read", async () => {
+    const current = snapshot(3);
+    let reads = 0;
+    let markFinalRead: (() => void) | undefined;
+    const finalReadStarted = new Promise<void>(resolve => { markFinalRead = resolve; });
+    let finishRead: ((value: unknown) => void) | undefined;
+    const finalRead = new Promise<unknown>(resolve => { finishRead = resolve; });
+    const gateway = createHoidConversationGateway({
+      runtime: { answer: vi.fn(async () => answer) },
+      getCurrentProgress: () => current,
+      refreshCurrentProgress: async () => {
+        reads += 1;
+        if (reads === 1) return current;
+        if (reads === 2) {
+          markFinalRead?.();
+          return finalRead;
+        }
+        return current;
+      },
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+    const controller = new AbortController();
+
+    const pending = gateway.answer(
+      { question: "Pregunta sintética", progress: current },
+      { signal: controller.signal },
+    );
+    await finalReadStarted;
+    controller.abort();
+    finishRead?.(current);
+
+    expect(await pending).toEqual({ status: "unavailable", reason: "cancelled" });
+  });
+
+
 });

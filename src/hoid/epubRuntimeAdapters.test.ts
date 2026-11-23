@@ -181,7 +181,7 @@ describe("concrete local EPUB runtime adapters", () => {
     const xml = createHoidXmldomXmlPort();
 
     await expect(xml.validateXhtml(XHTML, controller.signal)).rejects.toThrow("cancelled");
-    await expect(xml.extractReadableBlocks(XHTML, controller.signal)).rejects.toThrow("cancelled");
+    await expect(xml.extractReadableBlocks!(XHTML, controller.signal)).rejects.toThrow("cancelled");
   });
 
   it("rejects shared-memory source buffers when the runtime supports them", async () => {

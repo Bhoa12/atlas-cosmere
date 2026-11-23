@@ -73,7 +73,7 @@ function setup(
   resolver: NonNullable<HoidConversationGatewayConfig["resolveEntityIds"]> = (progress, ids) => {
     const projection = projectHoidCursorProgressSnapshot(progress);
     if (projection.status !== "ready") return { status: "unavailable", reason: "invalid-progress" };
-    const kindById = new Map(refs.map(item => [item.id, item.kind]));
+    const kindById = new Map<string, (typeof refs)[number]["kind"]>(refs.map(item => [item.id, item.kind]));
     return {
       status: "ready",
       resolution: "matched",
@@ -106,7 +106,7 @@ describe("Hoid typed entity follow-up gateway", () => {
     const resolver = vi.fn((progress: unknown, ids: readonly string[]) => {
       const projection = projectHoidCursorProgressSnapshot(progress);
       if (projection.status !== "ready") return { status: "unavailable", reason: "invalid-progress" } as const;
-      const kinds = new Map(refs.map(item => [item.id, item.kind]));
+      const kinds = new Map<string, (typeof refs)[number]["kind"]>(refs.map(item => [item.id, item.kind]));
       return {
         status: "ready",
         resolution: "matched",
@@ -149,6 +149,21 @@ describe("Hoid typed entity follow-up gateway", () => {
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
+  it("requires an evidence-bound scope for a typed follow-up", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      typedContext: typedContext(current),
+    });
+    expect(result).toEqual({
+      status: "unavailable",
+      reason: "context-scope-unavailable",
+    });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
   it("resolves a phenomenon follow-up and sends only its canonical ID", async () => {
     const current = snapshot();
     const { gateway, runtime } = setup(current);
@@ -156,6 +171,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
     });
     expect(result.status).toBe("ready");
     expect(runtime.answer).toHaveBeenCalledWith({
@@ -175,6 +191,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
       depth: "brief",
     });
 
@@ -196,6 +213,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y esa organización?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
       depth: "comparative",
     });
 
@@ -218,6 +236,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
       depth: "brief",
     }, { signal: controller.signal });
 
@@ -315,7 +334,7 @@ describe("Hoid typed entity follow-up gateway", () => {
     const resolver = (progress: unknown, ids: readonly string[]) => {
       const currentProjection = projectHoidCursorProgressSnapshot(progress);
       if (currentProjection.status !== "ready") return { status: "unavailable", reason: "invalid-progress" } as const;
-      const kinds = new Map(refs.map(item => [item.id, item.kind]));
+      const kinds = new Map<string, (typeof refs)[number]["kind"]>(refs.map(item => [item.id, item.kind]));
       return {
         status: "ready",
         resolution: "matched",

@@ -1149,7 +1149,7 @@ export function createHoidConversationGateway(
     typeof config.runtime !== "object" ||
     typeof config.runtime.answer !== "function" ||
     typeof config.getCurrentProgress !== "function" ||
-    (config.refreshCurrentProgress !== undefined && typeof config.refreshCurrentProgress !== "function"),
+    (config.refreshCurrentProgress !== undefined && typeof config.refreshCurrentProgress !== "function") ||
     (config.subscribeToProgressChanges !== undefined && typeof config.subscribeToProgressChanges !== "function")
   ) return null;
   const relationshipGateway = config.relationshipGateway === undefined

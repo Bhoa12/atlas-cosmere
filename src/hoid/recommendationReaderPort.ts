@@ -52,6 +52,7 @@ export type HoidRecommendationReaderOpenResult =
         | "edition-unavailable"
         | "locator-unavailable"
         | "cancelled"
+        | "superseded"
         | "reader-failed"
         | "invalid-reader-acknowledgement";
     }>;
@@ -79,6 +80,7 @@ type CanonicalReaderAcknowledgement =
         | "edition-unavailable"
         | "locator-unavailable"
         | "cancelled"
+        | "superseded"
         | "stale-progress"
         | "reader-failed";
     }>
@@ -158,6 +160,7 @@ function canonicalizeAcknowledgement(
       case "edition-unavailable":
       case "locator-unavailable":
       case "cancelled":
+      case "superseded":
       case "stale-progress":
         return Object.freeze({ status: "unavailable", reason: record.reason });
       case "failed":

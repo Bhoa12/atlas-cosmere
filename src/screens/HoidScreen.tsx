@@ -22,6 +22,7 @@ import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
 import type { HoidConversationScopeBinding } from '../hoid/conversationScopeBinding';
+import { createHoidConversationTurnSession } from '../hoid/conversationTurnSession';
 import {
   createHoidEditionBoundRecommendationPresentation,
   type HoidEditionBoundRecommendationPresentation,
@@ -96,7 +97,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
   const conversationScopeBindingRef = useRef<HoidConversationScopeBinding | null>(null);
-  const answerAbortControllerRef = useRef<AbortController | null>(null);
+  const [conversationTurnSession] = useState(() => createHoidConversationTurnSession());
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({
         runtime: hoidRuntime,
@@ -180,9 +181,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     : null;
 
   useEffect(() => {
-    answerAbortControllerRef.current?.abort();
-    answerAbortControllerRef.current = null;
+    conversationTurnSession.invalidate();
     setCanCancelAnswer(false);
+    setCargando(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
@@ -201,8 +202,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort]);
 
   useEffect(() => () => {
-    answerAbortControllerRef.current?.abort();
-    answerAbortControllerRef.current = null;
+    conversationTurnSession.invalidate();
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
   }, []);
@@ -216,9 +216,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
-    answerAbortControllerRef.current?.abort();
-    answerAbortControllerRef.current = null;
+    conversationTurnSession.invalidate();
     setCanCancelAnswer(false);
+    setCargando(false);
     setMensajes([{
       id: HOID_STATIC_GREETING_ID,
       emisor: 'hoid',
@@ -263,31 +263,57 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const cancelarRespuesta = () => {
-    const controller = answerAbortControllerRef.current;
-    if (!controller) return;
-    controller.abort();
+    if (!conversationTurnSession.cancelCurrent()) return;
     setCanCancelAnswer(false);
   };
 
   const enviarMensaje = async () => {
     if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
-    const currentProgress = await progressRefreshRef.current();
-    if (!currentProgress) return;
-    const requestProjection = projectHoidCursorProgressSnapshot(currentProgress);
-    if (requestProjection.status !== 'ready') return;
-    const requestScope: HoidConversationProgressScope = {
-      revision: requestProjection.revision,
-      fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
-    };
-
+    const ticket = conversationTurnSession.begin();
     const textoUsuario = input.trim();
     const nuevoMsgUsuario: Mensaje = { id: Date.now().toString(), emisor: 'usuario', texto: textoUsuario };
     setMensajes(prev => [...prev, nuevoMsgUsuario]);
     setInput('');
     setCargando(true);
-    let answerSignal: AbortSignal | undefined;
+    setCanCancelAnswer(true);
+    let requestScope: HoidConversationProgressScope | null = null;
+    const commitCancelledTurn = () => {
+      if (!conversationTurnSession.isCurrent(ticket)) return;
+      conversationContextRef.current = null;
+      typedConversationContextRef.current = null;
+      conversationScopeBindingRef.current = null;
+      setMensajes(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        emisor: 'hoid',
+        texto: 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.',
+      }]);
+    };
 
     try {
+      const currentProgress = await progressRefreshRef.current();
+      if (!conversationTurnSession.isCurrent(ticket)) return;
+      if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+      if (!currentProgress) {
+        setMensajes(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          emisor: 'hoid',
+          texto: 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.',
+        }]);
+        return;
+      }
+      const requestProjection = projectHoidCursorProgressSnapshot(currentProgress);
+      if (requestProjection.status !== 'ready') {
+        setMensajes(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          emisor: 'hoid',
+          texto: 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.',
+        }]);
+        return;
+      }
+      requestScope = {
+        revision: requestProjection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
+      };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       const answerScopeSelection = buildHoidAnswerScopeSelection(answerScopeMode, answerScopeBookIds);
       let respuesta: string;
@@ -312,6 +338,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           respuesta = 'El runtime de progreso no está disponible. No mostraré una posición estimada.';
         } else {
           const result = await conversationGateway.readingContext({ progress: currentProgress });
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
           if (result.status === 'ready') {
             responseScope = {
               revision: result.progressRevision,
@@ -386,10 +414,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         respuesta = 'La presentación narrativa está desactivada porque el host todavía no ha provisionado una autoridad editorial firmada. Puedo consultar tu progreso y las recomendaciones de catálogo sin revelar contenido narrativo.';
       } else {
         const priorConversationScopeBinding = conversationScopeBindingRef.current;
-        const controller = new AbortController();
-        answerAbortControllerRef.current = controller;
-        answerSignal = controller.signal;
-        setCanCancelAnswer(true);
         const result = await conversationGateway.answer({
           question: textoUsuario,
           progress: currentProgress,
@@ -401,7 +425,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             ? { scopeBinding: conversationScopeBindingRef.current }
             : {}),
           ...(answerScopeSelection.status === 'ready' ? { bookScope: answerScopeSelection.scope } : {}),
-        }, { signal: controller.signal });
+        }, { signal: ticket.signal });
+        if (!conversationTurnSession.isCurrent(ticket)) return;
+        if (ticket.signal.aborted) { commitCancelledTurn(); return; }
         if (result.status === 'ready' && result.answer.reason === 'request-cancelled') {
           responseScope = null;
           respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
@@ -414,6 +440,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             fingerprint: result.progressFingerprint,
           };
           const trustedResult = await trustedAnswerPort.present(result.answer, result.depth);
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
           if (trustedResult.status === 'ready') {
             const presentation = trustedResult.presentation;
             const scopeValidation = validateHoidPresentedAnswerScope(
@@ -564,6 +592,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       // The gateway checks before and after its asynchronous work. This final
       // comparison closes the remaining interval before React commits the text.
       const latestProgress = await progressRefreshRef.current();
+      if (!conversationTurnSession.isCurrent(ticket)) return;
+      if (ticket.signal.aborted) { commitCancelledTurn(); return; }
       const latestProjection = latestProgress
         ? projectHoidCursorProgressSnapshot(latestProgress)
         : null;
@@ -573,7 +603,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             fingerprint: fingerprintHoidCursorProgressProjection(latestProjection),
           }
         : null;
-      if (responseScope && !canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)) {
+      if (requestScope && responseScope && !canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)) {
         respuesta = 'Tu progreso ha cambiado mientras preparaba la respuesta. He descartado el resultado para proteger tu lectura.';
         responseScope = null;
         // A stale response must lose every citation/provenance field before the
@@ -587,7 +617,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         conversationScopeBindingRef.current = null;
       }
 
-      if (answerSignal?.aborted) {
+      if (ticket.signal.aborted) {
         respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
         responseScope = null;
         citas = undefined;
@@ -609,22 +639,31 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         ...(evidenciaTransversal ? { evidenciaTransversal } : {}),
       }]);
     } catch {
-      conversationContextRef.current = null;
-      typedConversationContextRef.current = null;
-      setMensajes(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        emisor: 'hoid',
-        texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completaré la respuesta mediante suposiciones.',
-        progressScope: requestScope,
-      }]);
+      if (!conversationTurnSession.isCurrent(ticket)) return;
+      if (ticket.signal.aborted) {
+        commitCancelledTurn();
+      } else {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        setMensajes(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          emisor: 'hoid',
+          texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completaré la respuesta mediante suposiciones.',
+          ...(requestScope ? { progressScope: requestScope } : {}),
+        }]);
+      }
     } finally {
-      answerAbortControllerRef.current = null;
-      setCanCancelAnswer(false);
-      setCargando(false);
+      if (conversationTurnSession.finish(ticket)) {
+        setCanCancelAnswer(false);
+        setCargando(false);
+      }
     }
   };
 
   const cargarRecomendaciones = async (activeBookId?: string) => {
+    conversationTurnSession.invalidate();
+    setCanCancelAnswer(false);
+    setCargando(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
@@ -702,6 +741,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const cargarRecomendacionesTematicas = async () => {
+    conversationTurnSession.invalidate();
+    setCanCancelAnswer(false);
+    setCargando(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
@@ -1119,24 +1161,21 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         )}
         <Text style={styles.answerScopeMessage}>{answerScopeMessage}</Text>
         {activeConversationScopeBinding && (
-          <>
-            <Text style={styles.recommendationNote}>
-              Ámbito de conversación: {activeConversationScopeBinding.works.map(work => {
-                const title = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === work.bookId)?.title ?? 'Obra verificada';
-                return `${title} · capítulos ${work.chapters.join(', ')}`;
-              }).join('; ')} (capítulos citados en la última respuesta). El progreso actual sigue limitando cada obra.
-            </Text>
-            <TouchableOpacity
-              style={styles.scopeResetButton}
-              onPress={resetConversationForAnswerScopeChange}
-              disabled={cargando}
-              accessibilityRole="button"
-              accessibilityLabel="Iniciar un tema nuevo y reiniciar el ámbito conversacional"
-            >
-              <Text style={styles.scopeResetButtonText}>Nuevo tema</Text>
-            </TouchableOpacity>
-          </>
+          <Text style={styles.recommendationNote}>
+            Ámbito de conversación: {activeConversationScopeBinding.works.map(work => {
+              const title = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === work.bookId)?.title ?? 'Obra verificada';
+              return `${title} · capítulos ${work.chapters.join(', ')}`;
+            }).join('; ')} (capítulos citados en la última respuesta). El progreso actual sigue limitando cada obra.
+          </Text>
         )}
+        <TouchableOpacity
+          style={styles.scopeResetButton}
+          onPress={resetConversationForAnswerScopeChange}
+          accessibilityRole="button"
+          accessibilityLabel="Iniciar un tema nuevo y reiniciar el ámbito conversacional"
+        >
+          <Text style={styles.scopeResetButtonText}>Nuevo tema</Text>
+        </TouchableOpacity>
         <Text style={styles.recommendationNote}>
           Este ámbito solo afecta a explicaciones narrativas; el progreso y las recomendaciones de catálogo mantienen sus propios contratos.
         </Text>

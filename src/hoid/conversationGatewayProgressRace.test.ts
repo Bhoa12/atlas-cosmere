@@ -10,6 +10,7 @@ import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 import { createHoidConversationContext } from "./conversationContext";
 import { createHoidTypedConversationContext } from "./typedConversationContext";
+import { createHoidConversationTurnSession } from "./conversationTurnSession";
 
 const UPDATED_AT = "2026-11-23T00:00:00.000Z";
 
@@ -369,5 +370,41 @@ describe("Hoid conversation progress race matrix", () => {
     expect(result.status).toBe("ready");
     expect(signal()?.aborted).toBe(false);
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe("Hoid conversation turn invalidation at the UI boundary", () => {
+  it("does not commit a late answer after New topic invalidates its turn", async () => {
+    const session = createHoidConversationTurnSession();
+    const ticket = session.begin();
+    let resolveAnswer: ((value: string) => void) | undefined;
+    const pending = new Promise<string>(resolve => { resolveAnswer = resolve; });
+    const committed: string[] = [];
+    const completion = pending.then(value => {
+      if (session.isCurrent(ticket)) committed.push(value);
+    });
+
+    session.invalidate();
+    resolveAnswer?.("respuesta tardía");
+    await completion;
+
+    expect(ticket.signal.aborted).toBe(true);
+    expect(committed).toEqual([]);
+    expect(session.finish(ticket)).toBe(false);
+  });
+
+  it("allows only a neutral cancellation result while preserving the current ticket", () => {
+    const session = createHoidConversationTurnSession();
+    const ticket = session.begin();
+    const committed: string[] = [];
+
+    expect(session.cancelCurrent()).toBe(true);
+    if (session.isCurrent(ticket) && ticket.signal.aborted) {
+      committed.push("Consulta cancelada; resultado descartado.");
+    }
+
+    expect(committed).toEqual(["Consulta cancelada; resultado descartado."]);
+    expect(session.finish(ticket)).toBe(true);
   });
 });

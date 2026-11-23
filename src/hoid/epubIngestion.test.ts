@@ -223,7 +223,7 @@ describe("offline EPUB ingestion core", () => {
       const result = await originalRead(sourceId, path, maximumBytes);
       if (path === "OEBPS/Text/chapter-1.xhtml" && !changed) {
         changed = true;
-        fixture.contents.set(path, bytes("<html><body>replacement bytes</body></html>"));
+        fixture.contents.set(path, bytes("<html><body>different</body></html>"));
       }
       return result;
     });

@@ -850,7 +850,7 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
     expect(relationshipGateway.answer).not.toHaveBeenCalled();
   });
 
-  it("routes an explicit group follow-up through the graph with only prior canonical IDs", async () => {
+  it("blocks a group follow-up without a prior scope binding instead of falling back to the graph", async () => {
     const current = snapshot(3);
     const relationshipGateway = {
       answer: vi.fn(() => ({ status: "unavailable" as const, reason: "entity-ambiguous" as const })),

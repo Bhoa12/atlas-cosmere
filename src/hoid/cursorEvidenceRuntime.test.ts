@@ -8,6 +8,7 @@ import {
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
+import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 
 function locator(bookId: string, chapter: number): string {
   const result = getHoidReadingManifest(bookId);
@@ -427,7 +428,7 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(result.progressBinding).toEqual({
       schemaVersion: 1,
       revision: 7,
-      fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      fingerprint: fingerprintHoidCursorProgressProjection(projection),
     });
   });
 

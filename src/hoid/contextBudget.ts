@@ -18,15 +18,18 @@ export const DEFAULT_MAX_CONTEXT_CHARACTERS = 12_000;
 
 /**
  * Count the fields that actually cross the provider boundary. Provider
- * snapshots intentionally omit retrieval aliases, so aliases stay local and
- * must not consume the external payload budget.
+ * snapshots intentionally omit retrieval aliases and EPUB navigation locators.
+ * The verified evidence source book/chapter metadata does cross that boundary.
  */
 function contextCharacterCost(entry: HoidKnowledgeEntry): number {
   return entry.id.length
     + entry.kind.length
     + (typeof entry.summary === "string" ? entry.summary.length : 0)
     + entry.firstSafeAppearance.bookId.length
-    + String(entry.firstSafeAppearance.chapter).length;
+    + String(entry.firstSafeAppearance.chapter).length
+    + (entry.evidenceSource
+      ? entry.evidenceSource.bookId.length + String(entry.evidenceSource.chapter).length
+      : 0);
 }
 
 export function boundAuthorizedContext(
@@ -53,6 +56,8 @@ export function boundAuthorizedContext(
       ...entry,
       aliases: [...entry.aliases],
       firstSafeAppearance: { ...entry.firstSafeAppearance },
+      ...(entry.evidenceSource ? { evidenceSource: { ...entry.evidenceSource } } : {}),
+      ...(entry.evidenceUnlock ? { evidenceUnlock: { ...entry.evidenceUnlock } } : {}),
     });
     usedCharacters += cost;
   }

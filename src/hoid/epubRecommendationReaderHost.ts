@@ -45,12 +45,13 @@ function isAborted(signal: AbortSignal | undefined): boolean {
 }
 
 function linkAbortSignals(
-  callerSignal: AbortSignal | undefined,
-  sessionSignal: AbortSignal | undefined,
+  inputSignals: readonly (AbortSignal | undefined)[],
 ): Readonly<{ signal?: AbortSignal; dispose: () => void }> {
-  const signals = [callerSignal, sessionSignal].filter(
-    (value): value is AbortSignal => value !== undefined && value !== null,
-  );
+  const signals: AbortSignal[] = [];
+  for (const value of inputSignals) {
+    if (value === undefined || value === null || signals.includes(value)) continue;
+    signals.push(value);
+  }
   if (signals.length === 0) return Object.freeze({ dispose: () => {} });
   if (signals.length === 1) {
     return Object.freeze({ signal: signals[0], dispose: () => {} });
@@ -89,6 +90,46 @@ function linkAbortSignals(
   });
 }
 
+function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (signal === undefined) return operation;
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      try { signal.removeEventListener("abort", onAbort); } catch { /* Best effort. */ }
+    };
+    const settle = (kind: "resolve" | "reject", value: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (kind === "resolve") resolve(value as T);
+      else reject(value);
+    };
+    const onAbort = () => settle("reject", new Error("Reader operation aborted"));
+
+    try {
+      if (signal.aborted) {
+        settle("reject", new Error("Reader operation aborted"));
+      } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      }
+    } catch {
+      settle("reject", new Error("Reader cancellation unavailable"));
+    }
+
+    // Attach both handlers even when cancellation wins so a late adapter
+    // rejection is observed and cannot become an unhandled promise rejection.
+    Promise.resolve(operation).then(
+      value => settle("resolve", value),
+      error => settle("reject", error),
+    );
+  });
+}
+
+type ActiveReaderOpenAttempt = {
+  controller: AbortController;
+  superseded: boolean;
+};
 function canonicalDataRecord(
   value: unknown,
   allowedKeys: readonly string[],
@@ -149,30 +190,53 @@ export function createHoidLocalEpubRecommendationReaderPort(
   // disables duplicate taps. An older asynchronous read must never replace a
   // chapter opened by a newer request.
   let latestOpenAttempt = 0;
+  let activeOpenAttempt: ActiveReaderOpenAttempt | null = null;
   return Object.freeze({
     async openVerifiedChapter(request: HoidRecommendationReaderOpenRequest): Promise<unknown> {
+      const requestRecord = canonicalDataRecord(
+        request,
+        ["target", "progressRevision", "progressFingerprint", "signal"],
+        ["target", "progressRevision", "progressFingerprint"],
+      );
+      if (!requestRecord) return { status: "unavailable", reason: "edition-unavailable" };
+      const targetRecord = canonicalDataRecord(
+        requestRecord.target,
+        ["cursor", "manifestId", "editionId", "navigationSha256", "locatorStatus", "locatorId"],
+        ["cursor", "manifestId", "editionId", "navigationSha256", "locatorStatus", "locatorId"],
+      );
+      if (!targetRecord) return { status: "unavailable", reason: "edition-unavailable" };
+
+      const callerSignal = requestRecord.signal as AbortSignal | undefined;
+      if (isAborted(callerSignal) || isAborted(dependencies.sessionSignal)) {
+        return { status: "unavailable", reason: "cancelled" };
+      }
+      try {
+        if (!dependencies.isCurrent()) return { status: "unavailable", reason: "reader-unavailable" };
+      } catch {
+        return { status: "unavailable", reason: "reader-unavailable" };
+      }
+
       const openAttempt = ++latestOpenAttempt;
+      const attempt: ActiveReaderOpenAttempt = {
+        controller: new AbortController(),
+        superseded: false,
+      };
+      const previousAttempt = activeOpenAttempt;
+      if (previousAttempt !== null) {
+        previousAttempt.superseded = true;
+        try { previousAttempt.controller.abort(); } catch { /* Supersession remains authoritative. */ }
+      }
+      activeOpenAttempt = attempt;
       const isLatestOpenAttempt = () => openAttempt === latestOpenAttempt;
       let signal: AbortSignal | undefined;
       let disposeLinkedSignal = () => {};
       let progressEpoch: number;
       try {
-        const requestRecord = canonicalDataRecord(
-          request,
-          ["target", "progressRevision", "progressFingerprint", "signal"],
-          ["target", "progressRevision", "progressFingerprint"],
-        );
-        if (!requestRecord) return { status: "unavailable", reason: "edition-unavailable" };
-        const targetRecord = canonicalDataRecord(
-          requestRecord.target,
-          ["cursor", "manifestId", "editionId", "navigationSha256", "locatorStatus", "locatorId"],
-          ["cursor", "manifestId", "editionId", "navigationSha256", "locatorStatus", "locatorId"],
-        );
-        if (!targetRecord) return { status: "unavailable", reason: "edition-unavailable" };
-        const linkedSignal = linkAbortSignals(
-          requestRecord.signal as AbortSignal | undefined,
+        const linkedSignal = linkAbortSignals([
+          callerSignal,
           dependencies.sessionSignal,
-        );
+          attempt.controller.signal,
+        ]);
         signal = linkedSignal.signal;
         disposeLinkedSignal = linkedSignal.dispose;
         const progressRevision = requestRecord.progressRevision;
@@ -222,9 +286,9 @@ export function createHoidLocalEpubRecommendationReaderPort(
           return { status: "unavailable", reason: "locator-unavailable" };
         }
 
-        const before = await dependencies.refreshCurrentProgress();
+        const before = await awaitWithSignal(dependencies.refreshCurrentProgress(), signal);
+        if (attempt.superseded || !isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
-        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (!progressMatches(before, progressRevision as number, progressFingerprint as string)) {
           return { status: "unavailable", reason: "stale-progress" };
         }
@@ -239,8 +303,8 @@ export function createHoidLocalEpubRecommendationReaderPort(
           navigationHref,
           signal,
         );
+        if (attempt.superseded || !isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
-        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (read.status !== "candidate") {
           return {
             status: "unavailable",
@@ -257,9 +321,9 @@ export function createHoidLocalEpubRecommendationReaderPort(
           read.candidate.characterCount <= 0
         ) return { status: "unavailable", reason: "locator-unavailable" };
 
-        const after = await dependencies.refreshCurrentProgress();
+        const after = await awaitWithSignal(dependencies.refreshCurrentProgress(), signal);
+        if (attempt.superseded || !isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
-        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (!progressMatches(after, progressRevision as number, progressFingerprint as string)) {
           return { status: "unavailable", reason: "stale-progress" };
         }
@@ -269,8 +333,8 @@ export function createHoidLocalEpubRecommendationReaderPort(
         if (!dependencies.isCurrent()) {
           return { status: "unavailable", reason: "reader-unavailable" };
         }
+        if (attempt.superseded || !isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
-        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
 
         dependencies.onChapterOpened(
           read.candidate,
@@ -290,10 +354,13 @@ export function createHoidLocalEpubRecommendationReaderPort(
       } catch {
         return {
           status: "unavailable",
-          reason: isAborted(signal) ? "cancelled" : "failed",
+          reason: attempt.superseded || !isLatestOpenAttempt()
+            ? "superseded"
+            : isAborted(signal) ? "cancelled" : "failed",
         };
       } finally {
         disposeLinkedSignal();
+        if (activeOpenAttempt === attempt) activeOpenAttempt = null;
       }
     },
   });

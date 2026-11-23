@@ -56,8 +56,11 @@ describe("Hoid EPUB import lifecycle guard", () => {
     const token = guard.beginOperation();
     guard.deactivate(firstLease);
     expect(guard.isCurrent(token)).toBe(true);
+    expect(guard.isActive(firstLease)).toBe(false);
+    expect(guard.isActive(secondLease)).toBe(true);
     guard.deactivate(secondLease);
     expect(guard.isCurrent(token)).toBe(false);
+    expect(guard.isActive(secondLease)).toBe(false);
   });
 
   it("can reactivate after a development Strict Mode setup-cleanup cycle", () => {

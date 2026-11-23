@@ -486,15 +486,17 @@ describe("concrete local EPUB runtime adapters", () => {
     const xml = createHoidXmldomXmlPort();
     const document = strToU8(
       '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Not body text</title></head>' +
-      '<body><h1>Chapter heading</h1><p>Hello <strong>reader</strong>.</p>' +
+      '<body><h1>Chapter heading</h1><p>Hello <strong>reader</strong><br/>world.</p>' +
       '<script>must not appear</script><style>.secret{display:none}</style>' +
+      '<p hidden="hidden">Hidden attribute must not appear</p>' +
+      '<p style="display:none">Hidden style must not appear</p>' +
       '<nav><p>Navigation must not appear</p></nav><svg><text>SVG must not appear</text></svg>' +
       '<ul><li>First item</li><li>Second item</li></ul></body></html>',
     );
     const blocks = await xml.extractReadableBlocks?.(document);
     expect(blocks).toEqual([
       { kind: "heading", text: "Chapter heading" },
-      { kind: "paragraph", text: "Hello reader." },
+      { kind: "paragraph", text: "Hello reader world." },
       { kind: "list-item", text: "First item" },
       { kind: "list-item", text: "Second item" },
     ]);

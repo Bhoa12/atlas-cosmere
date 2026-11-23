@@ -917,25 +917,27 @@ export class HoidConversationGateway {
         return unavailable("progress-changed");
       }
 
-      const conversationContext = createHoidConversationContext(
-        relationshipResult.entityIds,
-        requestedProgress,
-      );
-      if (!conversationContext) return unavailable("entity-unavailable");
+      const scopeBinding = createHoidConversationScopeBinding(relationshipAnswer, request.progress);
+      const conversationContext = scopeBinding
+        ? createHoidConversationContext(relationshipResult.entityIds, requestedProgress)
+        : null;
       const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
-      const typedConversationContext = buildTypedContextFromIds(
-        request.progress,
-        relationshipResult.entityIds,
-        requestedProgress,
-        resolveEntityIds,
-      );
+      const typedConversationContext = scopeBinding
+        ? buildTypedContextFromIds(
+            request.progress,
+            relationshipResult.entityIds,
+            requestedProgress,
+            resolveEntityIds,
+          )
+        : null;
 
       return Object.freeze({
         status: "ready",
         answer: relationshipAnswer,
         depth: request.depth,
-        conversationContext,
+        ...(conversationContext ? { conversationContext } : {}),
         ...(typedConversationContext ? { typedConversationContext } : {}),
+        ...(scopeBinding ? { conversationScopeBinding: scopeBinding } : {}),
         progressRevision: requestedProgress.revision,
         progressFingerprint: requestedProgress.fingerprint,
       });

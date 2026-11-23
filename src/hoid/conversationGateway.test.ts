@@ -1451,6 +1451,53 @@ describe("Hoid conversation scope continuity", () => {
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
+  it("retains the existing scope after a later answer abstains", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const resolveEntities: NonNullable<HoidConversationGatewayConfig["resolveEntities"]> = () => ({
+      status: "ready",
+      resolution: "not-found",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [],
+      truncated: false,
+    });
+    const runtime = {
+      answer: vi.fn()
+        .mockResolvedValueOnce(authorizedAnswerForBook("twok"))
+        .mockResolvedValueOnce(answer),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveEntities,
+      relationshipGateway: null,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const first = await gateway.answer({
+      question: "Pregunta inicial con evidencia.",
+      progress: current,
+    });
+    if (first.status !== "ready" || !first.conversationScopeBinding) {
+      throw new Error("La respuesta inicial no creó un ámbito");
+    }
+
+    const second = await gateway.answer({
+      question: "Otra pregunta completa sin evidencia en el ámbito.",
+      progress: current,
+      scopeBinding: first.conversationScopeBinding,
+    });
+    expect(second.status).toBe("ready");
+    if (second.status !== "ready") throw new Error("La respuesta de abstención no se completó");
+    expect(second.answer.status).toBe("abstain");
+    expect(second.conversationScopeBinding).toBe(first.conversationScopeBinding);
+    expect(runtime.answer.mock.calls[1]?.[0]).toMatchObject({
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+  });
+
   it("derives the first answer scope and reuses it for an automatic group follow-up", async () => {
     const current = snapshot(3);
     const projection = projectHoidCursorProgressSnapshot(current);

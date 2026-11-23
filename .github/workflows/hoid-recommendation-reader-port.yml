@@ -14,6 +14,7 @@ on:
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingManifest.ts"
       - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-recommendation-reader-port.yml"
   pull_request:
     paths:
@@ -26,6 +27,7 @@ on:
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingManifest.ts"
       - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-recommendation-reader-port.yml"
 
 permissions:

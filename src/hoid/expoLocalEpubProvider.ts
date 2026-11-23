@@ -65,6 +65,14 @@ function exactInfo(value: unknown): value is Readonly<{
 
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+function throwIfAborted(signal?: AbortSignal): void {
+  try {
+    if (signal?.aborted === true) throw new Error("cancelled");
+  } catch {
+    throw new Error("cancelled");
+  }
+}
+
 function decodeBase64(value: string): Uint8Array {
   if (
     typeof value !== "string" ||
@@ -91,7 +99,7 @@ function decodeBase64(value: string): Uint8Array {
 
 export interface HoidExpoLocalEpubProvider {
   pickEpub(): Promise<HoidExpoPickResult>;
-  resolveRangeSource(sourceId: string): Promise<HoidEpubRandomAccessSource | null>;
+  resolveRangeSource(sourceId: string, signal?: AbortSignal): Promise<HoidEpubRandomAccessSource | null>;
   release(sourceId: string): Promise<void>;
   releaseAll(): Promise<void>;
 }
@@ -109,8 +117,13 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
     return "hoid-epub-local-" + nextId.toString(36);
   });
 
-  async function readInfo(uri: string): Promise<Readonly<{ size: number; modificationTime: number | null }>> {
+  async function readInfo(
+    uri: string,
+    signal?: AbortSignal,
+  ): Promise<Readonly<{ size: number; modificationTime: number | null }>> {
+    throwIfAborted(signal);
     const raw = await dependencies.fileSystem.getInfoAsync(uri, { size: true });
+    throwIfAborted(signal);
     if (!exactInfo(raw)) throw new Error("Local EPUB file is unavailable");
     return Object.freeze({
       size: raw.size,
@@ -217,11 +230,13 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
       });
     },
 
-    async resolveRangeSource(sourceId: string): Promise<HoidEpubRandomAccessSource | null> {
+    async resolveRangeSource(sourceId: string, signal?: AbortSignal): Promise<HoidEpubRandomAccessSource | null> {
+      throwIfAborted(signal);
       const registered = sources.get(sourceId);
       if (registered === undefined) return null;
 
-      const initialInfo = await readInfo(registered.uri);
+      const initialInfo = await readInfo(registered.uri, signal);
+      throwIfAborted(signal);
       if (
         initialInfo.size !== registered.size ||
         (registered.modificationTime !== null &&
@@ -231,7 +246,8 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
 
       return Object.freeze({
         size: registered.size,
-        async readRange(offset: number, length: number): Promise<Uint8Array> {
+        async readRange(offset: number, length: number, signal?: AbortSignal): Promise<Uint8Array> {
+          throwIfAborted(signal);
           if (
             !Number.isSafeInteger(offset) ||
             !Number.isSafeInteger(length) ||
@@ -241,7 +257,8 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
             length > HOID_EXPO_EPUB_SOURCE_LIMITS.maxRangeBytes
           ) throw new Error("Local EPUB range is invalid");
 
-          const currentInfo = await readInfo(registered.uri);
+          const currentInfo = await readInfo(registered.uri, signal);
+          throwIfAborted(signal);
           if (
             currentInfo.size !== registered.size ||
             (registered.modificationTime !== null &&
@@ -252,6 +269,7 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
           const output = new Uint8Array(length);
           let outputOffset = 0;
           while (outputOffset < length) {
+            throwIfAborted(signal);
             if (sources.get(sourceId) !== registered) throw new Error("source-released");
             const chunkLength = Math.min(
               HOID_EXPO_EPUB_SOURCE_LIMITS.readChunkBytes,
@@ -262,6 +280,7 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
               position: offset + outputOffset,
               length: chunkLength,
             });
+            throwIfAborted(signal);
             const decoded = decodeBase64(encoded);
             if (decoded.byteLength !== chunkLength) {
               throw new Error("Local EPUB range returned an unexpected byte count");
@@ -269,14 +288,17 @@ export function createHoidExpoLocalEpubProvider(dependencies: Readonly<{
             output.set(decoded, outputOffset);
             outputOffset += decoded.byteLength;
           }
+          throwIfAborted(signal);
           if (sources.get(sourceId) !== registered) throw new Error("source-released");
-          const finalInfo = await readInfo(registered.uri);
+          const finalInfo = await readInfo(registered.uri, signal);
+          throwIfAborted(signal);
           if (
             finalInfo.size !== registered.size ||
             (registered.modificationTime !== null &&
               finalInfo.modificationTime !== null &&
               finalInfo.modificationTime !== registered.modificationTime)
           ) throw new Error("source-changed");
+          throwIfAborted(signal);
           return output;
         },
       });

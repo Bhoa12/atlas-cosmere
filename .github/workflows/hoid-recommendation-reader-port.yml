@@ -17,6 +17,7 @@ on:
       - "src/hoid/readingManifest.ts"
       - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
       - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
+      - "docs/hoid/RUN258_READER_OPEN_SUPERSESSION.md"
       - ".github/workflows/hoid-recommendation-reader-port.yml"
   pull_request:
     paths:
@@ -32,6 +33,7 @@ on:
       - "src/hoid/readingManifest.ts"
       - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
       - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
+      - "docs/hoid/RUN258_READER_OPEN_SUPERSESSION.md"
       - ".github/workflows/hoid-recommendation-reader-port.yml"
 
 permissions:

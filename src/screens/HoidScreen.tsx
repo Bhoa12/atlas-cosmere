@@ -77,12 +77,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const {
     getHoidCursorProgressSnapshot,
     refreshHoidCursorProgressSnapshot,
+    subscribeHoidCursorProgressChanges,
     progresoPersistenciaEstado,
   } = useCosmere();
   const progressReaderRef = useRef(getHoidCursorProgressSnapshot);
   progressReaderRef.current = getHoidCursorProgressSnapshot;
   const progressRefreshRef = useRef(refreshHoidCursorProgressSnapshot);
   progressRefreshRef.current = refreshHoidCursorProgressSnapshot;
+  const progressSubscriptionRef = useRef(subscribeHoidCursorProgressChanges);
+  progressSubscriptionRef.current = subscribeHoidCursorProgressChanges;
   // Ephemeral ID-only context: never persisted to SQLite, messages or providers.
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
@@ -92,6 +95,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         runtime: hoidRuntime,
         getCurrentProgress: () => progressReaderRef.current(),
         refreshCurrentProgress: () => progressRefreshRef.current(),
+        subscribeToProgressChanges: listener => progressSubscriptionRef.current(listener),
       })
     : null;
   const topicInterestGateway = createHoidTopicInterestRecommendationGateway({

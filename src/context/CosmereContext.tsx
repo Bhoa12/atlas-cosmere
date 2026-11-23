@@ -35,6 +35,13 @@ interface CosmereContextType {
   toggleReinoCognitivo: () => void;
   toggleLibroLeido: (libroId: string) => void;
   setCapituloLibro: (libroId: string, cap: number) => Promise<HoidCursorCoordinatorResult | null>;
+  /** Commit a reader-confirmed next chapter only if its opening progress snapshot is still current. */
+  setCapituloLibroIfCurrent: (
+    libroId: string,
+    cap: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+  ) => Promise<HoidCursorCoordinatorResult | null>;
   hoidCursorProgressSnapshot: HoidCursorProgressSnapshot | null;
   /** Reads the coordinator's live snapshot, including commits not yet projected into React state. */
   getHoidCursorProgressSnapshot: () => HoidCursorProgressSnapshot | null;
@@ -177,6 +184,34 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return result;
   };
 
+  const setCapituloLibroIfCurrent = async (
+    libroId: string,
+    cap: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+  ): Promise<HoidCursorCoordinatorResult | null> => {
+    if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
+
+    const created = createHoidReadingCursor(libroId, cap);
+    if (created.status !== 'ready') {
+      const reason = created.reason === 'unknown-work'
+        ? 'unknown-work'
+        : created.reason === 'segmentation-unverified'
+          ? 'unsupported-position'
+          : 'invalid-cursor';
+      return { status: 'rejected', reason };
+    }
+
+    const result = await cursorProgressCoordinator.advanceIfCurrent(
+      libroId,
+      created.cursor,
+      expectedRevision,
+      expectedFingerprint,
+    );
+    aplicarResultadoProgreso(result);
+    return result;
+  };
+
   const sumarPuntosTestUnico = (testId: string, puntos: number): boolean => {
     if (testsCompletadosExitosos[testId]) return false;
     setTestsCompletadosExitosos(prev => ({ ...prev, [testId]: true }));
@@ -247,6 +282,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       toggleReinoCognitivo,
       toggleLibroLeido,
       setCapituloLibro,
+      setCapituloLibroIfCurrent,
       sumarPuntosTestUnico,
       setApodoActivo,
       setNombreUsuario,

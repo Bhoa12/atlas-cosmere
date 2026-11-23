@@ -861,10 +861,9 @@ export class HoidConversationGateway {
       });
     }
 
-    // Explicit relationship questions and narrowly recognized group follow-ups
-    // use only the local reviewed graph when no explicit work scope was requested.
-    // A pronoun may enter this route only after a unique reviewed target has
-    // been resolved; two-member context prevents guessing a counterpart.
+    // A new, explicitly named relationship question may use the local reviewed
+    // graph when no scope was selected. Recognized follow-ups have already returned
+    // through the evidence-bound runtime path above and cannot reach this shortcut.
     if ((relationshipQuestion || followUp.status === "resolved") && !request.bookScope) {
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");

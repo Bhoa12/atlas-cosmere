@@ -2,7 +2,6 @@ import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
   createHoidReadingCursor,
   getHoidReadingManifest,
-  type HoidReadingCursor,
 } from "./readingManifest";
 import type {
   HoidEditionBoundRecommendation,
@@ -233,7 +232,7 @@ function expectedCompletedThroughChapter(
     unit => unit.chapterNumber === currentChapter,
   );
   if (index < 0) return undefined;
-  return index === 0 ? null : manifestResult.manifest.units[index - 1].chapterNumber;
+  return index === 0 ? null : manifestResult.manifest.units[index - 1]?.chapterNumber ?? null;
 }
 
 function canonicalResumeItem(
@@ -460,16 +459,16 @@ function explainRecommendation(
 ): HoidExplainedRecommendation {
   if (item.reason === "resume-current-work") {
     const progressDetail = item.completedThroughChapter === null
-      ? \`No hay capítulos numerados completados; el cursor validado señala el capítulo \${item.currentChapter}.\`
-      : \`El cursor validado señala el capítulo \${item.currentChapter}. El progreso registrado llega hasta el capítulo \${item.completedThroughChapter}.\`;
+      ? `No hay capítulos numerados completados; el cursor validado señala el capítulo ${item.currentChapter}.`
+      : `El cursor validado señala el capítulo ${item.currentChapter}. El progreso registrado llega hasta el capítulo ${item.completedThroughChapter}.`;
 
     return Object.freeze({
       sourceId: item.sourceId,
       title: item.title,
       reason: item.reason,
       explanationCode: "resume-current-cursor",
-      heading: \`Reanudar \${item.title}\`,
-      detail: \`\${progressDetail} \${explainTarget(item.target)}\`,
+      heading: `Reanudar ${item.title}`,
+      detail: `${progressDetail} ${explainTarget(item.target)}`,
       target: item.target,
     });
   }
@@ -482,7 +481,7 @@ function explainRecommendation(
       explanationCode: item.target.reason === "segmentation-unverified"
         ? "catalog-only-unsegmented"
         : "catalog-only-unit-missing",
-      heading: \`Consultar \${item.title} en el catálogo\`,
+      heading: `Consultar ${item.title} en el catálogo`,
       detail: explainTarget(item.target),
       target: item.target,
     });
@@ -493,8 +492,8 @@ function explainRecommendation(
     title: item.title,
     reason: item.reason,
     explanationCode: "start-first-numbered-chapter",
-    heading: \`Empezar \${item.title}\`,
-    detail: \`No hay progreso registrado para esta obra. El manifiesto de la edición permite iniciar por el capítulo 1. \${explainTarget(item.target)}\`,
+    heading: `Empezar ${item.title}`,
+    detail: `No hay progreso registrado para esta obra. El manifiesto de la edición permite iniciar por el capítulo 1. ${explainTarget(item.target)}`,
     target: item.target,
   });
 }
@@ -506,8 +505,8 @@ function explainResumeChoice(choice: HoidResumeSelectionChoice): HoidExplainedRe
     currentChapter: choice.currentChapter,
     completedThroughChapter: choice.completedThroughChapter,
     detail: choice.completedThroughChapter === null
-      ? \`El cursor está en el capítulo \${choice.currentChapter}; todavía no hay capítulos numerados completados.\`
-      : \`El cursor está en el capítulo \${choice.currentChapter}; el progreso llega hasta el capítulo \${choice.completedThroughChapter}.\`,
+      ? `El cursor está en el capítulo ${choice.currentChapter}; todavía no hay capítulos numerados completados.`
+      : `El cursor está en el capítulo ${choice.currentChapter}; el progreso llega hasta el capítulo ${choice.completedThroughChapter}.`,
   });
 }
 

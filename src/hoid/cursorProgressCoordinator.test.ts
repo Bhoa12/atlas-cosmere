@@ -12,6 +12,8 @@ import type {
   HoidCursorStoreLoadResult,
 } from "./cursorSqliteProgressStore";
 import { createHoidReadingCursor } from "./readingManifest";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 
 const fixedNow = () => "2026-11-17T03:30:00.000Z";
 
@@ -61,6 +63,15 @@ function createCoordinator(store = new MemoryCursorStore()) {
   return {
     store,
     coordinator: new HoidCursorProgressCoordinator(store, fixedNow),
+  };
+}
+
+function progressBinding(snapshot: HoidCursorProgressSnapshot) {
+  const projection = projectHoidCursorProgressSnapshot(snapshot);
+  if (projection.status !== "ready") throw new Error("Progress projection unavailable");
+  return {
+    revision: projection.revision,
+    fingerprint: fingerprintHoidCursorProgressProjection(projection),
   };
 }
 
@@ -477,5 +488,80 @@ describe("HoidCursorProgressCoordinator", () => {
     });
     expect(second.getSnapshot()?.revision).toBe(1);
   });
+  it("commits the next reader chapter only against the exact durable progress binding", async () => {
+    const { coordinator, store } = createCoordinator();
+    await coordinator.advance("tfe", cursor("tfe", 7));
+    const binding = progressBinding(store.snapshot);
+
+    const result = await coordinator.advanceIfCurrent(
+      "tfe",
+      cursor("tfe", 8),
+      binding.revision,
+      binding.fingerprint,
+    );
+
+    expect(result).toMatchObject({
+      status: "ready",
+      operation: "updated",
+      snapshot: { revision: 2, positions: [{ bookId: "tfe", cursor: { chapterNumber: 8 } }] },
+    });
+    expect(store.writes).toBe(2);
+  });
+
+  it("returns the latest snapshot without writing when another coordinator changed progress", async () => {
+    const store = new MemoryCursorStore();
+    const reader = new HoidCursorProgressCoordinator(store, fixedNow);
+    const other = new HoidCursorProgressCoordinator(store, fixedNow);
+    await Promise.all([reader.initialize(), other.initialize()]);
+    const staleBinding = progressBinding(store.snapshot);
+
+    await other.advance("tfe", cursor("tfe", 4));
+    const result = await reader.advanceIfCurrent(
+      "woa",
+      cursor("woa", 2),
+      staleBinding.revision,
+      staleBinding.fingerprint,
+    );
+
+    expect(result).toMatchObject({
+      status: "conflict",
+      snapshot: { revision: 1, positions: [{ bookId: "tfe", cursor: { chapterNumber: 4 } }] },
+    });
+    expect(store.writes).toBe(1);
+    expect(reader.getSnapshot()?.revision).toBe(1);
+  });
+
+  it("does not let the reader progress action skip an unread chapter", async () => {
+    const { coordinator, store } = createCoordinator();
+    await coordinator.advance("tfe", cursor("tfe", 7));
+    const binding = progressBinding(store.snapshot);
+
+    const result = await coordinator.advanceIfCurrent(
+      "tfe",
+      cursor("tfe", 9),
+      binding.revision,
+      binding.fingerprint,
+    );
+
+    expect(result).toEqual({
+      status: "rejected",
+      reason: "non-sequential-reader-advance",
+    });
+    expect(store.writes).toBe(1);
+  });
+
+  it("rejects malformed progress bindings before attempting a durable read", async () => {
+    const { coordinator, store } = createCoordinator();
+    const result = await coordinator.advanceIfCurrent(
+      "tfe",
+      cursor("tfe", 1),
+      0,
+      "not-a-sha256",
+    );
+
+    expect(result).toEqual({ status: "rejected", reason: "invalid-update" });
+    expect(store.writes).toBe(0);
+  });
+
 
 });

@@ -320,12 +320,14 @@ export const HoidEpubImportPanel: React.FC<{
             chapter.chapterNumber,
             chapter.progressRevision,
             chapter.progressFingerprint,
+            { confirmed: true },
           )
         : await markHoidChapterReadIfCurrent(
             chapter.workId,
             chapter.chapterNumber,
             chapter.progressRevision,
             chapter.progressFingerprint,
+            { confirmed: true },
           );
       if (!lifecycleRef.current.isCurrent(lease)) return;
       if (result === null) {

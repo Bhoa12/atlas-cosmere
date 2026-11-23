@@ -540,7 +540,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 : result.reason === 'context-unavailable'
                   ? 'No hay una relación anterior inequívoca en esta conversación. Vuelve a mencionar los personajes.'
                   : result.reason === 'context-scope-mismatch'
-                    ? 'Has cambiado el ámbito de obras respecto a la respuesta anterior. Formula una pregunta nueva para iniciar otro contexto.'
+                    ? 'El ámbito solicitado no coincide con el de esta conversación. Pulsa «Nuevo tema» para iniciar otra con la selección actual.'
                     : result.reason === 'context-scope-unavailable'
                       ? 'No puedo verificar el ámbito de la respuesta anterior. No ampliaré la conversación a otras obras.'
                       : result.reason === 'context-stale'

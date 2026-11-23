@@ -35,10 +35,17 @@ interface CosmereContextType {
   toggleReinoCognitivo: () => void;
   toggleLibroLeido: (libroId: string) => void;
   setCapituloLibro: (libroId: string, cap: number) => Promise<HoidCursorCoordinatorResult | null>;
-  /** Commit a reader-confirmed next chapter only if its opening progress snapshot is still current. */
-  setCapituloLibroIfCurrent: (
+  /** Record a reader-confirmed chapter and move the cursor to the next chapter, if the opening snapshot is still current. */
+  markHoidChapterReadIfCurrent: (
     libroId: string,
-    cap: number,
+    completedChapter: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+  ) => Promise<HoidCursorCoordinatorResult | null>;
+  /** Record final-work completion only after explicit confirmation and a matching reader snapshot. */
+  completeHoidWorkIfCurrent: (
+    libroId: string,
+    finalChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
   ) => Promise<HoidCursorCoordinatorResult | null>;
@@ -184,27 +191,33 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return result;
   };
 
-  const setCapituloLibroIfCurrent = async (
+  const markHoidChapterReadIfCurrent = async (
     libroId: string,
-    cap: number,
+    completedChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
   ): Promise<HoidCursorCoordinatorResult | null> => {
     if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
-
-    const created = createHoidReadingCursor(libroId, cap);
-    if (created.status !== 'ready') {
-      const reason = created.reason === 'unknown-work'
-        ? 'unknown-work'
-        : created.reason === 'segmentation-unverified'
-          ? 'unsupported-position'
-          : 'invalid-cursor';
-      return { status: 'rejected', reason };
-    }
-
-    const result = await cursorProgressCoordinator.advanceIfCurrent(
+    const result = await cursorProgressCoordinator.markChapterReadIfCurrent(
       libroId,
-      created.cursor,
+      completedChapter,
+      expectedRevision,
+      expectedFingerprint,
+    );
+    aplicarResultadoProgreso(result);
+    return result;
+  };
+
+  const completeHoidWorkIfCurrent = async (
+    libroId: string,
+    finalChapter: number,
+    expectedRevision: number,
+    expectedFingerprint: string,
+  ): Promise<HoidCursorCoordinatorResult | null> => {
+    if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
+    const result = await cursorProgressCoordinator.completeAfterReadingIfCurrent(
+      libroId,
+      finalChapter,
       expectedRevision,
       expectedFingerprint,
     );
@@ -282,7 +295,8 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       toggleReinoCognitivo,
       toggleLibroLeido,
       setCapituloLibro,
-      setCapituloLibroIfCurrent,
+      markHoidChapterReadIfCurrent,
+      completeHoidWorkIfCurrent,
       sumarPuntosTestUnico,
       setApodoActivo,
       setNombreUsuario,

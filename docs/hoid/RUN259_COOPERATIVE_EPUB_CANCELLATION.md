@@ -26,7 +26,7 @@ La cancelación se representa como un rechazo acotado `{ status: "rejected", rea
 
 ## Límite de cancelación
 
-No se afirma una interrupción física dentro de operaciones síncronas que no exponen un punto de cooperación. En particular, `inflateSync`, `DOMParser.parseFromString` y partes síncronas del recorrido del árbol no pueden ser interrumpidos a mitad de llamada en el hilo JavaScript. La señal se comprueba inmediatamente antes y después; si se cancela mientras una de esas operaciones síncronas ocupa el hilo, su resultado se descarta antes de continuar o presentar contenido.
+No se afirma una interrupción física dentro de operaciones síncronas que no exponen un punto de cooperación. En particular, `inflateSync`, `DOMParser.parseFromString`, el análisis ZIP del adaptador en búfer y partes síncronas del recorrido del árbol no pueden ser interrumpidos a mitad de llamada en el hilo JavaScript. La señal se comprueba inmediatamente antes y después; si se cancela mientras una de esas operaciones síncronas ocupa el hilo, su resultado se descarta antes de continuar o presentar contenido.
 
 Tampoco se puede interrumpir una llamada nativa `readAsStringAsync` ya iniciada; el proveedor deja de pedir fragmentos adicionales cuando esa llamada retorna.
 

@@ -413,4 +413,23 @@ describe("HoidCursorEvidenceRuntime", () => {
     expect(selector).not.toHaveBeenCalled();
   });
 
+  it("binds an authorized answer to the exact validated cursor snapshot", async () => {
+    const { facade } = createFacade();
+    const progress = snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }], 7);
+    const projection = projectHoidCursorProgressSnapshot(progress);
+    if (projection.status !== "ready") throw new Error("Projection unavailable");
+    const result = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress,
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.progressBinding).toEqual({
+      schemaVersion: 1,
+      revision: 7,
+      fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
+  });
+
+
 });

@@ -1084,12 +1084,11 @@ export class HoidConversationGateway {
     }
 
     const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, request.bookScope);
-    const hasPairContext = Boolean(scopeBinding && entityIds && entityIds.length >= 2 && entityIds.length <= 4);
-    const conversationContext = hasPairContext
+    const conversationContext = scopeBinding && entityIds && entityIds.length >= 2 && entityIds.length <= 4
       ? createHoidConversationContext(entityIds, requestedProgress)
       : null;
     const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
-    const typedConversationContext = hasPairContext
+    const typedConversationContext = scopeBinding && entityIds && entityIds.length >= 2 && entityIds.length <= 4
       ? buildTypedContextFromIds(request.progress, entityIds, requestedProgress, resolveEntityIds)
       : null;
     return Object.freeze({

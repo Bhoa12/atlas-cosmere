@@ -144,4 +144,168 @@ describe("edition-bound recommendation explanations", () => {
     expect(target.navigationSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(target.cursor.manifestId).toBeTruthy();
   });
+
+
+  it("rejects forged catalogue identities and titles", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "tfe", chapter: 9 }]),
+      1,
+    );
+    expect(recommendation.status).toBe("ready");
+    if (recommendation.status !== "ready") return;
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      items: [{ ...recommendation.items[0], title: "Título manipulado" }],
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      items: [{ ...recommendation.items[0], sourceId: "unknown-work" }],
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+  });
+
+  it("rejects a completed-through watermark that does not precede the current chapter in the manifest", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "tfe", chapter: 9 }]),
+      1,
+    );
+    expect(recommendation.status).toBe("ready");
+    if (recommendation.status !== "ready") return;
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      items: [{
+        ...recommendation.items[0],
+        completedThroughChapter: 7,
+      }],
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+  });
+
+  it("rejects a substituted edition locator even when the chapter number is unchanged", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "tfe", chapter: 9 }]),
+      1,
+    );
+    expect(recommendation.status).toBe("ready");
+    if (recommendation.status !== "ready") return;
+    const target = recommendation.items[0].target;
+    expect(target.kind).toBe("edition-cursor");
+    if (target.kind !== "edition-cursor" || !target.locatorId) return;
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      items: [{
+        ...recommendation.items[0],
+        target: { ...target, locatorId: "nav:forged:chapter.xhtml" },
+      }],
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+  });
+
+  it("rejects multiple resume items and discovery entries outside bibliography order", () => {
+    const first = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "tfe", chapter: 8 }]),
+      1,
+    );
+    const second = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "elantris", chapter: 3 }]),
+      1,
+    );
+    expect(first.status).toBe("ready");
+    expect(second.status).toBe("ready");
+    if (first.status !== "ready" || second.status !== "ready") return;
+
+    expect(explainEditionBoundRecommendationResult({
+      status: "ready",
+      progressRevision: 1,
+      items: [...first.items, ...second.items],
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+
+    const discovery = recommendEditionBoundReadingNextSteps(snapshot(), 2);
+    expect(discovery.status).toBe("ready");
+    if (discovery.status !== "ready") return;
+    expect(explainEditionBoundRecommendationResult({
+      ...discovery,
+      items: [...discovery.items].reverse(),
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+  });
+
+  it("rejects duplicate or out-of-order explicit resume choices", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(snapshot([
+      { bookId: "tfe", chapter: 8 },
+      { bookId: "elantris", chapter: 3 },
+    ]), 3);
+    expect(recommendation.status).toBe("selection-required");
+    if (recommendation.status !== "selection-required") return;
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      choices: [...recommendation.choices].reverse(),
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      choices: [recommendation.choices[0], recommendation.choices[0]],
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+  });
+
+  it("rejects accessor-backed result fields without invoking their getters", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "tfe", chapter: 9 }]),
+      1,
+    );
+    expect(recommendation.status).toBe("ready");
+    if (recommendation.status !== "ready") return;
+
+    let getterCalls = 0;
+    const accessorResult = { ...recommendation };
+    Object.defineProperty(accessorResult, "items", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return recommendation.items;
+      },
+    });
+
+    expect(explainEditionBoundRecommendationResult(accessorResult)).toEqual({
+      status: "unavailable",
+      reason: "invalid-recommendation",
+    });
+    expect(getterCalls).toBe(0);
+  });
+
+  it("contains throwing proxy traps and rejects sparse arrays and extra properties", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "tfe", chapter: 9 }]),
+      1,
+    );
+    expect(recommendation.status).toBe("ready");
+    if (recommendation.status !== "ready") return;
+
+    const throwingProxy = new Proxy(recommendation, {
+      ownKeys() {
+        throw new Error("synthetic proxy trap");
+      },
+    });
+    expect(explainEditionBoundRecommendationResult(throwingProxy)).toEqual({
+      status: "unavailable",
+      reason: "invalid-recommendation",
+    });
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      items: new Array(1),
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      unexpected: true,
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+
+    expect(explainEditionBoundRecommendationResult({
+      ...recommendation,
+      progressRevision: -1,
+    })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
+  });
+
 });

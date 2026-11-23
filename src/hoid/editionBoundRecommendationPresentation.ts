@@ -16,7 +16,7 @@ export type HoidEditionBoundRecommendationPresentation =
   | (SelectionExplanation & Readonly<{ progressFingerprint: string }>)
   | Readonly<{
       status: "unavailable";
-      reason: "invalid-progress" | "invalid-limit" | "invalid-active-work";
+      reason: "invalid-progress" | "invalid-limit" | "invalid-active-work" | "invalid-recommendation";
     }>;
 
 /**

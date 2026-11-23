@@ -4,7 +4,8 @@ import {
   createHoidConversationGateway,
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidConversationScopeBinding } from "./conversationScopeBinding";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidTypedConversationContext } from "./typedConversationContext";
@@ -23,14 +24,31 @@ function snapshot(chapter = 4, revision = 9) {
   };
 }
 
+const twokManifest = getHoidReadingManifest("twok");
+if (twokManifest.status !== "ready") throw new Error("Synthetic manifest unavailable");
+const twokChapterOne = twokManifest.manifest.units.find(unit => unit.chapterNumber === 1);
+if (!twokChapterOne?.locatorId) throw new Error("Synthetic chapter locator unavailable");
+
 const answer: HoidEvidenceAnswer = Object.freeze({
-  status: "abstain",
-  reason: "no-authorized-evidence",
-  text: "No hay afirmaciones editoriales autorizadas para esta consulta.",
-  claimIds: Object.freeze([]),
-  evidenceIds: Object.freeze([]),
-  sources: Object.freeze([]),
+  status: "authorized",
+  text: "Respuesta sintética autorizada.",
+  claimIds: Object.freeze(["claim.synthetic"]),
+  evidenceIds: Object.freeze(["evidence.twok"]),
+  sources: Object.freeze([Object.freeze({
+    evidenceId: "evidence.twok",
+    sourceBookId: "twok",
+    sourceChapter: 1,
+    locatorId: twokChapterOne.locatorId,
+    unlockBookId: "twok",
+    unlockChapter: 1,
+  })]),
 });
+
+function scopeBinding(progress: unknown) {
+  const binding = createHoidConversationScopeBinding(answer, progress);
+  if (!binding) throw new Error("Synthetic conversation scope unavailable");
+  return binding;
+}
 
 const refs = Object.freeze([
   Object.freeze({ id: "synthetic.character-a", kind: "character" as const }),
@@ -103,6 +121,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y esa organización?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
     });
 
     expect(result.status).toBe("ready");
@@ -113,6 +132,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.organization-a"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }, undefined);
     if (result.status === "ready") {
       expect(result.typedConversationContext?.entities).toEqual(refs);
@@ -144,6 +164,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.phenomenon-a"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }, undefined);
   });
 
@@ -164,6 +185,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
       entityIds: ["synthetic.phenomenon-a"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }, undefined);
   });
 
@@ -184,6 +206,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       intent: "explain",
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.comparative,
       entityIds: ["synthetic.organization-a"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }, undefined);
   });
 
@@ -204,6 +227,7 @@ describe("Hoid typed entity follow-up gateway", () => {
         question: "¿Y ese fenómeno?",
         entityIds: ["synthetic.phenomenon-a"],
         selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
+        bookScope: { mode: "single-work", bookIds: ["twok"] },
       }),
       { signal: controller.signal },
     );
@@ -297,6 +321,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese objeto?",
       progress: initial,
       typedContext: typed,
+      scopeBinding: scopeBinding(initial),
     });
     await runtimeStarted;
     current = snapshot(5);

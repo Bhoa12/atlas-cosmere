@@ -92,6 +92,9 @@ function makeFixture(navigationSha256 = EXPECTED_NAVIGATION_SHA256) {
     parsePackageDocument: vi.fn(async () => packageDocument),
     parseNavigationDocument: vi.fn(async () => navigation),
     validateXhtml: vi.fn(async (data: Uint8Array) => decoder.decode(data).startsWith("<html>")),
+    extractReadableBlocks: vi.fn(async () => [
+      Object.freeze({ kind: "paragraph" as const, text: "Synthetic reader text." }),
+    ]),
   };
 
   const digestPort: HoidEpubDigestPort = {
@@ -183,6 +186,66 @@ describe("offline EPUB ingestion core", () => {
     expect(chapterResult.candidate).not.toHaveProperty("bytes");
     expect(chapterResult.candidate).not.toHaveProperty("content");
     expect(fixture.xml.validateXhtml).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads one verified chapter into ephemeral plain-text blocks without returning markup or bytes", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+
+    const result = await fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+    );
+    expect(result?.status).toBe("candidate");
+    if (result?.status !== "candidate") return;
+    expect(result.candidate).toMatchObject({
+      status: "reader-content",
+      workId: "tfe",
+      editionId: "cosmere-epub-merged-v1",
+      navigationHref: "Text/chapter-1.xhtml#chapter-1",
+      blocks: [{ kind: "paragraph", text: "Synthetic reader text." }],
+      characterCount: 22,
+    });
+    expect(result.candidate).not.toHaveProperty("html");
+    expect(result.candidate).not.toHaveProperty("bytes");
+    expect(result.candidate).not.toHaveProperty("rawMarkup");
+    expect(fixture.xml.extractReadableBlocks).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects chapter content if the source changes between byte read and final verification", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    const originalRead = fixture.archive.readEntry.bind(fixture.archive);
+    let changed = false;
+    vi.spyOn(fixture.archive, "readEntry").mockImplementation(async (sourceId, path, maximumBytes) => {
+      const result = await originalRead(sourceId, path, maximumBytes);
+      if (path === "OEBPS/Text/chapter-1.xhtml" && !changed) {
+        changed = true;
+        fixture.contents.set(path, bytes("<html><body>replacement bytes</body></html>"));
+      }
+      return result;
+    });
+
+    await expect(fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+    )).resolves.toEqual({ status: "rejected", reason: "source-changed" });
+    expect(changed).toBe(true);
+    expect(fixture.xml.extractReadableBlocks).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the XML adapter does not expose a safe text extractor", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    fixture.xml.extractReadableBlocks = undefined;
+
+    await expect(fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+    )).resolves.toEqual({ status: "rejected", reason: "inspection-failed" });
   });
 
   it("rejects a chapter that exists in the manifest but is absent from navigation", async () => {

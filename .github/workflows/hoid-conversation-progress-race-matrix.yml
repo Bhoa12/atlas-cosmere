@@ -20,6 +20,7 @@ on:
       - "docs/hoid/RUN248_PROGRESS_RACE_MATRIX.md"
       - "docs/hoid/RUN249_PROGRESS_CHANGE_SUBSCRIPTION.md"
       - "docs/hoid/RUN250_CALLER_CANCELLATION.md"
+      - "docs/hoid/RUN251_RECOMMENDATION_CANCELLATION_GUARD.md"
       - ".github/workflows/hoid-conversation-progress-race-matrix.yml"
   pull_request:
     paths:
@@ -38,6 +39,7 @@ on:
       - "docs/hoid/RUN248_PROGRESS_RACE_MATRIX.md"
       - "docs/hoid/RUN249_PROGRESS_CHANGE_SUBSCRIPTION.md"
       - "docs/hoid/RUN250_CALLER_CANCELLATION.md"
+      - "docs/hoid/RUN251_RECOMMENDATION_CANCELLATION_GUARD.md"
       - ".github/workflows/hoid-conversation-progress-race-matrix.yml"
 
 permissions:

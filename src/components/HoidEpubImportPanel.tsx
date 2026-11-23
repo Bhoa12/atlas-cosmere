@@ -24,6 +24,7 @@ import {
   type HoidReaderProgressBinding,
 } from "../hoid/epubRecommendationReaderHost";
 import type { HoidRecommendationReaderPort } from "../hoid/recommendationReaderPort";
+import { getHoidReadingManifest } from "../hoid/readingManifest";
 import {
   createHoidEpubSourceDescriptor,
   getHoidEpubImportChoices,
@@ -70,6 +71,7 @@ type OpenedChapterView = Readonly<{
   blocks: readonly HoidEpubReadableBlock[];
   progressRevision: number;
   progressFingerprint: string;
+  progressAction: "advance" | "complete" | "unavailable";
 }>;
 
 export const HoidEpubImportPanel: React.FC<{
@@ -78,7 +80,8 @@ export const HoidEpubImportPanel: React.FC<{
   const {
     refreshHoidCursorProgressSnapshot,
     subscribeHoidCursorProgressChanges,
-    setCapituloLibroIfCurrent,
+    markHoidChapterReadIfCurrent,
+    completeHoidWorkIfCurrent,
   } = useCosmere();
   const progressRefreshRef = useRef(refreshHoidCursorProgressSnapshot);
   progressRefreshRef.current = refreshHoidCursorProgressSnapshot;
@@ -149,6 +152,18 @@ export const HoidEpubImportPanel: React.FC<{
         lifecycleRef.current.isCurrent(leaseRef.current),
       getProgressChangeEpoch: () => progressChangeEpochRef.current,
       onChapterOpened: (chapter, chapterNumber, progressBinding: HoidReaderProgressBinding) => {
+        const manifestResult = getHoidReadingManifest(workId);
+        let progressAction: OpenedChapterView["progressAction"] = "unavailable";
+        if (manifestResult.status === "ready") {
+          const manifest = manifestResult.manifest;
+          const hasNextUnit = manifest.units.some(unit => unit.chapterNumber === chapterNumber + 1);
+          const finalUnit = manifest.units[manifest.units.length - 1];
+          if (hasNextUnit) progressAction = "advance";
+          else if (
+            manifest.coverage === "verified-numeric-chapters" &&
+            finalUnit?.chapterNumber === chapterNumber
+          ) progressAction = "complete";
+        }
         setOpenedChapter(Object.freeze({
           workId,
           title: choice.title,
@@ -157,6 +172,7 @@ export const HoidEpubImportPanel: React.FC<{
           blocks: chapter.blocks,
           progressRevision: progressBinding.revision,
           progressFingerprint: progressBinding.fingerprint,
+          progressAction,
         }));
         setMessage("Capítulo abierto localmente. El texto permanece en memoria de esta pantalla y no se envía a Hoid ni se guarda.");
       },
@@ -288,23 +304,32 @@ export const HoidEpubImportPanel: React.FC<{
 
 
   const commitOpenedChapterProgress = async (chapter: OpenedChapterView) => {
-    if (markingProgressRef.current) return;
+    if (markingProgressRef.current || chapter.progressAction === "unavailable") return;
     markingProgressRef.current = true;
     setBusy(true);
-    setMessage("Comprobando que el progreso no haya cambiado antes de registrar el capítulo…");
+    setMessage("Comprobando que el progreso no haya cambiado antes de registrar la lectura…");
     try {
-      const result = await setCapituloLibroIfCurrent(
-        chapter.workId,
-        chapter.chapterNumber,
-        chapter.progressRevision,
-        chapter.progressFingerprint,
-      );
+      const result = chapter.progressAction === "complete"
+        ? await completeHoidWorkIfCurrent(
+            chapter.workId,
+            chapter.chapterNumber,
+            chapter.progressRevision,
+            chapter.progressFingerprint,
+          )
+        : await markHoidChapterReadIfCurrent(
+            chapter.workId,
+            chapter.chapterNumber,
+            chapter.progressRevision,
+            chapter.progressFingerprint,
+          );
       if (result === null) {
         setMessage("No se ha podido acceder al coordinador durable. El progreso no se ha modificado.");
+      } else if (result.status === "ready" && result.operation === "updated" && chapter.progressAction === "complete") {
+        setMessage("Libro marcado como completado. Hoid actualizará sus límites de spoiler con la finalización confirmada.");
       } else if (result.status === "ready" && result.operation === "updated") {
-        setMessage(`Capítulo ${chapter.chapterNumber} registrado como leído. Hoid actualizará sus límites de spoiler con el nuevo progreso.`);
+        setMessage(`Capítulo ${chapter.chapterNumber} registrado como leído. El cursor avanza al capítulo siguiente y Hoid recalculará sus límites de spoiler.`);
       } else if (result.status === "ready" && result.operation === "unchanged") {
-        setMessage("Este capítulo ya constaba como leído. No se ha creado una escritura adicional.");
+        setMessage("Este progreso ya constaba en el ledger. No se ha creado una escritura adicional.");
       } else if (result.status === "conflict") {
         setMessage("El progreso cambió desde que se abrió el capítulo. No se ha aplicado esta confirmación; vuelve a solicitar una recomendación.");
       } else if (result.status === "rejected" && result.reason === "non-sequential-reader-advance") {
@@ -312,7 +337,7 @@ export const HoidEpubImportPanel: React.FC<{
       } else if (result.status === "rejected" && result.reason === "already-completed") {
         setMessage("La obra ya figura como completada. No se ha modificado el progreso.");
       } else {
-        setMessage("No se ha podido registrar el capítulo de forma segura. No se ha modificado el progreso.");
+        setMessage("No se ha podido registrar la lectura de forma segura. No se ha modificado el progreso.");
       }
     } catch {
       setMessage("La confirmación ha fallado. No se ha modificado el progreso.");
@@ -324,14 +349,17 @@ export const HoidEpubImportPanel: React.FC<{
 
   const confirmOpenedChapterRead = () => {
     const chapter = openedChapter;
-    if (chapter === null || busy || markingProgressRef.current) return;
+    if (chapter === null || busy || markingProgressRef.current || chapter.progressAction === "unavailable") return;
+    const completing = chapter.progressAction === "complete";
     Alert.alert(
-      "Marcar capítulo como leído",
-      `¿Confirmas que has leído el capítulo ${chapter.chapterNumber} de ${chapter.title}? Esta acción actualizará el progreso y cambiará qué información puede revelar Hoid.`,
+      completing ? "Marcar libro como completado" : "Marcar capítulo como leído",
+      completing
+        ? `¿Confirmas que has terminado el capítulo final de ${chapter.title} y quieres marcar la obra como completada? Hoid podrá utilizar el conocimiento autorizado de toda la obra.`
+        : `¿Confirmas que has leído el capítulo ${chapter.chapterNumber} de ${chapter.title}? El progreso avanzará al siguiente capítulo y cambiará qué información puede revelar Hoid.`,
       [
         { text: "Cancelar", style: "cancel" },
         {
-          text: "Marcar como leído",
+          text: completing ? "Completar libro" : "Marcar como leído",
           onPress: () => { void commitOpenedChapterProgress(chapter); },
         },
       ],
@@ -433,16 +461,24 @@ export const HoidEpubImportPanel: React.FC<{
               </Text>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={confirmOpenedChapterRead}
-            style={[styles.markReadButton, busy && styles.disabled]}
-          >
-            <Text style={styles.markReadButtonText}>Marcar capítulo como leído</Text>
-          </TouchableOpacity>
+          {openedChapter.progressAction !== "unavailable" ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={confirmOpenedChapterRead}
+              style={[styles.markReadButton, busy && styles.disabled]}
+            >
+              <Text style={styles.markReadButtonText}>
+                {openedChapter.progressAction === "complete" ? "Marcar libro como completado" : "Marcar capítulo como leído"}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.readerPrivacy}>
+              No existe un siguiente cursor inequívoco en el manifiesto de esta edición. El progreso no puede avanzar desde este capítulo.
+            </Text>
+          )}
           <Text style={styles.readerPrivacy}>
-            El texto permanece local y efímero. El progreso solo cambia si confirmas expresamente la acción anterior; abrir el capítulo no lo modifica.
+            El texto permanece local y efímero. Abrir el capítulo no modifica el progreso; la acción anterior requiere confirmación y registra el siguiente cursor o la finalización explícita.
           </Text>
         </View>
       )}

@@ -11,6 +11,8 @@ on:
       - "src/hoid/sourceIngestionExecution.test.ts"
       - "src/hoid/sourceIngestionPlan.ts"
       - "src/hoid/epubImportSelection.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
       - "src/components/HoidEpubImportPanel.tsx"
       - "docs/hoid/SOURCE_INGESTION_PLAN.md"
       - "src/hoid/bibliography.ts"
@@ -27,6 +29,8 @@ on:
       - "src/hoid/sourceIngestionExecution.test.ts"
       - "src/hoid/sourceIngestionPlan.ts"
       - "src/hoid/epubImportSelection.ts"
+      - "src/hoid/epubImportLifecycle.ts"
+      - "src/hoid/epubImportLifecycle.test.ts"
       - "src/components/HoidEpubImportPanel.tsx"
       - "docs/hoid/SOURCE_INGESTION_PLAN.md"
       - "src/hoid/bibliography.ts"
@@ -60,6 +64,7 @@ jobs:
           src/hoid/verifiedChapterDocuments.test.ts
           src/hoid/editionStructure.test.ts
           src/hoid/readingManifest.test.ts
+          src/hoid/epubImportLifecycle.test.ts
       - name: Type-check ingestion and coverage contracts
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -76,3 +81,5 @@ jobs:
           src/hoid/bibliography.ts
           src/hoid/editorialDrafts.ts
           src/hoid/editorialRegistry.ts
+          src/hoid/epubImportLifecycle.ts
+          src/hoid/epubImportLifecycle.test.ts

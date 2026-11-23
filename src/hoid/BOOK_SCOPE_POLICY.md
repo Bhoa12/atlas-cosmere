@@ -102,3 +102,10 @@ La traza de cada afirmación se deriva exclusivamente de las citas del propio se
 HoidScreen muestra dentro de cada segmento los títulos y capítulos agrupados por obra. Para respuestas de una sola obra conserva la lista ordinaria de citas. Los IDs internos de evidencia y los localizadores opacos no se muestran al lector.
 
 Esta traza no crea una nueva autorización, no amplía el desbloqueo y no se reconstruye desde otro snapshot. Es una proyección metadata-only de la misma presentación que ya validó el presentador confiable. Si la procedencia del segmento no coincide con las citas globales, la matriz completa se retiene.
+
+
+## Frontera de entrada de la matriz transversal
+
+`summarizeHoidPresentedCrossBookEvidence()` es una API exportada y trata su argumento como `unknown`, aunque el llamador disponga de un tipo de presentación validada. Antes de agrupar capítulos canonicaliza una sola vez los registros, arrays, IDs, citas y segmentos; exige que el texto recompuesto coincida con las afirmaciones y que cada capítulo/localizador corresponda a una unidad del manifiesto vigente.
+
+Esta canonicalización protege la estructura de presentación, pero no autentica por sí misma la identidad editorial de un `evidenceId` ni vuelve a comprobar el progreso. La función debe recibir exclusivamente el resultado de `presentHoidEvidenceAnswer()` ejecutado tras el runtime confiable. Los consumidores que parten de una respuesta bruta deben usar `buildHoidCrossBookEvidenceSummary(answer, progress)`. Véase `docs/hoid/RUN246_CROSS_BOOK_SUMMARY_INPUT_HARDENING.md`.

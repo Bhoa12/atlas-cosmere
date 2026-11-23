@@ -97,10 +97,12 @@ function dependenciesFor(
   }> = {},
 ) {
   const candidate = packageCandidate();
-  const readChapterContent = overrides.readChapterContent ?? vi.fn(async () => ({
-    status: "candidate" as const,
-    candidate: readerContent("twok", "roshar-omnibus-v1", navigationHref),
-  }));
+  const readChapterContent = Object.prototype.hasOwnProperty.call(overrides, "readChapterContent")
+    ? overrides.readChapterContent
+    : vi.fn(async () => ({
+        status: "candidate" as const,
+        candidate: readerContent("twok", "roshar-omnibus-v1", navigationHref),
+      }));
   const refreshCurrentProgress = overrides.refreshCurrentProgress ?? vi.fn(async () => progress);
   const isCurrent = overrides.isCurrent ?? vi.fn(() => true);
   const getProgressChangeEpoch = overrides.getProgressChangeEpoch ?? vi.fn(() => 0);

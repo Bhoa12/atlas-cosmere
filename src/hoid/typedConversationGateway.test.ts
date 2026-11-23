@@ -149,6 +149,21 @@ describe("Hoid typed entity follow-up gateway", () => {
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
+  it("requires an evidence-bound scope for a typed follow-up", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y ese fenómeno?",
+      progress: current,
+      typedContext: typedContext(current),
+    });
+    expect(result).toEqual({
+      status: "unavailable",
+      reason: "context-scope-unavailable",
+    });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
   it("resolves a phenomenon follow-up and sends only its canonical ID", async () => {
     const current = snapshot();
     const { gateway, runtime } = setup(current);

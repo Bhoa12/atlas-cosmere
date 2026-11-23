@@ -98,8 +98,14 @@ function progressMatches(
 export function createHoidLocalEpubRecommendationReaderPort(
   dependencies: HoidLocalEpubRecommendationReaderHostDependencies,
 ): HoidRecommendationReaderPort {
+  // Latest-open-wins: two callers may share one host even when the UI normally
+  // disables duplicate taps. An older asynchronous read must never replace a
+  // chapter opened by a newer request.
+  let latestOpenAttempt = 0;
   return Object.freeze({
     async openVerifiedChapter(request: HoidRecommendationReaderOpenRequest): Promise<unknown> {
+      const openAttempt = ++latestOpenAttempt;
+      const isLatestOpenAttempt = () => openAttempt === latestOpenAttempt;
       let signal: AbortSignal | undefined;
       let progressEpoch: number;
       try {
@@ -165,6 +171,7 @@ export function createHoidLocalEpubRecommendationReaderPort(
 
         const before = await dependencies.refreshCurrentProgress();
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
+        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (!progressMatches(before, progressRevision as number, progressFingerprint as string)) {
           return { status: "unavailable", reason: "stale-progress" };
         }
@@ -179,6 +186,7 @@ export function createHoidLocalEpubRecommendationReaderPort(
           navigationHref,
         );
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
+        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (read.status !== "candidate") {
           return { status: "unavailable", reason: "locator-unavailable" };
         }
@@ -194,6 +202,7 @@ export function createHoidLocalEpubRecommendationReaderPort(
 
         const after = await dependencies.refreshCurrentProgress();
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
+        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (!progressMatches(after, progressRevision as number, progressFingerprint as string)) {
           return { status: "unavailable", reason: "stale-progress" };
         }
@@ -204,6 +213,7 @@ export function createHoidLocalEpubRecommendationReaderPort(
           return { status: "unavailable", reason: "reader-unavailable" };
         }
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
+        if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
 
         dependencies.onChapterOpened(
           read.candidate,

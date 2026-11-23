@@ -50,7 +50,6 @@ interface CosmereContextType {
   /** Record final-work completion only after explicit confirmation and a matching reader snapshot. */
   completeHoidWorkIfCurrent: (
     libroId: string,
-    finalChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
     confirmation: HoidReaderProgressConfirmation,
@@ -218,15 +217,13 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const completeHoidWorkIfCurrent = async (
     libroId: string,
-    finalChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
     confirmation: HoidReaderProgressConfirmation,
   ): Promise<HoidCursorCoordinatorResult | null> => {
     if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
-    const result = await cursorProgressCoordinator.completeAfterReadingIfCurrent(
+    const result = await cursorProgressCoordinator.completeWorkIfCurrent(
       libroId,
-      finalChapter,
       expectedRevision,
       expectedFingerprint,
       confirmation,

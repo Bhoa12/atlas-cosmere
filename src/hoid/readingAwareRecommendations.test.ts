@@ -149,4 +149,65 @@ describe("composeHoidReadingAwareRecommendations", () => {
     expect(composeHoidReadingAwareRecommendations({ ...reading, extra: true }, unread, 2)).toBeNull();
     expect(composeHoidReadingAwareRecommendations(reading, unread, 21)).toBeNull();
   });
+
+  it("rejects trackable-work counts that do not match the checked-in manifests", () => {
+    const reading = context([{ bookId: "twok", cursor: cursor("twok", 4), order: 1 }]);
+    const invalid = {
+      ...reading,
+      trackableWorkCount: reading.trackableWorkCount - 1,
+      untrackedWorkCount: reading.untrackedWorkCount + 1,
+    };
+    expect(composeHoidReadingAwareRecommendations(invalid, unread, 3)).toBeNull();
+  });
+
+  it("rejects an in-range but incorrect trackable-unstarted count", () => {
+    const reading = context([{ bookId: "twok", cursor: cursor("twok", 4), order: 1 }]);
+    const invalid = {
+      ...reading,
+      trackableUnstartedCount: reading.trackableUnstartedCount + 1,
+    };
+    expect(composeHoidReadingAwareRecommendations(invalid, unread, 3)).toBeNull();
+  });
+
+  it("rejects revision and timestamp combinations impossible in the v2 ledger", () => {
+    const empty = context([]);
+    expect(composeHoidReadingAwareRecommendations({
+      ...empty,
+      updatedAt: UPDATED_AT,
+    }, unread, 2)).toBeNull();
+    expect(composeHoidReadingAwareRecommendations({
+      ...empty,
+      revision: 1,
+    }, unread, 2)).toBeNull();
+  });
+
+  it("requires the canonical ISO timestamp emitted by the ledger", () => {
+    const reading = context([{ bookId: "twok", cursor: cursor("twok", 2) }]);
+    expect(composeHoidReadingAwareRecommendations({
+      ...reading,
+      updatedAt: "2026-11-18T10:00:00Z",
+    }, unread, 2)).toBeNull();
+  });
+
+  it("rejects positions that are not in canonical reader order", () => {
+    const reading = context([
+      { bookId: "twok", cursor: cursor("twok", 2), order: 1 },
+      { bookId: "wor", cursor: cursor("wor", 3), order: 2 },
+    ]);
+    const invalid = {
+      ...reading,
+      positions: [...reading.positions].reverse(),
+    };
+    expect(composeHoidReadingAwareRecommendations(invalid, unread, 2)).toBeNull();
+  });
+
+  it("accepts an empty ledger after a durable clear with a positive revision", () => {
+    const empty = context([]);
+    const cleared = {
+      ...empty,
+      revision: 2,
+      updatedAt: UPDATED_AT,
+    };
+    expect(composeHoidReadingAwareRecommendations(cleared, unread, 2)).toEqual(unread.slice(0, 2));
+  });
 });

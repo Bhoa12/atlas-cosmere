@@ -263,7 +263,11 @@ describe("local EPUB recommendation reader host", () => {
     const pendingRead = new Promise<unknown>(resolve => { resolveRead = resolve; });
     const dependencies = dependenciesFor(progress, request.navigationHref, {
       sessionSignal: session.signal,
-      readChapterContent: vi.fn((_candidate, _href, signal) => {
+      readChapterContent: vi.fn((
+        _candidate: HoidEpubPackageInspectionCandidate,
+        _href: string,
+        signal?: AbortSignal,
+      ) => {
         receivedSignal = signal;
         markStarted();
         return pendingRead;

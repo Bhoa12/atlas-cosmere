@@ -66,7 +66,7 @@ function answer(overrides: Record<string, unknown> = {}): HoidEvidenceAnswer {
 }
 
 describe("buildHoidCrossBookEvidenceSummary", () => {
-  it("groups independently unlocked sources by work and preserves per-segment mapping", () => {
+  it("groups independently unlocked sources by work and preserves per-segment chapter mapping", () => {
     const result = buildHoidCrossBookEvidenceSummary(answer(), progress());
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -76,8 +76,26 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
       { sourceBookId: "wor", title: "Palabras radiantes", chapters: [1], evidenceIds: ["evidence.wor"] },
     ]);
     expect(result.summary.segments).toEqual([
-      { claimId: "claim.tfe", sourceBookIds: ["tfe"] },
-      { claimId: "claim.wor", sourceBookIds: ["wor"] },
+      {
+        claimId: "claim.tfe",
+        sourceBookIds: ["tfe"],
+        works: [{
+          sourceBookId: "tfe",
+          title: "El Imperio Final",
+          chapters: [1],
+          evidenceIds: ["evidence.tfe"],
+        }],
+      },
+      {
+        claimId: "claim.wor",
+        sourceBookIds: ["wor"],
+        works: [{
+          sourceBookId: "wor",
+          title: "Palabras radiantes",
+          chapters: [1],
+          evidenceIds: ["evidence.wor"],
+        }],
+      },
     ]);
   });
 
@@ -164,7 +182,51 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
     if (result.status !== "ready") return;
     expect(result.summary.works[0].chapters).toEqual([1, 2]);
     expect(result.summary.works[0].evidenceIds).toEqual(["evidence.tfe.one", "evidence.tfe.two"]);
+    expect(result.summary.segments[0].works[0].chapters).toEqual([1]);
+    expect(result.summary.segments[1].works[0].chapters).toEqual([2]);
   });
+
+  it("keeps exact chapters and evidence IDs per claim when one claim spans works", () => {
+    const tfeFirst = source("tfe", "evidence.tfe.one", 1);
+    const tfeSecond = source("tfe", "evidence.tfe.two", 2);
+    const worSecond = source("wor", "evidence.wor.two", 2);
+    const crossWorkClaim: HoidEvidenceAnswer = {
+      status: "authorized",
+      text: "Afirmación respaldada por tres evidencias de dos obras.",
+      claimIds: ["claim.cross-work"],
+      evidenceIds: [tfeFirst.evidenceId, tfeSecond.evidenceId, worSecond.evidenceId],
+      sources: [worSecond, tfeSecond, tfeFirst],
+      layout: "plain",
+      segments: [{
+        claimId: "claim.cross-work",
+        text: "Afirmación respaldada por tres evidencias de dos obras.",
+        evidenceIds: [tfeFirst.evidenceId, tfeSecond.evidenceId, worSecond.evidenceId],
+      }],
+    };
+
+    const result = buildHoidCrossBookEvidenceSummary(crossWorkClaim, progress(true, 4));
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.summary.segments).toEqual([{
+      claimId: "claim.cross-work",
+      sourceBookIds: ["tfe", "wor"],
+      works: [
+        {
+          sourceBookId: "tfe",
+          title: "El Imperio Final",
+          chapters: [1, 2],
+          evidenceIds: ["evidence.tfe.one", "evidence.tfe.two"],
+        },
+        {
+          sourceBookId: "wor",
+          title: "Palabras radiantes",
+          chapters: [2],
+          evidenceIds: ["evidence.wor.two"],
+        },
+      ],
+    }]);
+  });
+
   it("summarizes the exact canonical presentation without re-reading raw answer progress", () => {
     const presented = presentHoidEvidenceAnswer(answer(), progress());
     expect(presented.status).toBe("ready");

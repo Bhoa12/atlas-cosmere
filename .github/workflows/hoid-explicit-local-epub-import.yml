@@ -16,6 +16,8 @@ on:
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/epubRecommendationReaderHost.ts"
+      - "src/hoid/epubRecommendationReaderHost.test.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -42,6 +44,8 @@ on:
       - "src/hoid/epubIngestion.ts"
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/epubRecommendationReaderHost.ts"
+      - "src/hoid/epubRecommendationReaderHost.test.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -81,6 +85,7 @@ jobs:
           src/hoid/epubImportLifecycle.test.ts
           src/hoid/epubIngestion.test.ts
           src/hoid/recommendationReaderPort.test.ts
+          src/hoid/epubRecommendationReaderHost.test.ts
       - name: Strictly type-check platform and UI boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -94,6 +99,8 @@ jobs:
           src/hoid/epubImportSelection.test.ts
           src/hoid/epubIngestion.ts
           src/hoid/recommendationReaderPort.ts
+          src/hoid/epubRecommendationReaderHost.ts
+          src/hoid/epubRecommendationReaderHost.test.ts
           src/hoid/editionStructure.ts
           src/hoid/bibliography.ts
           src/hoid/sourceCoverage.ts

@@ -1430,7 +1430,7 @@ describe("HoidConversationGateway recommendation final-read cancellation", () =>
 
 describe("Hoid conversation scope continuity", () => {
 
-  it("keeps a conversation pinned when a complete-looking new question omits the old scope", async () => {
+  it("rejects a complete-looking question that tries to replace the active scope", async () => {
     const current = snapshot(3);
     const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({

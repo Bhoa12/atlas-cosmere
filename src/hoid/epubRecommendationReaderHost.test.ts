@@ -540,19 +540,19 @@ describe("local EPUB recommendation reader host", () => {
     ): AbortSignal => ({
       get aborted() { return controller.signal.aborted; },
       addEventListener(
-        type: string,
-        listener: EventListenerOrEventListenerObject | null,
+        type: "abort",
+        listener: EventListenerOrEventListenerObject,
         options?: boolean | AddEventListenerOptions,
       ) {
-        if (type === "abort" && listener !== null) added.push(listener);
+        added.push(listener);
         controller.signal.addEventListener(type, listener, options);
       },
       removeEventListener(
-        type: string,
-        listener: EventListenerOrEventListenerObject | null,
+        type: "abort",
+        listener: EventListenerOrEventListenerObject,
         options?: boolean | EventListenerOptions,
       ) {
-        if (type === "abort" && listener !== null) removed.push(listener);
+        removed.push(listener);
         controller.signal.removeEventListener(type, listener, options);
       },
     } as unknown as AbortSignal);

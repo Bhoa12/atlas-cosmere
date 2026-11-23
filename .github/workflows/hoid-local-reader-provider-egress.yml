@@ -7,17 +7,23 @@ on:
     paths:
       - "src/hoid/pipeline.ts"
       - "src/hoid/types.ts"
+      - "src/hoid/readingValidation.ts"
+      - "src/hoid/readingValidation.test.ts"
       - "src/hoid/providerKnowledgeBoundary.test.ts"
       - "src/hoid/providerRequestSnapshot.ts"
       - "docs/hoid/RUN262_LOCAL_READER_PROVIDER_EGRESS.md"
+      - "docs/hoid/RUN263_DESCRIPTOR_SAFE_PROVIDER_INPUT.md"
       - ".github/workflows/hoid-local-reader-provider-egress.yml"
   pull_request:
     paths:
       - "src/hoid/pipeline.ts"
       - "src/hoid/types.ts"
+      - "src/hoid/readingValidation.ts"
+      - "src/hoid/readingValidation.test.ts"
       - "src/hoid/providerKnowledgeBoundary.test.ts"
       - "src/hoid/providerRequestSnapshot.ts"
       - "docs/hoid/RUN262_LOCAL_READER_PROVIDER_EGRESS.md"
+      - "docs/hoid/RUN263_DESCRIPTOR_SAFE_PROVIDER_INPUT.md"
       - ".github/workflows/hoid-local-reader-provider-egress.yml"
 
 permissions:
@@ -35,15 +41,18 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test legacy and contextual provider egress isolation
+      - name: Test provider projection and canonical reading snapshots
         run: >-
           npx vitest run
           src/hoid/providerKnowledgeBoundary.test.ts
-      - name: Strictly type-check provider request boundaries
+          src/hoid/readingValidation.test.ts
+      - name: Strictly type-check provider and progress boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/pipeline.ts
           src/hoid/providerRequestSnapshot.ts
           src/hoid/providerKnowledgeBoundary.test.ts
+          src/hoid/readingValidation.ts
+          src/hoid/readingValidation.test.ts
           src/hoid/types.ts

@@ -31,6 +31,53 @@ function canonicalDataRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /**
+ * Accept only a dense, ordinary array of own data elements.
+ *
+ * Iteration through a caller-supplied Symbol.iterator can execute arbitrary
+ * code before a progress snapshot is validated. Index descriptors avoid
+ * invoking custom iterators or accessor-backed array elements.
+ */
+function canonicalReadingArray(value: unknown): readonly unknown[] | null {
+  try {
+    if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+    if (
+      !lengthDescriptor ||
+      !Object.prototype.hasOwnProperty.call(lengthDescriptor, "value") ||
+      typeof lengthDescriptor.value !== "number" ||
+      !Number.isSafeInteger(lengthDescriptor.value) ||
+      lengthDescriptor.value < 0 ||
+      lengthDescriptor.value > DEFAULT_MAX_READING_POSITIONS
+    ) return null;
+
+    const length = lengthDescriptor.value;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== length + 1 || !keys.includes("length")) return null;
+
+    const items: unknown[] = [];
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      items.push(descriptor.value);
+    }
+
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (typeof key !== "string" || !/^(0|[1-9][0-9]*)$/u.test(key) || Number(key) >= length) {
+        return null;
+      }
+    }
+    return Object.freeze(items);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Runtime trust boundary for reader progress.
  *
  * A malformed position invalidates the entire snapshot. Silently dropping a
@@ -47,12 +94,13 @@ function canonicalDataRecord(value: unknown): Record<string, unknown> | null {
  * boundary.
  */
 export function validReadingPositions(value: unknown): ReadingPosition[] | null {
-  if (!Array.isArray(value) || value.length > DEFAULT_MAX_READING_POSITIONS) return null;
+  const rawPositions = canonicalReadingArray(value);
+  if (rawPositions === null) return null;
 
   const positions: ReadingPosition[] = [];
   const seenBookIds = new Set<string>();
 
-  for (const rawItem of value) {
+  for (const rawItem of rawPositions) {
     const item = canonicalDataRecord(rawItem);
     if (item === null || !Object.prototype.hasOwnProperty.call(item, "bookId")) return null;
 

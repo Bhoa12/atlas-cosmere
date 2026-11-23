@@ -17,6 +17,45 @@ import {
   type HoidAliasDisclosurePort,
 } from "./aliasDisclosureBoundary";
 
+type CanonicalHoidPipelineInput = Readonly<{
+  question: unknown;
+  reading: unknown;
+}>;
+
+/**
+ * Read only the two fields Hoid accepts at this boundary.
+ *
+ * Deliberately do not spread, enumerate or serialize the caller's object:
+ * runtime-only reader state may contain local EPUB blocks, XHTML, file URIs
+ * or opaque package handles. Ignored fields must not be evaluated merely
+ * because they happen to be attached to the request.
+ */
+function canonicalPipelineInput(value: unknown): CanonicalHoidPipelineInput | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+
+    const question = Object.getOwnPropertyDescriptor(value, "question");
+    const reading = Object.getOwnPropertyDescriptor(value, "reading");
+    if (
+      !question ||
+      !Object.prototype.hasOwnProperty.call(question, "value") ||
+      question.enumerable !== true ||
+      !reading ||
+      !Object.prototype.hasOwnProperty.call(reading, "value") ||
+      reading.enumerable !== true
+    ) return null;
+
+    return Object.freeze({
+      question: question.value,
+      reading: reading.value,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export type ProviderKnowledgeContextEntry = Readonly<{
   id: string;
   kind: HoidKnowledgeEntry["kind"];
@@ -107,16 +146,23 @@ export class HoidPipeline {
   }
 
   async answer(request: HoidAnswerRequest): Promise<HoidAnswer> {
-    if (request === null || typeof request !== "object" || Array.isArray(request)) {
+    const input = canonicalPipelineInput(request);
+    if (!input) {
       return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
     }
-    const question = validHoidQuestion(request.question);
-    const readingInput = validReadingPositions(request.reading);
+
+    const question = validHoidQuestion(input.question);
+    const readingInput = validReadingPositions(input.reading);
     if (question === null || readingInput === null) {
       return { blocked: true, reason: "input-invalid", text: "La solicitud contiene datos de entrada no válidos. Hoid prefiere no interpretarlos ni enviarlos a ninguna fuente externa." };
     }
 
-    const normalizedRequest: HoidAnswerRequest = { ...request, question, reading: readingInput };
+    // Build a fresh allow-listed request. No caller-owned property other than
+    // the validated question and detached reading snapshot crosses this point.
+    const normalizedRequest: HoidAnswerRequest = Object.freeze({
+      question,
+      reading: Object.freeze(readingInput.map(position => Object.freeze({ ...position }))),
+    });
     const blockedQuestion = guardQuestion(normalizedRequest);
     if (blockedQuestion) return blockedQuestion;
     const knowledge = this.knowledge;

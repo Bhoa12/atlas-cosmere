@@ -924,17 +924,26 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
       ]);
       const blocks: HoidEpubReadableBlock[] = [];
       let characterCount = 0;
+      const isExcludedNode = (node: XmlElement): boolean =>
+        excluded.has(node.local) ||
+        node.attributes.some(attribute =>
+          attribute.local === "hidden" ||
+          (attribute.local === "aria-hidden" && attribute.value.toLowerCase() === "true") ||
+          (attribute.local === "style" &&
+            /(?:^|;)\\s*(?:display\\s*:\\s*none|visibility\\s*:\\s*hidden)(?:\\s*!important)?(?:;|$)/i.test(attribute.value))
+        );
 
       const collectInlineText = (node: XmlElement): string => node.content
         .map(part => {
           if (typeof part === "string") return part;
-          if (excluded.has(part.local) || blockElements.has(part.local)) return "";
+          if (part.local === "br") return " ";
+          if (isExcludedNode(part) || blockElements.has(part.local)) return "";
           return collectInlineText(part);
         })
         .join("");
 
       const visit = (node: XmlElement, depth: number): void => {
-        if (depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth || excluded.has(node.local)) return;
+        if (depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth || isExcludedNode(node)) return;
         const kind = blockKinds.get(node.local);
         const text = normalizedLabel(collectInlineText(node));
         if (text.length > 0) {

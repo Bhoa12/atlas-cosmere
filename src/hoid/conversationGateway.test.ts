@@ -815,7 +815,6 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
       progress: current,
       context: contextFor(current),
       scopeBinding: scopeBindingFor(current),
-      bookScope: { mode: "single-work", bookIds: ["twok"] },
     });
 
     expect(result.status).toBe("ready");
@@ -824,6 +823,31 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
       entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
       bookScope: { mode: "single-work", bookIds: ["twok"] },
     }), undefined);
+  });
+
+
+  it("rejects a follow-up that attempts to widen its previously authorized work scope", async () => {
+    const current = snapshot(3);
+    const relationshipGateway = { answer: vi.fn() };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context: contextFor(current),
+      scopeBinding: scopeBindingFor(current),
+      bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-mismatch" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
   });
 
   it("routes an explicit group follow-up through the graph with only prior canonical IDs", async () => {
@@ -1402,3 +1426,68 @@ describe("HoidConversationGateway recommendation final-read cancellation", () =>
   });
 });
 
+
+
+describe("Hoid conversation scope continuity", () => {
+  it("derives the first answer scope and reuses it for an automatic group follow-up", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const runtime = {
+      answer: vi.fn(async (_input: unknown) => authorizedAnswerForBook("twok")),
+    };
+    const resolveEntities: NonNullable<HoidConversationGatewayConfig["resolveEntities"]> = () => ({
+      status: "ready",
+      resolution: "not-found",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [],
+      truncated: false,
+    });
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveEntities,
+      relationshipGateway: null,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const first = await gateway.answer({
+      question: "Explícame la evidencia disponible.",
+      progress: current,
+    });
+    expect(first.status).toBe("ready");
+    if (first.status !== "ready" || !first.conversationScopeBinding) {
+      throw new Error("La primera respuesta no generó un ámbito verificable");
+    }
+    expect(first.conversationScopeBinding.scope).toEqual({
+      mode: "single-work",
+      bookIds: ["twok"],
+    });
+    expect(first.conversationScopeBinding.works).toEqual([
+      { bookId: "twok", chapters: [1] },
+    ]);
+
+    const context = createHoidConversationContext(
+      ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      },
+    );
+    if (!context) throw new Error("Contexto sintético no disponible");
+    const followUp = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context,
+      scopeBinding: first.conversationScopeBinding,
+    });
+
+    expect(followUp.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledTimes(2);
+    expect(runtime.answer.mock.calls[1]?.[0]).toMatchObject({
+      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+  });
+});

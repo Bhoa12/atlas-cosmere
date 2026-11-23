@@ -261,8 +261,13 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 }
 
 function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
-  throwIfAborted(signal);
   if (signal === undefined) return operation;
+  if (isSignalAborted(signal)) {
+    // The adapter call may have synchronously aborted the signal before
+    // returning its promise. Observe that promise before rejecting cancellation.
+    operation.then(() => undefined, () => undefined);
+    return Promise.reject(new InspectionError("cancelled"));
+  }
 
   return new Promise<T>((resolve, rejectPromise) => {
     let settled = false;

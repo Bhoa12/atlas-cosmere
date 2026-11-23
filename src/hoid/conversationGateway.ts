@@ -916,7 +916,7 @@ export class HoidConversationGateway {
     // A new, explicitly named relationship question may use the local reviewed
     // graph when no scope was selected. Recognized follow-ups have already returned
     // through the evidence-bound runtime path above and cannot reach this shortcut.
-    if ((relationshipQuestion || followUp.status === "resolved") && !activeBookScope) {
+    if (relationshipQuestion && !activeBookScope)
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");
 
@@ -925,7 +925,6 @@ export class HoidConversationGateway {
         relationshipResult = relationshipGateway.answer({
           question: request.question,
           progress: request.progress,
-          ...(followUp.status === "resolved" ? { entityIds: followUp.entityIds } : {}),
         });
       } catch {
         return unavailable("entity-unavailable");

@@ -41,7 +41,6 @@ export type HoidCursorCoordinatorResult =
         | "unsupported-position"
         | "invalid-update"
         | "non-sequential-reader-advance"
-        | "completion-requires-explicit-confirmation"
         | "progress-confirmation-required";
     }>
   | Readonly<{
@@ -363,13 +362,9 @@ export class HoidCursorProgressCoordinator {
       if (!completedUnit) return this.rejected("invalid-cursor");
 
       const nextUnit = manifest.units.find(unit => unit.chapterNumber === completedChapterNumber + 1);
-      if (!nextUnit) {
-        if (
-          manifest.coverage === "verified-numeric-chapters" &&
-          manifest.units[manifest.units.length - 1]?.chapterNumber === completedChapterNumber
-        ) return this.rejected("completion-requires-explicit-confirmation");
-        return this.rejected("unsupported-position");
-      }
+      // Manifests intentionally cover numbered chapters only. Absence of a
+      // next numbered unit does not prove the entire EPUB has been finished.
+      if (!nextUnit) return this.rejected("unsupported-position");
 
       const bound = await this.loadSnapshotBoundToProgress(expectedRevision, expectedFingerprint);
       if (bound.status !== "ready") return bound;
@@ -390,12 +385,13 @@ export class HoidCursorProgressCoordinator {
   }
 
   /**
-   * Explicitly complete a work after its final verified numbered chapter has
-   * been read. Completion is never inferred from opening or scrolling.
+   * Mark a work complete only after the user explicitly attests that the whole
+   * work is finished, including unnumbered epilogues or appendices. The
+   * progress binding prevents an old reader screen from completing a newer
+   * reading session.
    */
-  completeAfterReadingIfCurrent(
+  completeWorkIfCurrent(
     bookId: string,
-    completedChapterNumber: number,
     expectedRevision: number,
     expectedFingerprint: string,
     confirmation: HoidReaderProgressConfirmation,
@@ -405,31 +401,11 @@ export class HoidCursorProgressCoordinator {
         return this.rejected("progress-confirmation-required");
       }
       if (!isKnownWork(bookId)) return this.rejected("unknown-work");
-      if (!Number.isSafeInteger(completedChapterNumber) || completedChapterNumber < 1) {
-        return this.rejected("invalid-cursor");
-      }
-      const manifestResult = getHoidReadingManifest(bookId);
-      if (
-        manifestResult.status !== "ready" ||
-        manifestResult.manifest.coverage !== "verified-numeric-chapters"
-      ) return this.rejected("unsupported-position");
-      const finalUnit = manifestResult.manifest.units[manifestResult.manifest.units.length - 1];
-      if (!finalUnit || finalUnit.chapterNumber !== completedChapterNumber) {
-        return this.rejected("non-sequential-reader-advance");
-      }
 
       const bound = await this.loadSnapshotBoundToProgress(expectedRevision, expectedFingerprint);
       if (bound.status !== "ready") return bound;
       const existing = bound.snapshot.positions.find(position => position.bookId === bookId);
       if (existing && "completed" in existing) return this.unchanged();
-
-      const expectedOpenChapter = existing && "cursor" in existing
-        ? existing.cursor.chapterNumber + 1
-        : 1;
-      if (completedChapterNumber !== expectedOpenChapter) {
-        return this.rejected("non-sequential-reader-advance");
-      }
-
       return this.commitPosition({ bookId, completed: true });
     });
   }

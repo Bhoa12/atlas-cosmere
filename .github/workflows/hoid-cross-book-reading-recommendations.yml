@@ -9,6 +9,10 @@ on:
       - "src/hoid/crossBookEvidence.test.ts"
       - "src/hoid/readingAwareRecommendations.ts"
       - "src/hoid/readingAwareRecommendations.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.test.ts"
       - "src/hoid/recommendations.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/cursorEvidenceRuntime.test.ts"
@@ -19,6 +23,7 @@ on:
       - "docs/hoid/RECOMMENDATION_POLICY.md"
       - "docs/hoid/RUN227_MANIFEST_BOUND_READING_AWARE_RECOMMENDATIONS.md"
       - "docs/hoid/RUN252_RECOMMENDATION_CONTEXT_INTEGRITY.md"
+      - "docs/hoid/RUN253_RECOMMENDATION_EXPLANATION_INPUT_BOUNDARY.md"
       - ".github/workflows/hoid-cross-book-reading-recommendations.yml"
   pull_request:
     paths:
@@ -26,6 +31,10 @@ on:
       - "src/hoid/crossBookEvidence.test.ts"
       - "src/hoid/readingAwareRecommendations.ts"
       - "src/hoid/readingAwareRecommendations.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.test.ts"
       - "src/hoid/recommendations.ts"
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/cursorEvidenceRuntime.test.ts"
@@ -36,6 +45,7 @@ on:
       - "docs/hoid/RECOMMENDATION_POLICY.md"
       - "docs/hoid/RUN227_MANIFEST_BOUND_READING_AWARE_RECOMMENDATIONS.md"
       - "docs/hoid/RUN252_RECOMMENDATION_CONTEXT_INTEGRITY.md"
+      - "docs/hoid/RUN253_RECOMMENDATION_EXPLANATION_INPUT_BOUNDARY.md"
       - ".github/workflows/hoid-cross-book-reading-recommendations.yml"
 
 permissions:
@@ -59,6 +69,8 @@ jobs:
           src/hoid/crossBookEvidence.test.ts
           src/hoid/answerPresentation.test.ts
           src/hoid/readingAwareRecommendations.test.ts
+          src/hoid/editionBoundRecommendationExplanations.test.ts
+          src/hoid/editionBoundRecommendationPresentation.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
           src/hoid/conversationGateway.test.ts
       - name: Type-check runtime, recommendations and HoidScreen
@@ -67,6 +79,8 @@ jobs:
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
           src/hoid/crossBookEvidence.ts
           src/hoid/readingAwareRecommendations.ts
+          src/hoid/editionBoundRecommendationExplanations.ts
+          src/hoid/editionBoundRecommendationPresentation.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/conversationGateway.ts
           src/screens/HoidScreen.tsx

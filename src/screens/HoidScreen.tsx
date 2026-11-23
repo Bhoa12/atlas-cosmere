@@ -896,6 +896,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     topicRecommendationFingerprint === liveProgressScope.fingerprint &&
     topicRecommendationSelectionKey === selectedTopicIds.join('\n') &&
     topicRecommendationTrustPort === trustedAnswerPort;
+  const activeConversationScopeBinding = conversationScopeBindingRef.current;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -1094,9 +1095,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           </View>
         )}
         <Text style={styles.answerScopeMessage}>{answerScopeMessage}</Text>
-        {conversationScopeBindingRef.current && (
+        {activeConversationScopeBinding && (
           <Text style={styles.recommendationNote}>
-            Seguimiento limitado a {conversationScopeBindingRef.current.works.map(work => {
+            Seguimiento limitado a {activeConversationScopeBinding.works.map(work => {
               const title = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === work.bookId)?.title ?? 'Obra verificada';
               return `${title} · capítulos ${work.chapters.join(', ')}`;
             }).join('; ')}. El progreso actual sigue aplicándose a cada obra.

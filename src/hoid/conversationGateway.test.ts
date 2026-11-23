@@ -4,7 +4,8 @@ import {
   createHoidConversationGateway,
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidConversationScopeBinding } from "./conversationScopeBinding";
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidEditorialRuntime } from "./editorialRegistry";
@@ -43,6 +44,38 @@ const elantrisRecommendation = Object.freeze({
   title: "Elantris",
   reason: "unread-source",
 });
+
+
+function authorizedAnswerForBook(bookId: string, chapter = 1): HoidEvidenceAnswer {
+  const manifest = getHoidReadingManifest(bookId);
+  if (manifest.status !== "ready") throw new Error("Synthetic manifest unavailable");
+  const unit = manifest.manifest.units.find(item => item.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Synthetic locator unavailable");
+  return Object.freeze({
+    status: "authorized",
+    text: "Respuesta sintética autorizada.",
+    claimIds: Object.freeze(["claim.synthetic"]),
+    evidenceIds: Object.freeze([`evidence.${bookId}`]),
+    sources: Object.freeze([Object.freeze({
+      evidenceId: `evidence.${bookId}`,
+      sourceBookId: bookId,
+      sourceChapter: chapter,
+      locatorId: unit.locatorId,
+      unlockBookId: bookId,
+      unlockChapter: chapter,
+    })]),
+  });
+}
+
+function scopeBindingFor(progress: unknown, bookId = "twok") {
+  const binding = createHoidConversationScopeBinding(
+    authorizedAnswerForBook(bookId),
+    progress,
+    { mode: "single-work", bookIds: [bookId] },
+  );
+  if (!binding) throw new Error("Synthetic conversation scope unavailable");
+  return binding;
+}
 
 function setup(initial: unknown = snapshot(3), resolveEntities?: HoidConversationGatewayConfig["resolveEntities"]) {
   let current: unknown = initial;
@@ -781,14 +814,15 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
       question: "¿Y entre ellos?",
       progress: current,
       context: contextFor(current),
-      bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
+      scopeBinding: scopeBindingFor(current),
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     });
 
     expect(result.status).toBe("ready");
     expect(relationshipGateway.answer).not.toHaveBeenCalled();
     expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
       entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
-      bookScope: { mode: "cross-work", bookIds: ["edgedancer", "twok"] },
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }), undefined);
   });
 
@@ -811,12 +845,8 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
       context: contextFor(current),
     });
 
-    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
-    expect(relationshipGateway.answer).toHaveBeenCalledWith({
-      question: "¿Y entre ellos?",
-      progress: current,
-      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
-    });
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-unavailable" });
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
@@ -940,6 +970,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       question: "¿Y ella?",
       progress: current,
       context,
+      scopeBinding: scopeBindingFor(current),
     });
 
     expect(result.status).toBe("ready");
@@ -950,9 +981,13 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       intent: "explain",
       entityIds: ["synthetic.entity-beta"],
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }, undefined);
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
-    if (result.status === "ready") expect(result.conversationContext).toEqual(context);
+    if (result.status === "ready") {
+      expect(result.conversationContext).toBeUndefined();
+      expect(result.conversationScopeBinding).toBeUndefined();
+    }
   });
 
   it("does not invoke the runtime or relationship graph when coreference is ambiguous", async () => {
@@ -1004,7 +1039,12 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     });
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
-    const pending = gateway.answer({ question: "¿Y ella?", progress: initial, context });
+    const pending = gateway.answer({
+      question: "¿Y ella?",
+      progress: initial,
+      context,
+      scopeBinding: scopeBindingFor(initial),
+    });
     await runtimeStarted;
     current = snapshot(4);
     finish?.(answer);
@@ -1014,7 +1054,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
 
 
 describe("HoidConversationGateway pronoun relationship routing", () => {
-  it("routes a uniquely resolved pronoun relationship through the local graph for a two-entity context", async () => {
+  it("routes a uniquely resolved pronoun relationship through the prior evidence scope", async () => {
     const current = snapshot(3);
     const projection = projectHoidCursorProgressSnapshot(current);
     if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
@@ -1051,14 +1091,15 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
       question: "¿Y cómo se relaciona con ella?",
       progress: current,
       context,
+      scopeBinding: scopeBindingFor(current),
     });
-    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
-    expect(relationshipGateway.answer).toHaveBeenCalledWith({
+    expect(result.status).toBe("ready");
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
       question: "¿Y cómo se relaciona con ella?",
-      progress: current,
       entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
-    });
-    expect(runtime.answer).not.toHaveBeenCalled();
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    }), undefined);
   });
 
   it("abstains when a relational pronoun is used with a context larger than a pair", async () => {

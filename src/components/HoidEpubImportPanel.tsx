@@ -138,6 +138,7 @@ export const HoidEpubImportPanel: React.FC<{
       return;
     }
 
+    let readerSessionActive = true;
     const sourceId = source.sourceId;
     const workId = choice.workId;
     const editionId = choice.editionId;
@@ -148,8 +149,9 @@ export const HoidEpubImportPanel: React.FC<{
       ingestion: epubRuntime.ingestion,
       refreshCurrentProgress: () => progressRefreshRef.current(),
       isCurrent: () =>
+        readerSessionActive &&
         sourceIdRef.current === sourceId &&
-        lifecycleRef.current.isCurrent(leaseRef.current),
+        lifecycleRef.current.isActive(leaseRef.current),
       getProgressChangeEpoch: () => progressChangeEpochRef.current,
       onChapterOpened: (chapter, chapterNumber, progressBinding: HoidReaderProgressBinding) => {
         const manifestResult = getHoidReadingManifest(workId);
@@ -173,7 +175,10 @@ export const HoidEpubImportPanel: React.FC<{
     });
 
     onReaderPortChange?.(port, workId);
-    return () => onReaderPortChange?.(null, null);
+    return () => {
+      readerSessionActive = false;
+      onReaderPortChange?.(null, null);
+    };
   }, [pickedSource, selectedChoice, candidate, onReaderPortChange]);
 
   const pickEpub = async () => {
@@ -302,7 +307,7 @@ export const HoidEpubImportPanel: React.FC<{
     if (
       markingProgressRef.current ||
       chapter.progressAction !== "advance" ||
-      !lifecycleRef.current.isCurrent(lease)
+      !lifecycleRef.current.isActive(lease)
     ) return;
     markingProgressRef.current = true;
     setBusy(true);
@@ -315,7 +320,7 @@ export const HoidEpubImportPanel: React.FC<{
         chapter.progressFingerprint,
         { confirmed: true },
       );
-      if (!lifecycleRef.current.isCurrent(lease)) return;
+      if (!lifecycleRef.current.isActive(lease)) return;
       if (result === null) {
         setMessage("No se ha podido acceder al coordinador durable. El progreso no se ha modificado.");
       } else if (result.status === "ready" && result.operation === "updated") {
@@ -333,7 +338,7 @@ export const HoidEpubImportPanel: React.FC<{
       setMessage("La confirmación ha fallado. No se ha modificado el progreso.");
     } finally {
       markingProgressRef.current = false;
-      if (lifecycleRef.current.isCurrent(lease)) setBusy(false);
+      if (lifecycleRef.current.isActive(lease)) setBusy(false);
     }
   };
 
@@ -355,7 +360,7 @@ export const HoidEpubImportPanel: React.FC<{
 
   const commitWholeWorkCompletion = async (chapter: OpenedChapterView) => {
     const lease = leaseRef.current;
-    if (markingProgressRef.current || !lifecycleRef.current.isCurrent(lease)) return;
+    if (markingProgressRef.current || !lifecycleRef.current.isActive(lease)) return;
     markingProgressRef.current = true;
     setBusy(true);
     setMessage("Comprobando el progreso antes de registrar la finalización completa…");
@@ -366,7 +371,7 @@ export const HoidEpubImportPanel: React.FC<{
         chapter.progressFingerprint,
         { confirmed: true },
       );
-      if (!lifecycleRef.current.isCurrent(lease)) return;
+      if (!lifecycleRef.current.isActive(lease)) return;
       if (result === null) {
         setMessage("No se ha podido acceder al coordinador durable. El progreso no se ha modificado.");
       } else if (result.status === "ready" && result.operation === "updated") {
@@ -382,7 +387,7 @@ export const HoidEpubImportPanel: React.FC<{
       setMessage("La confirmación de finalización ha fallado. No se ha modificado el progreso.");
     } finally {
       markingProgressRef.current = false;
-      if (lifecycleRef.current.isCurrent(lease)) setBusy(false);
+      if (lifecycleRef.current.isActive(lease)) setBusy(false);
     }
   };
 

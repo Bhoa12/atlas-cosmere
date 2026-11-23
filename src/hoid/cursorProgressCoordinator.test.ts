@@ -567,7 +567,7 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(store.writes).toBe(0);
   });
 
-  it("requires a separate explicit completion action after the final verified chapter", async () => {
+  it("does not infer whole-work completion from the last numbered chapter", async () => {
     const { coordinator, store } = createCoordinator();
     await coordinator.advance("tfe", cursor("tfe", 37));
     const binding = progressBinding(store.snapshot);
@@ -581,13 +581,12 @@ describe("HoidCursorProgressCoordinator", () => {
     );
     expect(chapterOnly).toEqual({
       status: "rejected",
-      reason: "completion-requires-explicit-confirmation",
+      reason: "unsupported-position",
     });
     expect(store.writes).toBe(1);
 
-    const completed = await coordinator.completeAfterReadingIfCurrent(
+    const completed = await coordinator.completeWorkIfCurrent(
       "tfe",
-      38,
       binding.revision,
       binding.fingerprint,
       { confirmed: true },
@@ -600,24 +599,20 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(store.writes).toBe(2);
   });
 
-  it("does not complete a work before its final chapter is the next chapter to read", async () => {
+  it("rejects whole-work completion without a canonical user confirmation", async () => {
     const { coordinator, store } = createCoordinator();
-    await coordinator.advance("tfe", cursor("tfe", 7));
-    const binding = progressBinding(store.snapshot);
-
-    const result = await coordinator.completeAfterReadingIfCurrent(
+    const result = await coordinator.completeWorkIfCurrent(
       "tfe",
-      8,
-      binding.revision,
-      binding.fingerprint,
-      { confirmed: true },
+      0,
+      "a".repeat(64),
+      {} as { confirmed: true },
     );
 
     expect(result).toEqual({
       status: "rejected",
-      reason: "non-sequential-reader-advance",
+      reason: "progress-confirmation-required",
     });
-    expect(store.writes).toBe(1);
+    expect(store.writes).toBe(0);
   });
 
   it("requires an explicit canonical confirmation before changing reader progress", async () => {

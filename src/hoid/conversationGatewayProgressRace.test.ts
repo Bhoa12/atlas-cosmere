@@ -73,7 +73,7 @@ describe("Hoid conversation progress race matrix", () => {
 
     const { runtime, started, finish } = deferredRuntime();
     let current: unknown = initial;
-    const resolveEntityIds: NonNullable<HoidConversationGatewayConfig["resolveEntityIds"]> = () => ({
+    const resolveEntityIds = (() => ({
       status: "ready",
       resolution: "matched",
       progressRevision: identity.revision,
@@ -83,7 +83,7 @@ describe("Hoid conversation progress race matrix", () => {
         { id: "synthetic.place-beta", kind: "place" },
       ],
       truncated: false,
-    });
+    })) as unknown as NonNullable<HoidConversationGatewayConfig["resolveEntityIds"]>;
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,

@@ -4,7 +4,8 @@ import {
   createHoidConversationGateway,
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidConversationScopeBinding } from "./conversationScopeBinding";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 import { createHoidConversationContext } from "./conversationContext";
@@ -30,6 +31,30 @@ function progressIdentity(progress: unknown) {
     revision: projection.revision,
     fingerprint: fingerprintHoidCursorProgressProjection(projection),
   };
+}
+
+function scopeBinding(progress: unknown) {
+  const manifest = getHoidReadingManifest("twok");
+  if (manifest.status !== "ready") throw new Error("Manifiesto sintético no disponible");
+  const chapter = manifest.manifest.units.find(unit => unit.chapterNumber === 1);
+  if (!chapter?.locatorId) throw new Error("Localizador sintético no disponible");
+  const answer: HoidEvidenceAnswer = Object.freeze({
+    status: "authorized",
+    text: "Respuesta sintética autorizada.",
+    claimIds: Object.freeze(["claim.synthetic"]),
+    evidenceIds: Object.freeze(["evidence.twok"]),
+    sources: Object.freeze([Object.freeze({
+      evidenceId: "evidence.twok",
+      sourceBookId: "twok",
+      sourceChapter: 1,
+      locatorId: chapter.locatorId,
+      unlockBookId: "twok",
+      unlockChapter: 1,
+    })]),
+  });
+  const binding = createHoidConversationScopeBinding(answer, progress);
+  if (!binding) throw new Error("Ámbito sintético no disponible");
+  return binding;
 }
 
 const authorizedAnswer: HoidEvidenceAnswer = Object.freeze({
@@ -98,6 +123,7 @@ describe("Hoid conversation progress race matrix", () => {
       question: "¿Y ese personaje?",
       progress: initial,
       typedContext,
+      scopeBinding: scopeBinding(initial),
     });
     await started;
     current = snapshot(4, 2);
@@ -133,7 +159,8 @@ describe("Hoid conversation progress race matrix", () => {
       question: "¿Y entre ellos?",
       progress: initial,
       context,
-      bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      scopeBinding: scopeBinding(initial),
     });
     await started;
     current = snapshot(4, 2);
@@ -173,6 +200,7 @@ describe("Hoid conversation progress race matrix", () => {
     const pending = gateway.answer({
       question: "Cuéntame más sobre él",
       progress: initial,
+      scopeBinding: scopeBinding(initial),
     });
     await started;
     current = snapshot(4, 2);

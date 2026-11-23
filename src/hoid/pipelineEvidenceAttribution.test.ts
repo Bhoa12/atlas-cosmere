@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { getHoidReadingManifest } from "./readingManifest";
-import { HoidPipeline, type EvidenceBoundClaim } from "./pipeline";
+import { HoidPipeline, type EvidenceBoundClaim, type ProviderKnowledgeContextEntry } from "./pipeline";
 import type { HoidKnowledgeEntry } from "./catalog";
 import type { HoidAliasDisclosurePort } from "./aliasDisclosureBoundary";
-import type { HoidProvider } from "./types";
+import type { HoidAnswerRequest, HoidProvider } from "./types";
 
 function verifiedEntry(
   id: string,
@@ -46,7 +46,7 @@ describe("Hoid evidence-attributed answers", () => {
     const knowledge = [verifiedEntry("evidence-tfe", "Concepto A", "tfe", 1)];
     const provider = {
       answer: vi.fn(async () => "The legacy path must not run."),
-      answerWithEvidence: vi.fn(async (_request, context) => {
+      answerWithEvidence: vi.fn(async (_request: HoidAnswerRequest, context: readonly ProviderKnowledgeContextEntry[]) => {
         expect(context).toHaveLength(1);
         expect(context[0].evidenceSource).toEqual({ bookId: "tfe", chapter: 1 });
         return [{ text: "Concepto A tiene una explicación respaldada.", evidenceIds: ["evidence-tfe"] }];

@@ -34,11 +34,11 @@ function source(bookId: string, evidenceId: string, chapter = 1) {
   };
 }
 
-function progress(includeWor = true, tfeChapter = 3) {
+function progress(includeWor = true, tfeChapter = 3, worChapter = 3) {
   const positions: { bookId: string; cursor: ReturnType<typeof cursor> }[] = [
     { bookId: "tfe", cursor: cursor("tfe", tfeChapter) },
   ];
-  if (includeWor) positions.push({ bookId: "wor", cursor: cursor("wor", 3) });
+  if (includeWor) positions.push({ bookId: "wor", cursor: cursor("wor", worChapter) });
   return {
     schemaVersion: 2,
     revision: 4,
@@ -204,7 +204,7 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
       }],
     };
 
-    const result = buildHoidCrossBookEvidenceSummary(crossWorkClaim, progress(true, 4));
+    const result = buildHoidCrossBookEvidenceSummary(crossWorkClaim, progress(true, 4, 4));
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.summary.segments).toEqual([{

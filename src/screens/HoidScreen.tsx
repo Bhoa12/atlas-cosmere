@@ -25,6 +25,7 @@ import {
   createHoidEditionBoundRecommendationPresentation,
   type HoidEditionBoundRecommendationPresentation,
 } from '../hoid/editionBoundRecommendationPresentation';
+import { validateHoidEditionBoundRecommendationFreshness } from '../hoid/editionBoundRecommendationFreshness';
 import { prepareHoidRecommendationNavigationHandoff } from '../hoid/editionBoundRecommendationNavigation';
 import { HOID_TOPIC_TAXONOMY, type HoidTopicId } from '../hoid/topicTaxonomy';
 import { HOID_SOURCE_BIBLIOGRAPHY } from '../hoid/bibliography';
@@ -551,12 +552,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       const latestProjection = latestProgress
         ? projectHoidCursorProgressSnapshot(latestProgress)
         : null;
-      if (
-        latestProjection?.status !== 'ready' ||
-        latestProjection.revision !== presentation.progressRevision ||
-        fingerprintHoidCursorProgressProjection(latestProjection) !== presentation.progressFingerprint
-      ) {
-        setRecommendationMessage('Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.');
+      const freshness = latestProjection?.status === 'ready'
+        ? validateHoidEditionBoundRecommendationFreshness(presentation, latestProjection)
+        : 'invalid-progress';
+      if (freshness !== 'current') {
+        setRecommendationMessage(
+          freshness === 'stale'
+            ? 'Tu progreso ha cambiado. Vuelve a solicitar las recomendaciones.'
+            : 'No puedo verificar la presentación o el progreso actual. No mostraré recomendaciones.',
+        );
         return;
       }
 
@@ -702,10 +706,11 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   // A recommendation view model is visible only for its exact validated progress revision and fingerprint.
   const recommendationsAreCurrent =
     recommendationPresentation !== null &&
-    recommendationPresentation.status !== 'unavailable' &&
-    liveProgressScope !== null &&
-    recommendationPresentation.progressRevision === liveProgressScope.revision &&
-    recommendationPresentation.progressFingerprint === liveProgressScope.fingerprint;
+    liveProjection?.status === 'ready' &&
+    validateHoidEditionBoundRecommendationFreshness(
+      recommendationPresentation,
+      liveProjection,
+    ) === 'current';
   const describeRecommendationNavigation = (
     target: unknown,
     progressRevision: number,

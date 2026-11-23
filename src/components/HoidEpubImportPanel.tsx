@@ -65,6 +65,8 @@ function rejectionMessage(reason: string): string {
 
 type OpenedChapterView = Readonly<{
   workId: string;
+  sourceId: string;
+  readerSessionEpoch: number;
   title: string;
   chapterNumber: number;
   editionId: string;
@@ -101,6 +103,7 @@ export const HoidEpubImportPanel: React.FC<{
   const lifecycleRef = useRef(createHoidImportLifecycleGuard());
   const leaseRef = useRef<number | null>(null);
   const progressChangeEpochRef = useRef(0);
+  const readerSessionEpochRef = useRef(0);
   const markingProgressRef = useRef(false);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
 
@@ -138,6 +141,8 @@ export const HoidEpubImportPanel: React.FC<{
       return;
     }
 
+    const readerSessionEpoch = readerSessionEpochRef.current + 1;
+    readerSessionEpochRef.current = readerSessionEpoch;
     let readerSessionActive = true;
     const sourceId = source.sourceId;
     const workId = choice.workId;
@@ -150,6 +155,7 @@ export const HoidEpubImportPanel: React.FC<{
       refreshCurrentProgress: () => progressRefreshRef.current(),
       isCurrent: () =>
         readerSessionActive &&
+        readerSessionEpochRef.current === readerSessionEpoch &&
         sourceIdRef.current === sourceId &&
         lifecycleRef.current.isActive(leaseRef.current),
       getProgressChangeEpoch: () => progressChangeEpochRef.current,
@@ -162,6 +168,8 @@ export const HoidEpubImportPanel: React.FC<{
             : "unavailable";
         setOpenedChapter(Object.freeze({
           workId,
+          sourceId,
+          readerSessionEpoch,
           title: choice.title,
           chapterNumber,
           editionId,
@@ -177,6 +185,9 @@ export const HoidEpubImportPanel: React.FC<{
     onReaderPortChange?.(port, workId);
     return () => {
       readerSessionActive = false;
+      if (readerSessionEpochRef.current === readerSessionEpoch) {
+        readerSessionEpochRef.current += 1;
+      }
       onReaderPortChange?.(null, null);
     };
   }, [pickedSource, selectedChoice, candidate, onReaderPortChange]);
@@ -302,12 +313,16 @@ export const HoidEpubImportPanel: React.FC<{
   };
 
 
+  const isOpenedChapterSessionCurrent = (chapter: OpenedChapterView): boolean =>
+    chapter.readerSessionEpoch === readerSessionEpochRef.current &&
+    sourceIdRef.current === chapter.sourceId &&
+    lifecycleRef.current.isActive(leaseRef.current);
+
   const commitOpenedChapterProgress = async (chapter: OpenedChapterView) => {
-    const lease = leaseRef.current;
     if (
       markingProgressRef.current ||
       chapter.progressAction !== "advance" ||
-      !lifecycleRef.current.isActive(lease)
+      !isOpenedChapterSessionCurrent(chapter)
     ) return;
     markingProgressRef.current = true;
     setBusy(true);
@@ -320,7 +335,7 @@ export const HoidEpubImportPanel: React.FC<{
         chapter.progressFingerprint,
         { confirmed: true },
       );
-      if (!lifecycleRef.current.isActive(lease)) return;
+      if (!isOpenedChapterSessionCurrent(chapter)) return;
       if (result === null) {
         setMessage("No se ha podido acceder al coordinador durable. El progreso no se ha modificado.");
       } else if (result.status === "ready" && result.operation === "updated") {
@@ -338,13 +353,14 @@ export const HoidEpubImportPanel: React.FC<{
       setMessage("La confirmación ha fallado. No se ha modificado el progreso.");
     } finally {
       markingProgressRef.current = false;
-      if (lifecycleRef.current.isActive(lease)) setBusy(false);
+      if (isOpenedChapterSessionCurrent(chapter)) setBusy(false);
     }
   };
 
   const confirmOpenedChapterRead = () => {
     const chapter = openedChapter;
-    if (chapter === null || busy || markingProgressRef.current || chapter.progressAction !== "advance") return;
+    if (chapter === null || busy || markingProgressRef.current ||
+      chapter.progressAction !== "advance" || !isOpenedChapterSessionCurrent(chapter)) return;
     Alert.alert(
       "Marcar capítulo como leído",
       `¿Confirmas que has leído el capítulo ${chapter.chapterNumber} de ${chapter.title}? El progreso avanzará al siguiente capítulo y cambiará qué información puede revelar Hoid.`,
@@ -359,8 +375,7 @@ export const HoidEpubImportPanel: React.FC<{
   };
 
   const commitWholeWorkCompletion = async (chapter: OpenedChapterView) => {
-    const lease = leaseRef.current;
-    if (markingProgressRef.current || !lifecycleRef.current.isActive(lease)) return;
+    if (markingProgressRef.current || !isOpenedChapterSessionCurrent(chapter)) return;
     markingProgressRef.current = true;
     setBusy(true);
     setMessage("Comprobando el progreso antes de registrar la finalización completa…");
@@ -371,7 +386,7 @@ export const HoidEpubImportPanel: React.FC<{
         chapter.progressFingerprint,
         { confirmed: true },
       );
-      if (!lifecycleRef.current.isActive(lease)) return;
+      if (!isOpenedChapterSessionCurrent(chapter)) return;
       if (result === null) {
         setMessage("No se ha podido acceder al coordinador durable. El progreso no se ha modificado.");
       } else if (result.status === "ready" && result.operation === "updated") {
@@ -387,13 +402,14 @@ export const HoidEpubImportPanel: React.FC<{
       setMessage("La confirmación de finalización ha fallado. No se ha modificado el progreso.");
     } finally {
       markingProgressRef.current = false;
-      if (lifecycleRef.current.isActive(lease)) setBusy(false);
+      if (isOpenedChapterSessionCurrent(chapter)) setBusy(false);
     }
   };
 
   const confirmWholeWorkCompletion = () => {
     const chapter = openedChapter;
-    if (chapter === null || busy || markingProgressRef.current) return;
+    if (chapter === null || busy || markingProgressRef.current ||
+      !isOpenedChapterSessionCurrent(chapter)) return;
     Alert.alert(
       "He terminado toda la obra",
       `¿Confirmas que has terminado toda la obra ${chapter.title}, incluidos epílogos, apéndices y secciones no numeradas? Esta acción marcará el libro como completado y cambiará qué información puede revelar Hoid.`,

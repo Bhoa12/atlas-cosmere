@@ -8,6 +8,9 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/editionBoundRecommendationPresentation.ts"
       - "src/hoid/editionBoundRecommendationPresentation.test.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.test.ts"
+      - "docs/hoid/RUN254_RECOMMENDATION_FRESHNESS_GATE.md"
       - "src/hoid/editionBoundRecommendationExplanations.ts"
       - "src/hoid/editionBoundRecommendations.ts"
       - "src/hoid/cursorProgressLedger.ts"
@@ -21,6 +24,9 @@ on:
       - "src/screens/HoidScreen.tsx"
       - "src/hoid/editionBoundRecommendationPresentation.ts"
       - "src/hoid/editionBoundRecommendationPresentation.test.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.test.ts"
+      - "docs/hoid/RUN254_RECOMMENDATION_FRESHNESS_GATE.md"
       - "src/hoid/editionBoundRecommendationExplanations.ts"
       - "src/hoid/editionBoundRecommendations.ts"
       - "src/hoid/cursorProgressLedger.ts"
@@ -49,6 +55,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/editionBoundRecommendationPresentation.test.ts
+          src/hoid/editionBoundRecommendationFreshness.test.ts
           src/hoid/editionBoundRecommendations.test.ts
           src/hoid/editionBoundRecommendationExplanations.test.ts
           src/hoid/cursorProgressLedger.test.ts
@@ -60,6 +67,7 @@ jobs:
           --esModuleInterop
           src/screens/HoidScreen.tsx
           src/hoid/editionBoundRecommendationPresentation.ts
+          src/hoid/editionBoundRecommendationFreshness.ts
           src/hoid/editionBoundRecommendations.ts
           src/hoid/editionBoundRecommendationExplanations.ts
           src/hoid/cursorProgressLedger.ts

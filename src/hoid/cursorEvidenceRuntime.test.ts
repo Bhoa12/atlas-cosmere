@@ -430,6 +430,8 @@ describe("HoidCursorEvidenceRuntime", () => {
       revision: 7,
       fingerprint: fingerprintHoidCursorProgressProjection(projection),
     });
+    expect(selector).toHaveBeenCalledTimes(1);
+    expect(selector.mock.calls[0][0]).not.toHaveProperty("progressBinding");
   });
 
 

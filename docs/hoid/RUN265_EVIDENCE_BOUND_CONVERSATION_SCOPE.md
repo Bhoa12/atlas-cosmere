@@ -49,7 +49,7 @@ El binding nunca cruza la frontera del proveedor. Solo se pasa al gateway local 
 
 La pantalla conserva el binding únicamente en memoria. Lo envía junto con los contextos ID-only, lo elimina al cambiar el ámbito, cambiar el progreso, cancelar, fallar o iniciar recomendaciones, y muestra al usuario las obras y capítulos que limitan el seguimiento.
 
-Si la presentación confiable y el binding no describen el mismo conjunto de obras, no se conserva el contexto.
+Si la presentación confiable y el binding no describen exactamente las mismas obras y los mismos capítulos citados, no se conserva el contexto.
 
 ## Seguridad y spoilers
 

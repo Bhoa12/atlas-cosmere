@@ -488,14 +488,14 @@ describe("HoidCursorProgressCoordinator", () => {
     });
     expect(second.getSnapshot()?.revision).toBe(1);
   });
-  it("commits the next reader chapter only against the exact durable progress binding", async () => {
+  it("marks the opened chapter as read by moving the cursor to the following chapter", async () => {
     const { coordinator, store } = createCoordinator();
     await coordinator.advance("tfe", cursor("tfe", 7));
     const binding = progressBinding(store.snapshot);
 
-    const result = await coordinator.advanceIfCurrent(
+    const result = await coordinator.markChapterReadIfCurrent(
       "tfe",
-      cursor("tfe", 8),
+      8,
       binding.revision,
       binding.fingerprint,
     );
@@ -503,7 +503,7 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(result).toMatchObject({
       status: "ready",
       operation: "updated",
-      snapshot: { revision: 2, positions: [{ bookId: "tfe", cursor: { chapterNumber: 8 } }] },
+      snapshot: { revision: 2, positions: [{ bookId: "tfe", cursor: { chapterNumber: 9 } }] },
     });
     expect(store.writes).toBe(2);
   });
@@ -516,9 +516,9 @@ describe("HoidCursorProgressCoordinator", () => {
     const staleBinding = progressBinding(store.snapshot);
 
     await other.advance("tfe", cursor("tfe", 4));
-    const result = await reader.advanceIfCurrent(
+    const result = await reader.markChapterReadIfCurrent(
       "woa",
-      cursor("woa", 2),
+      1,
       staleBinding.revision,
       staleBinding.fingerprint,
     );
@@ -536,9 +536,9 @@ describe("HoidCursorProgressCoordinator", () => {
     await coordinator.advance("tfe", cursor("tfe", 7));
     const binding = progressBinding(store.snapshot);
 
-    const result = await coordinator.advanceIfCurrent(
+    const result = await coordinator.markChapterReadIfCurrent(
       "tfe",
-      cursor("tfe", 9),
+      9,
       binding.revision,
       binding.fingerprint,
     );
@@ -552,9 +552,9 @@ describe("HoidCursorProgressCoordinator", () => {
 
   it("rejects malformed progress bindings before attempting a durable read", async () => {
     const { coordinator, store } = createCoordinator();
-    const result = await coordinator.advanceIfCurrent(
+    const result = await coordinator.markChapterReadIfCurrent(
       "tfe",
-      cursor("tfe", 1),
+      1,
       0,
       "not-a-sha256",
     );
@@ -562,6 +562,57 @@ describe("HoidCursorProgressCoordinator", () => {
     expect(result).toEqual({ status: "rejected", reason: "invalid-update" });
     expect(store.writes).toBe(0);
   });
+
+  it("requires a separate explicit completion action after the final verified chapter", async () => {
+    const { coordinator, store } = createCoordinator();
+    await coordinator.advance("tfe", cursor("tfe", 37));
+    const binding = progressBinding(store.snapshot);
+
+    const chapterOnly = await coordinator.markChapterReadIfCurrent(
+      "tfe",
+      38,
+      binding.revision,
+      binding.fingerprint,
+    );
+    expect(chapterOnly).toEqual({
+      status: "rejected",
+      reason: "completion-requires-explicit-confirmation",
+    });
+    expect(store.writes).toBe(1);
+
+    const completed = await coordinator.completeAfterReadingIfCurrent(
+      "tfe",
+      38,
+      binding.revision,
+      binding.fingerprint,
+    );
+    expect(completed).toMatchObject({
+      status: "ready",
+      operation: "updated",
+      snapshot: { revision: 2, positions: [{ bookId: "tfe", completed: true }] },
+    });
+    expect(store.writes).toBe(2);
+  });
+
+  it("does not complete a work before its final chapter is the next chapter to read", async () => {
+    const { coordinator, store } = createCoordinator();
+    await coordinator.advance("tfe", cursor("tfe", 7));
+    const binding = progressBinding(store.snapshot);
+
+    const result = await coordinator.completeAfterReadingIfCurrent(
+      "tfe",
+      8,
+      binding.revision,
+      binding.fingerprint,
+    );
+
+    expect(result).toEqual({
+      status: "rejected",
+      reason: "non-sequential-reader-advance",
+    });
+    expect(store.writes).toBe(1);
+  });
+
 
 
 });

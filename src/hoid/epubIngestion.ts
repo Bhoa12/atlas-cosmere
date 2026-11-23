@@ -260,11 +260,53 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   if (isSignalAborted(signal)) reject("cancelled");
 }
 
-async function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
-  throwIfAborted(signal);
-  const result = await operation;
-  throwIfAborted(signal);
-  return result;
+function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (signal === undefined) return operation;
+  if (isSignalAborted(signal)) {
+    // The adapter call may have synchronously aborted the signal before
+    // returning its promise. Observe that promise before rejecting cancellation.
+    operation.then(() => undefined, () => undefined);
+    return Promise.reject(new InspectionError("cancelled"));
+  }
+
+  return new Promise<T>((resolve, rejectPromise) => {
+    let settled = false;
+    let removeListener = () => {};
+    const cleanup = () => {
+      try { removeListener(); } catch { /* Preserve the operation result. */ }
+    };
+    const finishResolve = (value: T) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (isSignalAborted(signal)) rejectPromise(new InspectionError("cancelled"));
+      else resolve(value);
+    };
+    const finishReject = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      rejectPromise(isSignalAborted(signal) ? new InspectionError("cancelled") : error);
+    };
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      rejectPromise(new InspectionError("cancelled"));
+    };
+
+    try {
+      signal.addEventListener("abort", onAbort, { once: true });
+      removeListener = () => signal.removeEventListener("abort", onAbort);
+    } catch {
+      onAbort();
+    }
+
+    // Attach handlers even if the signal raced with listener installation.
+    // This consumes a late rejection from an adapter that ignores cancellation.
+    operation.then(finishResolve, finishReject);
+    if (!settled && isSignalAborted(signal)) onAbort();
+  });
 }
 
 function exactDataRecord(value: unknown, keys: readonly string[]): value is Record<string, unknown> {

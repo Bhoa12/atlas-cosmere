@@ -95,6 +95,7 @@ function dependenciesFor(
     refreshCurrentProgress: () => Promise<unknown>;
     isCurrent: () => boolean;
     getProgressChangeEpoch: () => number;
+    sessionSignal: AbortSignal;
     onChapterOpened: (
       chapter: HoidEpubReadableChapter,
       chapterNumber: number,
@@ -122,6 +123,7 @@ function dependenciesFor(
     ingestion: { readChapterContent },
     refreshCurrentProgress,
     isCurrent,
+    ...(overrides.sessionSignal ? { sessionSignal: overrides.sessionSignal } : {}),
     getProgressChangeEpoch,
     onChapterOpened,
   });
@@ -246,6 +248,48 @@ describe("local EPUB recommendation reader host", () => {
       request.navigationHref,
       controller.signal,
     );
+    expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
+  });
+
+  it("aborts an in-flight chapter read when its source session is invalidated", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    const session = new AbortController();
+    const caller = new AbortController();
+    let receivedSignal: AbortSignal | undefined;
+    let resolveRead: (value: unknown) => void = () => {};
+    let markStarted: () => void = () => {};
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const pendingRead = new Promise<unknown>(resolve => { resolveRead = resolve; });
+    const dependencies = dependenciesFor(progress, request.navigationHref, {
+      sessionSignal: session.signal,
+      readChapterContent: vi.fn((
+        _candidate: HoidEpubPackageInspectionCandidate,
+        _href: string,
+        signal?: AbortSignal,
+      ) => {
+        receivedSignal = signal;
+        markStarted();
+        return pendingRead;
+      }) as HoidEpubIngestionService["readChapterContent"],
+    });
+    const operation = dependencies.port.openVerifiedChapter({
+      ...request.request,
+      signal: caller.signal,
+    });
+
+    await started;
+    expect(receivedSignal).toBeDefined();
+    expect(receivedSignal).not.toBe(caller.signal);
+    expect(receivedSignal).not.toBe(session.signal);
+    session.abort();
+    expect(receivedSignal?.aborted).toBe(true);
+    resolveRead({
+      status: "candidate",
+      candidate: readerContent(request.workId, request.editionId, request.navigationHref),
+    });
+
+    await expect(operation).resolves.toEqual({ status: "unavailable", reason: "cancelled" });
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
   });
 

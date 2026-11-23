@@ -22,7 +22,7 @@ No contiene nombres de personajes, alias, texto de preguntas, prosa de respuesta
 
 - Con un ámbito explícito, todas las obras seleccionadas deben aportar evidencia.
 - En ámbito automático, las obras que realmente aportaron evidencia se convierten en el ámbito de seguimiento.
-- Una respuesta bloqueada, abstencionista, sin citas o con más obras de las permitidas no crea contexto reutilizable.
+- Una respuesta bloqueada, abstencionista, sin citas, sin capítulos localizables en un manifiesto verificado o con más obras de las permitidas no crea contexto reutilizable. Las obras que todavía no dispongan de segmentación y localizadores de capítulo verificables no generan un binding de seguimiento; no se inventa una posición numérica para ellas.
 - Los capítulos visibles se reconstruyen desde las citas verificadas, no desde etiquetas del proveedor.
 
 ## Validación de seguimiento

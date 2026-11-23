@@ -41,6 +41,10 @@ const AUTHORIZED_ANSWER_KEYS = [
   "segments",
   "layout",
 ] as const;
+const AUTHORIZED_ANSWER_KEYS_WITH_PROGRESS = [
+  ...AUTHORIZED_ANSWER_KEYS,
+  "progressBinding",
+] as const;
 
 function exactRecord(value: unknown, keys: readonly string[]): Record<string, unknown> | null {
   try {
@@ -240,7 +244,8 @@ export function createHoidVerifiedAnswerPresenter(configInput: unknown): HoidVer
       const status = ownDataValue(answerInput, "status");
       if (status !== "authorized") return presentHoidEvidenceAnswer(answerInput, progress);
 
-      const answer = exactRecord(answerInput, AUTHORIZED_ANSWER_KEYS);
+      const answer = exactRecord(answerInput, AUTHORIZED_ANSWER_KEYS)
+        ?? exactRecord(answerInput, AUTHORIZED_ANSWER_KEYS_WITH_PROGRESS);
       if (!answer || answer.status !== "authorized") return invalidPresentation(progress);
       const claimIds = canonicalIds(answer.claimIds, MAX_PRESENTED_CLAIMS);
       const evidenceIds = canonicalIds(answer.evidenceIds, MAX_PRESENTED_EVIDENCE);
@@ -294,6 +299,9 @@ export function createHoidVerifiedAnswerPresenter(configInput: unknown): HoidVer
         sources: expectedSources,
         segments: expectedSegments,
         layout,
+        ...(Object.prototype.hasOwnProperty.call(answer, "progressBinding")
+          ? { progressBinding: answer.progressBinding }
+          : {}),
       }, progress);
     } catch {
       return invalidPresentation(progress);

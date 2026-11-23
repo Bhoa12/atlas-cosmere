@@ -168,7 +168,7 @@ describe("Hoid conversation progress race matrix", () => {
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
     const pending = gateway.answer({
-      question: "¿Qué pasa con él?",
+      question: "Cuéntame más sobre él",
       progress: initial,
     });
     await started;

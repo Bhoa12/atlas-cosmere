@@ -156,6 +156,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
     });
     expect(result.status).toBe("ready");
     expect(runtime.answer).toHaveBeenCalledWith({
@@ -175,6 +176,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
       depth: "brief",
     });
 
@@ -196,6 +198,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y esa organización?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
       depth: "comparative",
     });
 
@@ -218,6 +221,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       question: "¿Y ese fenómeno?",
       progress: current,
       typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
       depth: "brief",
     }, { signal: controller.signal });
 

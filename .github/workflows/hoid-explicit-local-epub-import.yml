@@ -14,6 +14,8 @@ on:
       - "src/hoid/epubImportLifecycle.ts"
       - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
+      - "src/hoid/recommendationReaderPort.ts"
+      - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -24,6 +26,7 @@ on:
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
       - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
   pull_request:
     paths:
@@ -36,6 +39,8 @@ on:
       - "src/hoid/epubImportLifecycle.ts"
       - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
+      - "src/hoid/recommendationReaderPort.ts"
+      - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/editionStructure.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/expoLocalEpubProvider.ts"
@@ -46,6 +51,7 @@ on:
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
       - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
 
 permissions:

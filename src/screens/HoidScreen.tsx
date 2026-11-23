@@ -648,7 +648,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setMensajes(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           emisor: 'hoid',
-          texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completará la respuesta mediante suposiciones.',
+          texto: 'No puedo responder de forma verificable en este momento. No enviaré la pregunta a un proveedor no configurado ni completaré la respuesta mediante suposiciones.',
           ...(requestScope ? { progressScope: requestScope } : {}),
         }]);
       }

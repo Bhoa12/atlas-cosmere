@@ -1,10 +1,11 @@
+import { describe, expect, it, vi } from "vitest";
 import { HoidPipeline } from "./pipeline";
 import { HoidAnswerRequest, HoidProvider } from "./types";
 
 describe("Hoid provider boundary", () => {
   it("never forwards caller-supplied knowledgeContext to a provider", async () => {
     const provider: HoidProvider = {
-      answer: jest.fn(async (request) => {
+      answer: vi.fn(async (request) => {
         expect(request.knowledgeContext).toBeUndefined();
         return "Respuesta segura";
       }),
@@ -29,7 +30,7 @@ describe("Hoid provider boundary", () => {
     const privateMarker = "SYNTHETIC_PRIVATE_EPUB_TEXT_MUST_STAY_LOCAL";
     let received: HoidAnswerRequest | undefined;
     const provider: HoidProvider = {
-      answer: jest.fn(async (request) => {
+      answer: vi.fn(async (request) => {
         received = request;
         return "Respuesta segura";
       }),

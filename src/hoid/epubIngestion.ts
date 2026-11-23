@@ -951,24 +951,27 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         dependencies.archive.listEntries(state.source.sourceId, signal),
         signal,
       ));
-      const currentInventorySha = await digestText(dependencies.digest, archiveInventoryText(entries));
+      const currentInventorySha = await awaitWithSignal(
+        digestText(dependencies.digest, archiveInventoryText(entries)),
+        signal,
+      );
       if (currentInventorySha !== state.report.archiveInventorySha256) reject("source-changed");
 
       const currentMimetypeEntry = requireFile(entries, "mimetype");
       const currentMimetypeBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentMimetypeEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
         signal,
       );
       if (
         String.fromCharCode(...currentMimetypeBytes) !== MIME_TYPE ||
-        await digestBytes(dependencies.digest, currentMimetypeBytes) !== state.report.mimetypeSha256
+        await awaitWithSignal(digestBytes(dependencies.digest, currentMimetypeBytes), signal) !== state.report.mimetypeSha256
       ) reject("source-changed");
 
       const currentContainerEntry = requireFile(entries, "META-INF/container.xml");
       const currentContainerBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentContainerEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
         signal,
       );
       if (await awaitWithSignal(digestBytes(dependencies.digest, currentContainerBytes), signal) !== state.report.containerDocumentSha256) {
@@ -978,7 +981,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       const currentPackageEntry = requireFile(entries, state.packagePath);
       const currentPackageBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentPackageEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
         signal,
       );
       if (await awaitWithSignal(digestBytes(dependencies.digest, currentPackageBytes), signal) !== state.report.packageDocumentSha256) {
@@ -988,7 +991,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       const currentNavigationEntry = requireFile(entries, state.navigationPath);
       const currentNavigationBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentNavigationEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
         signal,
       );
       if (await awaitWithSignal(digestBytes(dependencies.digest, currentNavigationBytes), signal) !== state.report.navigationDocumentSha256) {
@@ -1000,13 +1003,14 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       if (entry.uncompressedSize > HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes) reject("chapter-size-limit");
 
       const bytes = await readCheckedEntry(
-        dependencies.archive, state.source.sourceId, entry, HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes,,
+        dependencies.archive, state.source.sourceId, entry, HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
         signal,
       );
       let validXhtml = false;
       try {
         validXhtml = await awaitWithSignal(dependencies.xml.validateXhtml(bytes, signal), signal);
       } catch {
+        if (isSignalAborted(signal)) reject("cancelled");
         reject("xhtml-invalid");
       }
       if (validXhtml !== true) reject("xhtml-invalid");
@@ -1096,6 +1100,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       try {
         extracted = await awaitWithSignal(dependencies.xml.extractReadableBlocks(bytes, signal), signal);
       } catch {
+        if (isSignalAborted(signal)) reject("cancelled");
         reject("xhtml-invalid");
       }
       const blocks = canonicalReadableBlocks(extracted, signal);

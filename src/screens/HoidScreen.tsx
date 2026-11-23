@@ -144,12 +144,18 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   }> | null>(null);
   const [readerOpening, setReaderOpening] = useState(false);
   const [readerMessage, setReaderMessage] = useState('');
+  const readerAbortControllerRef = useRef<AbortController | null>(null);
   const handleReaderPortChange = useCallback((
     port: HoidRecommendationReaderPort | null,
     workId: string | null,
   ) => {
     setReaderPortState(port && workId ? Object.freeze({ port, workId }) : null);
-    if (!port) setReaderMessage('');
+    if (!port) {
+      readerAbortControllerRef.current?.abort();
+      readerAbortControllerRef.current = null;
+      setReaderOpening(false);
+      setReaderMessage('');
+    }
   }, []);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
@@ -180,6 +186,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setRecommendationPresentation(null);
     setRecommendationMessage('');
     setRecommendationSelectedBookId(null);
+    readerAbortControllerRef.current?.abort();
+    readerAbortControllerRef.current = null;
+    setReaderOpening(false);
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
@@ -191,6 +200,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   useEffect(() => () => {
     answerAbortControllerRef.current?.abort();
     answerAbortControllerRef.current = null;
+    readerAbortControllerRef.current?.abort();
+    readerAbortControllerRef.current = null;
   }, []);
 
   // Filter immediately during render, then prune stale assistant text from state.
@@ -763,6 +774,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       setReaderMessage('Importa y verifica el EPUB de esta obra antes de abrir el capítulo.');
       return;
     }
+    readerAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    readerAbortControllerRef.current = controller;
     setReaderOpening(true);
     setReaderMessage('Revalidando el progreso y preparando el capítulo local…');
     try {
@@ -776,6 +790,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           expectedProgressRevision: progressRevision,
           expectedProgressFingerprint: progressFingerprint,
           selectedActiveBookId: recommendationSelectedBookId ?? undefined,
+          signal: controller.signal,
         },
       );
       if (result.status === 'opened') {
@@ -792,8 +807,18 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     } catch {
       setReaderMessage('La apertura local ha fallado de forma segura.');
     } finally {
-      setReaderOpening(false);
+      if (readerAbortControllerRef.current === controller) {
+        readerAbortControllerRef.current = null;
+        setReaderOpening(false);
+      }
     }
+  };
+
+  const cancelReaderOpen = () => {
+    readerAbortControllerRef.current?.abort();
+    readerAbortControllerRef.current = null;
+    setReaderOpening(false);
+    setReaderMessage('Apertura cancelada. No se ha modificado el progreso.');
   };
 
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
@@ -852,6 +877,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         )}
         {readerMessage.length > 0 && (
           <Text style={styles.readerMessage}>{readerMessage}</Text>
+        )}
+        {readerOpening && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={cancelReaderOpen}
+            style={styles.readerCancelButton}
+          >
+            <Text style={styles.readerCancelButtonText}>Cancelar apertura</Text>
+          </TouchableOpacity>
         )}
         {recommendationsAreCurrent && recommendationPresentation?.status === 'selection-required' && (
           <View style={styles.recommendationSelection}>
@@ -1231,6 +1265,8 @@ const styles = StyleSheet.create({
   readerOpenButton: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: '#14532d', borderWidth: 1, borderColor: '#4ade80' },
   readerOpenButtonText: { color: '#dcfce7', fontSize: 10, fontWeight: '800' },
   readerHint: { color: '#94a3b8', fontSize: 9, lineHeight: 14, marginTop: 6 },
+  readerCancelButton: { alignSelf: 'flex-start', marginTop: 7, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: '#7f1d1d' },
+  readerCancelButtonText: { color: '#fee2e2', fontSize: 9, fontWeight: '800' },
   recommendationItemText: { color: '#f8fafc', fontSize: 12, fontWeight: '700' },
   recommendationItemMeta: { color: '#94a3b8', fontSize: 10, marginTop: 2 },
   disabledButton: { opacity: 0.45 },

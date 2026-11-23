@@ -291,6 +291,30 @@ describe("offline EPUB ingestion core", () => {
     resolveEntries(entries);
   });
 
+  it("observes a late adapter rejection when the adapter aborts synchronously", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    const controller = new AbortController();
+    const entries = await fixture.archive.listEntries(fixture.source.sourceId);
+    let rejectEntries: (reason?: unknown) => void = () => {};
+    const pending = new Promise<typeof entries>((_resolve, reject) => { rejectEntries = reject; });
+    vi.spyOn(fixture.archive, "listEntries").mockImplementation(() => {
+      controller.abort();
+      return pending;
+    });
+
+    await expect(fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+      controller.signal,
+    )).resolves.toEqual({ status: "rejected", reason: "cancelled" });
+
+    // This late rejection must remain observed after the caller has returned.
+    rejectEntries(new Error("late synthetic adapter failure"));
+    await Promise.resolve();
+  });
+
   it("discards extracted blocks when cancellation arrives during asynchronous XHTML extraction", async () => {
     const fixture = makeFixture();
     const packageResult = await fixture.service.inspectPackage(fixture.source);

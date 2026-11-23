@@ -592,3 +592,10 @@ El selector solo afecta a explicaciones narrativas. Las consultas de progreso y 
 ## Run 246 — cross-book summary input hardening
 
 `summarizeHoidPresentedCrossBookEvidence()` now accepts an unknown value and canonicalizes it once before grouping chapter evidence. It rejects accessor-backed records, proxy failures, sparse or extended arrays, mismatched claim/evidence/citation mappings, invalid layouts, text/segment drift and chapter locators that do not resolve to the current inspected edition manifest. This is structural defense in depth only: the trusted presenter remains responsible for evidence-ID identity and live progress authorization. Consumers starting from a raw answer should use `buildHoidCrossBookEvidenceSummary(answer, progress)`. See `docs/hoid/RUN246_CROSS_BOOK_SUMMARY_INPUT_HARDENING.md`.
+
+
+## Run 247 — cursor-bound answer freshness
+
+El runtime cursor-native adjunta a cada respuesta autorizada un recibo local con la revisión y el fingerprint de la proyección v2 exacta utilizada para seleccionar las afirmaciones. El presentador editorial confiable conserva ese recibo al reconstruir claims y citas, y la frontera de presentación lo compara con el snapshot usado para mostrar la respuesta. Si el progreso cambió —incluido un cambio de posición bajo la misma revisión— la respuesta se retiene como `stale-progress`.
+
+El recibo es solo una vinculación de frescura: no es una firma, no autentica claims ni proveedores y no concede permisos. La autoridad editorial, los umbrales por obra/capítulo y la comprobación pre/post del gateway siguen siendo obligatorios. Véase `docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md`.

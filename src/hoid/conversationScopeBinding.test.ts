@@ -129,10 +129,15 @@ describe("Hoid evidence-bound conversation scope", () => {
       current,
     );
     expect(binding).not.toBeNull();
-    expect(validateHoidConversationScopeBinding(binding, current)).toMatchObject({
+    const validation = validateHoidConversationScopeBinding(binding, current);
+    expect(validation).toMatchObject({
       status: "ready",
       scope: { mode: "cross-work", bookIds: ["tfe", "twok"] },
     });
+    if (validation.status === "ready") {
+      expect(validation.binding).toBe(binding);
+      expect(validateHoidConversationScopeBinding(validation.binding, current).status).toBe("ready");
+    }
   });
 
   it("rejects a stale progress revision or fingerprint", () => {

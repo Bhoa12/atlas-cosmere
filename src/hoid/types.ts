@@ -39,10 +39,32 @@ export type HoidAnswerRequest = {
   knowledgeContext?: readonly HoidKnowledgeContextFact[];
 };
 
+export type HoidAnswerEvidence = Readonly<{
+  evidenceId: string;
+  kind: HoidKnowledgeKind;
+  source: Readonly<{
+    bookId: string;
+    title: string;
+    chapter: number;
+  }>;
+}>;
+
+/**
+ * A factual claim and its locally reconstructed, edition-verified source
+ * references. These references contain metadata only, never EPUB text or
+ * internal navigation locators.
+ */
+export type HoidAnswerClaim = Readonly<{
+  text: string;
+  evidence: readonly HoidAnswerEvidence[];
+}>;
+
 export type HoidAnswer = {
   text: string;
   blocked: boolean;
   reason?: 'reading-position' | 'input-invalid' | 'provider-unavailable' | 'provider-output';
+  /** Present only when the evidence-bound provider path produced verified citations. */
+  claims?: readonly HoidAnswerClaim[];
 };
 
 export interface HoidProvider {

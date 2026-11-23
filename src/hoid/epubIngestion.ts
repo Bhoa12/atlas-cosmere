@@ -1061,6 +1061,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
     if (state === undefined || state.report !== packageCandidate) {
       return Object.freeze({ status: "rejected", reason: "report-not-issued-here" });
     }
+    if (isSignalAborted(signal)) return Object.freeze({ status: "rejected", reason: "cancelled" });
     if (typeof dependencies.xml.extractReadableBlocks !== "function") {
       return Object.freeze({ status: "rejected", reason: "inspection-failed" });
     }

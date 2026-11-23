@@ -43,6 +43,7 @@ La suite `epubRecommendationReaderHost.test.ts` añade escenarios para:
 1. Una apertura nueva aborta la extracción anterior y la anterior devuelve `superseded`.
 2. Una apertura nueva libera al consumidor de una lectura durable pendiente; la resolución tardía se descarta.
 3. Los listeners de las señales del llamador y de la sesión se eliminan después de una apertura satisfactoria.
+4. Una petición malformada no cancela ni sustituye una apertura válida que ya está en curso.
 
 Se mantienen las pruebas de cancelación explícita, cancelación de sesión, latest-open-wins, progreso obsoleto, identidad de edición y validación de localizadores.
 

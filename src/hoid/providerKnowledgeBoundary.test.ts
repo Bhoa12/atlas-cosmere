@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { HoidPipeline } from "./pipeline";
+import { HoidPipeline, type ContextualHoidProvider } from "./pipeline";
 import { HoidAnswerRequest, HoidProvider } from "./types";
 
 describe("Hoid provider boundary", () => {
@@ -61,5 +61,39 @@ describe("Hoid provider boundary", () => {
     expect(JSON.stringify(received)).not.toContain(privateMarker);
     expect(JSON.stringify(received)).not.toContain("file:///private");
     expect(JSON.stringify(received)).not.toContain("synthetic-local-handle");
+  });
+
+  it("keeps local EPUB fields out of contextual provider requests too", async () => {
+    const privateMarker = "CONTEXTUAL_PRIVATE_EPUB_TEXT_MUST_STAY_LOCAL";
+    let received: HoidAnswerRequest | undefined;
+    let receivedContext: readonly unknown[] | undefined;
+    const provider: ContextualHoidProvider = {
+      answer: vi.fn(async () => "Respuesta segura"),
+      answerWithContext: vi.fn(async (request, context) => {
+        received = request;
+        receivedContext = context;
+        return "Respuesta segura";
+      }),
+    };
+    const request = {
+      question: "Pregunta segura",
+      reading: [],
+      openedChapter: { blocks: [{ text: privateMarker }] },
+      rawXhtml: "<p>" + privateMarker + "</p>",
+      sourceHandle: { uri: "file:///private/contextual.epub" },
+    } as unknown as HoidAnswerRequest;
+
+    const result = await new HoidPipeline(provider, []).answer(request);
+
+    expect(result.blocked).toBe(false);
+    expect(provider.answerWithContext).toHaveBeenCalledTimes(1);
+    expect(received).toBeDefined();
+    expect(Object.keys(received as object).sort()).toEqual(["question", "reading"]);
+    expect(Object.isFrozen(received)).toBe(true);
+    expect(Object.isFrozen(received?.reading)).toBe(true);
+    expect(Object.isFrozen(receivedContext)).toBe(true);
+    expect(JSON.stringify(received)).not.toContain(privateMarker);
+    expect(JSON.stringify(received)).not.toContain("file:///private");
+    expect(JSON.stringify(receivedContext)).not.toContain(privateMarker);
   });
 });

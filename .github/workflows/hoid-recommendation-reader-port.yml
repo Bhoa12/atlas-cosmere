@@ -9,6 +9,15 @@ on:
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
       - "src/hoid/epubRecommendationReaderHost.test.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.test.ts"
+      - "src/hoid/expoLocalEpubProvider.ts"
+      - "src/hoid/expoLocalEpubProvider.test.ts"
+      - "src/hoid/epubRuntimeAdapters.ts"
+      - "src/hoid/epubRuntimeAdapters.test.ts"
+      - "docs/hoid/RUN259_COOPERATIVE_EPUB_CANCELLATION.md"
       - "src/hoid/epubImportLifecycle.ts"
       - "src/hoid/epubImportLifecycle.test.ts"
       - "src/components/HoidEpubImportPanel.tsx"
@@ -28,6 +37,15 @@ on:
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
       - "src/hoid/epubRecommendationReaderHost.test.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubIngestion.test.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.test.ts"
+      - "src/hoid/expoLocalEpubProvider.ts"
+      - "src/hoid/expoLocalEpubProvider.test.ts"
+      - "src/hoid/epubRuntimeAdapters.ts"
+      - "src/hoid/epubRuntimeAdapters.test.ts"
+      - "docs/hoid/RUN259_COOPERATIVE_EPUB_CANCELLATION.md"
       - "src/hoid/epubImportLifecycle.ts"
       - "src/hoid/epubImportLifecycle.test.ts"
       - "src/components/HoidEpubImportPanel.tsx"
@@ -62,6 +80,10 @@ jobs:
           npx vitest run
           src/hoid/recommendationReaderPort.test.ts
           src/hoid/epubRecommendationReaderHost.test.ts
+          src/hoid/epubIngestion.test.ts
+          src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/expoLocalEpubProvider.test.ts
+          src/hoid/epubRuntimeAdapters.test.ts
           src/hoid/editionBoundRecommendationNavigation.test.ts
           src/hoid/editionBoundRecommendationFreshness.test.ts
           src/hoid/cursorProgressLedger.test.ts
@@ -73,6 +95,10 @@ jobs:
           --moduleResolution node --skipLibCheck --esModuleInterop
           src/hoid/recommendationReaderPort.ts
           src/hoid/epubRecommendationReaderHost.ts
+          src/hoid/epubIngestion.ts
+          src/hoid/epubRuntimeAdapters.ts
+          src/hoid/epubRangeRuntimeAdapters.ts
+          src/hoid/expoLocalEpubProvider.ts
           src/hoid/editionBoundRecommendationNavigation.ts
           src/hoid/cursorProgressLedger.ts
           src/hoid/readingManifest.ts

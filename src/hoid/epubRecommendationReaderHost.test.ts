@@ -310,4 +310,56 @@ describe("local EPUB recommendation reader host", () => {
     });
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
   });
+
+  it("does not let an older open request present after a newer request succeeds", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    let resolveFirstRead: (value: unknown) => void = () => {};
+    let markFirstReadStarted: () => void = () => {};
+    const firstReadStarted = new Promise<void>(resolve => {
+      markFirstReadStarted = resolve;
+    });
+    const firstRead = new Promise<unknown>(resolve => {
+      resolveFirstRead = resolve;
+    });
+    let readCount = 0;
+    const readChapterContent = vi.fn(() => {
+      readCount += 1;
+      if (readCount === 1) {
+        markFirstReadStarted();
+        return firstRead;
+      }
+      return Promise.resolve({
+        status: "candidate" as const,
+        candidate: readerContent(request.workId, request.editionId, request.navigationHref),
+      });
+    }) as HoidEpubIngestionService["readChapterContent"];
+    const dependencies = dependenciesFor(progress, request.navigationHref, {
+      readChapterContent,
+    });
+
+    const olderOperation = dependencies.port.openVerifiedChapter(request.request);
+    await firstReadStarted;
+
+    const newerResult = await dependencies.port.openVerifiedChapter(request.request);
+    expect(newerResult).toEqual({
+      status: "opened",
+      bookId: request.workId,
+      chapterNumber: request.request.target.cursor.chapterNumber,
+      editionId: request.editionId,
+      locatorId: request.request.target.locatorId,
+    });
+    expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
+
+    resolveFirstRead({
+      status: "candidate",
+      candidate: readerContent(request.workId, request.editionId, request.navigationHref),
+    });
+    await expect(olderOperation).resolves.toEqual({
+      status: "unavailable",
+      reason: "superseded",
+    });
+    expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
+  });
+
 });

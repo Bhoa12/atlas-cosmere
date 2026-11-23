@@ -498,6 +498,7 @@ describe("HoidCursorProgressCoordinator", () => {
       8,
       binding.revision,
       binding.fingerprint,
+      { confirmed: true },
     );
 
     expect(result).toMatchObject({
@@ -521,6 +522,7 @@ describe("HoidCursorProgressCoordinator", () => {
       1,
       staleBinding.revision,
       staleBinding.fingerprint,
+      { confirmed: true },
     );
 
     expect(result).toMatchObject({
@@ -541,6 +543,7 @@ describe("HoidCursorProgressCoordinator", () => {
       9,
       binding.revision,
       binding.fingerprint,
+      { confirmed: true },
     );
 
     expect(result).toEqual({
@@ -557,6 +560,7 @@ describe("HoidCursorProgressCoordinator", () => {
       1,
       0,
       "not-a-sha256",
+      { confirmed: true },
     );
 
     expect(result).toEqual({ status: "rejected", reason: "invalid-update" });
@@ -573,6 +577,7 @@ describe("HoidCursorProgressCoordinator", () => {
       38,
       binding.revision,
       binding.fingerprint,
+      { confirmed: true },
     );
     expect(chapterOnly).toEqual({
       status: "rejected",
@@ -585,6 +590,7 @@ describe("HoidCursorProgressCoordinator", () => {
       38,
       binding.revision,
       binding.fingerprint,
+      { confirmed: true },
     );
     expect(completed).toMatchObject({
       status: "ready",
@@ -604,6 +610,7 @@ describe("HoidCursorProgressCoordinator", () => {
       8,
       binding.revision,
       binding.fingerprint,
+      { confirmed: true },
     );
 
     expect(result).toEqual({
@@ -611,6 +618,23 @@ describe("HoidCursorProgressCoordinator", () => {
       reason: "non-sequential-reader-advance",
     });
     expect(store.writes).toBe(1);
+  });
+
+  it("requires an explicit canonical confirmation before changing reader progress", async () => {
+    const { coordinator, store } = createCoordinator();
+    const result = await coordinator.markChapterReadIfCurrent(
+      "tfe",
+      1,
+      0,
+      "a".repeat(64),
+      {} as { confirmed: true },
+    );
+
+    expect(result).toEqual({
+      status: "rejected",
+      reason: "progress-confirmation-required",
+    });
+    expect(store.writes).toBe(0);
   });
 
 

@@ -430,6 +430,53 @@ function resolveFollowUpScope(
   return Object.freeze({ status: "unavailable", reason: "context-scope-unavailable" });
 }
 
+type ActiveConversationScopeResolution =
+  | Readonly<{
+      status: "ready";
+      scope?: HoidAnswerBookScope;
+      binding?: HoidConversationScopeBinding;
+    }>
+  | Readonly<{
+      status: "unavailable";
+      reason: "context-scope-unavailable" | "context-scope-mismatch" | "context-stale";
+    }>;
+
+/**
+ * Once an answer establishes a scope, every subsequent turn remains inside it
+ * until the user explicitly resets the conversation or selects another scope.
+ * This also covers complete-looking questions that follow-up heuristics miss.
+ */
+function resolveActiveConversationScope(
+  request: Readonly<{ scopeBinding?: unknown; bookScope?: HoidAnswerBookScope }>,
+  progress: unknown,
+): ActiveConversationScopeResolution {
+  if (request.scopeBinding === undefined) {
+    return Object.freeze({
+      status: "ready",
+      ...(request.bookScope ? { scope: request.bookScope } : {}),
+    });
+  }
+  const validation = validateHoidConversationScopeBinding(
+    request.scopeBinding,
+    progress,
+    request.bookScope,
+  );
+  if (validation.status === "ready") {
+    return Object.freeze({
+      status: "ready",
+      scope: validation.scope,
+      binding: validation.binding,
+    });
+  }
+  if (validation.reason === "stale-progress") {
+    return Object.freeze({ status: "unavailable", reason: "context-stale" });
+  }
+  if (validation.reason === "scope-mismatch") {
+    return Object.freeze({ status: "unavailable", reason: "context-scope-mismatch" });
+  }
+  return Object.freeze({ status: "unavailable", reason: "context-scope-unavailable" });
+}
+
 function callerAborted(options?: HoidRuntimeCallOptions): boolean {
   return options?.signal?.aborted === true;
 }
@@ -668,6 +715,11 @@ export class HoidConversationGateway {
       return unavailable("progress-changed");
     }
 
+    const activeScopeResolution = resolveActiveConversationScope(request, request.progress);
+    if (activeScopeResolution.status !== "ready") return unavailable(activeScopeResolution.reason);
+    const activeBookScope = activeScopeResolution.scope;
+    const inheritedScopeBinding = activeScopeResolution.binding;
+
     const typedFollowUp = resolveHoidTypedEntityFollowUp(
       request.question,
       request.typedContext,
@@ -727,7 +779,7 @@ export class HoidConversationGateway {
       if (!afterTypedIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterTypedIdentity)) return unavailable("progress-changed");
 
-      const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, effectiveBookScope);
+      const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, effectiveBookScope) ?? inheritedScopeBinding;
       const priorRelationship = validateHoidConversationContext(request.context, requestedProgress);
       const conversationContext = scopeBinding && priorRelationship.status === "resolved"
         ? createHoidConversationContext(priorRelationship.entityIds, requestedProgress) ?? undefined
@@ -836,7 +888,7 @@ export class HoidConversationGateway {
       if (!afterScopedIdentity) return unavailable("invalid-progress");
       if (!sameProgress(requestedProgress, afterScopedIdentity)) return unavailable("progress-changed");
 
-      const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, effectiveBookScope);
+      const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, effectiveBookScope) ?? inheritedScopeBinding;
       const conversationContext = scopeBinding
         ? createHoidConversationContext(followUp.entityIds, requestedProgress)
         : null;
@@ -864,7 +916,7 @@ export class HoidConversationGateway {
     // A new, explicitly named relationship question may use the local reviewed
     // graph when no scope was selected. Recognized follow-ups have already returned
     // through the evidence-bound runtime path above and cannot reach this shortcut.
-    if ((relationshipQuestion || followUp.status === "resolved") && !request.bookScope) {
+    if ((relationshipQuestion || followUp.status === "resolved") && !activeBookScope) {
       const relationshipGateway = this.config.relationshipGateway;
       if (!relationshipGateway) return unavailable("entity-unavailable");
 
@@ -986,7 +1038,7 @@ export class HoidConversationGateway {
         return unavailable("progress-changed");
       }
 
-      const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, effectiveBookScope);
+      const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, effectiveBookScope) ?? inheritedScopeBinding;
       const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
       const typedConversationContext = scopeBinding
         ? buildTypedContextFromIds(
@@ -1054,7 +1106,7 @@ export class HoidConversationGateway {
         intent: request.intent,
         selectionBudget: request.selectionBudget,
         ...(entityIds === undefined ? {} : { entityIds }),
-        ...(request.bookScope ? { bookScope: request.bookScope } : {}),
+        ...(activeBookScope ? { bookScope: activeBookScope } : {}),
       }, runtimeOptions),
         );
         if (invocation.status === "cancelled") return unavailable("cancelled");
@@ -1082,7 +1134,7 @@ export class HoidConversationGateway {
       return unavailable("progress-changed");
     }
 
-    const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, request.bookScope);
+    const scopeBinding = createHoidConversationScopeBinding(answer, request.progress, activeBookScope) ?? inheritedScopeBinding;
     const conversationContext = scopeBinding && entityIds && entityIds.length >= 2 && entityIds.length <= 4
       ? createHoidConversationContext(entityIds, requestedProgress)
       : null;

@@ -10,7 +10,7 @@ Run 147 supplies concrete, provider-neutral implementations for the three ports 
 
 `createHoidEpubRuntimePorts(resolveSourceBytes)` composes these adapters. The resolver receives only an opaque source ID and is intended to return bytes from a locally selected source. It does not receive a path, URL or provider credential. The adapter itself makes no network calls; the caller remains responsible for supplying a local-only resolver.
 
-This is a byte-source adapter, not yet an Expo file-picker integration. The future picker/storage layer must pass bytes into the resolver without uploading the EPUB or persisting its narrative contents in Git.
+The core remains a byte-source adapter. The Expo document picker and random-access local provider are separate platform adapters that supply an opaque source ID; they do not upload the EPUB or persist narrative contents in Git.
 
 ## ZIP profile and safety
 
@@ -100,3 +100,12 @@ Chapter inspection continues to revalidate the inventory and package-defining do
 ## Remaining integration
 
 The Expo local provider, bounded range reader and reader-facing import panel are now implemented. A separate local metadata-only audit of four private EPUBs confirmed their ZIP integrity and registered navigation digests; see `EXPLICIT_EPUB_IMPORT_UI.md`. That audit did not execute the TypeScript adapter against those files or inspect chapter XHTML. Android/iOS device testing and an end-to-end TypeScript runtime audit against the local files remain outstanding.
+
+
+## Local reader text projection (Run 256)
+
+The concrete XML adapter now exposes an optional `extractReadableBlocks()` capability. It parses a chapter XHTML document with the same bounded, namespace-aware parser and returns only frozen plain-text blocks (`heading`, `paragraph`, `quote`, `list-item`). Script, style, navigation, SVG, embedded media and form elements are excluded. Raw HTML, URLs, resource paths and byte arrays are never returned to the UI.
+
+`HoidEpubIngestionService.readChapterContent()` is a separate, optional local-reader operation. It requires the exact in-memory package candidate issued by that ingestion service, resolves a target already present in the verified navigation, reads the chapter under the existing member-size limit, rechecks the package/navigation/chapter identity, compares the chapter digest, and only then returns canonical text blocks. A parser without the safe extraction capability fails closed.
+
+The content result is ephemeral UI data. It is not persisted, sent to a language provider, added to the inspected-document allowlist, used to approve claims, or used to update progress. The reader currently provides a text-only chapter view; it is not a full-fidelity EPUB renderer for images, CSS, page layout or media.

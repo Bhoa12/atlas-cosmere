@@ -7,6 +7,8 @@ on:
     paths:
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/epubRecommendationReaderHost.ts"
+      - "src/hoid/epubRecommendationReaderHost.test.ts"
       - "src/hoid/editionBoundRecommendationNavigation.ts"
       - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.ts"
@@ -14,11 +16,14 @@ on:
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingManifest.ts"
       - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-recommendation-reader-port.yml"
   pull_request:
     paths:
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
+      - "src/hoid/epubRecommendationReaderHost.ts"
+      - "src/hoid/epubRecommendationReaderHost.test.ts"
       - "src/hoid/editionBoundRecommendationNavigation.ts"
       - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.ts"
@@ -26,6 +31,7 @@ on:
       - "src/hoid/cursorProgressLedger.ts"
       - "src/hoid/readingManifest.ts"
       - "docs/hoid/RUN255_RECOMMENDATION_READER_PORT.md"
+      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-recommendation-reader-port.yml"
 
 permissions:
@@ -47,6 +53,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/recommendationReaderPort.test.ts
+          src/hoid/epubRecommendationReaderHost.test.ts
           src/hoid/editionBoundRecommendationNavigation.test.ts
           src/hoid/editionBoundRecommendationFreshness.test.ts
           src/hoid/cursorProgressLedger.test.ts
@@ -56,6 +63,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --esModuleInterop
           src/hoid/recommendationReaderPort.ts
+          src/hoid/epubRecommendationReaderHost.ts
           src/hoid/editionBoundRecommendationNavigation.ts
           src/hoid/cursorProgressLedger.ts
           src/hoid/readingManifest.ts

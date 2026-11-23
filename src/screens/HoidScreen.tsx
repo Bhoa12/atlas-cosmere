@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
@@ -41,6 +41,10 @@ import {
 } from '../hoid/topicInterestRecommendationsGateway';
 import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAnswerPort';
 import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
+import {
+  openHoidRecommendationChapter,
+  type HoidRecommendationReaderPort,
+} from '../hoid/recommendationReaderPort';
 import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
 import {
   HOID_STATIC_GREETING_ID,
@@ -134,6 +138,25 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [recommendationPresentation, setRecommendationPresentation] = useState<HoidEditionBoundRecommendationPresentation | null>(null);
   const [recommendationMessage, setRecommendationMessage] = useState('');
   const [recommendationSelectedBookId, setRecommendationSelectedBookId] = useState<string | null>(null);
+  const [readerPortState, setReaderPortState] = useState<Readonly<{
+    port: HoidRecommendationReaderPort;
+    workId: string;
+  }> | null>(null);
+  const [readerOpening, setReaderOpening] = useState(false);
+  const [readerMessage, setReaderMessage] = useState('');
+  const readerAbortControllerRef = useRef<AbortController | null>(null);
+  const handleReaderPortChange = useCallback((
+    port: HoidRecommendationReaderPort | null,
+    workId: string | null,
+  ) => {
+    setReaderPortState(port && workId ? Object.freeze({ port, workId }) : null);
+    if (!port) {
+      readerAbortControllerRef.current?.abort();
+      readerAbortControllerRef.current = null;
+      setReaderOpening(false);
+      setReaderMessage('');
+    }
+  }, []);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
   const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
@@ -163,6 +186,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setRecommendationPresentation(null);
     setRecommendationMessage('');
     setRecommendationSelectedBookId(null);
+    readerAbortControllerRef.current?.abort();
+    readerAbortControllerRef.current = null;
+    setReaderOpening(false);
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
@@ -174,6 +200,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   useEffect(() => () => {
     answerAbortControllerRef.current?.abort();
     answerAbortControllerRef.current = null;
+    readerAbortControllerRef.current?.abort();
+    readerAbortControllerRef.current = null;
   }, []);
 
   // Filter immediately during render, then prune stale assistant text from state.
@@ -726,9 +754,71 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     if (handoff.status !== 'ready') {
       return 'Destino no disponible: el progreso o el manifiesto han cambiado. Actualiza las recomendaciones.';
     }
-    return handoff.handoff.locatorStatus === 'verified'
-      ? `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. La apertura requiere un lector de capítulos.`
-      : `Cursor revalidado · capítulo ${handoff.handoff.cursor.chapterNumber}; no hay localizador verificado. No se abrirá una ruta inventada.`;
+    if (handoff.handoff.locatorStatus !== 'verified') {
+      return `Cursor revalidado · capítulo ${handoff.handoff.cursor.chapterNumber}; no hay localizador verificado. No se abrirá una ruta inventada.`;
+    }
+    const readerReady = readerPortState?.workId === handoff.handoff.cursor.bookId;
+    return readerReady
+      ? `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. Lector EPUB local disponible.`
+      : `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. Importa y verifica el EPUB de esta obra para abrirlo localmente.`;
+  };
+
+  const openRecommendationInReader = async (
+    target: unknown,
+    sourceId: string,
+    progressRevision: number,
+    progressFingerprint: string,
+  ) => {
+    const activeReader = readerPortState;
+    if (!activeReader || activeReader.workId !== sourceId || readerOpening) {
+      setReaderMessage('Importa y verifica el EPUB de esta obra antes de abrir el capítulo.');
+      return;
+    }
+    readerAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    readerAbortControllerRef.current = controller;
+    setReaderOpening(true);
+    setReaderMessage('Revalidando el progreso y preparando el capítulo local…');
+    try {
+      const result = await openHoidRecommendationChapter(
+        {
+          reader: activeReader.port,
+          refreshCurrentProgress: () => progressRefreshRef.current(),
+        },
+        {
+          target,
+          expectedProgressRevision: progressRevision,
+          expectedProgressFingerprint: progressFingerprint,
+          selectedActiveBookId: recommendationSelectedBookId ?? undefined,
+          signal: controller.signal,
+        },
+      );
+      if (result.status === 'opened') {
+        setReaderMessage(
+          `Capítulo ${result.target.cursor.chapterNumber} abierto localmente. El progreso no se ha modificado.`,
+        );
+      } else if (result.reason === 'stale-progress') {
+        setReaderMessage('El progreso cambió durante la apertura. Se ha descartado el contenido; actualiza las recomendaciones.');
+      } else if (result.reason === 'cancelled') {
+        setReaderMessage('Apertura cancelada. No se ha modificado el progreso.');
+      } else {
+        setReaderMessage('No se ha podido abrir el capítulo con seguridad. Comprueba la edición local y vuelve a intentarlo.');
+      }
+    } catch {
+      setReaderMessage('La apertura local ha fallado de forma segura.');
+    } finally {
+      if (readerAbortControllerRef.current === controller) {
+        readerAbortControllerRef.current = null;
+        setReaderOpening(false);
+      }
+    }
+  };
+
+  const cancelReaderOpen = () => {
+    readerAbortControllerRef.current?.abort();
+    readerAbortControllerRef.current = null;
+    setReaderOpening(false);
+    setReaderMessage('Apertura cancelada. No se ha modificado el progreso.');
   };
 
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
@@ -759,7 +849,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         </View>
       </View>
 
-      <HoidEpubImportPanel />
+      <HoidEpubImportPanel onReaderPortChange={handleReaderPortChange} />
 
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>
@@ -784,6 +874,18 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         {cargandoRecomendaciones && <ActivityIndicator color="#818cf8" style={{ marginTop: 8 }} />}
         {recommendationMessage.length > 0 && (
           <Text style={styles.recommendationMessage}>{recommendationMessage}</Text>
+        )}
+        {readerMessage.length > 0 && (
+          <Text style={styles.readerMessage}>{readerMessage}</Text>
+        )}
+        {readerOpening && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={cancelReaderOpen}
+            style={styles.readerCancelButton}
+          >
+            <Text style={styles.readerCancelButtonText}>Cancelar apertura</Text>
+          </TouchableOpacity>
         )}
         {recommendationsAreCurrent && recommendationPresentation?.status === 'selection-required' && (
           <View style={styles.recommendationSelection}>
@@ -819,6 +921,36 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                     recommendationPresentation.progressFingerprint,
                   )}
             </Text>
+            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'verified' && readerPortState?.workId === item.sourceId && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Abrir ${item.heading} en el lector EPUB local`}
+                disabled={readerOpening}
+                onPress={() => {
+                  void openRecommendationInReader(
+                    item.target,
+                    item.sourceId,
+                    recommendationPresentation.progressRevision,
+                    recommendationPresentation.progressFingerprint,
+                  );
+                }}
+                style={[styles.readerOpenButton, readerOpening && styles.disabledButton]}
+              >
+                <Text style={styles.readerOpenButtonText}>
+                  {readerOpening ? 'Abriendo…' : 'Abrir capítulo en lector'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'verified' && readerPortState?.workId !== item.sourceId && (
+              <Text style={styles.readerHint}>
+                Importa y verifica la edición EPUB de esta obra para abrir el capítulo localmente.
+              </Text>
+            )}
+            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'cursor-only' && (
+              <Text style={styles.readerHint}>
+                El cursor está verificado, pero esta edición no tiene un localizador de capítulo aprobado para apertura.
+              </Text>
+            )}
           </View>
         ))}
       </View>
@@ -1129,6 +1261,12 @@ const styles = StyleSheet.create({
   recommendationSelection: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#26344d' },
   recommendationChoice: { paddingVertical: 8, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: '#26344d', marginTop: 5, borderRadius: 8 },
   recommendationTarget: { color: '#a5b4fc', fontSize: 10, lineHeight: 15, marginTop: 5 },
+  readerMessage: { color: '#86efac', fontSize: 10, lineHeight: 15, marginTop: 7 },
+  readerOpenButton: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: '#14532d', borderWidth: 1, borderColor: '#4ade80' },
+  readerOpenButtonText: { color: '#dcfce7', fontSize: 10, fontWeight: '800' },
+  readerHint: { color: '#94a3b8', fontSize: 9, lineHeight: 14, marginTop: 6 },
+  readerCancelButton: { alignSelf: 'flex-start', marginTop: 7, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: '#7f1d1d' },
+  readerCancelButtonText: { color: '#fee2e2', fontSize: 9, fontWeight: '800' },
   recommendationItemText: { color: '#f8fafc', fontSize: 12, fontWeight: '700' },
   recommendationItemMeta: { color: '#94a3b8', fontSize: 10, marginTop: 2 },
   disabledButton: { opacity: 0.45 },

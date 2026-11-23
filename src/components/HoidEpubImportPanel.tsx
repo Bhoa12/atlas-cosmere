@@ -13,7 +13,13 @@ import { createHoidImportLifecycleGuard } from "../hoid/epubImportLifecycle";
 import { getHoidSourceIngestionPlan } from "../hoid/sourceIngestionPlan";
 import { inspectHoidPlannedChapterCandidate, type HoidPlannedChapterInspectionCandidate } from "../hoid/sourceIngestionExecution";
 import type { HoidExpoPickedSource } from "../hoid/expoLocalEpubProvider";
-import type { HoidEpubPackageInspectionCandidate } from "../hoid/epubIngestion";
+import type {
+  HoidEpubPackageInspectionCandidate,
+  HoidEpubReadableBlock,
+} from "../hoid/epubIngestion";
+import { useCosmere } from "../context/CosmereContext";
+import { createHoidLocalEpubRecommendationReaderPort } from "../hoid/epubRecommendationReaderHost";
+import type { HoidRecommendationReaderPort } from "../hoid/recommendationReaderPort";
 import {
   createHoidEpubSourceDescriptor,
   getHoidEpubImportChoices,
@@ -52,7 +58,25 @@ function rejectionMessage(reason: string): string {
   return "No se ha podido verificar la estructura EPUB. El archivo permanece sin vincular y no se ha cambiado tu progreso.";
 }
 
-export const HoidEpubImportPanel: React.FC = () => {
+type OpenedChapterView = Readonly<{
+  workId: string;
+  title: string;
+  chapterNumber: number;
+  editionId: string;
+  blocks: readonly HoidEpubReadableBlock[];
+}>;
+
+export const HoidEpubImportPanel: React.FC<{
+  onReaderPortChange?: (port: HoidRecommendationReaderPort | null, workId: string | null) => void;
+}> = ({ onReaderPortChange }) => {
+  const {
+    refreshHoidCursorProgressSnapshot,
+    subscribeHoidCursorProgressChanges,
+  } = useCosmere();
+  const progressRefreshRef = useRef(refreshHoidCursorProgressSnapshot);
+  progressRefreshRef.current = refreshHoidCursorProgressSnapshot;
+  const progressSubscriptionRef = useRef(subscribeHoidCursorProgressChanges);
+  progressSubscriptionRef.current = subscribeHoidCursorProgressChanges;
   const [pickedSource, setPickedSource] = useState<HoidExpoPickedSource | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<HoidEpubImportChoice | null>(null);
   const [candidate, setCandidate] = useState<HoidEpubPackageInspectionCandidate | null>(null);
@@ -62,19 +86,75 @@ export const HoidEpubImportPanel: React.FC = () => {
   const [message, setMessage] = useState(
     "Los EPUB se inspeccionan localmente. El nombre del archivo nunca determina la obra ni la edición.",
   );
+  const [openedChapter, setOpenedChapter] = useState<OpenedChapterView | null>(null);
   const sourceIdRef = useRef<string | null>(null);
   const lifecycleRef = useRef(createHoidImportLifecycleGuard());
+  const leaseRef = useRef<number | null>(null);
+  const progressChangeEpochRef = useRef(0);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
 
   useEffect(() => {
     const lease = lifecycleRef.current.activate();
+    leaseRef.current = lease;
     return () => {
       lifecycleRef.current.deactivate(lease);
+      leaseRef.current = null;
+      onReaderPortChange?.(null, null);
       const sourceId = sourceIdRef.current;
       sourceIdRef.current = null;
+      setOpenedChapter(null);
       if (sourceId !== null) void epubRuntime.provider.release(sourceId).catch(() => undefined);
     };
-  }, []);
+  }, [onReaderPortChange]);
+
+  useEffect(() => progressSubscriptionRef.current(() => {
+    progressChangeEpochRef.current += 1;
+    setOpenedChapter(null);
+    setMessage("El progreso ha cambiado. El capítulo abierto se ha cerrado; vuelve a validar el destino desde Hoid.");
+  }), []);
+
+  useEffect(() => {
+    const source = pickedSource;
+    const choice = selectedChoice;
+    const packageCandidate = candidate;
+    if (
+      source === null ||
+      choice === null ||
+      choice.editionId === null ||
+      packageCandidate === null
+    ) {
+      onReaderPortChange?.(null, null);
+      return;
+    }
+
+    const sourceId = source.sourceId;
+    const workId = choice.workId;
+    const editionId = choice.editionId;
+    const port = createHoidLocalEpubRecommendationReaderPort({
+      workId,
+      editionId,
+      packageCandidate,
+      ingestion: epubRuntime.ingestion,
+      refreshCurrentProgress: () => progressRefreshRef.current(),
+      isCurrent: () =>
+        sourceIdRef.current === sourceId &&
+        lifecycleRef.current.isCurrent(leaseRef.current),
+      getProgressChangeEpoch: () => progressChangeEpochRef.current,
+      onChapterOpened: (chapter, chapterNumber) => {
+        setOpenedChapter(Object.freeze({
+          workId,
+          title: choice.title,
+          chapterNumber,
+          editionId,
+          blocks: chapter.blocks,
+        }));
+        setMessage("Capítulo abierto localmente. El texto permanece en memoria de esta pantalla y no se envía a Hoid ni se guarda.");
+      },
+    });
+
+    onReaderPortChange?.(port, workId);
+    return () => onReaderPortChange?.(null, null);
+  }, [pickedSource, selectedChoice, candidate, onReaderPortChange]);
 
   const pickEpub = async () => {
     if (busy) return;
@@ -101,6 +181,7 @@ export const HoidEpubImportPanel: React.FC = () => {
       const previousSourceId = sourceIdRef.current;
       sourceIdRef.current = result.source.sourceId;
       setPickedSource(result.source);
+      setOpenedChapter(null);
       if (previousSourceId !== null) {
         try {
           await epubRuntime.provider.release(previousSourceId);
@@ -143,6 +224,7 @@ export const HoidEpubImportPanel: React.FC = () => {
     setSelectedChoice(choice);
     setCandidate(null);
     setChapterCandidate(null);
+    setOpenedChapter(null);
     setMessage("Verificando ZIP, paquete OPF, navegación y huella de la edición…");
     try {
       const result = await epubRuntime.ingestion.inspectPackage(descriptor);
@@ -211,6 +293,7 @@ export const HoidEpubImportPanel: React.FC = () => {
         setSelectedChoice(null);
         setCandidate(null);
         setChapterCandidate(null);
+        setOpenedChapter(null);
         setSelectionOpen(false);
         setMessage("Fuente local liberada. No se ha guardado su URI ni su contenido.");
         setBusy(false);
@@ -265,6 +348,32 @@ export const HoidEpubImportPanel: React.FC = () => {
           >
             <Text style={styles.releaseButtonText}>Liberar</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {openedChapter !== null && (
+        <View style={styles.reader}>
+          <Text style={styles.readerTitle}>LECTOR EPUB LOCAL</Text>
+          <Text style={styles.readerHeading}>{openedChapter.title}</Text>
+          <Text style={styles.readerMeta}>Capítulo {openedChapter.chapterNumber} · {openedChapter.editionId}</Text>
+          <ScrollView style={styles.readerScroll} nestedScrollEnabled>
+            {openedChapter.blocks.map((block, index) => (
+              <Text
+                key={index}
+                style={[
+                  styles.readerBlock,
+                  block.kind === "heading" && styles.readerBlockHeading,
+                  block.kind === "quote" && styles.readerBlockQuote,
+                  block.kind === "list-item" && styles.readerBlockList,
+                ]}
+              >
+                {block.kind === "list-item" ? "• " : ""}{block.text}
+              </Text>
+            ))}
+          </ScrollView>
+          <Text style={styles.readerPrivacy}>
+            Lectura local y efímera. No se persiste texto, no se envía al proveedor de Hoid y no modifica tu progreso.
+          </Text>
         </View>
       )}
 
@@ -383,6 +492,16 @@ const styles = StyleSheet.create({
   metricLabel: { color: "#94a3b8", fontSize: 8, lineHeight: 12, marginTop: 2 },
   inspectButton: { alignSelf: "flex-start", marginTop: 10, backgroundColor: "#312e81", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
   inspectButtonText: { color: "#ffffff", fontSize: 10, fontWeight: "800" },
+  reader: { marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: "#0a1020", borderWidth: 1, borderColor: "#64748b" },
+  readerTitle: { color: "#86efac", fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  readerHeading: { color: "#f8fafc", fontSize: 15, fontWeight: "800", marginTop: 6 },
+  readerMeta: { color: "#94a3b8", fontSize: 9, marginTop: 3 },
+  readerScroll: { maxHeight: 460, marginTop: 10 },
+  readerBlock: { color: "#e2e8f0", fontSize: 13, lineHeight: 21, marginBottom: 12 },
+  readerBlockHeading: { color: "#c7d2fe", fontSize: 15, fontWeight: "800", lineHeight: 23, marginTop: 8 },
+  readerBlockQuote: { color: "#cbd5e1", fontStyle: "italic", paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: "#64748b" },
+  readerBlockList: { paddingLeft: 8 },
+  readerPrivacy: { color: "#94a3b8", fontSize: 9, lineHeight: 14, marginTop: 8 },
   chapterPreview: { marginTop: 9, padding: 9, borderRadius: 8, backgroundColor: "#0b1424", borderWidth: 1, borderColor: "#475569" },
   chapterPreviewTitle: { color: "#86efac", fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
   privacyNote: { color: "#94a3b8", fontSize: 9, lineHeight: 13, marginTop: 9 },

@@ -236,3 +236,118 @@ describe("buildHoidCrossBookEvidenceSummary", () => {
     );
   });
 });
+
+
+describe("summarizeHoidPresentedCrossBookEvidence input boundary", () => {
+  function canonicalPresentation() {
+    const result = presentHoidEvidenceAnswer(answer(), progress());
+    if (result.status !== "ready") throw new Error("Presentación sintética no disponible");
+    return result;
+  }
+
+  it("rejects a chapter/locator pair that does not resolve to the inspected edition unit", () => {
+    const base = canonicalPresentation();
+    const altered = {
+      ...base,
+      citations: base.citations.map((citation, index) =>
+        index === 0 ? { ...citation, chapter: 2 } : citation
+      ),
+      segments: base.segments?.map((segment, index) => index === 0
+        ? {
+            ...segment,
+            citations: segment.citations.map(citation => ({ ...citation, chapter: 2 })),
+          }
+        : segment),
+    };
+    expect(summarizeHoidPresentedCrossBookEvidence(altered)).toEqual({
+      status: "unavailable",
+      reason: "invalid-provenance",
+    });
+  });
+
+  it("rejects top-level evidence IDs that do not match the canonical citations", () => {
+    const base = canonicalPresentation();
+    expect(summarizeHoidPresentedCrossBookEvidence({
+      ...base,
+      evidenceIds: ["evidence.tfe"],
+    })).toEqual({ status: "unavailable", reason: "invalid-provenance" });
+  });
+
+  it("rejects claim order or identity that differs from the canonical segment sequence", () => {
+    const base = canonicalPresentation();
+    const altered = {
+      ...base,
+      segments: base.segments?.map((segment, index) => index === 1
+        ? { ...segment, claimId: "claim.tfe" }
+        : segment),
+    };
+    expect(summarizeHoidPresentedCrossBookEvidence(altered)).toEqual({
+      status: "unavailable",
+      reason: "invalid-provenance",
+    });
+  });
+
+  it("rejects display text that no longer composes from the supplied claim segments", () => {
+    const base = canonicalPresentation();
+    expect(summarizeHoidPresentedCrossBookEvidence({
+      ...base,
+      text: "Texto adicional no respaldado por los segmentos.",
+    })).toEqual({ status: "unavailable", reason: "invalid-provenance" });
+  });
+
+  it("rejects accessor-backed citation fields without executing the getter", () => {
+    const base = canonicalPresentation();
+    let getterCalls = 0;
+    const citation: Record<string, unknown> = { ...base.citations[0] };
+    Object.defineProperty(citation, "chapter", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        getterCalls += 1;
+        return base.citations[0].chapter;
+      },
+    });
+    const altered = {
+      ...base,
+      citations: [citation, ...base.citations.slice(1)],
+      segments: base.segments?.map((segment, index) => index === 0
+        ? { ...segment, citations: [citation, ...segment.citations.slice(1)] }
+        : segment),
+    };
+    expect(summarizeHoidPresentedCrossBookEvidence(altered)).toEqual({
+      status: "unavailable",
+      reason: "invalid-provenance",
+    });
+    expect(getterCalls).toBe(0);
+  });
+
+  it("contains proxy traps at the public summary boundary", () => {
+    const base = canonicalPresentation();
+    const hostile = new Proxy(base, {
+      ownKeys() {
+        throw new Error("hostile presentation proxy");
+      },
+    });
+    expect(summarizeHoidPresentedCrossBookEvidence(hostile)).toEqual({
+      status: "unavailable",
+      reason: "invalid-provenance",
+    });
+  });
+
+  it("rejects sparse segment arrays and custom array properties", () => {
+    const base = canonicalPresentation();
+    const sparse = new Array(base.segments?.length ?? 0);
+    if (base.segments?.[1]) sparse[1] = base.segments[1];
+    expect(summarizeHoidPresentedCrossBookEvidence({
+      ...base,
+      segments: sparse,
+    })).toEqual({ status: "unavailable", reason: "invalid-provenance" });
+
+    const ids = [...base.evidenceIds] as string[] & { extra?: string };
+    ids.extra = "evidence.injected";
+    expect(summarizeHoidPresentedCrossBookEvidence({
+      ...base,
+      evidenceIds: ids,
+    })).toEqual({ status: "unavailable", reason: "invalid-provenance" });
+  });
+});

@@ -20,6 +20,7 @@ on:
       - "src/hoid/BOOK_SCOPE_POLICY.md"
       - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
       - "docs/hoid/RUN245_CLAIM_LEVEL_CHAPTER_TRACE.md"
+      - "docs/hoid/RUN246_CROSS_BOOK_SUMMARY_INPUT_HARDENING.md"
       - "docs/hoid/RUN244_PRESENTATION_TEXT_SEGMENT_INTEGRITY.md"
       - "docs/hoid/RUN245_CLAIM_LEVEL_CHAPTER_TRACE.md"
       - "docs/hoid/RUN243_CLAIM_EVIDENCE_BINDING.md"
@@ -40,6 +41,7 @@ on:
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/BOOK_SCOPE_POLICY.md"
       - "docs/hoid/RUN242_SCOPE_BOUND_PRESENTATION.md"
+      - "docs/hoid/RUN246_CROSS_BOOK_SUMMARY_INPUT_HARDENING.md"
       - ".github/workflows/hoid-answer-scope-presentation.yml"
 
 permissions:

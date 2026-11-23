@@ -41,7 +41,8 @@ export type HoidCursorCoordinatorResult =
         | "unsupported-position"
         | "invalid-update"
         | "non-sequential-reader-advance"
-        | "completion-requires-explicit-confirmation";
+        | "completion-requires-explicit-confirmation"
+        | "progress-confirmation-required";
     }>
   | Readonly<{
       status: "unavailable";
@@ -54,6 +55,7 @@ export type HoidCursorCorrectionConfirmation = Readonly<{
 }>;
 
 export type HoidReopenConfirmation = Readonly<{ confirmed: true }>;
+export type HoidReaderProgressConfirmation = Readonly<{ confirmed: true }>;
 
 const MAX_ORDER = 1_000_000;
 const MAX_REVISION = Number.MAX_SAFE_INTEGER - 1;
@@ -344,8 +346,12 @@ export class HoidCursorProgressCoordinator {
     completedChapterNumber: number,
     expectedRevision: number,
     expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
   ): Promise<HoidCursorCoordinatorResult> {
     return this.serialize(async () => {
+      if (canonicalConfirmation(confirmation, false) === null) {
+        return this.rejected("progress-confirmation-required");
+      }
       if (!isKnownWork(bookId)) return this.rejected("unknown-work");
       if (!Number.isSafeInteger(completedChapterNumber) || completedChapterNumber < 1) {
         return this.rejected("invalid-cursor");
@@ -392,8 +398,12 @@ export class HoidCursorProgressCoordinator {
     completedChapterNumber: number,
     expectedRevision: number,
     expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
   ): Promise<HoidCursorCoordinatorResult> {
     return this.serialize(async () => {
+      if (canonicalConfirmation(confirmation, false) === null) {
+        return this.rejected("progress-confirmation-required");
+      }
       if (!isKnownWork(bookId)) return this.rejected("unknown-work");
       if (!Number.isSafeInteger(completedChapterNumber) || completedChapterNumber < 1) {
         return this.rejected("invalid-cursor");

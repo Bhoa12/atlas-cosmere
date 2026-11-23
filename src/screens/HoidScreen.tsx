@@ -883,7 +883,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                     recommendationPresentation.progressFingerprint,
                   )}
             </Text>
-            {item.target.kind === 'edition-cursor' && readerPortState?.workId === item.sourceId && (
+            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'verified' && readerPortState?.workId === item.sourceId && (
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={`Abrir ${item.heading} en el lector EPUB local`}
@@ -903,9 +903,14 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 </Text>
               </TouchableOpacity>
             )}
-            {item.target.kind === 'edition-cursor' && readerPortState?.workId !== item.sourceId && (
+            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'verified' && readerPortState?.workId !== item.sourceId && (
               <Text style={styles.readerHint}>
                 Importa y verifica la edición EPUB de esta obra para abrir el capítulo localmente.
+              </Text>
+            )}
+            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'cursor-only' && (
+              <Text style={styles.readerHint}>
+                El cursor está verificado, pero esta edición no tiene un localizador de capítulo aprobado para apertura.
               </Text>
             )}
           </View>

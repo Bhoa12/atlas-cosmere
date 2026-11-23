@@ -681,13 +681,13 @@ export class HoidConversationGateway {
       return unavailable("context-unavailable");
     }
     if (typedFollowUp.status === "resolved") {
-      const followUpScope = resolveFollowUpScope(request, request.progress);
-      if (followUpScope.status !== "ready") return unavailable(followUpScope.reason);
-      const effectiveBookScope = followUpScope.scope;
       const resolveEntityIds = this.config.resolveEntityIds ?? resolveProductionHoidEntityIds;
       if (!reauthorizeTypedContext(request.progress, typedFollowUp.context, requestedProgress, resolveEntityIds)) {
         return unavailable("context-unavailable");
       }
+      const followUpScope = resolveFollowUpScope(request, request.progress);
+      if (followUpScope.status !== "ready") return unavailable(followUpScope.reason);
+      const effectiveBookScope = followUpScope.scope;
 
       let answer: HoidEvidenceAnswer;
       try {

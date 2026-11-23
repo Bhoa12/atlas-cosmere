@@ -6,6 +6,9 @@ on:
       - "feat/hoid-ia-core-run*"
     paths:
       - "src/hoid/conversationGateway.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/context/CosmereContext.tsx"
       - "src/hoid/progressChangeWatch.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationGatewayProgressRace.test.ts"
@@ -19,6 +22,9 @@ on:
   pull_request:
     paths:
       - "src/hoid/conversationGateway.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/context/CosmereContext.tsx"
       - "src/hoid/progressChangeWatch.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationGatewayProgressRace.test.ts"
@@ -49,6 +55,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/conversationGatewayProgressRace.test.ts
+          src/hoid/cursorProgressCoordinator.test.ts
           src/hoid/conversationGateway.test.ts
       - name: Type-check progress and conversation boundaries
         run: >-
@@ -59,6 +66,8 @@ jobs:
           src/hoid/typedConversationContext.ts
           src/hoid/conversationContext.ts
           src/hoid/conversationGateway.ts
+          src/hoid/cursorProgressCoordinator.ts
+          src/context/CosmereContext.tsx
           src/hoid/conversationGatewayProgressRace.test.ts
           src/hoid/conversationGateway.test.ts
           src/screens/HoidScreen.tsx

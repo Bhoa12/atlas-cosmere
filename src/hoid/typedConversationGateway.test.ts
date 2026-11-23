@@ -255,6 +255,21 @@ describe("Hoid typed entity follow-up gateway", () => {
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
+  it("rejects a typed follow-up that changes the previously authorized work scope", async () => {
+    const current = snapshot();
+    const { gateway, runtime } = setup(current);
+    const result = await gateway.answer({
+      question: "¿Y esa organización?",
+      progress: current,
+      typedContext: typedContext(current),
+      scopeBinding: scopeBinding(current),
+      bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-mismatch" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
   it("blocks a typed context whose stored kinds disagree with the live entity registry", async () => {
     const current = snapshot();
     const mismatched = vi.fn((progress: unknown, ids: readonly string[]) => {

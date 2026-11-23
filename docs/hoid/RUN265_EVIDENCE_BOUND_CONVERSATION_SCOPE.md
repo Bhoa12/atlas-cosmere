@@ -14,7 +14,7 @@ Una pregunta de seguimiento no debe ampliar silenciosamente el conjunto de obras
 - números de capítulo citados por cada obra (trazabilidad de la respuesta anterior, no un límite de recuperación adicional);
 - revisión y fingerprint del progreso que autorizó la respuesta.
 
-No contiene nombres de personajes, alias, texto de preguntas, prosa de respuesta, resúmenes, localizadores EPUB, XHTML ni contenido de capítulos.
+No contiene nombres de personajes, alias, texto de preguntas, prosa de respuesta, resúmenes, localizadores EPUB, XHTML ni contenido de capítulos. Se marca con una capacidad local de módulo (WeakSet): una copia serializada o reconstruida no puede reutilizarse como contexto de seguimiento.
 
 ## Creación
 

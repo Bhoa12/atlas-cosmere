@@ -44,9 +44,9 @@ const elantrisRecommendation = Object.freeze({
   reason: "unread-source",
 });
 
-function setup(initial = snapshot(3), resolveEntities?: HoidConversationGatewayConfig["resolveEntities"]) {
+function setup(initial: unknown = snapshot(3), resolveEntities?: HoidConversationGatewayConfig["resolveEntities"]) {
   let current: unknown = initial;
-  const runtime = { answer: vi.fn(async () => answer) };
+  const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
   const config: HoidConversationGatewayConfig = {
     runtime,
     getCurrentProgress: () => current,
@@ -99,7 +99,7 @@ describe("HoidConversationGateway", () => {
     };
     const context = createHoidConversationContext(["synthetic.entity-alpha", "synthetic.entity-beta"], identity);
     if (!context) throw new Error("Contexto sintético no disponible");
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -280,7 +280,7 @@ describe("HoidConversationGateway", () => {
 
   it("fails closed when the current progress cannot be read", async () => {
     const gateway = createHoidConversationGateway({
-      runtime: { answer: vi.fn(async () => answer) },
+      runtime: { answer: vi.fn(async (_input: unknown) => answer) },
       getCurrentProgress: () => { throw new Error("synthetic storage error"); },
     });
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
@@ -301,7 +301,7 @@ describe("HoidConversationGateway", () => {
   it("returns only catalogue-backed, unstarted recommendations", async () => {
     const current = snapshot(3);
     const runtime = {
-      answer: vi.fn(async () => answer),
+      answer: vi.fn(async (_input: unknown) => answer),
       recommend: vi.fn(async () => ({
         status: "ready" as const,
         items: [tfeRecommendation, elantrisRecommendation],
@@ -325,7 +325,7 @@ describe("HoidConversationGateway", () => {
   it("accepts a resume recommendation only when its chapter boundary matches the v2 cursor", async () => {
     const current = snapshot(3);
     const runtime = {
-      answer: vi.fn(async () => answer),
+      answer: vi.fn(async (_input: unknown) => answer),
       recommend: vi.fn(async () => ({
         status: "ready" as const,
         items: [{
@@ -360,7 +360,7 @@ describe("HoidConversationGateway", () => {
     const current = snapshot(3);
     const gateway = createHoidConversationGateway({
       runtime: {
-        answer: vi.fn(async () => answer),
+        answer: vi.fn(async (_input: unknown) => answer),
         recommend: vi.fn(async () => ({
           status: "ready" as const,
           items: [{
@@ -383,7 +383,7 @@ describe("HoidConversationGateway", () => {
   it("does not invoke the recommender when the request snapshot is stale", async () => {
     const current = snapshot(4);
     const runtime = {
-      answer: vi.fn(async () => answer),
+      answer: vi.fn(async (_input: unknown) => answer),
       recommend: vi.fn(async () => ({ status: "ready" as const, items: [tfeRecommendation] })),
     };
     const gateway = createHoidConversationGateway({
@@ -404,7 +404,7 @@ describe("HoidConversationGateway", () => {
     const initial = snapshot(3);
     let current: unknown = initial;
     const runtime = {
-      answer: vi.fn(async () => answer),
+      answer: vi.fn(async (_input: unknown) => answer),
       recommend: vi.fn(() => {
         markRecommenderStarted?.();
         return new Promise(resolve => { finish = resolve; });
@@ -438,7 +438,7 @@ describe("HoidConversationGateway", () => {
     for (const items of invalidBatches) {
       const gateway = createHoidConversationGateway({
         runtime: {
-          answer: vi.fn(async () => answer),
+          answer: vi.fn(async (_input: unknown) => answer),
           recommend: vi.fn(async () => ({ status: "ready" as const, items })),
         },
         getCurrentProgress: () => current,
@@ -452,7 +452,7 @@ describe("HoidConversationGateway", () => {
   it("rejects recommendation requests with extra properties or invalid limits", async () => {
     const current = snapshot(3);
     const runtime = {
-      answer: vi.fn(async () => answer),
+      answer: vi.fn(async (_input: unknown) => answer),
       recommend: vi.fn(async () => ({ status: "ready" as const, items: [] })),
     };
     const gateway = createHoidConversationGateway({
@@ -478,7 +478,7 @@ describe("HoidConversationGateway", () => {
     const current = snapshot(3);
     const gateway = createHoidConversationGateway({
       runtime: {
-        answer: vi.fn(async () => answer),
+        answer: vi.fn(async (_input: unknown) => answer),
         recommend: vi.fn(async () => ({ status: "abstain" as const, reason: "invalid-progress" as const, items: [] as const })),
       },
       getCurrentProgress: () => current,
@@ -603,7 +603,7 @@ describe("HoidConversationGateway", () => {
     const initial = snapshot(7);
     let calls = 0;
     const gateway = createHoidConversationGateway({
-      runtime: { answer: vi.fn(async () => answer) },
+      runtime: { answer: vi.fn(async (_input: unknown) => answer) },
       getCurrentProgress: () => {
         calls += 1;
         return calls === 1 ? initial : snapshot(8);
@@ -769,7 +769,7 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
     const relationshipGateway = {
       answer: vi.fn(() => ({ status: "unavailable" as const, reason: "entity-ambiguous" as const })),
     };
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -797,7 +797,7 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
     const relationshipGateway = {
       answer: vi.fn(() => ({ status: "unavailable" as const, reason: "entity-ambiguous" as const })),
     };
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -823,7 +823,7 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
   it("blocks singular pronouns instead of guessing which prior entity they name", async () => {
     const current = snapshot(3);
     const relationshipGateway = { answer: vi.fn() };
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -846,7 +846,7 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
     const oldProgress = snapshot(3);
     const current = snapshot(4);
     const relationshipGateway = { answer: vi.fn() };
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -867,7 +867,7 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
 
   it("does not send a group follow-up to the general runtime when context is missing", async () => {
     const current = snapshot(3);
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const gateway = createHoidConversationGateway({
       runtime,
       getCurrentProgress: () => current,
@@ -921,7 +921,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
   it("sends only the uniquely reauthorized entity ID to the strict runtime", async () => {
     const current = snapshot(3);
     const { context, projection } = contextAndProgress(current);
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const resolveCoreference = vi.fn(() => ({
       status: "resolved" as const,
       entityId: "synthetic.entity-beta",
@@ -958,7 +958,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
   it("does not invoke the runtime or relationship graph when coreference is ambiguous", async () => {
     const current = snapshot(3);
     const { context, projection } = contextAndProgress(current);
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const relationshipGateway = { answer: vi.fn() };
     const gateway = createHoidConversationGateway({
       runtime,
@@ -1026,7 +1026,7 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
       },
     );
     if (!context) throw new Error("Contexto sintético no disponible");
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const relationshipGateway = {
       answer: vi.fn(() => ({
         status: "unavailable" as const,
@@ -1073,7 +1073,7 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
       },
     );
     if (!context) throw new Error("Contexto sintético no disponible");
-    const runtime = { answer: vi.fn(async () => answer) };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
     const relationshipGateway = { answer: vi.fn() };
     const gateway = createHoidConversationGateway({
       runtime,
@@ -1102,7 +1102,7 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
   it("rejects unread discovery before an in-progress work has been offered for resumption", async () => {
     const current = snapshot(3);
     const runtime = {
-      answer: vi.fn(async () => answer),
+      answer: vi.fn(async (_input: unknown) => answer),
       recommend: vi.fn(async () => ({
         status: "ready" as const,
         items: [
@@ -1131,7 +1131,7 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
     const current = snapshot(3);
     const gateway = createHoidConversationGateway({
       runtime: {
-        answer: vi.fn(async () => answer),
+        answer: vi.fn(async (_input: unknown) => answer),
         recommend: vi.fn(async () => ({
           status: "ready" as const,
           items: [elantrisRecommendation, tfeRecommendation],
@@ -1162,7 +1162,7 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
     };
     const gateway = createHoidConversationGateway({
       runtime: {
-        answer: vi.fn(async () => answer),
+        answer: vi.fn(async (_input: unknown) => answer),
         recommend: vi.fn(async () => ({
           status: "ready" as const,
           items: [

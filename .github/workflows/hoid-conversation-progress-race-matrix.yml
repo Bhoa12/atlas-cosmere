@@ -6,6 +6,10 @@ on:
       - "feat/hoid-ia-core-run*"
     paths:
       - "src/hoid/conversationGateway.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/context/CosmereContext.tsx"
+      - "src/hoid/progressChangeWatch.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationGatewayProgressRace.test.ts"
       - "src/hoid/cursorProgressFingerprint.ts"
@@ -13,10 +17,15 @@ on:
       - "src/hoid/conversationContext.ts"
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/RUN248_PROGRESS_RACE_MATRIX.md"
+      - "docs/hoid/RUN249_PROGRESS_CHANGE_SUBSCRIPTION.md"
       - ".github/workflows/hoid-conversation-progress-race-matrix.yml"
   pull_request:
     paths:
       - "src/hoid/conversationGateway.ts"
+      - "src/hoid/cursorProgressCoordinator.ts"
+      - "src/hoid/cursorProgressCoordinator.test.ts"
+      - "src/context/CosmereContext.tsx"
+      - "src/hoid/progressChangeWatch.ts"
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/conversationGatewayProgressRace.test.ts"
       - "src/hoid/cursorProgressFingerprint.ts"
@@ -24,6 +33,7 @@ on:
       - "src/hoid/conversationContext.ts"
       - "src/screens/HoidScreen.tsx"
       - "docs/hoid/RUN248_PROGRESS_RACE_MATRIX.md"
+      - "docs/hoid/RUN249_PROGRESS_CHANGE_SUBSCRIPTION.md"
       - ".github/workflows/hoid-conversation-progress-race-matrix.yml"
 
 permissions:
@@ -45,15 +55,19 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/conversationGatewayProgressRace.test.ts
+          src/hoid/cursorProgressCoordinator.test.ts
           src/hoid/conversationGateway.test.ts
       - name: Type-check progress and conversation boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --jsx react --esModuleInterop
+          src/hoid/progressChangeWatch.ts
           src/hoid/cursorProgressFingerprint.ts
           src/hoid/typedConversationContext.ts
           src/hoid/conversationContext.ts
           src/hoid/conversationGateway.ts
+          src/hoid/cursorProgressCoordinator.ts
+          src/context/CosmereContext.tsx
           src/hoid/conversationGatewayProgressRace.test.ts
           src/hoid/conversationGateway.test.ts
           src/screens/HoidScreen.tsx

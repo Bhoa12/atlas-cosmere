@@ -393,6 +393,53 @@ describe("HoidCursorProgressCoordinator", () => {
   });
 
 
+  it("notifies subscribers only after a durable cursor commit and supports idempotent unsubscribe", async () => {
+    const { coordinator, store } = createCoordinator();
+    const events: string[] = [];
+    const unsubscribe = coordinator.subscribe(() => events.push("changed"));
+
+    await coordinator.initialize();
+    expect(events).toEqual([]);
+    await coordinator.advance("tfe", cursor("tfe", 4));
+    expect(events).toEqual(["changed"]);
+    await coordinator.advance("tfe", cursor("tfe", 4));
+    expect(events).toEqual(["changed"]);
+
+    unsubscribe();
+    unsubscribe();
+    await coordinator.advance("tfe", cursor("tfe", 5));
+    expect(events).toEqual(["changed"]);
+    expect(store.writes).toBe(2);
+  });
+
+  it("notifies a local subscriber when refresh discovers another coordinator's committed snapshot", async () => {
+    const store = new MemoryCursorStore();
+    const writer = new HoidCursorProgressCoordinator(store, fixedNow);
+    const reader = new HoidCursorProgressCoordinator(store, fixedNow);
+    await Promise.all([writer.initialize(), reader.initialize()]);
+    let events = 0;
+    reader.subscribe(() => { events += 1; });
+
+    await writer.advance("tfe", cursor("tfe", 6));
+    expect(events).toBe(0);
+    await reader.refresh();
+
+    expect(events).toBe(1);
+    expect(reader.getSnapshot()?.revision).toBe(1);
+  });
+
+  it("does not notify subscribers when a durable write fails", async () => {
+    const { coordinator, store } = createCoordinator();
+    await coordinator.initialize();
+    let events = 0;
+    coordinator.subscribe(() => { events += 1; });
+    store.failWrites = true;
+
+    const result = await coordinator.advance("tfe", cursor("tfe", 3));
+    expect(result).toEqual({ status: "unavailable", reason: "storage-error" });
+    expect(events).toBe(0);
+  });
+
   it("makes concurrent initialize calls join an in-flight durable refresh instead of seeing stale progress", async () => {
     const store = new MemoryCursorStore();
     const first = new HoidCursorProgressCoordinator(store, fixedNow);

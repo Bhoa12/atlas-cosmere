@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { HoidEvidenceAnswer } from "./evidenceRuntime";
+import type { HoidEvidenceAnswer, HoidRuntimeCallOptions } from "./evidenceRuntime";
 import {
   createHoidConversationGateway,
   type HoidConversationGatewayConfig,
@@ -44,9 +44,11 @@ const authorizedAnswer: HoidEvidenceAnswer = Object.freeze({
 function deferredRuntime() {
   let resolveAnswer: ((value: HoidEvidenceAnswer) => void) | undefined;
   let markStarted: (() => void) | undefined;
+  let observedSignal: AbortSignal | undefined;
   const started = new Promise<void>(resolve => { markStarted = resolve; });
   const runtime = {
-    answer: vi.fn(() => {
+    answer: vi.fn((_input: unknown, options?: HoidRuntimeCallOptions) => {
+      observedSignal = options?.signal;
       markStarted?.();
       return new Promise<HoidEvidenceAnswer>(resolve => { resolveAnswer = resolve; });
     }),
@@ -54,6 +56,7 @@ function deferredRuntime() {
   return {
     runtime,
     started,
+    signal: () => observedSignal,
     finish(value: HoidEvidenceAnswer = authorizedAnswer) {
       if (!resolveAnswer) throw new Error("El runtime todavía no ha iniciado");
       resolveAnswer(value);
@@ -207,5 +210,136 @@ describe("Hoid conversation progress race matrix", () => {
     expect(result).not.toHaveProperty("answer");
     expect(refreshCurrentProgress).toHaveBeenCalledTimes(2);
     expect(getCurrentProgress).not.toHaveBeenCalled();
+  });
+
+  it("aborts in-flight provider work on a committed progress event and always unsubscribes", async () => {
+    const initial = snapshot(3);
+    const { runtime, started, finish, signal } = deferredRuntime();
+    let listener: (() => void) | undefined;
+    const unsubscribe = vi.fn(() => { listener = undefined; });
+    const subscribeToProgressChanges = vi.fn((notify: () => void) => {
+      listener = notify;
+      return unsubscribe;
+    });
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress: () => initial,
+      subscribeToProgressChanges,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const pending = gateway.answer({ question: "Explica la evidencia autorizada", progress: initial });
+    await started;
+    expect(signal()?.aborted).toBe(false);
+    listener?.();
+    expect(signal()?.aborted).toBe(true);
+    // This provider deliberately ignores AbortSignal; the gateway must still discard its result.
+    finish();
+
+    expect(await pending).toEqual({ status: "unavailable", reason: "progress-changed" });
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(subscribeToProgressChanges).toHaveBeenCalledTimes(1);
+  });
+
+  it("rechecks durable progress after subscription to close the missed-event setup gap", async () => {
+    const initial = snapshot(3);
+    const advanced = snapshot(4, 2);
+    const runtime = { answer: vi.fn(async (_input: unknown) => authorizedAnswer) };
+    let reads = 0;
+    const refreshCurrentProgress = vi.fn(async () => {
+      reads += 1;
+      return reads === 1 ? initial : advanced;
+    });
+    const unsubscribe = vi.fn();
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress,
+      subscribeToProgressChanges: () => unsubscribe,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({ question: "Explica", progress: initial });
+    expect(result).toEqual({ status: "unavailable", reason: "progress-changed" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(refreshCurrentProgress).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed without invoking the provider when the progress subscription cannot be installed", async () => {
+    const initial = snapshot(3);
+    const runtime = { answer: vi.fn(async (_input: unknown) => authorizedAnswer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => initial,
+      subscribeToProgressChanges: () => { throw new Error("ledger event port unavailable"); },
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    expect(await gateway.answer({ question: "Explica", progress: initial })).toEqual({
+      status: "unavailable",
+      reason: "invalid-progress",
+    });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("aborts in-flight recommendation work when the reader advances", async () => {
+    const initial = snapshot(3);
+    let markStarted: (() => void) | undefined;
+    let finish: ((value: unknown) => void) | undefined;
+    let observedSignal: AbortSignal | undefined;
+    let listener: (() => void) | undefined;
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const unsubscribe = vi.fn(() => { listener = undefined; });
+    const runtime = {
+      answer: vi.fn(async (_input: unknown) => authorizedAnswer),
+      recommend: vi.fn((_progress: unknown, _limit: number | undefined, options?: HoidRuntimeCallOptions) => {
+        observedSignal = options?.signal;
+        markStarted?.();
+        return new Promise<unknown>(resolve => { finish = resolve; });
+      }),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress: () => initial,
+      subscribeToProgressChanges: notify => {
+        listener = notify;
+        return unsubscribe;
+      },
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const pending = gateway.recommend({ progress: initial, limit: 2 });
+    await started;
+    listener?.();
+    expect(observedSignal?.aborted).toBe(true);
+    finish?.({ status: "ready", items: [] });
+
+    expect(await pending).toEqual({ status: "unavailable", reason: "progress-changed" });
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("unsubscribes after a watched provider call completes without a progress change", async () => {
+    const initial = snapshot(3);
+    const { runtime, started, finish, signal } = deferredRuntime();
+    const unsubscribe = vi.fn();
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress: () => initial,
+      subscribeToProgressChanges: () => unsubscribe,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const pending = gateway.answer({ question: "Explica", progress: initial });
+    await started;
+    finish();
+    const result = await pending;
+
+    expect(result.status).toBe("ready");
+    expect(signal()?.aborted).toBe(false);
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });

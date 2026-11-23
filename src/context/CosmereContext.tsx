@@ -40,6 +40,8 @@ interface CosmereContextType {
   getHoidCursorProgressSnapshot: () => HoidCursorProgressSnapshot | null;
   /** Reloads the SQLite v2 ledger before spoiler-sensitive work. */
   refreshHoidCursorProgressSnapshot: () => Promise<HoidCursorProgressSnapshot | null>;
+  /** Payload-free notifications emitted after a durable progress commit. */
+  subscribeHoidCursorProgressChanges: (listener: () => void) => () => void;
   sumarPuntosTestUnico: (testId: string, puntos: number) => boolean;
   setApodoActivo: (apodo: string) => void;
   setNombreUsuario: (nombre: string) => void;
@@ -208,6 +210,11 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return result.status === 'ready' ? result.snapshot : null;
   };
 
+  const subscribeHoidCursorProgressChanges = (listener: () => void): (() => void) => {
+    if (!cursorProgressCoordinator) return () => {};
+    return cursorProgressCoordinator.subscribe(listener);
+  };
+
   const agregarComentario = (sagaId: string, libroId: string, capitulo: number, texto: string) => {
     const nuevo: ComentarioComunidad = {
       id: Date.now().toString(),
@@ -251,6 +258,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       hoidCursorProgressSnapshot,
       getHoidCursorProgressSnapshot,
       refreshHoidCursorProgressSnapshot,
+      subscribeHoidCursorProgressChanges,
     }}>
       {children}
     </CosmereContext.Provider>

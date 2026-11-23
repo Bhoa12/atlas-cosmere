@@ -1121,10 +1121,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         {activeConversationScopeBinding && (
           <>
             <Text style={styles.recommendationNote}>
-              Seguimiento limitado a {activeConversationScopeBinding.works.map(work => {
+              Ámbito de conversación: {activeConversationScopeBinding.works.map(work => {
                 const title = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === work.bookId)?.title ?? 'Obra verificada';
                 return `${title} · capítulos ${work.chapters.join(', ')}`;
-              }).join('; ')}. El progreso actual sigue aplicándose a cada obra.
+              }).join('; ')} (capítulos citados en la última respuesta). El progreso actual sigue limitando cada obra.
             </Text>
             <TouchableOpacity
               style={styles.scopeResetButton}

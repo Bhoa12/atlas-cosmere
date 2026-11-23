@@ -29,7 +29,6 @@ on:
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
       - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
       - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
-      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
   pull_request:
     paths:
@@ -56,7 +55,6 @@ on:
       - "docs/hoid/EXPO_LOCAL_EPUB_ACCESS.md"
       - "docs/hoid/EXPLICIT_EPUB_IMPORT_UI.md"
       - "docs/hoid/IMPORT_LIFECYCLE_GUARD.md"
-      - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - "docs/hoid/RUN256_LOCAL_EPUB_READER_CONTENT.md"
       - ".github/workflows/hoid-explicit-local-epub-import.yml"
 

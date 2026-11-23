@@ -596,6 +596,6 @@ El selector solo afecta a explicaciones narrativas. Las consultas de progreso y 
 
 ## Run 247 — cursor-bound answer freshness
 
-El runtime cursor-native adjunta a cada respuesta autorizada un recibo local con la revisión y el fingerprint de la proyección v2 exacta utilizada para seleccionar las afirmaciones. El presentador editorial confiable conserva ese recibo al reconstruir claims y citas, y la frontera de presentación lo compara con el snapshot usado para mostrar la respuesta. Si el progreso cambió —incluido un cambio de posición bajo la misma revisión— la respuesta se retiene como `stale-progress`.
+El runtime cursor-native adjunta a cada respuesta autorizada un recibo local con la revisión y el fingerprint de la proyección v2 exacta utilizada para seleccionar las afirmaciones. El presentador editorial confiable conserva ese recibo al reconstruir claims y citas, y la frontera de presentación lo compara con la proyección usada para mostrar la respuesta. Si el progreso cambió —incluido un cambio de posición bajo la misma revisión— la respuesta se retiene como `stale-progress`.
 
 El recibo es solo una vinculación de frescura: no es una firma, no autentica claims ni proveedores y no concede permisos. La autoridad editorial, los umbrales por obra/capítulo y la comprobación pre/post del gateway siguen siendo obligatorios. Véase `docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md`.

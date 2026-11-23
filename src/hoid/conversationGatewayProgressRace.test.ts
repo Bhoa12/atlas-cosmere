@@ -211,7 +211,8 @@ describe("Hoid conversation progress race matrix", () => {
     expect(refreshCurrentProgress).toHaveBeenCalledTimes(2);
     expect(getCurrentProgress).not.toHaveBeenCalled();
   });
-}  it("aborts in-flight provider work on a committed progress event and always unsubscribes", async () => {
+
+  it("aborts in-flight provider work on a committed progress event and always unsubscribes", async () => {
     const initial = snapshot(3);
     const { runtime, started, finish, signal } = deferredRuntime();
     let listener: (() => void) | undefined;

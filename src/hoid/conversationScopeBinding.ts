@@ -40,6 +40,7 @@ export type HoidConversationScopeBindingValidation =
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_WORKS = 4;
 const MAX_CHAPTERS_PER_WORK = 16;
+const issuedBindings = new WeakSet<object>();
 const WORK_IDS = new Set(HOID_SOURCE_BIBLIOGRAPHY.map(work => work.id));
 const WORK_ORDER = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
 
@@ -217,7 +218,7 @@ export function createHoidConversationScopeBinding(
 
   const canonical = canonicalWorks(works, scope);
   if (!canonical) return null;
-  return Object.freeze({
+  const binding: HoidConversationScopeBinding = Object.freeze({
     schemaVersion: 1,
     kind: "evidence-work-scope",
     scope,
@@ -225,6 +226,8 @@ export function createHoidConversationScopeBinding(
     progressRevision: identity.revision,
     progressFingerprint: identity.fingerprint,
   });
+  issuedBindings.add(binding);
+  return binding;
 }
 
 /**
@@ -239,6 +242,9 @@ export function validateHoidConversationScopeBinding(
 ): HoidConversationScopeBindingValidation {
   const identity = currentProgressIdentity(progress);
   if (!identity) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+  if (value === null || typeof value !== "object" || !issuedBindings.has(value)) {
+    return Object.freeze({ status: "unavailable", reason: "invalid-binding" });
+  }
 
   const record = exactDataRecord(value, [
     "schemaVersion",

@@ -319,7 +319,7 @@ describe("HoidConversationGateway", () => {
     expect(result.items).toEqual([tfeRecommendation, elantrisRecommendation]);
     expect(result.progressRevision).toBe(1);
     expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/);
-    expect(runtime.recommend).toHaveBeenCalledWith(current, 2);
+    expect(runtime.recommend).toHaveBeenCalledWith(current, 2, undefined);
   });
 
   it("accepts a resume recommendation only when its chapter boundary matches the v2 cursor", async () => {
@@ -1204,6 +1204,80 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
       expect.objectContaining({ question: "¿Qué se ha autorizado?" }),
       { signal: controller.signal },
     );
+  });
+
+  it("discards a late answer when the caller aborts even if the runtime ignores the signal", async () => {
+    let finish: ((value: HoidEvidenceAnswer) => void) | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const current = snapshot(3);
+    const runtime = {
+      answer: vi.fn(() => {
+        markStarted?.();
+        return new Promise<HoidEvidenceAnswer>(resolve => { finish = resolve; });
+      }),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+    const controller = new AbortController();
+
+    const pending = gateway.answer(
+      { question: "Pregunta sintética", progress: current },
+      { signal: controller.signal },
+    );
+    await started;
+    controller.abort();
+    finish?.(answer);
+
+    expect(await pending).toEqual({ status: "unavailable", reason: "cancelled" });
+  });
+
+  it("does not invoke the runtime when the caller signal is already aborted", async () => {
+    const current = snapshot(3);
+    const { gateway, runtime } = setup(current);
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await gateway.answer(
+      { question: "Pregunta sintética", progress: current },
+      { signal: controller.signal },
+    );
+
+    expect(result).toEqual({ status: "unavailable", reason: "cancelled" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("discards a late recommendation when the caller aborts", async () => {
+    let finish: ((value: unknown) => void) | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const current = snapshot(3);
+    const runtime = {
+      answer: vi.fn(async (_input: unknown) => answer),
+      recommend: vi.fn(() => {
+        markStarted?.();
+        return new Promise<unknown>(resolve => { finish = resolve; });
+      }),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+    const controller = new AbortController();
+
+    const pending = gateway.recommend(
+      { progress: current, limit: 2 },
+      { signal: controller.signal },
+    );
+    await started;
+    controller.abort();
+    finish?.({ status: "ready", items: [tfeRecommendation] });
+
+    expect(await pending).toEqual({ status: "unavailable", reason: "cancelled" });
   });
 
 });

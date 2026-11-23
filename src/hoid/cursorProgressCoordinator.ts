@@ -125,6 +125,7 @@ export class HoidCursorProgressCoordinator {
   private snapshot: HoidCursorProgressSnapshot | null = null;
   private initialization: Promise<HoidCursorCoordinatorResult> | null = null;
   private queue: Promise<void> = Promise.resolve();
+  private readonly progressListeners = new Set<() => void>();
 
   constructor(
     private readonly store: HoidCursorProgressStore,
@@ -133,6 +134,40 @@ export class HoidCursorProgressCoordinator {
 
   getSnapshot(): HoidCursorProgressSnapshot | null {
     return this.snapshot;
+  }
+
+  /**
+   * Subscribe to committed progress changes in this coordinator. The event is
+   * payload-free and is emitted only after a successful durable commit or when
+   * refresh discovers a different committed snapshot from another coordinator.
+   */
+  subscribe(listener: () => void): () => void {
+    if (typeof listener !== "function") return () => {};
+    this.progressListeners.add(listener);
+    let active = true;
+    return () => {
+      if (!active) return;
+      active = false;
+      this.progressListeners.delete(listener);
+    };
+  }
+
+  private notifyProgressChanged(): void {
+    for (const listener of [...this.progressListeners]) {
+      try {
+        listener();
+      } catch {
+        // A UI or gateway listener must never roll back a durable ledger commit.
+      }
+    }
+  }
+
+  private sameProgressSnapshot(
+    left: HoidCursorProgressSnapshot,
+    right: HoidCursorProgressSnapshot,
+  ): boolean {
+    return left.revision === right.revision &&
+      JSON.stringify(left.positions) === JSON.stringify(right.positions);
   }
 
   initialize(): Promise<HoidCursorCoordinatorResult> {
@@ -171,6 +206,7 @@ export class HoidCursorProgressCoordinator {
         // Clear the cache before the durable read. Concurrent initialize()
         // calls then join this same in-flight load instead of returning the
         // stale snapshot that the refresh is replacing.
+        const previousSnapshot = this.snapshot;
         this.snapshot = null;
         const pending = this.store.load()
           .then(result => this.acceptLoad(result))
@@ -183,6 +219,9 @@ export class HoidCursorProgressCoordinator {
         const loaded = await pending;
         if (this.initialization === pending) this.initialization = null;
         if (loaded.status !== "ready") return loaded;
+        if (previousSnapshot && !this.sameProgressSnapshot(previousSnapshot, loaded.snapshot)) {
+          this.notifyProgressChanged();
+        }
 
         return Object.freeze({
           status: "ready" as const,
@@ -373,6 +412,8 @@ export class HoidCursorProgressCoordinator {
       const written = await this.store.compareAndSwap(expectedRevision, validated.snapshot);
       if (written) {
         this.snapshot = validated.snapshot;
+        // The store has durably accepted the compare-and-swap before listeners fire.
+        this.notifyProgressChanged();
         return Object.freeze({
           status: "ready",
           operation: "updated",
@@ -388,6 +429,7 @@ export class HoidCursorProgressCoordinator {
   }
 
   private async refreshConflict(): Promise<HoidCursorCoordinatorResult> {
+    const previousSnapshot = this.snapshot;
     try {
       const loaded = await this.store.load();
       if (loaded.status === "unavailable") {
@@ -402,6 +444,9 @@ export class HoidCursorProgressCoordinator {
         return Object.freeze({ status: "unavailable", reason: "corrupt-v2" });
       }
       this.snapshot = validation.snapshot;
+      if (previousSnapshot && !this.sameProgressSnapshot(previousSnapshot, validation.snapshot)) {
+        this.notifyProgressChanged();
+      }
       return Object.freeze({ status: "conflict", snapshot: validation.snapshot });
     } catch {
       this.snapshot = null;

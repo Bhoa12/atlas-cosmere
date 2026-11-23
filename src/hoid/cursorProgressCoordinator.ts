@@ -13,6 +13,8 @@ import type {
   HoidCursorProgressStore,
   HoidCursorStoreLoadResult,
 } from "./cursorSqliteProgressStore";
+import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 
 type StoreFailureReason = Extract<
   HoidCursorStoreLoadResult,
@@ -36,7 +38,8 @@ export type HoidCursorCoordinatorResult =
         | "reopen-requires-confirmation"
         | "not-completed"
         | "unsupported-position"
-        | "invalid-update";
+        | "invalid-update"
+        | "non-sequential-reader-advance";
     }>
   | Readonly<{
       status: "unavailable";
@@ -263,6 +266,93 @@ export class HoidCursorProgressCoordinator {
       }
 
       return this.commitPosition({ bookId, cursor: validated.cursor });
+    });
+  }
+
+  /**
+   * Commit the reader's explicit "mark this chapter as read" action only if
+   * the durable progress still matches the snapshot that authorized opening
+   * the chapter. Unlike the general advance() operation, this path is strictly
+   * sequential and cannot skip unread chapters.
+   */
+  advanceIfCurrent(
+    bookId: string,
+    cursorValue: unknown,
+    expectedRevision: number,
+    expectedFingerprint: string,
+  ): Promise<HoidCursorCoordinatorResult> {
+    return this.serialize(async () => {
+      if (!isKnownWork(bookId)) return this.rejected("unknown-work");
+      const validated = validateHoidReadingCursor(cursorValue);
+      if (validated.status !== "valid" || validated.cursor.bookId !== bookId) {
+        return this.rejected("invalid-cursor");
+      }
+      if (
+        !Number.isSafeInteger(expectedRevision) ||
+        expectedRevision < 0 ||
+        typeof expectedFingerprint !== "string" ||
+        !/^[a-f0-9]{64}$/.test(expectedFingerprint)
+      ) return this.rejected("invalid-update");
+
+      try {
+        const pendingInitialization = this.initialization;
+        if (pendingInitialization) {
+          await pendingInitialization;
+          if (this.initialization === pendingInitialization) this.initialization = null;
+        }
+
+        // Always reload SQLite inside the serialized operation. A cached React
+        // snapshot is not sufficient for a user-confirmed progress mutation.
+        const previousSnapshot = this.snapshot;
+        this.snapshot = null;
+        const pending = this.store.load()
+          .then(result => this.acceptLoad(result))
+          .catch(() => {
+            this.snapshot = null;
+            this.initialization = null;
+            return Object.freeze({ status: "unavailable" as const, reason: "storage-error" as const });
+          });
+        this.initialization = pending;
+        const loaded = await pending;
+        if (this.initialization === pending) this.initialization = null;
+        if (loaded.status !== "ready") return loaded;
+        if (previousSnapshot && !this.sameProgressSnapshot(previousSnapshot, loaded.snapshot)) {
+          this.notifyProgressChanged();
+        }
+
+        const projection = projectHoidCursorProgressSnapshot(loaded.snapshot);
+        if (projection.status !== "ready") {
+          return Object.freeze({ status: "unavailable" as const, reason: "corrupt-v2" as const });
+        }
+        const currentFingerprint = fingerprintHoidCursorProgressProjection(projection);
+        if (
+          projection.revision !== expectedRevision ||
+          currentFingerprint !== expectedFingerprint
+        ) return Object.freeze({ status: "conflict" as const, snapshot: loaded.snapshot });
+
+        const existing = loaded.snapshot.positions.find(position => position.bookId === bookId);
+        if (existing && "completed" in existing) return this.rejected("already-completed");
+
+        if (existing && "cursor" in existing &&
+          validated.cursor.ordinal === existing.cursor.ordinal &&
+          validated.cursor.unitId === existing.cursor.unitId &&
+          validated.cursor.manifestId === existing.cursor.manifestId) {
+          return this.unchanged();
+        }
+
+        const nextOrdinal = existing && "cursor" in existing
+          ? existing.cursor.ordinal + 1
+          : 1;
+        if (validated.cursor.ordinal !== nextOrdinal) {
+          return this.rejected("non-sequential-reader-advance");
+        }
+
+        return this.commitPosition({ bookId, cursor: validated.cursor });
+      } catch {
+        this.snapshot = null;
+        this.initialization = null;
+        return Object.freeze({ status: "unavailable" as const, reason: "storage-error" as const });
+      }
     });
   }
 

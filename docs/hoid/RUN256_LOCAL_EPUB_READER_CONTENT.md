@@ -44,7 +44,7 @@ La extracción de texto sirve para lectura local, no para autorizar conocimiento
 
 - Parser XML: orden de bloques, etiquetas inline, saltos de línea, contenido oculto y elementos activos/de navegación excluidos.
 - Ingestión: lectura de un capítulo de fixture sintético, ausencia de HTML/bytes en el resultado, detección de sustitución del documento y fallo seguro si el parser no ofrece extracción.
-- Host lector: apertura exacta, progreso obsoleto antes/después de leer, carrera del epoch de eventos, cancelación, fuente liberada, obra distinta y ausencia de extractor.
+- Host lector (9 escenarios): apertura exacta, progreso obsoleto antes/después de leer, carrera del epoch de eventos, cancelación durante la lectura, fuente liberada, obra distinta, ausencia de extractor y rechazo de getters/Proxy.
 - Reader port: propagación de `stale-progress` desde el host.
 - Workflows: importación EPUB local, parser/ingestión, contrato del reader port, navegación edition-bound y TypeScript estricto.
 

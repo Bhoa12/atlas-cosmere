@@ -945,8 +945,13 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
       const visit = (node: XmlElement, depth: number): void => {
         if (depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth || isExcludedNode(node)) return;
         const kind = blockKinds.get(node.local);
-        const text = normalizedLabel(collectInlineText(node));
-        if (text.length > 0) {
+        // Only semantic block elements produce reader blocks. Inline elements
+        // (for example <strong>) are already included in their parent block;
+        // emitting them again would duplicate words in the rendered chapter.
+        const text = kind === undefined
+          ? ""
+          : normalizedLabel(collectInlineText(node));
+        if (kind !== undefined && text.length > 0) {
           if (text.length > 50_000 || blocks.length >= 10_000) {
             throw new Error("Readable XHTML exceeds the block limit");
           }
@@ -954,10 +959,7 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
           if (characterCount > 1_500_000) {
             throw new Error("Readable XHTML exceeds the text limit");
           }
-          blocks.push(Object.freeze({
-            kind: kind ?? "paragraph",
-            text,
-          }));
+          blocks.push(Object.freeze({ kind, text }));
         }
         for (const child of node.children) visit(child, depth + 1);
       };

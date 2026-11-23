@@ -184,6 +184,13 @@ describe("Hoid evidence-bound conversation scope", () => {
       status: "unavailable",
       reason: "invalid-binding",
     });
+    expect(validateHoidConversationScopeBinding(
+      JSON.parse(JSON.stringify(binding)) as unknown,
+      current,
+    )).toEqual({
+      status: "unavailable",
+      reason: "invalid-binding",
+    });
   });
 
   it("rejects accessor-backed bindings without invoking accessors", () => {

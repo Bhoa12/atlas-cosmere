@@ -260,11 +260,49 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   if (isSignalAborted(signal)) reject("cancelled");
 }
 
-async function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
   throwIfAborted(signal);
-  const result = await operation;
-  throwIfAborted(signal);
-  return result;
+  if (signal === undefined) return operation;
+
+  return new Promise<T>((resolve, rejectPromise) => {
+    let settled = false;
+    let removeListener = () => {};
+    const cleanup = () => {
+      try { removeListener(); } catch { /* Preserve the operation result. */ }
+    };
+    const finishResolve = (value: T) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (isSignalAborted(signal)) rejectPromise(new InspectionError("cancelled"));
+      else resolve(value);
+    };
+    const finishReject = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      rejectPromise(isSignalAborted(signal) ? new InspectionError("cancelled") : error);
+    };
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      rejectPromise(new InspectionError("cancelled"));
+    };
+
+    try {
+      signal.addEventListener("abort", onAbort, { once: true });
+      removeListener = () => signal.removeEventListener("abort", onAbort);
+      if (isSignalAborted(signal)) { onAbort(); return; }
+    } catch {
+      onAbort();
+      return;
+    }
+
+    // Keep the underlying promise observed after cancellation. A non-cooperative
+    // adapter may finish later, but its result cannot re-enter this pipeline.
+    operation.then(finishResolve, finishReject);
+  });
 }
 
 function exactDataRecord(value: unknown, keys: readonly string[]): value is Record<string, unknown> {

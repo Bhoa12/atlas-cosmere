@@ -150,6 +150,7 @@ describe("HoidConversationGateway", () => {
       question: "¿Qué pasa con él?",
       progress: current,
       bookScope: { mode: "single-work", bookIds: ["twok"] },
+      scopeBinding: scopeBindingFor(current),
     });
 
     expect(result.status).toBe("ready");
@@ -990,11 +991,12 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     });
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
+    const binding = scopeBindingFor(current);
     const result = await gateway.answer({
       question: "¿Y ella?",
       progress: current,
       context,
-      scopeBinding: scopeBindingFor(current),
+      scopeBinding: binding,
     });
 
     expect(result.status).toBe("ready");
@@ -1009,8 +1011,8 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     }, undefined);
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
     if (result.status === "ready") {
-      expect(result.conversationContext).toBeUndefined();
-      expect(result.conversationScopeBinding).toBeUndefined();
+      expect(result.conversationContext).toBeDefined();
+      expect(result.conversationScopeBinding).toBe(binding);
     }
   });
 

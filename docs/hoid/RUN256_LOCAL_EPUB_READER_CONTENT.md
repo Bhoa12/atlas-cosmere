@@ -20,6 +20,7 @@ Cerrar la primera integración vertical entre una recomendación edition-bound d
 - `HoidEpubXmlPort.extractReadableBlocks()`: capacidad opcional del parser XML para convertir XHTML validado en bloques de texto.
 - `HoidEpubIngestionService.readChapterContent()`: lectura efímera de un único documento XHTML perteneciente a la navegación de un candidato de paquete emitido por esa misma instancia del servicio.
 - `HoidRecommendationReaderPort`: host que abre únicamente el destino verificado y confirma exactamente obra, capítulo, edición y localizador.
+- `createHoidLocalEpubRecommendationReaderPort()`: adaptador local testeable que encapsula cursor/manifiesto, progreso durable, cancelación, epoch de notificaciones y lectura de contenido.
 - `HoidEpubImportPanel.onReaderPortChange`: registra la capacidad solo mientras fuente, obra, edición y candidato están activos.
 
 ## Seguridad
@@ -43,6 +44,7 @@ La extracción de texto sirve para lectura local, no para autorizar conocimiento
 
 - Parser XML: orden de bloques, etiquetas inline, saltos de línea, contenido oculto y elementos activos/de navegación excluidos.
 - Ingestión: lectura de un capítulo de fixture sintético, ausencia de HTML/bytes en el resultado, detección de sustitución del documento y fallo seguro si el parser no ofrece extracción.
+- Host lector: apertura exacta, progreso obsoleto antes/después de leer, carrera del epoch de eventos, cancelación, fuente liberada, obra distinta y ausencia de extractor.
 - Reader port: propagación de `stale-progress` desde el host.
 - Workflows: importación EPUB local, parser/ingestión, contrato del reader port, navegación edition-bound y TypeScript estricto.
 

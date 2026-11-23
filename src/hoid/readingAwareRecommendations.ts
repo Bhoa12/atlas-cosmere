@@ -67,6 +67,12 @@ function canonicalDenseArray(value: unknown, maximum: number): readonly unknown[
   }
 }
 
+function isCanonicalTimestamp(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
+}
+
 type CanonicalPosition = Readonly<{
   bookId: string;
   title: string;
@@ -75,6 +81,11 @@ type CanonicalPosition = Readonly<{
   completedThroughChapter?: number | null;
   order?: number;
 }>;
+
+function compareReadingOrder(left: CanonicalPosition, right: CanonicalPosition): number {
+  return (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER) ||
+    left.bookId.localeCompare(right.bookId);
+}
 
 /**
  * The exported composer is a public trust boundary, so a plausible chapter
@@ -163,14 +174,13 @@ function canonicalPosition(value: unknown): CanonicalPosition | null {
 function canonicalContext(value: unknown): readonly CanonicalPosition[] | null {
   const record = canonicalRecord(value, CONTEXT_KEYS);
   if (!record || Object.keys(record).length !== CONTEXT_KEYS.length) return null;
+  const revision = record.revision;
+  const updatedAt = record.updatedAt;
   if (
-    typeof record.revision !== "number" ||
-    !Number.isSafeInteger(record.revision) ||
-    record.revision < 0 ||
-    !(record.updatedAt === null || (
-      typeof record.updatedAt === "string" &&
-      Number.isFinite(Date.parse(record.updatedAt))
-    )) ||
+    typeof revision !== "number" ||
+    !Number.isSafeInteger(revision) ||
+    revision < 0 ||
+    !(updatedAt === null || isCanonicalTimestamp(updatedAt)) ||
     typeof record.startedCount !== "number" ||
     !Number.isSafeInteger(record.startedCount) ||
     typeof record.trackableWorkCount !== "number" ||
@@ -198,6 +208,31 @@ function canonicalContext(value: unknown): readonly CanonicalPosition[] | null {
     seen.add(position.bookId);
     positions.push(position);
   }
+
+  // Match the builder's canonical order so callers cannot silently rewrite
+  // the reader's explicit order or rely on a different fallback ordering.
+  for (let index = 1; index < positions.length; index += 1) {
+    if (compareReadingOrder(positions[index - 1], positions[index]) > 0) return null;
+  }
+
+  const trackableIds = new Set(
+    HOID_SOURCE_BIBLIOGRAPHY
+      .filter(work => getHoidReadingManifest(work.id).status === "ready")
+      .map(work => work.id),
+  );
+  const trackableStartedCount = positions.filter(position => trackableIds.has(position.bookId)).length;
+  const expectedTrackableWorkCount = trackableIds.size;
+  const expectedTrackableUnstartedCount = expectedTrackableWorkCount - trackableStartedCount;
+  const expectedUntrackedWorkCount = HOID_SOURCE_BIBLIOGRAPHY.length - expectedTrackableWorkCount;
+
+  if (
+    record.trackableWorkCount !== expectedTrackableWorkCount ||
+    record.trackableUnstartedCount !== expectedTrackableUnstartedCount ||
+    record.untrackedWorkCount !== expectedUntrackedWorkCount ||
+    (revision === 0 && (updatedAt !== null || positions.length !== 0)) ||
+    (revision > 0 && updatedAt === null)
+  ) return null;
+
   return Object.freeze(positions);
 }
 

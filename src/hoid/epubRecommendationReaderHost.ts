@@ -184,11 +184,15 @@ export function createHoidLocalEpubRecommendationReaderPort(
           dependencies.ingestion,
           dependencies.packageCandidate,
           navigationHref,
+          signal,
         );
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
         if (!isLatestOpenAttempt()) return { status: "unavailable", reason: "superseded" };
         if (read.status !== "candidate") {
-          return { status: "unavailable", reason: "locator-unavailable" };
+          return {
+            status: "unavailable",
+            reason: read.reason === "cancelled" ? "cancelled" : "locator-unavailable",
+          };
         }
         if (
           read.candidate.status !== "reader-content" ||

@@ -147,6 +147,7 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.readChapterContent).toHaveBeenCalledWith(
       dependencies.candidate,
       request.navigationHref,
+      undefined,
     );
     expect(dependencies.onChapterOpened).toHaveBeenCalledWith(
       expect.objectContaining({ status: "reader-content", workId: request.workId }),
@@ -240,6 +241,11 @@ describe("local EPUB recommendation reader host", () => {
 
     await expect(operation).resolves.toEqual({ status: "unavailable", reason: "cancelled" });
     expect(dependencies.readChapterContent).toHaveBeenCalledTimes(1);
+    expect(dependencies.readChapterContent).toHaveBeenCalledWith(
+      dependencies.candidate,
+      request.navigationHref,
+      controller.signal,
+    );
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
   });
 

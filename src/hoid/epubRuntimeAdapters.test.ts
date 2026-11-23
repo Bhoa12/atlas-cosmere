@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { strToU8, zipSync } from "fflate";
 import { HOID_EPUB_INGESTION_LIMITS } from "./epubIngestion";
 import {
@@ -165,6 +165,25 @@ describe("concrete local EPUB runtime adapters", () => {
       HOID_EPUB_INGESTION_LIMITS.maxArchiveBytes,
     );
   });
+  it("does not resolve buffered EPUB bytes when the archive request is already cancelled", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const resolveSource = vi.fn(() => makeZip());
+    const archive = createHoidFflateArchivePort(resolveSource);
+
+    await expect(archive.listEntries("fixture", controller.signal)).rejects.toThrow("cancelled");
+    expect(resolveSource).not.toHaveBeenCalled();
+  });
+
+  it("rejects pre-cancelled XHTML validation and extraction before parsing", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const xml = createHoidXmldomXmlPort();
+
+    await expect(xml.validateXhtml(XHTML, controller.signal)).rejects.toThrow("cancelled");
+    await expect(xml.extractReadableBlocks!(XHTML, controller.signal)).rejects.toThrow("cancelled");
+  });
+
   it("rejects shared-memory source buffers when the runtime supports them", async () => {
     if (typeof SharedArrayBuffer === "undefined") return;
     const shared = new SharedArrayBuffer(makeZip().byteLength);

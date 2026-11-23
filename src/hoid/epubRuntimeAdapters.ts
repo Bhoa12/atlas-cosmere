@@ -29,6 +29,7 @@ export const HOID_EPUB_RUNTIME_LIMITS = Object.freeze({
 
 export type HoidEpubByteSourceResolver = (
   sourceId: string,
+  signal?: AbortSignal,
 ) => Uint8Array | null | Promise<Uint8Array | null>;
 
 const ZIP_LOCAL_SIGNATURE = 0x04034b50;
@@ -43,6 +44,14 @@ const DC_NS = "http://purl.org/dc/elements/1.1/";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const OPS_NS = "http://www.idpf.org/2007/ops";
 const NCX_NS = "http://www.daisy.org/z3986/2005/ncx/";
+
+function throwIfAborted(signal?: AbortSignal): void {
+  try {
+    if (signal?.aborted === true) throw new Error("cancelled");
+  } catch {
+    throw new Error("cancelled");
+  }
+}
 
 type ParsedZipEntry = Readonly<{
   publicEntry: HoidEpubArchiveEntry;
@@ -395,27 +404,41 @@ function parseZipArchive(bytes: Uint8Array): ParsedZipArchive {
 export function createHoidFflateArchivePort(
   resolveSourceBytes: HoidEpubByteSourceResolver,
 ): HoidEpubArchivePort {
-  async function load(sourceId: string): Promise<Readonly<{ bytes: Uint8Array; index: ParsedZipArchive }>> {
+  async function load(
+    sourceId: string,
+    signal?: AbortSignal,
+  ): Promise<Readonly<{ bytes: Uint8Array; index: ParsedZipArchive }>> {
+    throwIfAborted(signal);
     if (typeof sourceId !== "string" || sourceId.length === 0 || sourceId.length > 128) {
       throw new Error("EPUB source identifier is invalid");
     }
-    const bytes = await resolveSourceBytes(sourceId);
+    const bytes = await resolveSourceBytes(sourceId, signal);
+    throwIfAborted(signal);
     if (
       !(bytes instanceof Uint8Array) ||
       !(bytes.buffer instanceof ArrayBuffer) ||
       bytes.byteLength === 0 ||
       bytes.byteLength > HOID_EPUB_RUNTIME_LIMITS.maxArchiveBytes
     ) throw new Error("EPUB source bytes are unavailable or exceed the archive limit");
-    return Object.freeze({ bytes, index: parseZipArchive(bytes) });
+    const index = parseZipArchive(bytes);
+    throwIfAborted(signal);
+    return Object.freeze({ bytes, index });
   }
 
   return Object.freeze({
-    async listEntries(sourceId: string): Promise<readonly HoidEpubArchiveEntry[]> {
-      const loaded = await load(sourceId);
+    async listEntries(sourceId: string, signal?: AbortSignal): Promise<readonly HoidEpubArchiveEntry[]> {
+      const loaded = await load(sourceId, signal);
+      throwIfAborted(signal);
       return Object.freeze(loaded.index.entries.map(entry => entry.publicEntry));
     },
 
-    async readEntry(sourceId: string, canonicalPath: string, maximumBytes: number): Promise<Uint8Array | null> {
+    async readEntry(
+      sourceId: string,
+      canonicalPath: string,
+      maximumBytes: number,
+      signal?: AbortSignal,
+    ): Promise<Uint8Array | null> {
+      throwIfAborted(signal);
       if (
         typeof canonicalPath !== "string" ||
         canonicalPath.length === 0 ||
@@ -424,7 +447,8 @@ export function createHoidFflateArchivePort(
         maximumBytes > HOID_EPUB_RUNTIME_LIMITS.maxReadEntryBytes
       ) throw new Error("EPUB member read request is invalid");
 
-      const loaded = await load(sourceId);
+      const loaded = await load(sourceId, signal);
+      throwIfAborted(signal);
       const entry = loaded.index.byPath.get(canonicalPath);
       if (entry === undefined || entry.publicEntry.kind !== "file") return null;
       if (entry.publicEntry.encrypted) throw new Error("Encrypted ZIP members are not supported");
@@ -456,11 +480,13 @@ export function createHoidFflateArchivePort(
         throw new Error("ZIP compression method is unsupported");
       }
 
+      throwIfAborted(signal);
       if (
         output.byteLength !== entry.publicEntry.uncompressedSize ||
         crc32(output) !== entry.crc32
       ) throw new Error("ZIP member integrity check failed");
 
+      throwIfAborted(signal);
       return output;
     },
   });
@@ -527,13 +553,14 @@ type DomDocumentLike = DomNodeLike & Readonly<{
  * have already been rejected by decodeXml; comments, CDATA and processing
  * instructions are skipped without treating their contents as markup.
  */
-function preflightXmlStructure(xml: string): void {
+function preflightXmlStructure(xml: string, signal?: AbortSignal): void {
   let cursor = 0;
   let depth = 0;
   let nodeCount = 0;
   const tagStack: string[] = [];
 
   while (cursor < xml.length) {
+    throwIfAborted(signal);
     const open = xml.indexOf("<", cursor);
     if (open < 0) break;
 
@@ -630,9 +657,10 @@ function localNameOf(node: Readonly<{
   return separator < 0 ? qualifiedName : qualifiedName.slice(separator + 1);
 }
 
-function parseXmlTree(bytes: Uint8Array): XmlElement {
+function parseXmlTree(bytes: Uint8Array, signal?: AbortSignal): XmlElement {
+  throwIfAborted(signal);
   const xml = decodeXml(bytes);
-  preflightXmlStructure(xml);
+  preflightXmlStructure(xml, signal);
 
   let document: DomDocumentLike | undefined;
   try {
@@ -647,6 +675,7 @@ function parseXmlTree(bytes: Uint8Array): XmlElement {
     throw new Error("XML document is malformed or exceeds structural limits");
   }
 
+  throwIfAborted(signal);
   if (document === undefined || document === null || document.doctype != null) {
     throw new Error("XML document is missing or uses a forbidden DTD");
   }
@@ -664,6 +693,7 @@ function parseXmlTree(bytes: Uint8Array): XmlElement {
 
   let nodeCount = 0;
   const convertElement = (node: DomNodeLike, depth: number): XmlElement => {
+    throwIfAborted(signal);
     if (node.nodeType !== 1 || depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth) {
       throw new Error("XML element structure is invalid");
     }
@@ -712,7 +742,9 @@ function parseXmlTree(bytes: Uint8Array): XmlElement {
     };
   };
 
-  return convertElement(root, 1);
+  const converted = convertElement(root, 1);
+  throwIfAborted(signal);
+  return converted;
 }
 function directChildren(node: XmlElement, local: string, uri: string): readonly XmlElement[] {
   return node.children.filter(child => child.local === local && child.uri === uri);
@@ -886,17 +918,22 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
         : parseEpub2Navigation(root);
     },
 
-    async validateXhtml(bytes: Uint8Array): Promise<boolean> {
+    async validateXhtml(bytes: Uint8Array, signal?: AbortSignal): Promise<boolean> {
       try {
-        const root = parseXmlTree(bytes);
+        const root = parseXmlTree(bytes, signal);
+        throwIfAborted(signal);
         return root.local === "html" && root.uri === XHTML_NS;
       } catch {
+        throwIfAborted(signal);
         return false;
       }
     },
 
-    async extractReadableBlocks(bytes: Uint8Array): Promise<readonly HoidEpubReadableBlock[]> {
-      const root = parseXmlTree(bytes);
+    async extractReadableBlocks(
+      bytes: Uint8Array,
+      signal?: AbortSignal,
+    ): Promise<readonly HoidEpubReadableBlock[]> {
+      const root = parseXmlTree(bytes, signal);
       if (root.local !== "html" || root.uri !== XHTML_NS) {
         throw new Error("Reader source is not XHTML");
       }
@@ -933,16 +970,18 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
             /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)(?:\s*!important)?(?:;|$)/i.test(attribute.value))
         );
 
-      const collectInlineText = (node: XmlElement): string => node.content
-        .map(part => {
+      const collectInlineText = (node: XmlElement): string => {
+        throwIfAborted(signal);
+        return node.content.map(part => {
           if (typeof part === "string") return part;
           if (part.local === "br") return " ";
           if (isExcludedNode(part) || blockElements.has(part.local)) return "";
           return collectInlineText(part);
-        })
-        .join("");
+        }).join("");
+      };
 
       const visit = (node: XmlElement, depth: number): void => {
+        throwIfAborted(signal);
         if (depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth || isExcludedNode(node)) return;
         const kind = blockKinds.get(node.local);
         // Only semantic block elements produce reader blocks. Inline elements
@@ -965,6 +1004,7 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
       };
 
       visit(body, 0);
+      throwIfAborted(signal);
       if (blocks.length === 0) throw new Error("XHTML contains no readable text blocks");
       return Object.freeze(blocks);
     },

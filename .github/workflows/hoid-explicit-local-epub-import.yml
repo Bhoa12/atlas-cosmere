@@ -9,11 +9,15 @@ on:
       - "src/hoid/epubRuntimeAdapters.ts"
       - "src/hoid/epubRuntimeAdapters.test.ts"
       - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.test.ts"
+      - "src/hoid/expoLocalEpubProvider.test.ts"
+      - "docs/hoid/RUN259_COOPERATIVE_EPUB_CANCELLATION.md"
       - "src/hoid/epubImportSelection.ts"
       - "src/hoid/epubImportSelection.test.ts"
       - "src/hoid/epubImportLifecycle.ts"
       - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubIngestion.test.ts"
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
@@ -40,11 +44,15 @@ on:
       - "src/hoid/epubRuntimeAdapters.ts"
       - "src/hoid/epubRuntimeAdapters.test.ts"
       - "src/hoid/epubRangeRuntimeAdapters.ts"
+      - "src/hoid/epubRangeRuntimeAdapters.test.ts"
+      - "src/hoid/expoLocalEpubProvider.test.ts"
+      - "docs/hoid/RUN259_COOPERATIVE_EPUB_CANCELLATION.md"
       - "src/hoid/epubImportSelection.ts"
       - "src/hoid/epubImportSelection.test.ts"
       - "src/hoid/epubImportLifecycle.ts"
       - "src/hoid/epubImportLifecycle.test.ts"
       - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubIngestion.test.ts"
       - "src/hoid/recommendationReaderPort.ts"
       - "src/hoid/recommendationReaderPort.test.ts"
       - "src/hoid/epubRecommendationReaderHost.ts"
@@ -87,6 +95,8 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/epubRuntimeAdapters.test.ts
+          src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/expoLocalEpubProvider.test.ts
           src/hoid/epubImportSelection.test.ts
           src/hoid/epubImportLifecycle.test.ts
           src/hoid/epubIngestion.test.ts
@@ -100,6 +110,8 @@ jobs:
           src/hoid/epubRuntimeAdapters.ts
           src/hoid/epubRuntimeAdapters.test.ts
           src/hoid/epubRangeRuntimeAdapters.ts
+          src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/expoLocalEpubProvider.test.ts
           src/hoid/epubImportSelection.ts
           src/hoid/epubImportLifecycle.ts
           src/hoid/epubImportLifecycle.test.ts

@@ -213,6 +213,86 @@ describe("offline EPUB ingestion core", () => {
     expect(fixture.xml.extractReadableBlocks).toHaveBeenCalledTimes(1);
   });
 
+  it("returns cancellation before touching the archive when the signal is already aborted", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    vi.spyOn(fixture.archive, "listEntries").mockClear();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+      controller.signal,
+    )).resolves.toEqual({ status: "rejected", reason: "cancelled" });
+    expect(fixture.archive.listEntries).not.toHaveBeenCalled();
+    expect(fixture.xml.extractReadableBlocks).not.toHaveBeenCalled();
+  });
+
+  it("stops before XHTML extraction when cancellation arrives during the chapter byte read", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    const originalRead = fixture.archive.readEntry.bind(fixture.archive);
+    const controller = new AbortController();
+    let resolvePending: (value: Uint8Array | null) => void = () => {};
+    let markStarted: () => void = () => {};
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const pending = new Promise<Uint8Array | null>(resolve => { resolvePending = resolve; });
+    vi.spyOn(fixture.archive, "readEntry").mockImplementation(async (sourceId, path, maximumBytes, signal) => {
+      if (path === "OEBPS/Text/chapter-1.xhtml") {
+        markStarted();
+        const result = await pending;
+        if (signal?.aborted) throw new Error("cancelled");
+        return result;
+      }
+      return originalRead(sourceId, path, maximumBytes, signal);
+    });
+
+    const operation = fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+      controller.signal,
+    );
+    await started;
+    controller.abort();
+    resolvePending(fixture.contents.get("OEBPS/Text/chapter-1.xhtml")!);
+
+    await expect(operation).resolves.toEqual({ status: "rejected", reason: "cancelled" });
+    expect(fixture.xml.extractReadableBlocks).not.toHaveBeenCalled();
+  });
+
+  it("discards extracted blocks when cancellation arrives during asynchronous XHTML extraction", async () => {
+    const fixture = makeFixture();
+    const packageResult = await fixture.service.inspectPackage(fixture.source);
+    if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
+    const controller = new AbortController();
+    let resolveExtraction: (value: readonly { kind: "paragraph"; text: string }[]) => void = () => {};
+    let markStarted: () => void = () => {};
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    const pending = new Promise<readonly { kind: "paragraph"; text: string }[]>(resolve => {
+      resolveExtraction = resolve;
+    });
+    fixture.xml.extractReadableBlocks = vi.fn(async (_bytes, signal) => {
+      markStarted();
+      const result = await pending;
+      if (signal?.aborted) throw new Error("cancelled");
+      return result;
+    });
+
+    const operation = fixture.service.readChapterContent?.(
+      packageResult.candidate,
+      "Text/chapter-1.xhtml#chapter-1",
+      controller.signal,
+    );
+    await started;
+    controller.abort();
+    resolveExtraction([Object.freeze({ kind: "paragraph", text: "Synthetic cancelled text." })]);
+
+    await expect(operation).resolves.toEqual({ status: "rejected", reason: "cancelled" });
+  });
+
   it("rejects chapter content if the source changes between byte read and final verification", async () => {
     const fixture = makeFixture();
     const packageResult = await fixture.service.inspectPackage(fixture.source);

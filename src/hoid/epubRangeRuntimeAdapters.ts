@@ -16,11 +16,12 @@ export const HOID_EPUB_RANGE_RUNTIME_LIMITS = Object.freeze({
 
 export interface HoidEpubRandomAccessSource {
   readonly size: number;
-  readRange(offset: number, length: number): Promise<Uint8Array>;
+  readRange(offset: number, length: number, signal?: AbortSignal): Promise<Uint8Array>;
 }
 
 export type HoidEpubRandomAccessSourceResolver = (
   sourceId: string,
+  signal?: AbortSignal,
 ) => Promise<HoidEpubRandomAccessSource | null>;
 
 type CentralEntry = Readonly<{
@@ -50,6 +51,14 @@ const CENTRAL_SIGNATURE = 0x02014b50;
 const EOCD_SIGNATURE = 0x06054b50;
 const ZIP64_LOCATOR_SIGNATURE = 0x07064b50;
 const DATA_DESCRIPTOR_SIGNATURE = 0x08074b50;
+
+function throwIfAborted(signal?: AbortSignal): void {
+  try {
+    if (signal?.aborted === true) throw new Error("cancelled");
+  } catch {
+    throw new Error("cancelled");
+  }
+}
 
 function readU16(bytes: Uint8Array, offset: number): number {
   if (!Number.isSafeInteger(offset) || offset < 0 || offset + 2 > bytes.byteLength) {
@@ -138,7 +147,9 @@ async function readExact(
   source: HoidEpubRandomAccessSource,
   offset: number,
   length: number,
+  signal?: AbortSignal,
 ): Promise<Uint8Array> {
+  throwIfAborted(signal);
   if (
     !Number.isSafeInteger(offset) ||
     !Number.isSafeInteger(length) ||
@@ -147,7 +158,8 @@ async function readExact(
     offset + length > source.size
   ) throw new Error("EPUB range is outside the source");
   if (length === 0) return new Uint8Array(0);
-  const bytes = await source.readRange(offset, length);
+  const bytes = await source.readRange(offset, length, signal);
+  throwIfAborted(signal);
   if (!(bytes instanceof Uint8Array) || bytes.byteLength !== length) {
     throw new Error("EPUB range read returned an unexpected byte count");
   }
@@ -164,7 +176,8 @@ function findEocd(tail: Uint8Array): number {
   throw new Error("ZIP end-of-central-directory record was not found");
 }
 
-async function parseIndex(source: HoidEpubRandomAccessSource): Promise<ZipIndex> {
+async function parseIndex(source: HoidEpubRandomAccessSource, signal?: AbortSignal): Promise<ZipIndex> {
+  throwIfAborted(signal);
   if (
     !Number.isSafeInteger(source.size) ||
     source.size < 22 ||
@@ -173,12 +186,12 @@ async function parseIndex(source: HoidEpubRandomAccessSource): Promise<ZipIndex>
 
   const tailLength = Math.min(source.size, 22 + 0xffff);
   const tailOffset = source.size - tailLength;
-  const tail = await readExact(source, tailOffset, tailLength);
+  const tail = await readExact(source, tailOffset, tailLength, signal);
   const eocdInTail = findEocd(tail);
   const eocdOffset = tailOffset + eocdInTail;
 
   if (eocdOffset >= 20) {
-    const locator = await readExact(source, eocdOffset - 20, 20);
+    const locator = await readExact(source, eocdOffset - 20, 20, signal);
     if (readU32(locator, 0) === ZIP64_LOCATOR_SIGNATURE) {
       throw new Error("ZIP64 archives are not supported");
     }
@@ -205,7 +218,7 @@ async function parseIndex(source: HoidEpubRandomAccessSource): Promise<ZipIndex>
     centralOffset + centralSize !== eocdOffset
   ) throw new Error("ZIP directory layout is unsupported or inconsistent");
 
-  const central = await readExact(source, centralOffset, centralSize);
+  const central = await readExact(source, centralOffset, centralSize, signal);
   const parsed: CentralEntry[] = [];
   const exactPaths = new Set<string>();
   const foldedPaths = new Set<string>();
@@ -214,6 +227,7 @@ async function parseIndex(source: HoidEpubRandomAccessSource): Promise<ZipIndex>
   let totalUncompressed = 0;
 
   for (let index = 0; index < totalEntries; index += 1) {
+    throwIfAborted(signal);
     if (cursor + 46 > central.byteLength || readU32(central, cursor) !== CENTRAL_SIGNATURE) {
       throw new Error("ZIP central directory entry is malformed");
     }
@@ -296,6 +310,7 @@ async function parseIndex(source: HoidEpubRandomAccessSource): Promise<ZipIndex>
   parsed.sort((left, right) => left.localOffset - right.localOffset);
   const ordered = parsed.map((entry, ordinal) => Object.freeze({ ...entry, ordinal }));
   const byPath = new Map(ordered.map(entry => [entry.path, entry]));
+  throwIfAborted(signal);
   return Object.freeze({
     size: source.size,
     centralOffset,
@@ -308,9 +323,11 @@ async function inspectLocalRecord(
   source: HoidEpubRandomAccessSource,
   index: ZipIndex,
   entry: CentralEntry,
+  signal?: AbortSignal,
 ): Promise<Readonly<{ dataOffset: number; extraLength: number }>> {
+  throwIfAborted(signal);
   const nextOffset = index.entries[entry.ordinal + 1]?.localOffset ?? index.centralOffset;
-  const fixed = await readExact(source, entry.localOffset, 30);
+  const fixed = await readExact(source, entry.localOffset, 30, signal);
   if (readU32(fixed, 0) !== LOCAL_SIGNATURE) throw new Error("ZIP local file header is malformed");
 
   const flags = readU16(fixed, 6);
@@ -324,7 +341,7 @@ async function inspectLocalRecord(
     throw new Error("ZIP local and central filename lengths disagree");
   }
 
-  const variable = await readExact(source, entry.localOffset + 30, nameLength + extraLength);
+  const variable = await readExact(source, entry.localOffset + 30, nameLength + extraLength, signal);
   const localName = variable.subarray(0, nameLength);
   if (!equalBytes(localName, entry.rawName)) throw new Error("ZIP local and central filenames disagree");
   validateExtraFields(variable, nameLength, extraLength);
@@ -356,7 +373,7 @@ async function inspectLocalRecord(
   if (usesDescriptor) {
     const available = nextOffset - dataEnd;
     if (available < 12) throw new Error("ZIP data descriptor is truncated");
-    const descriptor = await readExact(source, dataEnd, Math.min(16, available));
+    const descriptor = await readExact(source, dataEnd, Math.min(16, available), signal);
     const descriptorStart = readU32(descriptor, 0) === DATA_DESCRIPTOR_SIGNATURE ? 4 : 0;
     if (descriptorStart + 12 > descriptor.byteLength) throw new Error("ZIP data descriptor is truncated");
     if (
@@ -367,6 +384,7 @@ async function inspectLocalRecord(
     recordEnd += descriptorStart + 12;
   }
   if (recordEnd > nextOffset) throw new Error("ZIP local records overlap");
+  throwIfAborted(signal);
   return Object.freeze({ dataOffset, extraLength });
 }
 
@@ -375,31 +393,37 @@ export function createHoidFflateRangeArchivePort(
 ): HoidEpubArchivePort {
   const indexes = new Map<string, ZipIndex>();
 
-  async function load(sourceId: string): Promise<Readonly<{
+  async function load(sourceId: string, signal?: AbortSignal): Promise<Readonly<{
     source: HoidEpubRandomAccessSource;
     index: ZipIndex;
   }>> {
+    throwIfAborted(signal);
     if (typeof sourceId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(sourceId)) {
       throw new Error("EPUB source identifier is invalid");
     }
-    const source = await resolveSource(sourceId);
+    const source = await resolveSource(sourceId, signal);
+    throwIfAborted(signal);
     if (source === null) throw new Error("EPUB source is unavailable");
-    const index = await parseIndex(source);
+    const index = await parseIndex(source, signal);
+    throwIfAborted(signal);
     return Object.freeze({ source, index });
   }
 
   return Object.freeze({
-    async listEntries(sourceId: string): Promise<readonly HoidEpubArchiveEntry[]> {
-      const loaded = await load(sourceId);
+    async listEntries(sourceId: string, signal?: AbortSignal): Promise<readonly HoidEpubArchiveEntry[]> {
+      const loaded = await load(sourceId, signal);
+      throwIfAborted(signal);
       indexes.set(sourceId, loaded.index);
       const firstFile = loaded.index.entries.find(entry => entry.kind === "file");
       if (firstFile === undefined || firstFile.path !== "mimetype" || firstFile.method !== 0 ||
         firstFile.compressedSize !== 20 || firstFile.uncompressedSize !== 20) {
         throw new Error("EPUB mimetype entry is not the first stored file");
       }
-      const mimetypeLocal = await inspectLocalRecord(loaded.source, loaded.index, firstFile);
+      const mimetypeLocal = await inspectLocalRecord(loaded.source, loaded.index, firstFile, signal);
+      throwIfAborted(signal);
       if (mimetypeLocal.extraLength !== 0) throw new Error("EPUB mimetype local header has an extra field");
 
+      throwIfAborted(signal);
       return Object.freeze(loaded.index.entries.map(entry => Object.freeze({
         path: entry.path,
         ordinal: entry.ordinal,
@@ -412,7 +436,13 @@ export function createHoidFflateRangeArchivePort(
       })));
     },
 
-    async readEntry(sourceId: string, canonicalPath: string, maximumBytes: number): Promise<Uint8Array | null> {
+    async readEntry(
+      sourceId: string,
+      canonicalPath: string,
+      maximumBytes: number,
+      signal?: AbortSignal,
+    ): Promise<Uint8Array | null> {
+      throwIfAborted(signal);
       if (
         typeof canonicalPath !== "string" ||
         canonicalPath.length === 0 ||
@@ -424,12 +454,13 @@ export function createHoidFflateRangeArchivePort(
       let index = indexes.get(sourceId);
       let source: HoidEpubRandomAccessSource;
       if (index === undefined) {
-        const loaded = await load(sourceId);
+        const loaded = await load(sourceId, signal);
         source = loaded.source;
         index = loaded.index;
         indexes.set(sourceId, index);
       } else {
-        const resolved = await resolveSource(sourceId);
+        const resolved = await resolveSource(sourceId, signal);
+        throwIfAborted(signal);
         if (resolved === null || resolved.size !== index.size) throw new Error("EPUB source changed or is unavailable");
         source = resolved;
       }
@@ -441,8 +472,8 @@ export function createHoidFflateRangeArchivePort(
         entry.compressedSize > HOID_EPUB_RANGE_RUNTIME_LIMITS.maxCompressedMemberBytes
       ) throw new Error("EPUB member exceeds the requested read limit");
 
-      const local = await inspectLocalRecord(source, index, entry);
-      const compressed = await readExact(source, local.dataOffset, entry.compressedSize);
+      const local = await inspectLocalRecord(source, index, entry, signal);
+      const compressed = await readExact(source, local.dataOffset, entry.compressedSize, signal);
       let output: Uint8Array;
       if (entry.method === 0) {
         if (compressed.byteLength !== entry.uncompressedSize) {
@@ -461,9 +492,11 @@ export function createHoidFflateRangeArchivePort(
         throw new Error("ZIP compression method is unsupported");
       }
 
+      throwIfAborted(signal);
       if (output.byteLength !== entry.uncompressedSize || crc32(output) !== entry.crc) {
         throw new Error("ZIP member integrity check failed");
       }
+      throwIfAborted(signal);
       return output;
     },
   });

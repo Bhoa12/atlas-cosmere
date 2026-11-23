@@ -50,6 +50,9 @@ function makeProvider(bytes: Uint8Array, overrides: Readonly<Record<string, unkn
     async readAsStringAsync(_uri: string, options: { position: number; length: number }) {
       reads.push(Object.freeze({ position: options.position, length: options.length }));
       const encoded = encodeBase64(bytes.slice(options.position, options.position + options.length));
+      if (typeof overrides.onRead === "function") {
+        (overrides.onRead as () => void)();
+      }
       if (changeDuringNextRead) {
         currentModificationTime += 1;
         changeDuringNextRead = false;
@@ -168,6 +171,21 @@ describe("Expo local EPUB source provider", () => {
     expect(Math.max(...fixture.reads.map(read => read.length))).toBeLessThanOrEqual(
       HOID_EXPO_EPUB_SOURCE_LIMITS.readChunkBytes,
     );
+  });
+
+  it("stops after the in-flight Base64 chunk when the caller cancels a range read", async () => {
+    const bytes = new Uint8Array(100_000);
+    const controller = new AbortController();
+    const fixture = makeProvider(bytes, { onRead: () => controller.abort() });
+    const picked = await fixture.provider.pickEpub();
+    expect(picked.status).toBe("selected");
+    if (picked.status !== "selected") return;
+    const source = await fixture.provider.resolveRangeSource(picked.source.sourceId);
+    expect(source).not.toBeNull();
+
+    await expect(source!.readRange(0, bytes.length, controller.signal))
+      .rejects.toThrow("cancelled");
+    expect(fixture.reads).toHaveLength(1);
   });
 
   it("detects a file changed after selection", async () => {

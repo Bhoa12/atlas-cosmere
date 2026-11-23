@@ -285,13 +285,9 @@ export function validateHoidConversationScopeBinding(
     }
   }
 
-  const binding: HoidConversationScopeBinding = Object.freeze({
-    schemaVersion: 1,
-    kind: "evidence-work-scope",
-    scope,
-    works,
-    progressRevision: identity.revision,
-    progressFingerprint: identity.fingerprint,
-  });
+  // Bindings are minted only by this module and deeply frozen at creation.
+  // Return the exact issued object so callers can carry the WeakSet capability
+  // across turns; cloning here would silently strip that capability.
+  const binding = value as HoidConversationScopeBinding;
   return Object.freeze({ status: "ready", binding, scope });
 }

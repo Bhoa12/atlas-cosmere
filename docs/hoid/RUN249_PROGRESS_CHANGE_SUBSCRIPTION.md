@@ -24,11 +24,17 @@ El evento no contiene IDs de afirmaciones, capítulos, nombres de personajes ni 
 
 El puerto no depende de ningún SDK. El adaptador de cada proveedor recibe únicamente `HoidRuntimeCallOptions.signal` y puede traducirlo a la cancelación de su transporte. La seguridad no depende de que el proveedor respete esa señal: el gateway conserva la invalidación local y la comprobación posterior.
 
-## Compatibilidad y estado de producción
+## Integración con el coordinador SQLite
 
-`subscribeToProgressChanges` es opcional. Si no se proporciona, se conserva el comportamiento anterior de lectura antes/después. Si se configura y falla el alta, la operación se retiene con `invalid-progress`.
+`HoidCursorProgressCoordinator` expone `subscribe(listener)`. Emite un evento sin payload:
+- después de que `compareAndSwap` haya confirmado un avance o finalización;
+- cuando `refresh()` descubre una revisión durable distinta escrita por otro coordinador.
 
-En esta iteración se incorpora el contrato y su consumo en el gateway, además de pruebas con un ledger sintético. **Todavía no se conecta a un emisor de eventos de producción**: el coordinador SQLite debe proporcionar una implementación que emita después del commit y que garantice la desuscripción. No se simula esa integración.
+No emite en inicialización, escrituras sin cambios ni fallos de almacenamiento. Las excepciones de listeners se aíslan para que nunca alteren un commit ya confirmado. La desuscripción es idempotente.
+
+`CosmereContext` expone el puerto al lector y `HoidScreen` lo inyecta en `HoidConversationGateway`. Así, los cambios locales del coordinador cancelan de forma cooperativa las respuestas y recomendaciones en curso. Un cambio de otro proceso se detecta al refrescar el snapshot; no se afirma que SQLite proporcione una notificación cross-process espontánea.
+
+`subscribeToProgressChanges` sigue siendo opcional para otros hosts. Si no se proporciona, se conserva el control before/after. Si se configura y falla el alta o la segunda lectura durable, la operación se retiene con `invalid-progress`.
 
 ## Cobertura
 

@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Evitar que una respuesta autorizada con un snapshot v2 se presente accidentalmente junto a otro snapshot de lectura. La garantía se aplica también a consumidores directos del runtime de cursores, fuera del gateway conversacional de HoidScreen.
+Evitar que una respuesta autorizada con un proyección v2 se presente accidentalmente junto a otro snapshot de lectura. La garantía se aplica también a consumidores directos del runtime de cursores, fuera del gateway conversacional de HoidScreen.
 
 ## Contrato
 
@@ -16,7 +16,7 @@ El fingerprint reutiliza exactamente `fingerprintHoidCursorProgressProjection()`
 
 ## Flujo
 
-1. `HoidCursorEvidenceRuntime` valida el snapshot v2 y crea una única proyección de lectura.
+1. `HoidCursorEvidenceRuntime` valida el proyección v2 y crea una única proyección de lectura.
 2. El runtime estricto selecciona afirmaciones utilizando únicamente esa proyección.
 3. Si la respuesta queda autorizada, la fachada adjunta el recibo generado desde la misma proyección.
 4. `HoidVerifiedAnswerPresenter` conserva el recibo al reconstruir el texto y las citas desde los registros editoriales locales.
@@ -39,7 +39,7 @@ La cobertura sintética comprueba:
 
 - estabilidad del fingerprint ante reordenación equivalente;
 - cambio de huella al cambiar la revisión o una posición bajo la misma revisión;
-- aceptación de un recibo ligado al snapshot exacto;
+- aceptación de un recibo ligado al proyección validada exacta;
 - rechazo de recibos antiguos, malformados, con campos extra o versión desconocida;
 - rechazo de getters y trampas de Proxy sin ejecutar getters;
 - propagación del recibo por el runtime de cursores y el presentador editorial confiable.

@@ -95,6 +95,7 @@ export const HoidEpubImportPanel: React.FC<{
   const sourceIdRef = useRef<string | null>(null);
   const lifecycleRef = useRef(createHoidImportLifecycleGuard());
   const leaseRef = useRef<number | null>(null);
+  const progressChangeEpochRef = useRef(0);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
 
   useEffect(() => {
@@ -112,6 +113,7 @@ export const HoidEpubImportPanel: React.FC<{
   }, [onReaderPortChange]);
 
   useEffect(() => progressSubscriptionRef.current(() => {
+    progressChangeEpochRef.current += 1;
     setOpenedChapter(null);
     setMessage("El progreso ha cambiado. El capítulo abierto se ha cerrado; vuelve a validar el destino desde Hoid.");
   }), []);
@@ -136,6 +138,7 @@ export const HoidEpubImportPanel: React.FC<{
     const port: HoidRecommendationReaderPort = Object.freeze({
       async openVerifiedChapter(request: HoidRecommendationReaderOpenRequest): Promise<unknown> {
         const signal = request.signal;
+        const progressChangeEpoch = progressChangeEpochRef.current;
         try {
           if (signal?.aborted) return { status: "unavailable", reason: "cancelled" };
           if (
@@ -207,6 +210,9 @@ export const HoidEpubImportPanel: React.FC<{
             afterProjection.revision !== request.progressRevision ||
             fingerprintHoidCursorProgressProjection(afterProjection) !== request.progressFingerprint
           ) return { status: "unavailable", reason: "stale-progress" };
+          if (progressChangeEpochRef.current !== progressChangeEpoch) {
+            return { status: "unavailable", reason: "stale-progress" };
+          }
           if (
             sourceIdRef.current !== sourceId ||
             !lifecycleRef.current.isCurrent(leaseRef.current)

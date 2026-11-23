@@ -54,8 +54,13 @@ export type HoidEpubArchiveEntry = Readonly<{
 }>;
 
 export interface HoidEpubArchivePort {
-  listEntries(sourceId: string): Promise<readonly HoidEpubArchiveEntry[]>;
-  readEntry(sourceId: string, canonicalPath: string, maximumBytes: number): Promise<Uint8Array | null>;
+  listEntries(sourceId: string, signal?: AbortSignal): Promise<readonly HoidEpubArchiveEntry[]>;
+  readEntry(
+    sourceId: string,
+    canonicalPath: string,
+    maximumBytes: number,
+    signal?: AbortSignal,
+  ): Promise<Uint8Array | null>;
 }
 
 export type HoidEpubRootfile = Readonly<{
@@ -125,9 +130,12 @@ export interface HoidEpubXmlPort {
     bytes: Uint8Array,
     format: HoidEpubNavigationFormat,
   ): Promise<readonly HoidEpubNavigationNode[]>;
-  validateXhtml(bytes: Uint8Array): Promise<boolean>;
+  validateXhtml(bytes: Uint8Array, signal?: AbortSignal): Promise<boolean>;
   /** Optional local-only extraction capability; raw markup is never returned. */
-  extractReadableBlocks?(bytes: Uint8Array): Promise<readonly HoidEpubReadableBlock[]>;
+  extractReadableBlocks?(
+    bytes: Uint8Array,
+    signal?: AbortSignal,
+  ): Promise<readonly HoidEpubReadableBlock[]>;
 }
 
 export interface HoidEpubDigestPort {
@@ -163,6 +171,7 @@ export type HoidEpubInspectionRejection =
   | "chapter-not-xhtml"
   | "chapter-size-limit"
   | "xhtml-invalid"
+  | "cancelled"
   | "inspection-failed";
 
 export type HoidEpubInspectionResult<T> =
@@ -211,11 +220,13 @@ export interface HoidEpubIngestionService {
   inspectChapterDocument(
     packageCandidate: unknown,
     navigationHref: unknown,
+    signal?: AbortSignal,
   ): Promise<HoidEpubInspectionResult<HoidEpubChapterInspectionCandidate>>;
   /** Reads a single verified chapter into ephemeral plain-text blocks for the local reader. */
   readChapterContent?(
     packageCandidate: unknown,
     navigationHref: unknown,
+    signal?: AbortSignal,
   ): Promise<HoidEpubInspectionResult<HoidEpubReadableChapter>>;
 }
 
@@ -235,6 +246,25 @@ class InspectionError extends Error {
 
 function reject(reason: HoidEpubInspectionRejection): never {
   throw new InspectionError(reason);
+}
+
+function isSignalAborted(signal: AbortSignal | undefined): boolean {
+  try {
+    return signal?.aborted === true;
+  } catch {
+    return true;
+  }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (isSignalAborted(signal)) reject("cancelled");
+}
+
+async function awaitWithSignal<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+  throwIfAborted(signal);
+  const result = await operation;
+  throwIfAborted(signal);
+  return result;
 }
 
 function exactDataRecord(value: unknown, keys: readonly string[]): value is Record<string, unknown> {
@@ -476,7 +506,9 @@ async function readCheckedEntry(
   sourceId: string,
   entry: HoidEpubArchiveEntry,
   maximumBytes: number,
+  signal?: AbortSignal,
 ): Promise<Uint8Array> {
+  throwIfAborted(signal);
   if (entry.uncompressedSize > maximumBytes) {
     reject(maximumBytes === HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes
       ? "chapter-size-limit"
@@ -484,13 +516,20 @@ async function readCheckedEntry(
   }
   let bytes: Uint8Array | null;
   try {
-    bytes = await archive.readEntry(sourceId, entry.path, maximumBytes);
-  } catch {
+    bytes = await awaitWithSignal(
+      archive.readEntry(sourceId, entry.path, maximumBytes, signal),
+      signal,
+    );
+  } catch (error) {
+    if (isSignalAborted(signal) || (error instanceof InspectionError && error.reason === "cancelled")) {
+      reject("cancelled");
+    }
     reject("source-read-failed");
   }
   if (!(bytes instanceof Uint8Array) || bytes.byteLength !== entry.uncompressedSize || bytes.byteLength > maximumBytes) {
     reject("source-read-failed");
   }
+  throwIfAborted(signal);
   return bytes;
 }
 
@@ -673,11 +712,15 @@ type PackageState = Readonly<{
   manifestByPath: ReadonlyMap<string, Readonly<{ id: string; mediaType: string }>>;
 }>;
 
-function canonicalReadableBlocks(value: unknown): readonly HoidEpubReadableBlock[] | null {
+function canonicalReadableBlocks(
+  value: unknown,
+  signal?: AbortSignal,
+): readonly HoidEpubReadableBlock[] | null {
   if (!denseArray(value, 10_000)) return null;
   const blocks: HoidEpubReadableBlock[] = [];
   let characterCount = 0;
   for (const raw of value) {
+    throwIfAborted(signal);
     if (!exactDataRecord(raw, ["kind", "text"])) return null;
     if (
       raw.kind !== "heading" &&
@@ -881,6 +924,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
   async function inspectChapterDocument(
     packageCandidate: unknown,
     navigationHref: unknown,
+    signal?: AbortSignal,
   ): Promise<HoidEpubInspectionResult<HoidEpubChapterInspectionCandidate>> {
     if (typeof packageCandidate !== "object" || packageCandidate === null) {
       return Object.freeze({ status: "rejected", reason: "report-not-issued-here" });
@@ -893,21 +937,28 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       return Object.freeze({ status: "rejected", reason: "chapter-not-in-navigation" });
     }
 
+    if (isSignalAborted(signal)) return Object.freeze({ status: "rejected", reason: "cancelled" });
+
     try {
+      throwIfAborted(signal);
       const path = resolveHoidEpubHref(state.navigationPath, navigationHref);
       if (path === null || !state.navigationTargets.has(path)) reject("chapter-not-in-navigation");
       if (!state.xhtmlTargets.has(path)) reject("chapter-not-xhtml");
       const manifestItem = state.manifestByPath.get(path);
       if (manifestItem === undefined || manifestItem.mediaType !== XHTML_MEDIA_TYPE) reject("chapter-not-xhtml");
 
-      const entries = normalizeArchiveEntries(await dependencies.archive.listEntries(state.source.sourceId));
+      const entries = normalizeArchiveEntries(await awaitWithSignal(
+        dependencies.archive.listEntries(state.source.sourceId, signal),
+        signal,
+      ));
       const currentInventorySha = await digestText(dependencies.digest, archiveInventoryText(entries));
       if (currentInventorySha !== state.report.archiveInventorySha256) reject("source-changed");
 
       const currentMimetypeEntry = requireFile(entries, "mimetype");
       const currentMimetypeBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentMimetypeEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,,
+        signal,
       );
       if (
         String.fromCharCode(...currentMimetypeBytes) !== MIME_TYPE ||
@@ -917,27 +968,30 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       const currentContainerEntry = requireFile(entries, "META-INF/container.xml");
       const currentContainerBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentContainerEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,,
+        signal,
       );
-      if (await digestBytes(dependencies.digest, currentContainerBytes) !== state.report.containerDocumentSha256) {
+      if (await awaitWithSignal(digestBytes(dependencies.digest, currentContainerBytes), signal) !== state.report.containerDocumentSha256) {
         reject("source-changed");
       }
 
       const currentPackageEntry = requireFile(entries, state.packagePath);
       const currentPackageBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentPackageEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,
+        HOID_EPUB_INGESTION_LIMITS.maxMetadataDocumentBytes,,
+        signal,
       );
-      if (await digestBytes(dependencies.digest, currentPackageBytes) !== state.report.packageDocumentSha256) {
+      if (await awaitWithSignal(digestBytes(dependencies.digest, currentPackageBytes), signal) !== state.report.packageDocumentSha256) {
         reject("source-changed");
       }
 
       const currentNavigationEntry = requireFile(entries, state.navigationPath);
       const currentNavigationBytes = await readCheckedEntry(
         dependencies.archive, state.source.sourceId, currentNavigationEntry,
-        HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,
+        HOID_EPUB_INGESTION_LIMITS.maxNavigationDocumentBytes,,
+        signal,
       );
-      if (await digestBytes(dependencies.digest, currentNavigationBytes) !== state.report.navigationDocumentSha256) {
+      if (await awaitWithSignal(digestBytes(dependencies.digest, currentNavigationBytes), signal) !== state.report.navigationDocumentSha256) {
         reject("source-changed");
       }
 
@@ -946,25 +1000,27 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       if (entry.uncompressedSize > HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes) reject("chapter-size-limit");
 
       const bytes = await readCheckedEntry(
-        dependencies.archive, state.source.sourceId, entry, HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes,
+        dependencies.archive, state.source.sourceId, entry, HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes,,
+        signal,
       );
       let validXhtml = false;
       try {
-        validXhtml = await dependencies.xml.validateXhtml(bytes);
+        validXhtml = await awaitWithSignal(dependencies.xml.validateXhtml(bytes, signal), signal);
       } catch {
         reject("xhtml-invalid");
       }
       if (validXhtml !== true) reject("xhtml-invalid");
 
-      const documentSha = await digestBytes(dependencies.digest, bytes);
-      const candidateFingerprint = await digestText(dependencies.digest, JSON.stringify({
+      const documentSha = await awaitWithSignal(digestBytes(dependencies.digest, bytes), signal);
+      const candidateFingerprint = await awaitWithSignal(digestText(dependencies.digest, JSON.stringify({
         workId: state.source.workId,
         editionId: state.source.editionId,
         navigationDocumentSha256: state.report.navigationDocumentSha256,
         navigationHref,
         documentSha256: documentSha,
-      }));
+      })), signal);
 
+      throwIfAborted(signal);
       return Object.freeze({
         status: "candidate",
         candidate: Object.freeze({
@@ -981,7 +1037,9 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         }),
       });
     } catch (error) {
-      const reason = error instanceof InspectionError ? error.reason : "inspection-failed";
+      const reason = isSignalAborted(signal)
+        ? "cancelled"
+        : error instanceof InspectionError ? error.reason : "inspection-failed";
       return Object.freeze({ status: "rejected", reason });
     }
   }
@@ -989,6 +1047,7 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
   async function readChapterContent(
     packageCandidate: unknown,
     navigationHref: unknown,
+    signal?: AbortSignal,
   ): Promise<HoidEpubInspectionResult<HoidEpubReadableChapter>> {
     if (typeof packageCandidate !== "object" || packageCandidate === null) {
       return Object.freeze({ status: "rejected", reason: "report-not-issued-here" });
@@ -1004,11 +1063,17 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
       return Object.freeze({ status: "rejected", reason: "chapter-not-in-navigation" });
     }
 
+    if (isSignalAborted(signal)) return Object.freeze({ status: "rejected", reason: "cancelled" });
+
     try {
+      throwIfAborted(signal);
       const path = resolveHoidEpubHref(state.navigationPath, navigationHref);
       if (path === null || !state.navigationTargets.has(path)) reject("chapter-not-in-navigation");
       if (!state.xhtmlTargets.has(path)) reject("chapter-not-xhtml");
-      const entries = normalizeArchiveEntries(await dependencies.archive.listEntries(state.source.sourceId));
+      const entries = normalizeArchiveEntries(await awaitWithSignal(
+        dependencies.archive.listEntries(state.source.sourceId, signal),
+        signal,
+      ));
       const entry = entries.get(path);
       if (entry === undefined || entry.kind !== "file") reject("chapter-not-in-navigation");
       const bytes = await readCheckedEntry(
@@ -1016,25 +1081,27 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         state.source.sourceId,
         entry,
         HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes,
+        signal,
       );
-      const documentSha256 = await digestBytes(dependencies.digest, bytes);
+      const documentSha256 = await awaitWithSignal(digestBytes(dependencies.digest, bytes), signal);
 
       // Revalidate the package, navigation and chapter after reading the bytes.
       // The displayed text must be exactly the chapter document that the current
       // edition candidate still identifies, not a same-path replacement.
-      const verified = await inspectChapterDocument(packageCandidate, navigationHref);
+      const verified = await inspectChapterDocument(packageCandidate, navigationHref, signal);
       if (verified.status === "rejected") return verified;
       if (verified.candidate.documentSha256 !== documentSha256) reject("source-changed");
 
       let extracted: readonly HoidEpubReadableBlock[];
       try {
-        extracted = await dependencies.xml.extractReadableBlocks(bytes);
+        extracted = await awaitWithSignal(dependencies.xml.extractReadableBlocks(bytes, signal), signal);
       } catch {
         reject("xhtml-invalid");
       }
-      const blocks = canonicalReadableBlocks(extracted);
+      const blocks = canonicalReadableBlocks(extracted, signal);
       if (blocks === null) reject("xhtml-invalid");
       const characterCount = blocks.reduce((total, block) => total + block.text.length, 0);
+      throwIfAborted(signal);
 
       return Object.freeze({
         status: "candidate",
@@ -1049,7 +1116,9 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
         }),
       });
     } catch (error) {
-      const reason = error instanceof InspectionError ? error.reason : "inspection-failed";
+      const reason = isSignalAborted(signal)
+        ? "cancelled"
+        : error instanceof InspectionError ? error.reason : "inspection-failed";
       return Object.freeze({ status: "rejected", reason });
     }
   }

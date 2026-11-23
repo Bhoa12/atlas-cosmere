@@ -10,7 +10,7 @@ Run 147 supplies concrete, provider-neutral implementations for the three ports 
 
 `createHoidEpubRuntimePorts(resolveSourceBytes)` composes these adapters. The resolver receives only an opaque source ID and is intended to return bytes from a locally selected source. It does not receive a path, URL or provider credential. The adapter itself makes no network calls; the caller remains responsible for supplying a local-only resolver.
 
-This is a byte-source adapter, not yet an Expo file-picker integration. The future picker/storage layer must pass bytes into the resolver without uploading the EPUB or persisting its narrative contents in Git.
+The core remains a byte-source adapter. The Expo document picker and random-access local provider are separate platform adapters that supply an opaque source ID; they do not upload the EPUB or persist narrative contents in Git.
 
 ## ZIP profile and safety
 

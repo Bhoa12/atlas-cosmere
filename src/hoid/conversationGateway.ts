@@ -624,7 +624,6 @@ export class HoidConversationGateway {
     }
 
     if (callerAborted(options)) return unavailable("cancelled");
-    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const beforeIdentity = progressIdentity(currentBefore);
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) {
@@ -1016,7 +1015,6 @@ export class HoidConversationGateway {
     }
 
     if (callerAborted(options)) return unavailable("cancelled");
-    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const afterIdentity = progressIdentity(currentAfter);
     if (!afterIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, afterIdentity)) {
@@ -1135,6 +1133,7 @@ export class HoidConversationGateway {
     } catch {
       return unavailableRecommendation("invalid-progress");
     }
+    if (callerAborted(options)) return unavailableRecommendation("cancelled");
     const afterIdentity = progressIdentity(currentAfter);
     if (!afterIdentity) return unavailableRecommendation("invalid-progress");
     if (!sameProgress(requestedProgress, afterIdentity)) {

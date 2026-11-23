@@ -1316,3 +1316,48 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
 
 
 });
+
+describe("HoidConversationGateway recommendation final-read cancellation", () => {
+  it("discards recommendations when the caller aborts during the final durable progress read", async () => {
+    const current = snapshot(3);
+    let reads = 0;
+    let markFinalRead: (() => void) | undefined;
+    const finalReadStarted = new Promise<void>(resolve => { markFinalRead = resolve; });
+    let finishRead: ((value: unknown) => void) | undefined;
+    const finalRead = new Promise<unknown>(resolve => { finishRead = resolve; });
+    const runtime = {
+      answer: vi.fn(async (_input: unknown) => answer),
+      recommend: vi.fn(async () => ({
+        status: "ready" as const,
+        items: [tfeRecommendation],
+      })),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      refreshCurrentProgress: async () => {
+        reads += 1;
+        if (reads === 1) return current;
+        if (reads === 2) {
+          markFinalRead?.();
+          return finalRead;
+        }
+        return current;
+      },
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+    const controller = new AbortController();
+
+    const pending = gateway.recommend(
+      { progress: current, limit: 1 },
+      { signal: controller.signal },
+    );
+    await finalReadStarted;
+    expect(runtime.recommend).toHaveBeenCalledTimes(1);
+    controller.abort();
+    finishRead?.(current);
+
+    expect(await pending).toEqual({ status: "unavailable", reason: "cancelled" });
+  });
+});
+

@@ -11,6 +11,7 @@ import type {
   HoidEpubNavigationFormat,
   HoidEpubNavigationNode,
   HoidEpubPackageDocument,
+  HoidEpubReadableBlock,
   HoidEpubSpineItem,
   HoidEpubXmlPort,
 } from "./epubIngestion";
@@ -892,6 +893,69 @@ export function createHoidXmldomXmlPort(): HoidEpubXmlPort {
       } catch {
         return false;
       }
+    },
+
+    async extractReadableBlocks(bytes: Uint8Array): Promise<readonly HoidEpubReadableBlock[]> {
+      const root = parseXmlTree(bytes);
+      if (root.local !== "html" || root.uri !== XHTML_NS) {
+        throw new Error("Reader source is not XHTML");
+      }
+      const body = descendants(root, "body", XHTML_NS)[0];
+      if (body === undefined) throw new Error("XHTML body is missing");
+
+      const excluded = new Set([
+        "head", "title", "meta", "link", "script", "style", "svg", "nav",
+        "iframe", "object", "embed", "audio", "video", "canvas", "form",
+        "input", "button", "template", "noscript",
+      ]);
+      const blockKinds = new Map<string, HoidEpubReadableBlock["kind"]>([
+        ["h1", "heading"], ["h2", "heading"], ["h3", "heading"],
+        ["h4", "heading"], ["h5", "heading"], ["h6", "heading"],
+        ["p", "paragraph"], ["blockquote", "quote"], ["li", "list-item"],
+        ["pre", "paragraph"], ["dt", "paragraph"], ["dd", "paragraph"],
+        ["div", "paragraph"], ["section", "paragraph"], ["article", "paragraph"],
+        ["main", "paragraph"], ["header", "paragraph"], ["footer", "paragraph"],
+        ["aside", "paragraph"], ["figure", "paragraph"], ["figcaption", "paragraph"],
+        ["tr", "paragraph"], ["td", "paragraph"], ["th", "paragraph"],
+        ["caption", "paragraph"],
+      ]);
+      const blockElements = new Set([
+        ...blockKinds.keys(), "ul", "ol", "table", "tbody", "thead", "tfoot", "dl",
+      ]);
+      const blocks: HoidEpubReadableBlock[] = [];
+      let characterCount = 0;
+
+      const collectInlineText = (node: XmlElement): string => node.content
+        .map(part => {
+          if (typeof part === "string") return part;
+          if (excluded.has(part.local) || blockElements.has(part.local)) return "";
+          return collectInlineText(part);
+        })
+        .join("");
+
+      const visit = (node: XmlElement, depth: number): void => {
+        if (depth > HOID_EPUB_RUNTIME_LIMITS.maxXmlDepth || excluded.has(node.local)) return;
+        const kind = blockKinds.get(node.local);
+        const text = normalizedLabel(collectInlineText(node));
+        if (text.length > 0) {
+          if (text.length > 50_000 || blocks.length >= 10_000) {
+            throw new Error("Readable XHTML exceeds the block limit");
+          }
+          characterCount += text.length;
+          if (characterCount > 1_500_000) {
+            throw new Error("Readable XHTML exceeds the text limit");
+          }
+          blocks.push(Object.freeze({
+            kind: kind ?? "paragraph",
+            text,
+          }));
+        }
+        for (const child of node.children) visit(child, depth + 1);
+      };
+
+      visit(body, 0);
+      if (blocks.length === 0) throw new Error("XHTML contains no readable text blocks");
+      return Object.freeze(blocks);
     },
   });
 }

@@ -103,6 +103,21 @@ export type HoidEpubNavigationNode = Readonly<{
   children: readonly HoidEpubNavigationNode[];
 }>;
 
+export type HoidEpubReadableBlock = Readonly<{
+  kind: "heading" | "paragraph" | "quote" | "list-item";
+  text: string;
+}>;
+
+export type HoidEpubReadableChapter = Readonly<{
+  status: "reader-content";
+  workId: string;
+  editionId: string;
+  navigationHref: string;
+  documentSha256: string;
+  blocks: readonly HoidEpubReadableBlock[];
+  characterCount: number;
+}>;
+
 export interface HoidEpubXmlPort {
   parseContainerXml(bytes: Uint8Array): Promise<HoidEpubContainerDocument>;
   parsePackageDocument(bytes: Uint8Array): Promise<HoidEpubPackageDocument>;
@@ -111,6 +126,8 @@ export interface HoidEpubXmlPort {
     format: HoidEpubNavigationFormat,
   ): Promise<readonly HoidEpubNavigationNode[]>;
   validateXhtml(bytes: Uint8Array): Promise<boolean>;
+  /** Optional local-only extraction capability; raw markup is never returned. */
+  extractReadableBlocks?(bytes: Uint8Array): Promise<readonly HoidEpubReadableBlock[]>;
 }
 
 export interface HoidEpubDigestPort {
@@ -195,6 +212,11 @@ export interface HoidEpubIngestionService {
     packageCandidate: unknown,
     navigationHref: unknown,
   ): Promise<HoidEpubInspectionResult<HoidEpubChapterInspectionCandidate>>;
+  /** Reads a single verified chapter into ephemeral plain-text blocks for the local reader. */
+  readChapterContent?(
+    packageCandidate: unknown,
+    navigationHref: unknown,
+  ): Promise<HoidEpubInspectionResult<HoidEpubReadableChapter>>;
 }
 
 const MIME_TYPE = "application/epub+zip";
@@ -651,6 +673,31 @@ type PackageState = Readonly<{
   manifestByPath: ReadonlyMap<string, Readonly<{ id: string; mediaType: string }>>;
 }>;
 
+function canonicalReadableBlocks(value: unknown): readonly HoidEpubReadableBlock[] | null {
+  if (!denseArray(value, 10_000)) return null;
+  const blocks: HoidEpubReadableBlock[] = [];
+  let characterCount = 0;
+  for (const raw of value) {
+    if (!exactDataRecord(raw, ["kind", "text"])) return null;
+    if (
+      raw.kind !== "heading" &&
+      raw.kind !== "paragraph" &&
+      raw.kind !== "quote" &&
+      raw.kind !== "list-item"
+    ) return null;
+    if (
+      typeof raw.text !== "string" ||
+      raw.text.length === 0 ||
+      raw.text.length > 50_000 ||
+      raw.text !== raw.text.trim()
+    ) return null;
+    characterCount += raw.text.length;
+    if (characterCount > 1_500_000) return null;
+    blocks.push(Object.freeze({ kind: raw.kind, text: raw.text }));
+  }
+  return blocks.length === 0 ? null : Object.freeze(blocks);
+}
+
 export function createHoidEpubIngestionService(dependencies: Readonly<{
   archive: HoidEpubArchivePort;
   xml: HoidEpubXmlPort;
@@ -939,5 +986,73 @@ export function createHoidEpubIngestionService(dependencies: Readonly<{
     }
   }
 
-  return Object.freeze({ inspectPackage, inspectChapterDocument });
+  async function readChapterContent(
+    packageCandidate: unknown,
+    navigationHref: unknown,
+  ): Promise<HoidEpubInspectionResult<HoidEpubReadableChapter>> {
+    if (typeof packageCandidate !== "object" || packageCandidate === null) {
+      return Object.freeze({ status: "rejected", reason: "report-not-issued-here" });
+    }
+    const state = states.get(packageCandidate);
+    if (state === undefined || state.report !== packageCandidate) {
+      return Object.freeze({ status: "rejected", reason: "report-not-issued-here" });
+    }
+    if (typeof dependencies.xml.extractReadableBlocks !== "function") {
+      return Object.freeze({ status: "rejected", reason: "inspection-failed" });
+    }
+    if (typeof navigationHref !== "string" || navigationHref.length === 0 || navigationHref.length > 4096) {
+      return Object.freeze({ status: "rejected", reason: "chapter-not-in-navigation" });
+    }
+
+    try {
+      const path = resolveHoidEpubHref(state.navigationPath, navigationHref);
+      if (path === null || !state.navigationTargets.has(path)) reject("chapter-not-in-navigation");
+      if (!state.xhtmlTargets.has(path)) reject("chapter-not-xhtml");
+      const entries = normalizeArchiveEntries(await dependencies.archive.listEntries(state.source.sourceId));
+      const entry = entries.get(path);
+      if (entry === undefined || entry.kind !== "file") reject("chapter-not-in-navigation");
+      const bytes = await readCheckedEntry(
+        dependencies.archive,
+        state.source.sourceId,
+        entry,
+        HOID_EPUB_INGESTION_LIMITS.maxChapterDocumentBytes,
+      );
+      const documentSha256 = await digestBytes(dependencies.digest, bytes);
+
+      // Revalidate the package, navigation and chapter after reading the bytes.
+      // The displayed text must be exactly the chapter document that the current
+      // edition candidate still identifies, not a same-path replacement.
+      const verified = await inspectChapterDocument(packageCandidate, navigationHref);
+      if (verified.status === "rejected") return verified;
+      if (verified.candidate.documentSha256 !== documentSha256) reject("source-changed");
+
+      let extracted: readonly HoidEpubReadableBlock[];
+      try {
+        extracted = await dependencies.xml.extractReadableBlocks(bytes);
+      } catch {
+        reject("xhtml-invalid");
+      }
+      const blocks = canonicalReadableBlocks(extracted);
+      if (blocks === null) reject("xhtml-invalid");
+      const characterCount = blocks.reduce((total, block) => total + block.text.length, 0);
+
+      return Object.freeze({
+        status: "candidate",
+        candidate: Object.freeze({
+          status: "reader-content",
+          workId: state.source.workId,
+          editionId: state.source.editionId,
+          navigationHref,
+          documentSha256,
+          blocks,
+          characterCount,
+        }),
+      });
+    } catch (error) {
+      const reason = error instanceof InspectionError ? error.reason : "inspection-failed";
+      return Object.freeze({ status: "rejected", reason });
+    }
+  }
+
+  return Object.freeze({ inspectPackage, inspectChapterDocument, readChapterContent });
 }

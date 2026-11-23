@@ -149,7 +149,7 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.readChapterContent).toHaveBeenCalledWith(
       dependencies.candidate,
       request.navigationHref,
-      undefined,
+      expect.any(AbortSignal),
     );
     expect(dependencies.onChapterOpened).toHaveBeenCalledWith(
       expect.objectContaining({ status: "reader-content", workId: request.workId }),
@@ -223,8 +223,14 @@ describe("local EPUB recommendation reader host", () => {
     let markReadStarted: () => void = () => {};
     const readStarted = new Promise<void>(resolve => { markReadStarted = resolve; });
     const pendingRead = new Promise<unknown>(resolve => { resolveRead = resolve; });
+    let receivedSignal: AbortSignal | undefined;
     const dependencies = dependenciesFor(progress, request.navigationHref, {
-      readChapterContent: vi.fn(() => {
+      readChapterContent: vi.fn((
+        _candidate: HoidEpubPackageInspectionCandidate,
+        _href: string,
+        signal?: AbortSignal,
+      ) => {
+        receivedSignal = signal;
         markReadStarted();
         return pendingRead;
       }) as HoidEpubIngestionService["readChapterContent"],
@@ -246,8 +252,10 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.readChapterContent).toHaveBeenCalledWith(
       dependencies.candidate,
       request.navigationHref,
-      controller.signal,
+      expect.any(AbortSignal),
     );
+    expect(receivedSignal).not.toBe(controller.signal);
+    expect(receivedSignal?.aborted).toBe(true);
     expect(dependencies.onChapterOpened).not.toHaveBeenCalled();
   });
 

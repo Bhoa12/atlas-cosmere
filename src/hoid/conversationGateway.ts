@@ -17,6 +17,7 @@ import {
   type HoidEntityMentionResolutionResult,
 } from "./entityResolver";
 import type { HoidKnowledgeKind } from "./catalog";
+import { invokeWithHoidProgressChangeWatch, type HoidProgressChangeSubscription } from "./progressChangeWatch";
 import { isHoidRelationshipQuestion } from "./relationshipIntent";
 import { createProductionHoidExplanationGateway } from "./explanationGateway";
 import {
@@ -42,7 +43,7 @@ import {
 } from "./coreferenceResolver";
 
 type HoidConversationRuntime = Pick<HoidCursorEvidenceRuntime, "answer"> & {
-  recommend?: (progress: unknown, limit?: number) => unknown | Promise<unknown>;
+  recommend?: (progress: unknown, limit?: number, options?: HoidRuntimeCallOptions) => unknown | Promise<unknown>;
 };
 
 export type HoidConversationGatewayResult =
@@ -106,6 +107,8 @@ export type HoidConversationGatewayConfig = Readonly<{
   getCurrentProgress: () => unknown;
   /** Optional durable read-through used before and after async answer work. */
   refreshCurrentProgress?: () => unknown | Promise<unknown>;
+  /** Optional durable-ledger event port; listeners fire only after a committed progress change. */
+  subscribeToProgressChanges?: HoidProgressChangeSubscription;
   /** Optional test seam; production defaults to reviewed local coreference evidence. */
   resolveCoreference?: (
     question: string,
@@ -576,6 +579,29 @@ function canonicalRecommendationResult(
 export class HoidConversationGateway {
   constructor(private readonly config: HoidConversationGatewayConfig) {}
 
+  private invokeWithProgressWatch<T>(
+    expected: ProgressIdentity,
+    options: HoidRuntimeCallOptions | undefined,
+    invoke: (runtimeOptions?: HoidRuntimeCallOptions) => T | Promise<T>,
+  ) {
+    return invokeWithHoidProgressChangeWatch({
+      subscribe: this.config.subscribeToProgressChanges,
+      options,
+      verifyCurrent: async () => {
+        let current: unknown;
+        try {
+          current = await readCurrentProgress(this.config);
+        } catch {
+          return "invalid" as const;
+        }
+        const identity = progressIdentity(current);
+        if (!identity) return "invalid" as const;
+        return sameProgress(expected, identity) ? "current" as const : "changed" as const;
+      },
+      invoke,
+    });
+  }
+
   async answer(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationGatewayResult> {
     const request = canonicalRequest(input);
     if (!request) return unavailable("invalid-request");
@@ -618,14 +644,24 @@ export class HoidConversationGateway {
       try {
         // Only the single, live-reauthorized target ID crosses the evidence-runtime boundary.
         // The typed context, names, aliases and previous answer remain local to this screen.
-        answer = await this.config.runtime.answer({
+        const invocation = await this.invokeWithProgressWatch(
+          requestedProgress,
+          options,
+          runtimeOptions => this.config.runtime.answer({
           question: request.question,
           progress: request.progress,
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: [typedFollowUp.entityId],
           ...(request.bookScope ? { bookScope: request.bookScope } : {}),
-        }, options);
+        }, runtimeOptions),
+        );
+        if (invocation.status === "unavailable") return unavailable("invalid-progress");
+        if (invocation.status === "failed") {
+          return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
+        }
+        if (invocation.progressChanged) return unavailable("progress-changed");
+        answer = invocation.value;
       } catch {
         return unavailable("runtime-failed");
       }
@@ -709,14 +745,24 @@ export class HoidConversationGateway {
     if (request.bookScope && followUp.status === "resolved") {
       let answer: HoidEvidenceAnswer;
       try {
-        answer = await this.config.runtime.answer({
+        const invocation = await this.invokeWithProgressWatch(
+          requestedProgress,
+          options,
+          runtimeOptions => this.config.runtime.answer({
           question: request.question,
           progress: request.progress,
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: followUp.entityIds,
           bookScope: request.bookScope,
-        }, options);
+        }, runtimeOptions),
+        );
+        if (invocation.status === "unavailable") return unavailable("invalid-progress");
+        if (invocation.status === "failed") {
+          return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
+        }
+        if (invocation.progressChanged) return unavailable("progress-changed");
+        answer = invocation.value;
       } catch {
         return unavailable("runtime-failed");
       }
@@ -836,14 +882,24 @@ export class HoidConversationGateway {
         // Preserve the original user question, but add only the one canonical
         // entity ID selected by reviewed evidence. The mapping record, alias
         // list, previous answer and full context never cross this boundary.
-        answer = await this.config.runtime.answer({
+        const invocation = await this.invokeWithProgressWatch(
+          requestedProgress,
+          options,
+          runtimeOptions => this.config.runtime.answer({
           question: request.question,
           progress: request.progress,
           intent: request.intent,
           selectionBudget: request.selectionBudget,
           entityIds: [coreference.entityId],
           ...(request.bookScope ? { bookScope: request.bookScope } : {}),
-        }, options);
+        }, runtimeOptions),
+        );
+        if (invocation.status === "unavailable") return unavailable("invalid-progress");
+        if (invocation.status === "failed") {
+          return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
+        }
+        if (invocation.progressChanged) return unavailable("progress-changed");
+        answer = invocation.value;
       } catch {
         return unavailable("runtime-failed");
       }
@@ -913,14 +969,24 @@ export class HoidConversationGateway {
 
     let answer: HoidEvidenceAnswer;
     try {
-      answer = await this.config.runtime.answer({
+      const invocation = await this.invokeWithProgressWatch(
+          requestedProgress,
+          options,
+          runtimeOptions => this.config.runtime.answer({
         question: request.question,
         progress: request.progress,
         intent: request.intent,
         selectionBudget: request.selectionBudget,
         ...(entityIds === undefined ? {} : { entityIds }),
         ...(request.bookScope ? { bookScope: request.bookScope } : {}),
-      }, options);
+      }, runtimeOptions),
+        );
+        if (invocation.status === "unavailable") return unavailable("invalid-progress");
+        if (invocation.status === "failed") {
+          return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
+        }
+        if (invocation.progressChanged) return unavailable("progress-changed");
+        answer = invocation.value;
     } catch {
       return unavailable("runtime-failed");
     }
@@ -996,7 +1062,7 @@ export class HoidConversationGateway {
     });
   }
 
-  async recommend(input: unknown): Promise<HoidConversationRecommendationResult> {
+  async recommend(input: unknown, options?: HoidRuntimeCallOptions): Promise<HoidConversationRecommendationResult> {
     const request = canonicalRecommendationRequest(input);
     if (!request) return unavailableRecommendation("invalid-request");
 
@@ -1030,12 +1096,17 @@ export class HoidConversationGateway {
       return unavailableRecommendation("runtime-unavailable");
     }
 
-    let rawResult: unknown;
-    try {
-      rawResult = await recommend.call(this.config.runtime, request.progress, request.limit);
-    } catch {
-      return unavailableRecommendation("runtime-failed");
+    const invocation = await this.invokeWithProgressWatch(
+      requestedProgress,
+      options,
+      runtimeOptions => recommend.call(this.config.runtime, request.progress, request.limit, runtimeOptions),
+    );
+    if (invocation.status === "unavailable") return unavailableRecommendation("invalid-progress");
+    if (invocation.status === "failed") {
+      return unavailableRecommendation(invocation.progressChanged ? "progress-changed" : "runtime-failed");
     }
+    if (invocation.progressChanged) return unavailableRecommendation("progress-changed");
+    const rawResult = invocation.value;
 
     let currentAfter: unknown;
     try {
@@ -1078,7 +1149,8 @@ export function createHoidConversationGateway(
     typeof config.runtime !== "object" ||
     typeof config.runtime.answer !== "function" ||
     typeof config.getCurrentProgress !== "function" ||
-    (config.refreshCurrentProgress !== undefined && typeof config.refreshCurrentProgress !== "function")
+    (config.refreshCurrentProgress !== undefined && typeof config.refreshCurrentProgress !== "function"),
+    (config.subscribeToProgressChanges !== undefined && typeof config.subscribeToProgressChanges !== "function")
   ) return null;
   const relationshipGateway = config.relationshipGateway === undefined
     ? (() => {

@@ -459,9 +459,24 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 const returnedBinding = result.conversationScopeBinding ?? null;
                 const bindingBookIds = returnedBinding?.scope.bookIds ?? [];
                 const presentedBookIds = [...scopeValidation.sourceBookIds].sort();
+                const presentedChapters = new Map<string, Set<number>>();
+                for (const citation of presentation.citations) {
+                  let chapters = presentedChapters.get(citation.sourceBookId);
+                  if (!chapters) {
+                    chapters = new Set<number>();
+                    presentedChapters.set(citation.sourceBookId, chapters);
+                  }
+                  chapters.add(citation.chapter);
+                }
                 const bindingMatchesPresentation = !returnedBinding || (
                   bindingBookIds.length === presentedBookIds.length &&
-                  bindingBookIds.every((bookId, index) => bookId === presentedBookIds[index])
+                  bindingBookIds.every((bookId, index) => bookId === presentedBookIds[index]) &&
+                  returnedBinding.works.every(work => {
+                    const chapters = [...(presentedChapters.get(work.bookId) ?? [])]
+                      .sort((left, right) => left - right);
+                    return chapters.length === work.chapters.length &&
+                      chapters.every((chapter, index) => chapter === work.chapters[index]);
+                  })
                 );
                 if (!bindingMatchesPresentation) {
                   respuesta = 'La procedencia del contexto conversacional no coincide con las fuentes presentadas. No conservaré ese contexto.';

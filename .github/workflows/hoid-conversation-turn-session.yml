@@ -8,6 +8,7 @@ on:
       - "src/hoid/conversationTurnSession.ts"
       - "src/hoid/conversationTurnSession.test.ts"
       - "src/screens/HoidScreen.tsx"
+      - "src/hoid/conversationGatewayProgressRace.test.ts"
       - "docs/hoid/RUN267_RACE_SAFE_CONVERSATION_TURNS.md"
       - ".github/workflows/hoid-conversation-turn-session.yml"
   pull_request:
@@ -15,6 +16,7 @@ on:
       - "src/hoid/conversationTurnSession.ts"
       - "src/hoid/conversationTurnSession.test.ts"
       - "src/screens/HoidScreen.tsx"
+      - "src/hoid/conversationGatewayProgressRace.test.ts"
       - "docs/hoid/RUN267_RACE_SAFE_CONVERSATION_TURNS.md"
       - ".github/workflows/hoid-conversation-turn-session.yml"
 
@@ -34,11 +36,15 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test conversation turn lifecycle
-        run: npx vitest run src/hoid/conversationTurnSession.test.ts
+        run: >-
+          npx vitest run
+          src/hoid/conversationTurnSession.test.ts
+          src/hoid/conversationGatewayProgressRace.test.ts
       - name: Strict type-check coordinator and Hoid screen
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck --jsx react-native --esModuleInterop
           src/hoid/conversationTurnSession.ts
           src/hoid/conversationTurnSession.test.ts
+          src/hoid/conversationGatewayProgressRace.test.ts
           src/screens/HoidScreen.tsx

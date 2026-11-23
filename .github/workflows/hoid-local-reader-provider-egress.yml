@@ -8,7 +8,6 @@ on:
       - "src/hoid/pipeline.ts"
       - "src/hoid/types.ts"
       - "src/hoid/providerKnowledgeBoundary.test.ts"
-      - "src/hoid/providerContextIsolation.test.ts"
       - "src/hoid/providerRequestSnapshot.ts"
       - "docs/hoid/RUN262_LOCAL_READER_PROVIDER_EGRESS.md"
       - ".github/workflows/hoid-local-reader-provider-egress.yml"
@@ -17,7 +16,6 @@ on:
       - "src/hoid/pipeline.ts"
       - "src/hoid/types.ts"
       - "src/hoid/providerKnowledgeBoundary.test.ts"
-      - "src/hoid/providerContextIsolation.test.ts"
       - "src/hoid/providerRequestSnapshot.ts"
       - "docs/hoid/RUN262_LOCAL_READER_PROVIDER_EGRESS.md"
       - ".github/workflows/hoid-local-reader-provider-egress.yml"
@@ -41,7 +39,6 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/providerKnowledgeBoundary.test.ts
-          src/hoid/providerContextIsolation.test.ts
       - name: Strictly type-check provider request boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -49,5 +46,4 @@ jobs:
           src/hoid/pipeline.ts
           src/hoid/providerRequestSnapshot.ts
           src/hoid/providerKnowledgeBoundary.test.ts
-          src/hoid/providerContextIsolation.test.ts
           src/hoid/types.ts

@@ -324,6 +324,21 @@ describe("provider-neutral recommendation reader port", () => {
     expect(result).toEqual({ status: "unavailable", reason: "reader-failed" });
   });
 
+  it("propagates a host stale-progress result without accepting the chapter", async () => {
+    const progress = snapshotFor();
+    const reader = readerFor(async () => ({
+      status: "unavailable",
+      reason: "stale-progress",
+    }));
+
+    const result = await openHoidRecommendationChapter(
+      { reader, refreshCurrentProgress: async () => progress },
+      inputFor(targetFor(progress), progress),
+    );
+
+    expect(result).toEqual({ status: "unavailable", reason: "stale-progress" });
+  });
+
   it("accepts only a bounded host-unavailable reason", async () => {
     const progress = snapshotFor();
     const reader = readerFor(async () => ({

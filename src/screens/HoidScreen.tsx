@@ -743,9 +743,13 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     if (handoff.status !== 'ready') {
       return 'Destino no disponible: el progreso o el manifiesto han cambiado. Actualiza las recomendaciones.';
     }
-    return handoff.handoff.locatorStatus === 'verified'
-      ? `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. La apertura requiere un lector de capítulos.`
-      : `Cursor revalidado · capítulo ${handoff.handoff.cursor.chapterNumber}; no hay localizador verificado. No se abrirá una ruta inventada.`;
+    if (handoff.handoff.locatorStatus !== 'verified') {
+      return `Cursor revalidado · capítulo ${handoff.handoff.cursor.chapterNumber}; no hay localizador verificado. No se abrirá una ruta inventada.`;
+    }
+    const readerReady = readerPortState?.workId === handoff.handoff.cursor.bookId;
+    return readerReady
+      ? `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. Lector EPUB local disponible.`
+      : `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. Importa y verifica el EPUB de esta obra para abrirlo localmente.`;
   };
 
   const openRecommendationInReader = async (

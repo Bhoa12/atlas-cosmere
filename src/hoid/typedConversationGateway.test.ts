@@ -73,7 +73,7 @@ function setup(
   resolver: NonNullable<HoidConversationGatewayConfig["resolveEntityIds"]> = (progress, ids) => {
     const projection = projectHoidCursorProgressSnapshot(progress);
     if (projection.status !== "ready") return { status: "unavailable", reason: "invalid-progress" };
-    const kindById = new Map(refs.map(item => [item.id, item.kind]));
+    const kindById = new Map<string, (typeof refs)[number]["kind"]>(refs.map(item => [item.id, item.kind]));
     return {
       status: "ready",
       resolution: "matched",
@@ -106,7 +106,7 @@ describe("Hoid typed entity follow-up gateway", () => {
     const resolver = vi.fn((progress: unknown, ids: readonly string[]) => {
       const projection = projectHoidCursorProgressSnapshot(progress);
       if (projection.status !== "ready") return { status: "unavailable", reason: "invalid-progress" } as const;
-      const kinds = new Map(refs.map(item => [item.id, item.kind]));
+      const kinds = new Map<string, (typeof refs)[number]["kind"]>(refs.map(item => [item.id, item.kind]));
       return {
         status: "ready",
         resolution: "matched",
@@ -334,7 +334,7 @@ describe("Hoid typed entity follow-up gateway", () => {
     const resolver = (progress: unknown, ids: readonly string[]) => {
       const currentProjection = projectHoidCursorProgressSnapshot(progress);
       if (currentProjection.status !== "ready") return { status: "unavailable", reason: "invalid-progress" } as const;
-      const kinds = new Map(refs.map(item => [item.id, item.kind]));
+      const kinds = new Map<string, (typeof refs)[number]["kind"]>(refs.map(item => [item.id, item.kind]));
       return {
         status: "ready",
         resolution: "matched",

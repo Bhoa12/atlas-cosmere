@@ -424,7 +424,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
               respuesta = 'No puedo verificar que las citas pertenezcan exactamente a las obras seleccionadas. No mostraré el contenido.';
               conversationContextRef.current = null;
               typedConversationContextRef.current = null;
-              conversationScopeBindingRef.current = null;
+              conversationScopeBindingRef.current =
+                result.conversationScopeBinding === priorConversationScopeBinding
+                  ? priorConversationScopeBinding
+                  : null;
               responseScope = requestScope;
             } else {
               const requiresCrossWorkCoverage =
@@ -446,7 +449,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 respuesta = 'No puedo verificar la procedencia por segmento y capítulo de todas las obras seleccionadas. No mostraré una comparación parcial.';
                 conversationContextRef.current = null;
                 typedConversationContextRef.current = null;
-                conversationScopeBindingRef.current = null;
+                conversationScopeBindingRef.current =
+                  result.conversationScopeBinding === priorConversationScopeBinding
+                    ? priorConversationScopeBinding
+                    : null;
                 responseScope = requestScope;
               } else {
                 respuesta = presentation.text;

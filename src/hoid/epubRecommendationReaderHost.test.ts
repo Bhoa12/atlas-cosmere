@@ -416,6 +416,58 @@ describe("local EPUB recommendation reader host", () => {
     expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
   });
 
+  it("does not let a malformed request supersede a valid open", async () => {
+    const progress = snapshotFor();
+    const request = requestFor(progress);
+    let firstSignal: AbortSignal | undefined;
+    let resolveFirstRead: (value: unknown) => void = () => {};
+    let markFirstReadStarted: () => void = () => {};
+    const firstReadStarted = new Promise<void>(resolve => {
+      markFirstReadStarted = resolve;
+    });
+    const firstRead = new Promise<unknown>(resolve => {
+      resolveFirstRead = resolve;
+    });
+    const readChapterContent = vi.fn((
+      _candidate: HoidEpubPackageInspectionCandidate,
+      _href: string,
+      signal?: AbortSignal,
+    ) => {
+      firstSignal = signal;
+      markFirstReadStarted();
+      return firstRead;
+    }) as HoidEpubIngestionService["readChapterContent"];
+    const dependencies = dependenciesFor(progress, request.navigationHref, {
+      readChapterContent,
+    });
+
+    const validOperation = dependencies.port.openVerifiedChapter(request.request);
+    await firstReadStarted;
+    const malformed = new Proxy({}, {
+      ownKeys() { throw new Error("synthetic request trap"); },
+    });
+    await expect(dependencies.port.openVerifiedChapter(
+      malformed as unknown as HoidRecommendationReaderOpenRequest,
+    )).resolves.toEqual({
+      status: "unavailable",
+      reason: "edition-unavailable",
+    });
+    expect(firstSignal?.aborted).toBe(false);
+
+    resolveFirstRead({
+      status: "candidate",
+      candidate: readerContent(request.workId, request.editionId, request.navigationHref),
+    });
+    await expect(validOperation).resolves.toEqual({
+      status: "opened",
+      bookId: request.workId,
+      chapterNumber: request.request.target.cursor.chapterNumber,
+      editionId: request.editionId,
+      locatorId: request.request.target.locatorId,
+    });
+    expect(dependencies.onChapterOpened).toHaveBeenCalledTimes(1);
+  });
+
   it("settles an older durable progress read promptly when a newer open supersedes it", async () => {
     const progress = snapshotFor();
     const request = requestFor(progress);

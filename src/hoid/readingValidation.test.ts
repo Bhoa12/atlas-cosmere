@@ -127,4 +127,51 @@ describe("validReadingPositions", () => {
       { bookId: "warbreaker", completed: true, order: 3 },
     ]);
   });
+
+  it("rejects sparse progress arrays instead of iterating missing slots as undefined", () => {
+    const sparse = new Array(2);
+    sparse[1] = { bookId: "tfe", chapter: 4 };
+    expect(validReadingPositions(sparse)).toBeNull();
+  });
+
+  it("rejects custom array properties without invoking a custom iterator", () => {
+    let iteratorGetterCalled = false;
+    const positions = [{ bookId: "tfe", chapter: 4 }];
+    Object.defineProperty(positions, Symbol.iterator, {
+      configurable: true,
+      get() {
+        iteratorGetterCalled = true;
+        throw new Error("custom iterator must remain unused");
+      },
+    });
+
+    expect(validReadingPositions(positions)).toBeNull();
+    expect(iteratorGetterCalled).toBe(false);
+  });
+
+  it("rejects accessor-backed array elements without invoking them", () => {
+    let elementGetterCalled = false;
+    const positions = [undefined] as unknown[];
+    Object.defineProperty(positions, "0", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        elementGetterCalled = true;
+        return { bookId: "tfe", chapter: 4 };
+      },
+    });
+
+    expect(validReadingPositions(positions)).toBeNull();
+    expect(elementGetterCalled).toBe(false);
+  });
+
+  it("rejects extra string and symbol properties on the progress array", () => {
+    const extraString = [{ bookId: "tfe", chapter: 4 }] as unknown[] & { extra?: boolean };
+    extraString.extra = true;
+    expect(validReadingPositions(extraString)).toBeNull();
+
+    const extraSymbol = [{ bookId: "tfe", chapter: 4 }];
+    Object.defineProperty(extraSymbol, Symbol("extra"), { value: true });
+    expect(validReadingPositions(extraSymbol)).toBeNull();
+  });
 });

@@ -13,9 +13,20 @@ export type HoidCrossBookWorkEvidence = Readonly<{
   evidenceIds: readonly string[];
 }>;
 
+/** Exact work/chapter trace for one claim segment. */
+export type HoidCrossBookSegmentWorkEvidence = Readonly<{
+  sourceBookId: string;
+  title: string;
+  chapters: readonly number[];
+  evidenceIds: readonly string[];
+}>;
+
 export type HoidCrossBookSegmentEvidence = Readonly<{
   claimId: string;
+  /** Bibliography-ordered IDs retained for existing consumers. */
   sourceBookIds: readonly string[];
+  /** Exact chapter/evidence grouping for this claim, not the whole answer. */
+  works: readonly HoidCrossBookSegmentWorkEvidence[];
 }>;
 
 export type HoidCrossBookEvidenceSummary = Readonly<{
@@ -69,7 +80,11 @@ export function summarizeHoidPresentedCrossBookEvidence(
       segment.evidenceIds.length === 0
     ) return Object.freeze({ status: "unavailable", reason: "invalid-provenance" });
 
-    const segmentWorkIds = new Set<string>();
+    const segmentWorkEvidence = new Map<string, {
+      title: string;
+      chapters: Set<number>;
+      evidenceIds: Set<string>;
+    }>();
     const segmentSeen = new Set<string>();
     for (const citation of segment.citations) {
       const global = globalById.get(citation.evidenceId);
@@ -83,7 +98,6 @@ export function summarizeHoidPresentedCrossBookEvidence(
       ) return Object.freeze({ status: "unavailable", reason: "invalid-provenance" });
       segmentSeen.add(citation.evidenceId);
       referenced.add(citation.evidenceId);
-      segmentWorkIds.add(citation.sourceBookId);
 
       let group = workEvidence.get(citation.sourceBookId);
       if (!group) {
@@ -92,6 +106,18 @@ export function summarizeHoidPresentedCrossBookEvidence(
       }
       group.chapters.add(citation.chapter);
       group.evidenceIds.add(citation.evidenceId);
+
+      let segmentGroup = segmentWorkEvidence.get(citation.sourceBookId);
+      if (!segmentGroup) {
+        segmentGroup = {
+          title: citation.title,
+          chapters: new Set<number>(),
+          evidenceIds: new Set<string>(),
+        };
+        segmentWorkEvidence.set(citation.sourceBookId, segmentGroup);
+      }
+      segmentGroup.chapters.add(citation.chapter);
+      segmentGroup.evidenceIds.add(citation.evidenceId);
     }
 
     if (
@@ -99,12 +125,19 @@ export function summarizeHoidPresentedCrossBookEvidence(
       segment.evidenceIds.some(id => !segmentSeen.has(id))
     ) return Object.freeze({ status: "unavailable", reason: "invalid-provenance" });
 
-    const sourceBookIds = [...segmentWorkIds].sort(
-      (left, right) => WORK_ORDER.get(left)! - WORK_ORDER.get(right)!,
-    );
+    const works = [...segmentWorkEvidence.entries()]
+      .sort(([left], [right]) => WORK_ORDER.get(left)! - WORK_ORDER.get(right)!)
+      .map(([sourceBookId, group]) => Object.freeze({
+        sourceBookId,
+        title: group.title,
+        chapters: Object.freeze([...group.chapters].sort((left, right) => left - right)),
+        evidenceIds: Object.freeze([...group.evidenceIds].sort()),
+      }));
+    const sourceBookIds = works.map(work => work.sourceBookId);
     segmentEvidence.push(Object.freeze({
       claimId: segment.claimId,
       sourceBookIds: Object.freeze(sourceBookIds),
+      works: Object.freeze(works),
     }));
   }
 

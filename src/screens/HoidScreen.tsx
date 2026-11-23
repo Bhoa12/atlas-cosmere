@@ -979,12 +979,27 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                       {segmento.text}
                     </Text>
                     <View style={styles.segmentCitationBlock}>
-                      <Text style={styles.citationHeading}>FUENTES DE ESTE SEGMENTO</Text>
-                      {segmento.citations.map(cita => (
-                        <Text key={cita.evidenceId} style={styles.citationText}>
-                          {cita.title} · capítulo {cita.chapter}
-                        </Text>
-                      ))}
+                      <Text style={styles.citationHeading}>
+                        {item.evidenciaTransversal
+                          ? 'OBRAS Y CAPÍTULOS DE ESTA AFIRMACIÓN'
+                          : 'FUENTES DE ESTE SEGMENTO'}
+                      </Text>
+                      {(() => {
+                        const trace = item.evidenciaTransversal?.segments.find(
+                          entry => entry.claimId === segmento.claimId,
+                        );
+                        return trace
+                          ? trace.works.map(work => (
+                              <Text key={work.sourceBookId} style={styles.citationText}>
+                                {work.title} · capítulos {work.chapters.join(', ')}
+                              </Text>
+                            ))
+                          : segmento.citations.map(cita => (
+                              <Text key={cita.evidenceId} style={styles.citationText}>
+                                {cita.title} · capítulo {cita.chapter}
+                              </Text>
+                            ));
+                      })()}
                     </View>
                   </View>
                 ))}

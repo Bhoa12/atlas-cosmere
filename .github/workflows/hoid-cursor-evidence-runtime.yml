@@ -7,6 +7,15 @@ on:
     paths:
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressFingerprint.ts"
+      - "src/hoid/cursorProgressFingerprint.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/verifiedAnswerPresentation.ts"
+      - "src/hoid/verifiedAnswerPresentation.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md"
       - "src/hoid/readingBoundary.ts"
       - "src/hoid/readingBoundary.test.ts"
       - "src/screens/CommunityScreen.tsx"
@@ -26,6 +35,15 @@ on:
     paths:
       - "src/hoid/cursorEvidenceRuntime.ts"
       - "src/hoid/cursorEvidenceRuntime.test.ts"
+      - "src/hoid/cursorProgressFingerprint.ts"
+      - "src/hoid/cursorProgressFingerprint.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/answerPresentation.test.ts"
+      - "src/hoid/verifiedAnswerPresentation.ts"
+      - "src/hoid/verifiedAnswerPresentation.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/CURSOR_ANSWER_PROGRESS_BINDING.md"
       - "src/hoid/readingBoundary.ts"
       - "src/hoid/readingBoundary.test.ts"
       - "src/screens/CommunityScreen.tsx"
@@ -58,6 +76,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Run cursor and evidence authorization tests
-        run: npx vitest run src/hoid/readingBoundary.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/readingManifest.test.ts
+        run: npx vitest run src/hoid/readingBoundary.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/cursorProgressLedger.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/readingManifest.test.ts src/hoid/cursorProgressFingerprint.test.ts src/hoid/answerPresentation.test.ts src/hoid/verifiedAnswerPresentation.test.ts
       - name: Type-check cursor evidence boundary
-        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/readingBoundary.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/cursorProgressLedger.ts src/hoid/evidenceRuntime.ts src/hoid/readingManifest.ts src/hoid/editionProgressValidation.ts src/hoid/editionStructure.ts src/hoid/readingValidation.ts src/hoid/recommendations.ts src/hoid/catalog.ts src/hoid/bibliography.ts src/hoid/types.ts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/readingBoundary.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/cursorProgressLedger.ts src/hoid/evidenceRuntime.ts src/hoid/readingManifest.ts src/hoid/editionProgressValidation.ts src/hoid/editionStructure.ts src/hoid/readingValidation.ts src/hoid/recommendations.ts src/hoid/catalog.ts src/hoid/bibliography.ts src/hoid/types.ts src/hoid/cursorProgressFingerprint.ts src/hoid/answerPresentation.ts src/hoid/verifiedAnswerPresentation.ts src/hoid/knowledgeGraph.ts src/hoid/sha256.ts

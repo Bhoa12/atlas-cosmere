@@ -1,3 +1,4 @@
+import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import type { HoidCursorProgressProjection } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
 
@@ -17,7 +18,7 @@ const SELECTION_KEYS = [
   "choices",
   "progressFingerprint",
 ] as const;
-const MAX_RECOMMENDATIONS = 24;
+const MAX_RECOMMENDATIONS = HOID_SOURCE_BIBLIOGRAPHY.length;
 
 /**
  * Copy a plain data record without reading properties through normal access.

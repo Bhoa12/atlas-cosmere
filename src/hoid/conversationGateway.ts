@@ -62,6 +62,7 @@ export type HoidConversationGatewayResult =
         | "invalid-request"
         | "invalid-progress"
         | "progress-changed"
+        | "cancelled"
         | "runtime-failed"
         | "entity-blocked"
         | "entity-ambiguous"
@@ -84,6 +85,7 @@ export type HoidConversationRecommendationResult =
         | "invalid-request"
         | "invalid-progress"
         | "progress-changed"
+        | "cancelled"
         | "runtime-unavailable"
         | "runtime-failed"
         | "invalid-recommendations";
@@ -656,6 +658,7 @@ export class HoidConversationGateway {
           ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -757,6 +760,7 @@ export class HoidConversationGateway {
           bookScope: request.bookScope,
         }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -894,6 +898,7 @@ export class HoidConversationGateway {
           ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -981,6 +986,7 @@ export class HoidConversationGateway {
         ...(request.bookScope ? { bookScope: request.bookScope } : {}),
       }, runtimeOptions),
         );
+        if (invocation.status === "cancelled") return unavailable("cancelled");
         if (invocation.status === "unavailable") return unavailable("invalid-progress");
         if (invocation.status === "failed") {
           return unavailable(invocation.progressChanged ? "progress-changed" : "runtime-failed");
@@ -1101,6 +1107,7 @@ export class HoidConversationGateway {
       options,
       runtimeOptions => recommend.call(this.config.runtime, request.progress, request.limit, runtimeOptions),
     );
+    if (invocation.status === "cancelled") return unavailableRecommendation("cancelled");
     if (invocation.status === "unavailable") return unavailableRecommendation("invalid-progress");
     if (invocation.status === "failed") {
       return unavailableRecommendation(invocation.progressChanged ? "progress-changed" : "runtime-failed");

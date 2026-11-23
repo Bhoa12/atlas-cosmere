@@ -85,7 +85,6 @@ export function summarizeHoidPresentedCrossBookEvidence(
       chapters: Set<number>;
       evidenceIds: Set<string>;
     }>();
-    const segmentWorkIds = new Set<string>();
     const segmentSeen = new Set<string>();
     for (const citation of segment.citations) {
       const global = globalById.get(citation.evidenceId);
@@ -99,7 +98,6 @@ export function summarizeHoidPresentedCrossBookEvidence(
       ) return Object.freeze({ status: "unavailable", reason: "invalid-provenance" });
       segmentSeen.add(citation.evidenceId);
       referenced.add(citation.evidenceId);
-      segmentWorkIds.add(citation.sourceBookId);
 
       let group = workEvidence.get(citation.sourceBookId);
       if (!group) {

@@ -168,7 +168,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
   const [answerScopeMode, setAnswerScopeMode] = useState<HoidAnswerScopeMode>('automatic');
   const [answerScopeBookIds, setAnswerScopeBookIds] = useState<readonly string[]>([]);
-  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: Hoid aplicará el progreso de cada obra sin ampliar sus permisos.');
+  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: la primera respuesta fijará las obras que aporten evidencia; el progreso de cada obra seguirá aplicándose.');
 
   const liveProgress = progressReaderRef.current();
   const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
@@ -237,7 +237,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setAnswerScopeMode(mode);
     setAnswerScopeBookIds(nextIds);
     setAnswerScopeMessage(mode === 'automatic'
-      ? 'Ámbito automático: Hoid aplicará el progreso de cada obra sin ampliar sus permisos.'
+      ? 'Ámbito automático: la primera respuesta fijará las obras que aporten evidencia; el progreso de cada obra seguirá aplicándose.'
       : mode === 'single-work'
         ? 'Selecciona exactamente una obra. Solo se considerarán afirmaciones cuya evidencia pertenezca a ella.'
         : 'Selecciona entre dos y cuatro obras. Cada una debe aportar evidencia autorizada; si falta una, Hoid se abstendrá.');

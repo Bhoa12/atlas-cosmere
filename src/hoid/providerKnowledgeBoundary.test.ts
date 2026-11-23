@@ -138,7 +138,7 @@ describe("Hoid provider boundary", () => {
     const provider: HoidProvider = {
       answer: vi.fn(async () => "No debe ejecutarse"),
     };
-    const request = {} as HoidAnswerRequest;
+    const request = {} as unknown as HoidAnswerRequest;
     Object.defineProperties(request, {
       question: {
         enumerable: true,

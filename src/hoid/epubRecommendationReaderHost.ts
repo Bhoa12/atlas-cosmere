@@ -25,6 +25,8 @@ export type HoidLocalEpubRecommendationReaderHostDependencies = Readonly<{
   refreshCurrentProgress: () => Promise<unknown>;
   /** False after source release, screen unmount or a newer import operation. */
   isCurrent: () => boolean;
+  /** Aborted when the selected EPUB/source session is replaced or released. */
+  sessionSignal?: AbortSignal;
   /** Monotonic in-memory epoch incremented by progress-change notifications. */
   getProgressChangeEpoch: () => number;
   onChapterOpened: (
@@ -40,6 +42,51 @@ function isAborted(signal: AbortSignal | undefined): boolean {
   } catch {
     return true;
   }
+}
+
+function linkAbortSignals(
+  callerSignal: AbortSignal | undefined,
+  sessionSignal: AbortSignal | undefined,
+): Readonly<{ signal?: AbortSignal; dispose: () => void }> {
+  const signals = [callerSignal, sessionSignal].filter(
+    (value): value is AbortSignal => value !== undefined && value !== null,
+  );
+  if (signals.length === 0) return Object.freeze({ dispose: () => {} });
+  if (signals.length === 1) {
+    return Object.freeze({ signal: signals[0], dispose: () => {} });
+  }
+
+  const controller = new AbortController();
+  const subscriptions: Array<Readonly<{ source: AbortSignal; listener: () => void }>> = [];
+  const abort = () => {
+    try { if (!controller.signal.aborted) controller.abort(); } catch { /* Fail closed. */ }
+  };
+
+  for (const source of signals) {
+    try {
+      if (source.aborted) { abort(); break; }
+      const listener = () => abort();
+      source.addEventListener("abort", listener, { once: true });
+      subscriptions.push(Object.freeze({ source, listener }));
+      if (source.aborted) { abort(); break; }
+    } catch {
+      abort();
+      break;
+    }
+  }
+
+  return Object.freeze({
+    signal: controller.signal,
+    dispose: () => {
+      for (const subscription of subscriptions) {
+        try {
+          subscription.source.removeEventListener("abort", subscription.listener);
+        } catch {
+          // Listener cleanup is best-effort and never changes the open result.
+        }
+      }
+    },
+  });
 }
 
 function canonicalDataRecord(
@@ -107,6 +154,7 @@ export function createHoidLocalEpubRecommendationReaderPort(
       const openAttempt = ++latestOpenAttempt;
       const isLatestOpenAttempt = () => openAttempt === latestOpenAttempt;
       let signal: AbortSignal | undefined;
+      let disposeLinkedSignal = () => {};
       let progressEpoch: number;
       try {
         const requestRecord = canonicalDataRecord(
@@ -121,7 +169,12 @@ export function createHoidLocalEpubRecommendationReaderPort(
           ["cursor", "manifestId", "editionId", "navigationSha256", "locatorStatus", "locatorId"],
         );
         if (!targetRecord) return { status: "unavailable", reason: "edition-unavailable" };
-        signal = requestRecord.signal as AbortSignal | undefined;
+        const linkedSignal = linkAbortSignals(
+          requestRecord.signal as AbortSignal | undefined,
+          dependencies.sessionSignal,
+        );
+        signal = linkedSignal.signal;
+        disposeLinkedSignal = linkedSignal.dispose;
         const progressRevision = requestRecord.progressRevision;
         const progressFingerprint = requestRecord.progressFingerprint;
         if (isAborted(signal)) return { status: "unavailable", reason: "cancelled" };
@@ -239,6 +292,8 @@ export function createHoidLocalEpubRecommendationReaderPort(
           status: "unavailable",
           reason: isAborted(signal) ? "cancelled" : "failed",
         };
+      } finally {
+        disposeLinkedSignal();
       }
     },
   });

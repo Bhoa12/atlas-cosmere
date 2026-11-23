@@ -1,0 +1,63 @@
+name: Hoid conversation scope capability and regression
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/conversationScopeBinding.ts"
+      - "src/hoid/conversationScopeBinding.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/typedConversationGateway.test.ts"
+      - "src/hoid/conversationGatewayProgressRace.test.ts"
+      - "docs/hoid/RUN266_CONVERSATION_SCOPE_CAPABILITY_AND_CI_REPAIR.md"
+      - ".github/workflows/hoid-conversation-scope-capability.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationScopeBinding.ts"
+      - "src/hoid/conversationScopeBinding.test.ts"
+      - "src/hoid/conversationGateway.ts"
+      - "src/hoid/conversationGateway.test.ts"
+      - "src/hoid/typedConversationGateway.test.ts"
+      - "src/hoid/conversationGatewayProgressRace.test.ts"
+      - "docs/hoid/RUN266_CONVERSATION_SCOPE_CAPABILITY_AND_CI_REPAIR.md"
+      - ".github/workflows/hoid-conversation-scope-capability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-scope-capability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test scope capability, gateway routing and progress races
+        run: >-
+          npx vitest run
+          src/hoid/conversationScopeBinding.test.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/typedConversationGateway.test.ts
+          src/hoid/conversationGatewayProgressRace.test.ts
+          src/hoid/conversationContext.test.ts
+          src/hoid/typedConversationContext.test.ts
+          src/hoid/answerScope.test.ts
+          src/hoid/answerPresentation.test.ts
+      - name: Strict type-check conversation scope and screen integration
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native --esModuleInterop
+          src/hoid/conversationScopeBinding.ts
+          src/hoid/conversationScopeBinding.test.ts
+          src/hoid/conversationGateway.ts
+          src/hoid/conversationGateway.test.ts
+          src/hoid/typedConversationGateway.test.ts
+          src/hoid/conversationGatewayProgressRace.test.ts
+          src/screens/HoidScreen.tsx

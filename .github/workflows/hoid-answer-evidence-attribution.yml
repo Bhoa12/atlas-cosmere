@@ -1,0 +1,51 @@
+name: Hoid answer evidence attribution
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/pipeline.ts"
+      - "src/hoid/types.ts"
+      - "src/hoid/contextBudget.ts"
+      - "src/hoid/pipelineEvidenceAttribution.test.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/RUN264_EVIDENCE_ATTRIBUTION.md"
+      - ".github/workflows/hoid-answer-evidence-attribution.yml"
+  pull_request:
+    paths:
+      - "src/hoid/pipeline.ts"
+      - "src/hoid/types.ts"
+      - "src/hoid/contextBudget.ts"
+      - "src/hoid/pipelineEvidenceAttribution.test.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/RUN264_EVIDENCE_ATTRIBUTION.md"
+      - ".github/workflows/hoid-answer-evidence-attribution.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  answer-evidence-attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test evidence-attributed answers
+        run: npx vitest run src/hoid/pipelineEvidenceAttribution.test.ts
+      - name: Strictly type-check evidence attribution
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck
+          src/hoid/pipeline.ts
+          src/hoid/pipelineEvidenceAttribution.test.ts
+          src/hoid/contextBudget.ts
+          src/hoid/types.ts

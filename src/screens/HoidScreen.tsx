@@ -302,12 +302,12 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       if (intentPlan.status !== 'ready') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
       } else if (intentPlan.mode === 'reading-progress') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
         if (!conversationGateway) {
           respuesta = 'El runtime de progreso no está disponible. No mostraré una posición estimada.';
         } else {
@@ -335,7 +335,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (intentPlan.mode === 'catalogue-recommendation') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
         const presentation = createHoidEditionBoundRecommendationPresentation(
           currentProgress,
           3,
@@ -366,7 +366,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (answerScopeSelection.status === 'incomplete') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
         responseScope = requestScope;
         respuesta = answerScopeSelection.reason === 'one-work-required'
           ? 'Selecciona exactamente una obra para limitar esta respuesta narrativa.'
@@ -376,12 +376,12 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (!conversationGateway) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
         respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
       } else if (!trustedAnswerPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
         responseScope = requestScope;
         respuesta = 'La presentación narrativa está desactivada porque el host todavía no ha provisionado una autoridad editorial firmada. Puedo consultar tu progreso y las recomendaciones de catálogo sin revelar contenido narrativo.';
       } else {
@@ -406,7 +406,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
           conversationContextRef.current = null;
           typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+          conversationScopeBindingRef.current = null;
         } else if (result.status === 'ready') {
           responseScope = {
             revision: result.progressRevision,
@@ -423,7 +423,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
               respuesta = 'No puedo verificar que las citas pertenezcan exactamente a las obras seleccionadas. No mostraré el contenido.';
               conversationContextRef.current = null;
               typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+              conversationScopeBindingRef.current = null;
               responseScope = requestScope;
             } else {
               const requiresCrossWorkCoverage =
@@ -445,7 +445,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 respuesta = 'No puedo verificar la procedencia por segmento y capítulo de todas las obras seleccionadas. No mostraré una comparación parcial.';
                 conversationContextRef.current = null;
                 typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+                conversationScopeBindingRef.current = null;
                 responseScope = requestScope;
               } else {
                 respuesta = presentation.text;
@@ -483,13 +483,13 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             respuesta = trustedResult.text;
             conversationContextRef.current = null;
             typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+            conversationScopeBindingRef.current = null;
             responseScope = requestScope;
           }
         } else {
           conversationContextRef.current = null;
           typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+          conversationScopeBindingRef.current = null;
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
             : result.reason === 'cancelled'
@@ -515,7 +515,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             result.reason === 'entity-unavailable' ||
             result.reason === 'context-ambiguous' ||
             result.reason === 'context-unavailable' ||
-            result.reason === 'context-stale'
+            result.reason === 'context-stale' ||
+            result.reason === 'context-scope-unavailable' ||
+            result.reason === 'context-scope-mismatch'
           ) responseScope = requestScope;
         }
       }
@@ -543,7 +545,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         evidenciaTransversal = undefined;
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
       }
 
       if (answerSignal?.aborted) {
@@ -555,7 +557,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         evidenciaTransversal = undefined;
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+        conversationScopeBindingRef.current = null;
       }
 
       setMensajes(prev => [...prev, {
@@ -570,7 +572,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     } catch {
       conversationContextRef.current = null;
       typedConversationContextRef.current = null;
-    conversationScopeBindingRef.current = null;
+      conversationScopeBindingRef.current = null;
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',

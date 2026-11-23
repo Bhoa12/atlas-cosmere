@@ -4,7 +4,8 @@ import {
   createHoidConversationGateway,
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidConversationScopeBinding } from "./conversationScopeBinding";
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { createHoidEditorialRuntime } from "./editorialRegistry";
@@ -43,6 +44,38 @@ const elantrisRecommendation = Object.freeze({
   title: "Elantris",
   reason: "unread-source",
 });
+
+
+function authorizedAnswerForBook(bookId: string, chapter = 1): HoidEvidenceAnswer {
+  const manifest = getHoidReadingManifest(bookId);
+  if (manifest.status !== "ready") throw new Error("Synthetic manifest unavailable");
+  const unit = manifest.manifest.units.find(item => item.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Synthetic locator unavailable");
+  return Object.freeze({
+    status: "authorized",
+    text: "Respuesta sintética autorizada.",
+    claimIds: Object.freeze(["claim.synthetic"]),
+    evidenceIds: Object.freeze([`evidence.${bookId}`]),
+    sources: Object.freeze([Object.freeze({
+      evidenceId: `evidence.${bookId}`,
+      sourceBookId: bookId,
+      sourceChapter: chapter,
+      locatorId: unit.locatorId,
+      unlockBookId: bookId,
+      unlockChapter: chapter,
+    })]),
+  });
+}
+
+function scopeBindingFor(progress: unknown, bookId = "twok") {
+  const binding = createHoidConversationScopeBinding(
+    authorizedAnswerForBook(bookId),
+    progress,
+    { mode: "single-work", bookIds: [bookId] },
+  );
+  if (!binding) throw new Error("Synthetic conversation scope unavailable");
+  return binding;
+}
 
 function setup(initial: unknown = snapshot(3), resolveEntities?: HoidConversationGatewayConfig["resolveEntities"]) {
   let current: unknown = initial;
@@ -781,18 +814,43 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
       question: "¿Y entre ellos?",
       progress: current,
       context: contextFor(current),
-      bookScope: { mode: "cross-work", bookIds: ["twok", "edgedancer"] },
+      scopeBinding: scopeBindingFor(current),
     });
 
     expect(result.status).toBe("ready");
     expect(relationshipGateway.answer).not.toHaveBeenCalled();
     expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
       entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
-      bookScope: { mode: "cross-work", bookIds: ["edgedancer", "twok"] },
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }), undefined);
   });
 
-  it("routes an explicit group follow-up through the graph with only prior canonical IDs", async () => {
+
+  it("rejects a follow-up that attempts to widen its previously authorized work scope", async () => {
+    const current = snapshot(3);
+    const relationshipGateway = { answer: vi.fn() };
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context: contextFor(current),
+      scopeBinding: scopeBindingFor(current),
+      bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    });
+
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-mismatch" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+  });
+
+  it("blocks a group follow-up without a prior scope binding instead of falling back to the graph", async () => {
     const current = snapshot(3);
     const relationshipGateway = {
       answer: vi.fn(() => ({ status: "unavailable" as const, reason: "entity-ambiguous" as const })),
@@ -811,12 +869,8 @@ describe("Hoid spoiler-safe conversational follow-ups", () => {
       context: contextFor(current),
     });
 
-    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
-    expect(relationshipGateway.answer).toHaveBeenCalledWith({
-      question: "¿Y entre ellos?",
-      progress: current,
-      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
-    });
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-unavailable" });
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
     expect(runtime.answer).not.toHaveBeenCalled();
   });
 
@@ -940,6 +994,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       question: "¿Y ella?",
       progress: current,
       context,
+      scopeBinding: scopeBindingFor(current),
     });
 
     expect(result.status).toBe("ready");
@@ -950,9 +1005,13 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       intent: "explain",
       entityIds: ["synthetic.entity-beta"],
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
     }, undefined);
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
-    if (result.status === "ready") expect(result.conversationContext).toEqual(context);
+    if (result.status === "ready") {
+      expect(result.conversationContext).toBeUndefined();
+      expect(result.conversationScopeBinding).toBeUndefined();
+    }
   });
 
   it("does not invoke the runtime or relationship graph when coreference is ambiguous", async () => {
@@ -1004,7 +1063,12 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     });
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
-    const pending = gateway.answer({ question: "¿Y ella?", progress: initial, context });
+    const pending = gateway.answer({
+      question: "¿Y ella?",
+      progress: initial,
+      context,
+      scopeBinding: scopeBindingFor(initial),
+    });
     await runtimeStarted;
     current = snapshot(4);
     finish?.(answer);
@@ -1014,7 +1078,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
 
 
 describe("HoidConversationGateway pronoun relationship routing", () => {
-  it("routes a uniquely resolved pronoun relationship through the local graph for a two-entity context", async () => {
+  it("routes a uniquely resolved pronoun relationship through the prior evidence scope", async () => {
     const current = snapshot(3);
     const projection = projectHoidCursorProgressSnapshot(current);
     if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
@@ -1051,14 +1115,15 @@ describe("HoidConversationGateway pronoun relationship routing", () => {
       question: "¿Y cómo se relaciona con ella?",
       progress: current,
       context,
+      scopeBinding: scopeBindingFor(current),
     });
-    expect(result).toEqual({ status: "unavailable", reason: "entity-ambiguous" });
-    expect(relationshipGateway.answer).toHaveBeenCalledWith({
+    expect(result.status).toBe("ready");
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
       question: "¿Y cómo se relaciona con ella?",
-      progress: current,
       entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
-    });
-    expect(runtime.answer).not.toHaveBeenCalled();
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    }), undefined);
   });
 
   it("abstains when a relational pronoun is used with a context larger than a pair", async () => {
@@ -1361,3 +1426,178 @@ describe("HoidConversationGateway recommendation final-read cancellation", () =>
   });
 });
 
+
+
+describe("Hoid conversation scope continuity", () => {
+
+  it("rejects a complete-looking question that tries to replace the active scope", async () => {
+    const current = snapshot(3);
+    const runtime = { answer: vi.fn(async (_input: unknown) => answer) };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      relationshipGateway: null,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+    const binding = scopeBindingFor(current);
+
+    const result = await gateway.answer({
+      question: "Una pregunta nueva con sujeto explícito.",
+      progress: current,
+      scopeBinding: binding,
+      bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] },
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "context-scope-mismatch" });
+    expect(runtime.answer).not.toHaveBeenCalled();
+  });
+
+  it("routes a new relationship question through the strict runtime while a scope is active", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const resolveEntities: NonNullable<HoidConversationGatewayConfig["resolveEntities"]> = () => ({
+      status: "ready",
+      resolution: "not-found",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [],
+      truncated: false,
+    });
+    const runtime = { answer: vi.fn(async (_input: unknown) => authorizedAnswerForBook("twok")) };
+    const relationshipGateway = { answer: vi.fn() };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveEntities,
+      relationshipGateway,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const result = await gateway.answer({
+      question: "¿Cómo se relacionan estas dos ideas?",
+      progress: current,
+      scopeBinding: scopeBindingFor(current),
+    });
+    expect(result.status).toBe("ready");
+    expect(relationshipGateway.answer).not.toHaveBeenCalled();
+    expect(runtime.answer).toHaveBeenCalledWith(expect.objectContaining({
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    }), undefined);
+  });
+
+  it("retains the existing scope after a later answer abstains", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const resolveEntities: NonNullable<HoidConversationGatewayConfig["resolveEntities"]> = () => ({
+      status: "ready",
+      resolution: "not-found",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [],
+      truncated: false,
+    });
+    const runtime = {
+      answer: vi.fn()
+        .mockResolvedValueOnce(authorizedAnswerForBook("twok"))
+        .mockResolvedValueOnce(answer),
+    };
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveEntities,
+      relationshipGateway: null,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const first = await gateway.answer({
+      question: "Pregunta inicial con evidencia.",
+      progress: current,
+    });
+    if (first.status !== "ready" || !first.conversationScopeBinding) {
+      throw new Error("La respuesta inicial no creó un ámbito");
+    }
+
+    const second = await gateway.answer({
+      question: "Otra pregunta completa sin evidencia en el ámbito.",
+      progress: current,
+      scopeBinding: first.conversationScopeBinding,
+    });
+    expect(second.status).toBe("ready");
+    if (second.status !== "ready") throw new Error("La respuesta de abstención no se completó");
+    expect(second.answer.status).toBe("abstain");
+    expect(second.conversationScopeBinding).toBe(first.conversationScopeBinding);
+    expect(runtime.answer.mock.calls[1]?.[0]).toMatchObject({
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+  });
+
+  it("derives the first answer scope and reuses it for an automatic group follow-up", async () => {
+    const current = snapshot(3);
+    const projection = projectHoidCursorProgressSnapshot(current);
+    if (projection.status !== "ready") throw new Error("Snapshot sintético inválido");
+    const runtime = {
+      answer: vi.fn(async (_input: unknown) => authorizedAnswerForBook("twok")),
+    };
+    const resolveEntities = (() => ({
+      status: "ready",
+      resolution: "matched",
+      progressRevision: projection.revision,
+      progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+      matches: [{ id: "synthetic.entity-alpha" }, { id: "synthetic.entity-beta" }],
+      truncated: false,
+    })) as unknown as NonNullable<HoidConversationGatewayConfig["resolveEntities"]>;
+    const gateway = createHoidConversationGateway({
+      runtime,
+      getCurrentProgress: () => current,
+      resolveEntities,
+      relationshipGateway: null,
+    });
+    if (!gateway) throw new Error("No se pudo crear el gateway sintético");
+
+    const first = await gateway.answer({
+      question: "Explícame la evidencia disponible.",
+      progress: current,
+    });
+    expect(first.status).toBe("ready");
+    if (first.status !== "ready" || !first.conversationScopeBinding) {
+      throw new Error("La primera respuesta no generó un ámbito verificable");
+    }
+    expect(first.conversationScopeBinding.scope).toEqual({
+      mode: "single-work",
+      bookIds: ["twok"],
+    });
+    expect(first.conversationScopeBinding.works).toEqual([
+      { bookId: "twok", chapters: [1] },
+    ]);
+
+    const unrelatedButSameConversation = await gateway.answer({
+      question: "Describe el concepto completo con una pregunta independiente.",
+      progress: current,
+      scopeBinding: first.conversationScopeBinding,
+    });
+    expect(unrelatedButSameConversation.status).toBe("ready");
+    expect(runtime.answer.mock.calls[1]?.[0]).toMatchObject({
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+    if (
+      unrelatedButSameConversation.status !== "ready" ||
+      !unrelatedButSameConversation.conversationScopeBinding ||
+      !unrelatedButSameConversation.conversationContext
+    ) throw new Error("La pregunta independiente no conservó el ámbito y contexto autorizados");
+
+    const followUp = await gateway.answer({
+      question: "¿Y entre ellos?",
+      progress: current,
+      context: unrelatedButSameConversation.conversationContext,
+      scopeBinding: unrelatedButSameConversation.conversationScopeBinding,
+    });
+
+    expect(followUp.status).toBe("ready");
+    expect(runtime.answer).toHaveBeenCalledTimes(3);
+    expect(runtime.answer.mock.calls[2]?.[0]).toMatchObject({
+      entityIds: ["synthetic.entity-alpha", "synthetic.entity-beta"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+  });
+});

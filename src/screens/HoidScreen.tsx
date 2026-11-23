@@ -21,6 +21,7 @@ import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
+import type { HoidConversationScopeBinding } from '../hoid/conversationScopeBinding';
 import {
   createHoidEditionBoundRecommendationPresentation,
   type HoidEditionBoundRecommendationPresentation,
@@ -94,6 +95,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   // Ephemeral ID-only context: never persisted to SQLite, messages or providers.
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
+  const conversationScopeBindingRef = useRef<HoidConversationScopeBinding | null>(null);
   const answerAbortControllerRef = useRef<AbortController | null>(null);
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({
@@ -166,7 +168,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
   const [answerScopeMode, setAnswerScopeMode] = useState<HoidAnswerScopeMode>('automatic');
   const [answerScopeBookIds, setAnswerScopeBookIds] = useState<readonly string[]>([]);
-  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: Hoid aplicará el progreso de cada obra sin ampliar sus permisos.');
+  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: la primera respuesta fijará las obras que aporten evidencia; el progreso de cada obra seguirá aplicándose.');
 
   const liveProgress = progressReaderRef.current();
   const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
@@ -183,6 +185,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setCanCancelAnswer(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
+    conversationScopeBindingRef.current = null;
     setRecommendationPresentation(null);
     setRecommendationMessage('');
     setRecommendationSelectedBookId(null);
@@ -212,6 +215,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const resetConversationForAnswerScopeChange = () => {
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
+    conversationScopeBindingRef.current = null;
     answerAbortControllerRef.current?.abort();
     answerAbortControllerRef.current = null;
     setCanCancelAnswer(false);
@@ -233,7 +237,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setAnswerScopeMode(mode);
     setAnswerScopeBookIds(nextIds);
     setAnswerScopeMessage(mode === 'automatic'
-      ? 'Ámbito automático: Hoid aplicará el progreso de cada obra sin ampliar sus permisos.'
+      ? 'Ámbito automático: la primera respuesta fijará las obras que aporten evidencia; el progreso de cada obra seguirá aplicándose.'
       : mode === 'single-work'
         ? 'Selecciona exactamente una obra. Solo se considerarán afirmaciones cuya evidencia pertenezca a ella.'
         : 'Selecciona entre dos y cuatro obras. Cada una debe aportar evidencia autorizada; si falta una, Hoid se abstendrá.');
@@ -298,10 +302,12 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       if (intentPlan.status !== 'ready') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
       } else if (intentPlan.mode === 'reading-progress') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         if (!conversationGateway) {
           respuesta = 'El runtime de progreso no está disponible. No mostraré una posición estimada.';
         } else {
@@ -329,6 +335,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (intentPlan.mode === 'catalogue-recommendation') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         const presentation = createHoidEditionBoundRecommendationPresentation(
           currentProgress,
           3,
@@ -359,6 +366,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (answerScopeSelection.status === 'incomplete') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         responseScope = requestScope;
         respuesta = answerScopeSelection.reason === 'one-work-required'
           ? 'Selecciona exactamente una obra para limitar esta respuesta narrativa.'
@@ -368,13 +376,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else if (!conversationGateway) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
       } else if (!trustedAnswerPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         responseScope = requestScope;
         respuesta = 'La presentación narrativa está desactivada porque el host todavía no ha provisionado una autoridad editorial firmada. Puedo consultar tu progreso y las recomendaciones de catálogo sin revelar contenido narrativo.';
       } else {
+        const priorConversationScopeBinding = conversationScopeBindingRef.current;
         const controller = new AbortController();
         answerAbortControllerRef.current = controller;
         answerSignal = controller.signal;
@@ -386,6 +397,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           depth: explanationDepth,
           context: conversationContextRef.current ?? undefined,
           typedContext: typedConversationContextRef.current ?? undefined,
+          ...(conversationScopeBindingRef.current
+            ? { scopeBinding: conversationScopeBindingRef.current }
+            : {}),
           ...(answerScopeSelection.status === 'ready' ? { bookScope: answerScopeSelection.scope } : {}),
         }, { signal: controller.signal });
         if (result.status === 'ready' && result.answer.reason === 'request-cancelled') {
@@ -393,6 +407,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
           conversationContextRef.current = null;
           typedConversationContextRef.current = null;
+          conversationScopeBindingRef.current = null;
         } else if (result.status === 'ready') {
           responseScope = {
             revision: result.progressRevision,
@@ -409,6 +424,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
               respuesta = 'No puedo verificar que las citas pertenezcan exactamente a las obras seleccionadas. No mostraré el contenido.';
               conversationContextRef.current = null;
               typedConversationContextRef.current = null;
+              conversationScopeBindingRef.current =
+                result.conversationScopeBinding === priorConversationScopeBinding
+                  ? priorConversationScopeBinding
+                  : null;
               responseScope = requestScope;
             } else {
               const requiresCrossWorkCoverage =
@@ -430,6 +449,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 respuesta = 'No puedo verificar la procedencia por segmento y capítulo de todas las obras seleccionadas. No mostraré una comparación parcial.';
                 conversationContextRef.current = null;
                 typedConversationContextRef.current = null;
+                conversationScopeBindingRef.current =
+                  result.conversationScopeBinding === priorConversationScopeBinding
+                    ? priorConversationScopeBinding
+                    : null;
                 responseScope = requestScope;
               } else {
                 respuesta = presentation.text;
@@ -440,19 +463,72 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                   crossBookResult?.status === 'ready' &&
                   crossBookResult.summary.workCount > 1
                 ) evidenciaTransversal = crossBookResult.summary;
-                conversationContextRef.current = result.conversationContext ?? null;
-                typedConversationContextRef.current = result.typedConversationContext ?? null;
+                const returnedBinding = result.conversationScopeBinding ?? null;
+                const bindingBookIds = returnedBinding?.scope.bookIds ?? [];
+                const presentedBookIds = [...scopeValidation.sourceBookIds].sort();
+                const presentedChapters = new Map<string, Set<number>>();
+                for (const citation of presentation.citations) {
+                  let chapters = presentedChapters.get(citation.sourceBookId);
+                  if (!chapters) {
+                    chapters = new Set<number>();
+                    presentedChapters.set(citation.sourceBookId, chapters);
+                  }
+                  chapters.add(citation.chapter);
+                }
+                const bindingMatchesPresentation = !returnedBinding || (
+                  bindingBookIds.length === presentedBookIds.length &&
+                  bindingBookIds.every((bookId, index) => bookId === presentedBookIds[index]) &&
+                  returnedBinding.works.every(work => {
+                    const chapters = [...(presentedChapters.get(work.bookId) ?? [])]
+                      .sort((left, right) => left - right);
+                    return chapters.length === work.chapters.length &&
+                      chapters.every((chapter, index) => chapter === work.chapters[index]);
+                  })
+                );
+                if (!bindingMatchesPresentation) {
+                  respuesta = 'La procedencia del contexto conversacional no coincide con las fuentes presentadas. No conservaré ese contexto.';
+                  citas = undefined;
+                  segmentos = undefined;
+                  formato = undefined;
+                  evidenciaTransversal = undefined;
+                  conversationContextRef.current = null;
+                  typedConversationContextRef.current = null;
+                  conversationScopeBindingRef.current =
+                    returnedBinding === priorConversationScopeBinding
+                      ? priorConversationScopeBinding
+                      : null;
+                  responseScope = requestScope;
+                } else {
+                  conversationScopeBindingRef.current = returnedBinding;
+                  conversationContextRef.current = returnedBinding
+                    ? result.conversationContext ?? null
+                    : null;
+                  typedConversationContextRef.current = returnedBinding
+                    ? result.typedConversationContext ?? null
+                    : null;
+                }
               }
             }
           } else {
             respuesta = trustedResult.text;
             conversationContextRef.current = null;
             typedConversationContextRef.current = null;
+            conversationScopeBindingRef.current =
+              result.conversationScopeBinding === priorConversationScopeBinding
+                ? priorConversationScopeBinding
+                : null;
             responseScope = requestScope;
           }
         } else {
           conversationContextRef.current = null;
           typedConversationContextRef.current = null;
+          if (
+            result.reason === 'progress-changed' ||
+            result.reason === 'invalid-progress' ||
+            result.reason === 'context-stale' ||
+            result.reason === 'context-scope-unavailable' ||
+            result.reason === 'cancelled'
+          ) conversationScopeBindingRef.current = null;
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
             : result.reason === 'cancelled'
@@ -463,7 +539,11 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 ? 'No puedo identificar con seguridad el referente. Repite los nombres de los personajes para evitar una suposición.'
                 : result.reason === 'context-unavailable'
                   ? 'No hay una relación anterior inequívoca en esta conversación. Vuelve a mencionar los personajes.'
-                  : result.reason === 'context-stale'
+                  : result.reason === 'context-scope-mismatch'
+                    ? 'El ámbito solicitado no coincide con el de esta conversación. Pulsa «Nuevo tema» para iniciar otra con la selección actual.'
+                    : result.reason === 'context-scope-unavailable'
+                      ? 'No puedo verificar el ámbito de la respuesta anterior. No ampliaré la conversación a otras obras.'
+                      : result.reason === 'context-stale'
                     ? 'El progreso ha cambiado. Vuelve a mencionar los personajes para comprobar de nuevo la relación.'
                     : result.reason === 'entity-blocked' || result.reason === 'entity-ambiguous' || result.reason === 'entity-unavailable'
                       ? 'No hay afirmaciones editoriales verificadas y autorizadas para esta pregunta y tu progreso. Hoid no inventará una explicación.'
@@ -474,7 +554,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             result.reason === 'entity-unavailable' ||
             result.reason === 'context-ambiguous' ||
             result.reason === 'context-unavailable' ||
-            result.reason === 'context-stale'
+            result.reason === 'context-stale' ||
+            result.reason === 'context-scope-unavailable' ||
+            result.reason === 'context-scope-mismatch'
           ) responseScope = requestScope;
         }
       }
@@ -502,6 +584,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         evidenciaTransversal = undefined;
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
       }
 
       if (answerSignal?.aborted) {
@@ -513,6 +596,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         evidenciaTransversal = undefined;
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
       }
 
       setMensajes(prev => [...prev, {
@@ -543,6 +627,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const cargarRecomendaciones = async (activeBookId?: string) => {
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
+    conversationScopeBindingRef.current = null;
     if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready') return;
 
     setCargandoRecomendaciones(true);
@@ -619,6 +704,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const cargarRecomendacionesTematicas = async () => {
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
+    conversationScopeBindingRef.current = null;
     setTopicRecommendations([]);
     setTopicRecommendationRevision(null);
     setTopicRecommendationFingerprint(null);
@@ -833,6 +919,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     topicRecommendationFingerprint === liveProgressScope.fingerprint &&
     topicRecommendationSelectionKey === selectedTopicIds.join('\n') &&
     topicRecommendationTrustPort === trustedAnswerPort;
+  const activeConversationScopeBinding = conversationScopeBindingRef.current;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -1031,6 +1118,25 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           </View>
         )}
         <Text style={styles.answerScopeMessage}>{answerScopeMessage}</Text>
+        {activeConversationScopeBinding && (
+          <>
+            <Text style={styles.recommendationNote}>
+              Ámbito de conversación: {activeConversationScopeBinding.works.map(work => {
+                const title = HOID_SOURCE_BIBLIOGRAPHY.find(item => item.id === work.bookId)?.title ?? 'Obra verificada';
+                return `${title} · capítulos ${work.chapters.join(', ')}`;
+              }).join('; ')} (capítulos citados en la última respuesta). El progreso actual sigue limitando cada obra.
+            </Text>
+            <TouchableOpacity
+              style={styles.scopeResetButton}
+              onPress={resetConversationForAnswerScopeChange}
+              disabled={cargando}
+              accessibilityRole="button"
+              accessibilityLabel="Iniciar un tema nuevo y reiniciar el ámbito conversacional"
+            >
+              <Text style={styles.scopeResetButtonText}>Nuevo tema</Text>
+            </TouchableOpacity>
+          </>
+        )}
         <Text style={styles.recommendationNote}>
           Este ámbito solo afecta a explicaciones narrativas; el progreso y las recomendaciones de catálogo mantienen sus propios contratos.
         </Text>
@@ -1252,6 +1358,8 @@ const styles = StyleSheet.create({
   answerScopeHint: { color: '#cbd5e1', fontSize: 10, marginTop: 10 },
   answerScopeScroll: { maxHeight: 142, marginTop: 4 },
   answerScopeMessage: { color: '#c7d2fe', fontSize: 10, lineHeight: 15, marginTop: 8 },
+  scopeResetButton: { alignSelf: 'flex-start', marginTop: 7, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#64748b', backgroundColor: '#111827' },
+  scopeResetButtonText: { color: '#c7d2fe', fontSize: 10, fontWeight: '700' },
   topicInterestPanel: { padding: 12, backgroundColor: '#0d1526', borderBottomWidth: 1, borderColor: '#1e293b' },
   topicChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9, marginBottom: 10 },
   topicChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: '#475569', backgroundColor: '#111827' },

@@ -4,7 +4,11 @@ import { SISTEMAS_COSMERE_COMPLETO } from '../data/cosmereUniverse';
 import { RANGOS_COSMERICOS, RangoCosmere } from '../data/gamification';
 import { createEmptyAtlasReadingProgress } from '../hoid/initialProgress';
 import { createExpoHoidCursorProgressCoordinator } from '../hoid/expoCursorProgressCoordinator';
-import { HoidCursorProgressCoordinator, type HoidCursorCoordinatorResult } from '../hoid/cursorProgressCoordinator';
+import {
+  HoidCursorProgressCoordinator,
+  type HoidCursorCoordinatorResult,
+  type HoidReaderProgressConfirmation,
+} from '../hoid/cursorProgressCoordinator';
 import type { HoidCursorProgressSnapshot } from '../hoid/cursorProgressLedger';
 import { createHoidReadingCursor } from '../hoid/readingManifest';
 import { atlasProgressFromCursorSnapshot } from '../hoid/cursorAtlasAdapter';
@@ -41,6 +45,7 @@ interface CosmereContextType {
     completedChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
   ) => Promise<HoidCursorCoordinatorResult | null>;
   /** Record final-work completion only after explicit confirmation and a matching reader snapshot. */
   completeHoidWorkIfCurrent: (
@@ -48,6 +53,7 @@ interface CosmereContextType {
     finalChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
   ) => Promise<HoidCursorCoordinatorResult | null>;
   hoidCursorProgressSnapshot: HoidCursorProgressSnapshot | null;
   /** Reads the coordinator's live snapshot, including commits not yet projected into React state. */
@@ -196,6 +202,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     completedChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
   ): Promise<HoidCursorCoordinatorResult | null> => {
     if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
     const result = await cursorProgressCoordinator.markChapterReadIfCurrent(
@@ -203,6 +210,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       completedChapter,
       expectedRevision,
       expectedFingerprint,
+      confirmation,
     );
     aplicarResultadoProgreso(result);
     return result;
@@ -213,6 +221,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
     finalChapter: number,
     expectedRevision: number,
     expectedFingerprint: string,
+    confirmation: HoidReaderProgressConfirmation,
   ): Promise<HoidCursorCoordinatorResult | null> => {
     if (!cursorProgressCoordinator || progresoPersistenciaEstado !== 'ready') return null;
     const result = await cursorProgressCoordinator.completeAfterReadingIfCurrent(
@@ -220,6 +229,7 @@ export const CosmereProvider: React.FC<{ children: React.ReactNode }> = ({ child
       finalChapter,
       expectedRevision,
       expectedFingerprint,
+      confirmation,
     );
     aplicarResultadoProgreso(result);
     return result;

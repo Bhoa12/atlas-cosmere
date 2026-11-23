@@ -373,7 +373,7 @@ async function inspectLocalRecord(
   if (usesDescriptor) {
     const available = nextOffset - dataEnd;
     if (available < 12) throw new Error("ZIP data descriptor is truncated");
-    const descriptor = await readExact(source, dataEnd, Math.min(16, available));
+    const descriptor = await readExact(source, dataEnd, Math.min(16, available), signal);
     const descriptorStart = readU32(descriptor, 0) === DATA_DESCRIPTOR_SIGNATURE ? 4 : 0;
     if (descriptorStart + 12 > descriptor.byteLength) throw new Error("ZIP data descriptor is truncated");
     if (

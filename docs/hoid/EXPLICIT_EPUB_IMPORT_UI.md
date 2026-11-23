@@ -11,14 +11,16 @@ The binding is built by `createHoidEpubSourceDescriptor(sourceId, workId, editio
 1. Tap **Importar EPUB** and select one local `.epub` file through the Expo document picker.
 2. Select the work and registered edition from the explicit catalogue list.
 3. Hoid inspects ZIP structure, OCF container, OPF metadata, manifest, spine and navigation.
-4. The UI displays only non-narrative metadata and structural counts: edition ID, language, navigation-entry count, XHTML target count and spine count.
-5. The UI never displays chapter labels or chapter bodies. It states that package verification is not chapter inspection or editorial approval.
-6. The reader can bind another work/edition to the same selected source, change the file, or release the temporary source.
+4. The import preview displays only non-narrative metadata and structural counts: edition ID, language, navigation-entry count, XHTML target count and spine count.
+5. After Hoid presents a current edition-bound recommendation, the reader can open that exact chapter only when the imported source is explicitly bound to the same work and registered edition.
+6. The local reader extracts safe plain-text blocks from the verified XHTML document. It does not render raw HTML, scripts, styles, navigation, SVG, remote resources or embedded media.
+7. The reader can bind another work/edition to the same selected source, change the file, or release the temporary source.
 
 ## Spoiler and trust boundaries
 
-- The UI does not render navigation labels, XHTML, chapter titles or prose.
-- Package inspection creates only an in-memory candidate. It does not update verified locators, inspected-chapter allowlists, editorial staging or production registries.
+- The import preview does not render navigation labels, XHTML or prose. Chapter text is displayed only after an explicit open action from a current, progress-bound recommendation.
+- The local reader displays plain-text blocks only. It does not inject XHTML into a WebView or execute scripts, CSS, SVG, forms or remote resources.
+- Package inspection creates only an in-memory candidate. Reading a chapter also remains in memory and does not update verified locators, inspected-chapter allowlists, editorial staging or production registries.
 - The import flow does not change SQLite reading progress, completion state or unlock thresholds.
 - A navigation SHA match binds the package to the registered edition policy; it does not prove that every chapter body has been inspected or approved.
 - Ambiguous works retain their existing progress policies: White Sand volumes remain unsegmented, Elantris and Viento y Verdad retain their safe numeric prefixes, and Arcanum remains a section collection.
@@ -51,3 +53,12 @@ Four private source EPUBs were available in the user's Library and were checked 
 All four archives passed ZIP CRC verification, placed the uncompressed `mimetype` entry first, and declared `application/epub+zip`. Their navigation-document SHA-256 values exactly matched the registered edition structures. The Cosmere source is larger than the previous 256 MiB mobile range cap, while its observed aggregate uncompressed size, entry count, largest member and compression ratio remain within the existing ingestion budgets. Run 151 raises only the range-based local source ceiling to 320 MiB; the full-buffer adapter remains capped at 256 MiB.
 
 This was an independent, read-only ZIP/XML metadata check, not an execution of the TypeScript Expo runtime adapter. Navigation entry counts are structural links, not verified chapter counts. No chapter XHTML bodies or chapter labels were inspected, no verified-chapter allowlist was expanded, and no progress or editorial registry was changed. The private EPUB files remain outside Git and CI.
+
+
+## Local chapter reader (Run 256)
+
+The reader port is now connected inside HoidScreen through the selected local EPUB source. The panel registers a host capability only while a source, explicit catalogue work/edition selection and in-memory package candidate are all active. HoidScreen offers **Abrir capítulo en lector** only for a recommendation matching that selected work.
+
+Immediately before reading, the host refreshes SQLite progress and checks the presentation revision/fingerprint, cursor, manifest, edition, navigation digest and exact opaque locator. It reads the XHTML locally, verifies the chapter digest against a second package/navigation inspection, extracts text blocks, then refreshes progress again before displaying. A progress change, cancellation, source replacement or component unmount discards the content.
+
+The reader does not mutate the progress ledger. Opening a chapter and declaring that it has been reached remain separate actions. The current view is a chapter-level text reader, not a complete EPUB renderer; image layout, CSS pagination and media are intentionally out of scope.

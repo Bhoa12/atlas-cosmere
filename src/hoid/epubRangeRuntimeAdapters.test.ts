@@ -121,6 +121,47 @@ describe("range-based EPUB ZIP adapter", () => {
     expect(result).toEqual(encoder.encode("<html><body>fixture</body></html>"));
   });
 
+  it("stops requesting further ZIP ranges when cancellation arrives during a range read", async () => {
+    const bytes = makeZip();
+    const calls: Array<Readonly<{ offset: number; length: number }>> = [];
+    let holdNextRead = false;
+    let resolveHeldRead: (value: Uint8Array) => void = () => {};
+    let markHeldReadStarted: () => void = () => {};
+    const heldReadStarted = new Promise<void>(resolve => {
+      markHeldReadStarted = resolve;
+    });
+    const source = Object.freeze({
+      size: bytes.byteLength,
+      async readRange(offset: number, length: number, signal?: AbortSignal): Promise<Uint8Array> {
+        calls.push(Object.freeze({ offset, length }));
+        if (holdNextRead) {
+          holdNextRead = false;
+          markHeldReadStarted();
+          const result = await new Promise<Uint8Array>(resolve => {
+            resolveHeldRead = resolve;
+          });
+          if (signal?.aborted) throw new Error("cancelled");
+          return result;
+        }
+        return bytes.slice(offset, offset + length);
+      },
+    });
+    const archive = createHoidFflateRangeArchivePort(async () => source);
+    await archive.listEntries("fixture");
+    const previousCallCount = calls.length;
+    holdNextRead = true;
+    const controller = new AbortController();
+    const operation = archive.readEntry("fixture", "OEBPS/chapter.xhtml", 1024, controller.signal);
+
+    await heldReadStarted;
+    controller.abort();
+    const held = calls[previousCallCount];
+    resolveHeldRead(bytes.slice(held.offset, held.offset + held.length));
+
+    await expect(operation).rejects.toThrow("cancelled");
+    expect(calls.length - previousCallCount).toBe(1);
+  });
+
   it("rejects a source whose range reader returns a short slice", async () => {
     const bytes = makeZip();
     const archive = createHoidFflateRangeArchivePort(async () => ({

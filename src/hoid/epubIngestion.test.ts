@@ -217,7 +217,7 @@ describe("offline EPUB ingestion core", () => {
     const fixture = makeFixture();
     const packageResult = await fixture.service.inspectPackage(fixture.source);
     if (packageResult.status !== "candidate") throw new Error("Expected package candidate");
-    fixture.archive.listEntries.mockClear();
+    vi.spyOn(fixture.archive, "listEntries").mockClear();
     const controller = new AbortController();
     controller.abort();
 

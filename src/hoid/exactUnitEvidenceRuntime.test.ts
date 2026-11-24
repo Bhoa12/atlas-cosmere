@@ -19,6 +19,7 @@ import {
   type HoidExactClaimSelector,
 } from "./exactUnitEvidenceRuntime";
 import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
+import { sha256Hex } from "./sha256";
 
 const fixedNow = () => "2026-11-24T18:10:00.000Z";
 
@@ -399,6 +400,40 @@ describe("Hoid exact-unit evidence runtime v2", () => {
       },
     })).toEqual({ status: "unavailable", reason: "invalid-request" });
     expect(selector).not.toHaveBeenCalled();
+  });
+
+
+  it("preserves the original v2 selector fingerprint when no conversation context is supplied", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    let providerRequest: HoidExactClaimSelectionRequest | undefined;
+    const { runtime } = createRuntime(store, selectorFor(async request => {
+      providerRequest = request;
+      return { schemaVersion: 2, requestFingerprint: request.requestFingerprint, claimIds: ["claim.alpha"] };
+    }));
+    const result = await runtime.answer({
+      question: "Explica Entidad Alfa.",
+      intent: "explain",
+      depth: "brief",
+    });
+    expect(result.status).toBe("ready");
+    const request = providerRequest!;
+    expect(request.schemaVersion).toBe(2);
+    expect(request.conversationContext).toBeUndefined();
+    expect(request.requestFingerprint).toBe(sha256Hex(JSON.stringify({
+      protocol: "hoid.exact-claim-selection.v2",
+      schemaVersion: 2,
+      question: request.question,
+      intent: request.intent,
+      depth: "brief",
+      bookScope: null,
+      selectionBudget: request.selectionBudget,
+      candidates: request.candidates.map(candidate => ({
+        id: candidate.id,
+        text: candidate.text,
+        evidenceIds: [...candidate.evidenceIds],
+      })),
+    })));
   });
 
 });

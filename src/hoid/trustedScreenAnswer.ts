@@ -3,6 +3,10 @@ import type {
   HoidPresentedCitation,
   HoidPresentedSegment,
 } from "./answerPresentation";
+import {
+  awaitHoidOperationWithSignal,
+  isHoidOperationCancelled,
+} from "./abortableOperation";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
   isHoidExplanationDepth,
@@ -26,6 +30,7 @@ export type HoidTrustedScreenAnswerResult =
   | Readonly<{
       status: "withheld";
       reason:
+        | "request-cancelled"
         | "presenter-unavailable"
         | "presenter-withheld"
         | "invalid-depth"
@@ -38,7 +43,7 @@ export type HoidTrustedScreenAnswerResult =
 
 export type HoidTrustedScreenAnswerPort = Readonly<{
   /** The presenter obtains progress from its host-owned port; callers cannot supply a cursor. */
-  present(answer: unknown, depth: unknown): Promise<HoidTrustedScreenAnswerResult>;
+  present(answer: unknown, depth: unknown, signal?: AbortSignal): Promise<HoidTrustedScreenAnswerResult>;
 }>;
 
 type UnknownMethod = (...args: unknown[]) => unknown;
@@ -346,17 +351,24 @@ export function createHoidTrustedScreenAnswerPort(
   if (!present) return null;
 
   const port = Object.freeze({
-    async present(answer: unknown, depthInput: unknown): Promise<HoidTrustedScreenAnswerResult> {
+    async present(
+      answer: unknown,
+      depthInput: unknown,
+      signal?: AbortSignal,
+    ): Promise<HoidTrustedScreenAnswerResult> {
+      if (signal?.aborted) return withheld("request-cancelled");
       if (!isHoidExplanationDepth(depthInput)) return withheld("invalid-depth");
       const budget = resolveHoidExplanationDepthBudget(depthInput);
       if (!budget) return withheld("invalid-depth");
 
       let rawPresentation: unknown;
       try {
-        rawPresentation = await Promise.resolve(present(answer));
-      } catch {
+        rawPresentation = await awaitHoidOperationWithSignal(() => present(answer), signal);
+      } catch (error) {
+        if (isHoidOperationCancelled(error) || signal?.aborted) return withheld("request-cancelled");
         return withheld("presenter-withheld");
       }
+      if (signal?.aborted) return withheld("request-cancelled");
 
       const presentation = canonicalPresentation(rawPresentation);
       if (!presentation) return withheld("presenter-withheld");

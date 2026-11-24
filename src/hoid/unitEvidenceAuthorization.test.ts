@@ -144,7 +144,14 @@ describe("Hoid exact-unit evidence authorization", () => {
       unlock: duplicate,
     });
     const result = authorizeHoidUnitEvidence(snapshotAt("sawt", 12, 1, "chapter:012:unit:012"), duplicatePolicy);
-    expect(result.status).toBe("invalid");
+    expect(result).toMatchObject({
+      status: "locked",
+      reason: "unlock-not-reached",
+      completedThroughOrdinal: 11,
+    });
+    if (result.status === "locked") {
+      expect("readingPosition" in result).toBe(false);
+    }
   });
 
   it("requires explicit whole-work completion to authorize all remaining units", () => {

@@ -202,6 +202,8 @@ describe("Hoid exact-unit evidence runtime", () => {
       expect("reading" in request).toBe(false);
       expect("progress" in request).toBe(false);
       expect("chapterReferences" in request).toBe(false);
+      expect("progressFingerprint" in request).toBe(false);
+      expect("locatorId" in request).toBe(false);
       expect("unitId" in request.candidates[0]).toBe(false);
       expect("identityFingerprint" in request.candidates[0]).toBe(false);
       return ["claim-alpha"];
@@ -223,6 +225,12 @@ describe("Hoid exact-unit evidence runtime", () => {
     expect(result.progressRevision).toBe(1);
     expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/u);
     expect(selector).toHaveBeenCalledTimes(1);
+    const presentation = await runtime!.verifyForPresentation({
+      progressRevision: result.progressRevision,
+      progressFingerprint: result.progressFingerprint,
+      evidenceIds: result.answer.evidenceIds,
+    });
+    expect(presentation).toMatchObject({ status: "ready", progressRevision: 1 });
   });
 
   it("blocks a matching entity while its exact unlock unit is still open", async () => {

@@ -274,7 +274,7 @@ describe("Hoid exact-unit evidence runtime", () => {
     const { runtime } = createRuntime(store, selector);
     const chapterTwo = reference("twok", 2);
     const result = await runtime!.answer({
-      question: "¿Qué relación hay entre Personaje Alfa y Personaje Beta?",
+      question: "¿Quién es Personaje Alfa?",
       chapterReferences: [chapterTwo],
     });
 

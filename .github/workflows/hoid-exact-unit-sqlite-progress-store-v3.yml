@@ -1,0 +1,93 @@
+name: Hoid exact-unit SQLite progress store v3
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/unitSqliteProgressStore.ts"
+      - "src/hoid/unitSqliteProgressStore.test.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/sqliteProgressStore.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/RUN284_EXACT_UNIT_SQLITE_PROGRESS_STORE_V3.md"
+      - ".github/workflows/hoid-exact-unit-sqlite-progress-store-v3.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run284"
+    paths:
+      - "src/hoid/unitSqliteProgressStore.ts"
+      - "src/hoid/unitSqliteProgressStore.test.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/progressLedger.ts"
+      - "src/hoid/sqliteProgressStore.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/RUN284_EXACT_UNIT_SQLITE_PROGRESS_STORE_V3.md"
+      - ".github/workflows/hoid-exact-unit-sqlite-progress-store-v3.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-sqlite-progress-v3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit SQLite adapter, migrations and regressions
+        run: >-
+          npx vitest run
+          src/hoid/unitSqliteProgressStore.test.ts
+          src/hoid/unitProgressLedger.test.ts
+          src/hoid/cursorSqliteProgressStore.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/sqliteProgressStore.test.ts
+          src/hoid/readingManifest.test.ts
+      - name: Strict type-check exact-unit persistence boundary
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/unitSqliteProgressStore.ts
+          src/hoid/unitProgressLedger.ts
+          src/hoid/unitProgressCursor.ts
+          src/hoid/chapterReference.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/cursorSqliteProgressStore.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/progressLedger.ts
+          src/hoid/sqliteProgressStore.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts
+          src/hoid/types.ts

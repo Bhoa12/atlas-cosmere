@@ -61,7 +61,11 @@ function canonicalClaimIds(value: unknown): readonly string[] | null {
  */
 export function createHoidApprovedClaimAnswerPort(
   runtime: HoidEvidenceRuntime | null,
-): ((claimIds: readonly string[], progressSnapshot: unknown) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
+): ((
+  claimIds: readonly string[],
+  progressSnapshot: unknown,
+  signal?: AbortSignal,
+) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
   if (runtime === null || typeof runtime.renderApprovedClaimById !== "function") return undefined;
 
   return (claimIdsInput, progressSnapshot, signal) => {

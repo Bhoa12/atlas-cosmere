@@ -1,0 +1,40 @@
+name: Hoid chapter reference identity-only
+on:
+  pull_request:
+    paths:
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterReference.test.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - ".github/workflows/hoid-chapter-reference-identity-only.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run278"
+    paths:
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterReference.test.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - ".github/workflows/hoid-chapter-reference-identity-only.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  chapter-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test identity-only references and spoiler boundaries
+        run: npx vitest run src/hoid/chapterReference.test.ts src/hoid/chapterIdentity.test.ts src/hoid/readingManifest.test.ts
+      - name: Strict type-check chapter reference boundary
+        run: npx tsc --noEmit --strict --target ES2022 --module commonjs --moduleResolution node --lib ES2022,DOM --skipLibCheck src/hoid/chapterReference.ts src/hoid/chapterReference.test.ts

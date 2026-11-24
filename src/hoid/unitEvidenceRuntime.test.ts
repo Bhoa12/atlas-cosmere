@@ -264,7 +264,7 @@ describe("Hoid exact-unit evidence runtime", () => {
 
   it("filters claims to the requested exact chapter references", async () => {
     const store = new MemoryStore(snapshot([
-      { bookId: "twok", chapter: 4 },
+      { bookId: "twok", chapter: 8 },
       { bookId: "edgedancer", chapter: 4 },
     ]));
     const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {

@@ -252,6 +252,17 @@ describe("Hoid exact-unit evidence runtime", () => {
     expect(presentation).toMatchObject({ status: "ready", progressRevision: 1 });
   });
 
+  it("rejects duplicate-label chapter scopes until the legacy scope filter is replaced", async () => {
+    const store = new MemoryStore(snapshot([{ bookId: "twok", chapter: 4 }]));
+    const { runtime } = createRuntime(store);
+    const duplicate = reference("sawt", 12, undefined, "chapter:012:unit:012");
+    const result = await runtime!.answer({
+      question: "¿Qué ocurre en esta unidad?",
+      chapterReferences: [duplicate],
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+  });
+
   it("rejects an exact chapter scope that points at the currently open unit", async () => {
     const store = new MemoryStore(snapshot([{ bookId: "twok", chapter: 4 }]));
     const selector = vi.fn(async () => ["claim-alpha"]);

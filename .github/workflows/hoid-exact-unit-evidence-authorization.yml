@@ -5,6 +5,8 @@ on:
     paths:
       - "src/hoid/unitEvidenceAuthorization.ts"
       - "src/hoid/unitEvidenceAuthorization.test.ts"
+      - "src/hoid/unitEvidenceRuntime.ts"
+      - "src/hoid/unitEvidenceRuntime.test.ts"
       - "src/hoid/unitProgressCoordinator.ts"
       - "src/hoid/unitProgressLedger.ts"
       - "src/hoid/unitProgressCursor.ts"
@@ -15,14 +17,27 @@ on:
       - "src/hoid/verifiedChapterLocators.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/sha256.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/catalogValidation.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/requestValidation.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/providerTimeout.ts"
       - "docs/hoid/RUN286_EXACT_UNIT_EVIDENCE_AUTHORIZATION.md"
+      - "docs/hoid/RUN287_EXACT_UNIT_EVIDENCE_RUNTIME.md"
       - ".github/workflows/hoid-exact-unit-evidence-authorization.yml"
   push:
     branches:
       - "feat/hoid-ia-core-run286"
+      - "feat/hoid-ia-core-run287"
     paths:
       - "src/hoid/unitEvidenceAuthorization.ts"
       - "src/hoid/unitEvidenceAuthorization.test.ts"
+      - "src/hoid/unitEvidenceRuntime.ts"
+      - "src/hoid/unitEvidenceRuntime.test.ts"
       - "src/hoid/unitProgressCoordinator.ts"
       - "src/hoid/unitProgressLedger.ts"
       - "src/hoid/unitProgressCursor.ts"
@@ -33,7 +48,17 @@ on:
       - "src/hoid/verifiedChapterLocators.ts"
       - "src/hoid/bibliography.ts"
       - "src/hoid/sha256.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/catalogValidation.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/requestValidation.ts"
+      - "src/hoid/selectionProtocol.ts"
+      - "src/hoid/providerTimeout.ts"
       - "docs/hoid/RUN286_EXACT_UNIT_EVIDENCE_AUTHORIZATION.md"
+      - "docs/hoid/RUN287_EXACT_UNIT_EVIDENCE_RUNTIME.md"
       - ".github/workflows/hoid-exact-unit-evidence-authorization.yml"
 
 permissions:
@@ -51,14 +76,17 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test exact-unit authorization and regressions
+      - name: Test exact-unit authorization and runtime regressions
         run: >-
           npx vitest run
           src/hoid/unitEvidenceAuthorization.test.ts
+          src/hoid/unitEvidenceRuntime.test.ts
           src/hoid/unitProgressCoordinator.test.ts
           src/hoid/unitProgressCursor.test.ts
           src/hoid/unitProgressLedger.test.ts
-      - name: Strict type-check exact-unit authorization boundary
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+      - name: Strict type-check exact-unit authorization and runtime boundaries
         run: >-
           npx tsc --noEmit --strict
           --target ES2022
@@ -67,3 +95,5 @@ jobs:
           --lib ES2022,DOM
           --skipLibCheck
           src/hoid/unitEvidenceAuthorization.ts
+          src/hoid/unitEvidenceRuntime.ts
+          src/hoid/unitEvidenceRuntime.test.ts

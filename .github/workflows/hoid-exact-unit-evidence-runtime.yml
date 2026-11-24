@@ -1,0 +1,77 @@
+name: Hoid exact-unit evidence runtime
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/unitEvidenceRuntime.ts"
+      - "src/hoid/unitEvidenceRuntime.test.ts"
+      - "src/hoid/unitEvidenceAuthorization.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/recommendations.ts"
+      - "docs/hoid/RUN287_EXACT_UNIT_EVIDENCE_RUNTIME.md"
+      - ".github/workflows/hoid-exact-unit-evidence-runtime.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run287"
+    paths:
+      - "src/hoid/unitEvidenceRuntime.ts"
+      - "src/hoid/unitEvidenceRuntime.test.ts"
+      - "src/hoid/unitEvidenceAuthorization.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/recommendations.ts"
+      - "docs/hoid/RUN287_EXACT_UNIT_EVIDENCE_RUNTIME.md"
+      - ".github/workflows/hoid-exact-unit-evidence-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-evidence-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit runtime and legacy regressions
+        run: >-
+          npx vitest run
+          src/hoid/unitEvidenceRuntime.test.ts
+          src/hoid/unitEvidenceAuthorization.test.ts
+          src/hoid/unitProgressCoordinator.test.ts
+          src/hoid/unitProgressCursor.test.ts
+          src/hoid/unitProgressLedger.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+      - name: Strict type-check exact-unit runtime boundary
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/unitEvidenceRuntime.ts
+          src/hoid/unitEvidenceRuntime.test.ts

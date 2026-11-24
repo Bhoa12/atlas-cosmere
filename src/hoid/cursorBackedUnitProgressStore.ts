@@ -1,7 +1,9 @@
 import {
   validateHoidCursorProgressSnapshot,
-  type HoidCursorProgressStore,
-  type HoidCursorStoreLoadResult,
+} from "./cursorProgressLedger";
+import type {
+  HoidCursorProgressStore,
+  HoidCursorStoreLoadResult,
 } from "./cursorSqliteProgressStore";
 import { getHoidReadingManifest } from "./readingManifest";
 import { createHoidUnitProgressCursor } from "./unitProgressCursor";

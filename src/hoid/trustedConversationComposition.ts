@@ -43,6 +43,20 @@ const CONFIG_KEYS = [
 ] as const;
 const REQUIRED_CONFIG_KEYS = CONFIG_KEYS.slice(0, 10);
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,95}$/u;
+const MAX_ACTIVE_SESSIONS = 64;
+const ROOT_KEY_KEYS = ["keyId", "publicKeyHex"] as const;
+const REVIEW_CONTEXT_KEYS = [
+  "schemaVersion",
+  "repositoryFullName",
+  "pullRequestNumber",
+  "baseRef",
+  "baseSha",
+  "headRef",
+  "headSha",
+  "promotionManifestPath",
+  "promotionPlanFingerprint",
+  "reviewBundleFingerprint",
+] as const;
 
 function exactDataRecord(
   value: unknown,
@@ -75,27 +89,53 @@ function exactDataRecord(
   }
 }
 
-function hasCallableMethod(value: unknown, name: string): boolean {
+function findDataMethod(value: unknown, name: string): ((...args: unknown[]) => unknown) | null {
   try {
-    if (value === null || (typeof value !== "object" && typeof value !== "function")) return false;
+    if (value === null || (typeof value !== "object" && typeof value !== "function")) return null;
     let current: object | null = value as object;
     while (current !== null) {
       const descriptor = Object.getOwnPropertyDescriptor(current, name);
       if (descriptor) {
-        return Object.prototype.hasOwnProperty.call(descriptor, "value") &&
-          typeof descriptor.value === "function";
+        if (
+          Object.prototype.hasOwnProperty.call(descriptor, "value") &&
+          typeof descriptor.value === "function"
+        ) return descriptor.value as (...args: unknown[]) => unknown;
+        return null;
       }
       current = Object.getPrototypeOf(current) as object | null;
     }
-    return false;
+    return null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function hasCallableMethod(value: unknown, name: string): boolean {
+  return findDataMethod(value, name) !== null;
+}
+
+/** Capture trusted port methods so later property replacement cannot swap implementations. */
+function capturePortMethods(
+  value: unknown,
+  methodNames: readonly string[],
+): Readonly<Record<string, (...args: unknown[]) => unknown>> | null {
+  const captured: Record<string, (...args: unknown[]) => unknown> = Object.create(null) as Record<
+    string,
+    (...args: unknown[]) => unknown
+  >;
+  for (const name of methodNames) {
+    const method = findDataMethod(value, name);
+    if (!method) return null;
+    captured[name] = (...args: unknown[]) => method.apply(value, args);
+  }
+  return Object.freeze(captured);
 }
 
 export type HoidTrustedConversationSessionCreation =
   | Readonly<{ status: "created"; session: HoidTrustedConversationSessionV3 }>
-  | Readonly<{ status: "invalid-session" | "invalid-sink" | "duplicate-session" | "disposed" }>;
+  | Readonly<{
+      status: "invalid-session" | "invalid-sink" | "duplicate-session" | "session-limit" | "disposed";
+    }>;
 
 export type HoidTrustedConversationCompositionResult =
   | Readonly<{
@@ -143,6 +183,7 @@ export class HoidTrustedConversationComposition {
     if (!hasCallableMethod(sinkInput, "present") || !hasCallableMethod(sinkInput, "clear")) {
       return Object.freeze({ status: "invalid-sink" });
     }
+    if (this.sessions.size >= MAX_ACTIVE_SESSIONS) return Object.freeze({ status: "session-limit" });
 
     const session = this.gateway.createSession(
       sessionIdInput,
@@ -191,8 +232,22 @@ export function createHoidTrustedConversationComposition(
   if (
     !config ||
     !(config.coordinator instanceof HoidUnitProgressCoordinator) ||
-    !hasCallableMethod(config.progressInvalidation, "subscribe") ||
     typeof config.transport !== "function"
+  ) {
+    return Object.freeze({ status: "blocked", reason: "invalid-composition-config" });
+  }
+
+  const packageSource = capturePortMethods(config.packageSource, ["load", "subscribe"]);
+  const registrySource = capturePortMethods(config.registrySource, ["load"]);
+  const checkpointStore = capturePortMethods(config.checkpointStore, ["read", "compareAndSwap", "subscribe"]);
+  const progressInvalidation = capturePortMethods(config.progressInvalidation, ["subscribe"]);
+  const clock = capturePortMethods(config.clock, ["nowIso"]);
+  const verifier = capturePortMethods(config.verifier, ["verify"]);
+  const context = exactDataRecord(config.context, REVIEW_CONTEXT_KEYS, REVIEW_CONTEXT_KEYS);
+  const rootKey = exactDataRecord(config.rootKey, ROOT_KEY_KEYS, ROOT_KEY_KEYS);
+  if (
+    !packageSource || !registrySource || !checkpointStore || !progressInvalidation ||
+    !clock || !verifier || !context || !rootKey
   ) {
     return Object.freeze({ status: "blocked", reason: "invalid-composition-config" });
   }
@@ -202,14 +257,14 @@ export function createHoidTrustedConversationComposition(
   );
   const hostConfig = Object.freeze({
     coordinator: config.coordinator,
-    packageSource: config.packageSource,
-    registrySource: config.registrySource,
-    checkpointStore: config.checkpointStore,
-    progressInvalidation: config.progressInvalidation as HoidTrustedProgressInvalidationPort,
-    clock: config.clock as HoidTrustedClock,
-    context: config.context as HoidApprovedClaimReviewSignatureContext,
-    rootKey: config.rootKey as HoidReviewerTrustRootKey,
-    verifier: config.verifier as HoidEd25519VerificationPort,
+    packageSource: packageSource as unknown as HoidSignedClaimPackageSource,
+    registrySource: registrySource as unknown as HoidReviewerTrustRegistrySource,
+    checkpointStore: checkpointStore as unknown as HoidReviewerTrustCheckpointStore,
+    progressInvalidation: progressInvalidation as unknown as HoidTrustedProgressInvalidationPort,
+    clock: clock as unknown as HoidTrustedClock,
+    context: Object.freeze(context) as unknown as HoidApprovedClaimReviewSignatureContext,
+    rootKey: Object.freeze(rootKey) as unknown as HoidReviewerTrustRootKey,
+    verifier: verifier as unknown as HoidEd25519VerificationPort,
     selector,
     ...(config.providerTimeoutMs !== undefined ? { providerTimeoutMs: config.providerTimeoutMs } : {}),
     ...(config.maxRegistryAgeMs !== undefined ? { maxRegistryAgeMs: config.maxRegistryAgeMs } : {}),

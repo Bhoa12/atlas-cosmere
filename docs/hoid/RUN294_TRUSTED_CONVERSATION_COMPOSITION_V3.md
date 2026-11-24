@@ -62,3 +62,27 @@ La integración de interfaz requiere primero los adaptadores nativos de confianz
 ## Privacidad y bibliografía
 
 La bibliografía privada se conserva como catálogo de metadatos. Esta composición no importa EPUBs, no extrae cuerpos XHTML y no incorpora texto protegido. La inspección de una fuente debe permanecer en el pipeline local de estructura/edición y producir únicamente metadatos y resúmenes originales con trazabilidad.
+
+
+## Verificación de metadatos de EPUB privados
+
+En esta iteración se localizaron y abrieron únicamente los contenedores ZIP, `META-INF/container.xml`, el OPF y el documento de navegación (nav/NCX). No se leyeron cuerpos XHTML de capítulos, secciones narrativas ni pasajes.
+
+Los SHA-256 de navegación coinciden exactamente con los fingerprints ya registrados en `editionStructure.ts`:
+
+| Fuente | SHA-256 de navegación | Elementos OPF | Elementos spine |
+|---|---|---:|---:|
+| `cosmere.epub` | `85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee` | 3.285 | 1.626 |
+| EPUB recopilatorio de Roshar | `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025` | 1.687 | 849 |
+| `Danzante del Filo` | `5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517` | 46 | 30 |
+| `Esquirla del amanecer` | `8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075` | 47 | 31 |
+
+### Observaciones estructurales
+
+- `cosmere.epub` presenta 15 entradas de primer nivel en su TOC; la entrada de Arena blanca agrupa los volúmenes 1–3, por lo que corresponde a 17 obras del catálogo Cosmere.
+- El TOC de Elantris contiene etiquetas numéricas duplicadas 48, 51 y 57. Se conserva el tratamiento ambiguo existente; esta inspección no amplía el prefijo de progreso numérico.
+- Arena blanca continúa requiriendo segmentación por volumen. Arcanum ilimitado se mantiene como colección de secciones, no como una secuencia numérica única.
+- Los cuatro OPF resuelven todas las referencias `itemref` del spine. En `cosmere.epub`, los 986 enlaces de navegación apuntan a miembros existentes del ZIP.
+- La inspección de Esquirla del amanecer confirma el fingerprint NCX registrado; no se deduce un recuento numérico a partir de etiquetas romanas.
+
+Esta verificación acredita identidad y estructura de edición, no contenido narrativo ni aprobación editorial. Los EPUB permanecen fuera del repositorio; no se subieron, transformaron ni incorporaron cuerpos de capítulos.

@@ -25,6 +25,7 @@ Componer el runtime exact-unit v2 con una frontera de presentación que vuelva a
 10. Rechaza cambios de bundle, revocaciones, rollback o equivocación.
 11. Ejecuta `verifyForPresentation()` sobre el recibo exacto de progreso.
 12. Invoca el sink de forma síncrona, sin `await` entre la última comprobación y la entrega.
+13. Mantiene activas las suscripciones mientras la respuesta está visible; un cambio posterior de progreso, confianza o bundle retira la respuesta.
 
 ## Anti-rollback y equivocación
 El checkpoint guarda `{ revision, registryFingerprint }`. El fingerprint deriva del mensaje canónico raíz, no de JSON arbitrario.
@@ -42,7 +43,7 @@ El store de producción debe resistir escrituras concurrentes y restauraciones d
 - No hay claves privadas en el repositorio.
 - El proveedor no recibe progreso, ordinales, IDs de unidad, fingerprints, referencias de capítulo, localizadores EPUB ni registro de confianza.
 - El texto no se expone en el token preparado.
-- El sink es síncrono y se llama tras verificar confianza y progreso. La UI debe retirar respuestas al recibir invalidaciones y no persistirlas fuera de este ciclo.
+- El sink es síncrono y se llama tras verificar confianza y progreso. El host mantiene las suscripciones de invalidación mientras la respuesta está visible y ejecuta `clear()` ante un cambio de progreso, confianza o bundle.
 - Los hashes no sustituyen firmas raíz ni Ed25519.
 
 ## Integración nativa pendiente

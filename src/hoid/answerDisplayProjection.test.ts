@@ -73,6 +73,7 @@ describe("Hoid answer display projection", () => {
       title: "Elantris",
       chapter: 4,
       chapterOrdinal: 4,
+      chapterLabelAmbiguous: false,
     });
     expect(Object.keys(display!.citations[0]).sort()).toEqual([
       "chapter",
@@ -96,6 +97,7 @@ describe("Hoid answer display projection", () => {
         title: "Elantris",
         chapter: 4,
         chapterOrdinal: 4,
+        chapterLabelAmbiguous: false,
       }],
     });
     expect(display?.segments?.[0]).not.toHaveProperty("evidenceIds");
@@ -180,6 +182,7 @@ describe("Hoid answer display projection", () => {
         title: "Viento y verdad",
         chapter: 12,
         chapterOrdinal: unit.ordinal,
+        chapterLabelAmbiguous: true,
       });
       expect(JSON.stringify(display)).not.toContain(unit.locatorId);
       expect(JSON.stringify(display)).not.toContain(exactCitation.evidenceId);

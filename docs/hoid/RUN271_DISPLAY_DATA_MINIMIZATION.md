@@ -9,7 +9,6 @@ Keep the user-facing chat model smaller and less privileged than the trusted evi
 The trusted presenter still validates the complete evidence record, including the edition-bound EPUB locator and unlock watermark, against the authoritative progress snapshot. Only after that validation, `projectHoidAnswerForDisplay()` creates a detached UI projection containing:
 
 - answer text;
-- evidence ID for stable rendering identity;
 - canonical work ID and bibliography title;
 - verified chapter number;
 - per-claim text and its visible citations;
@@ -19,21 +18,24 @@ The projection deliberately omits:
 
 - internal EPUB `locatorId`;
 - unlock book/chapter thresholds;
-- raw top-level `claimIds` and `evidenceIds` arrays;
+- evidence IDs and raw top-level `claimIds` / `evidenceIds` arrays;
 - per-segment raw `evidenceIds` arrays;
+- cross-work `sourceBookIds` and evidence-ID arrays;
 - provider envelopes and source payloads.
+
+A separate `projectHoidCrossBookEvidenceForDisplay()` projection retains only the cross-work count, canonical work IDs/titles, chapter numbers, and claim IDs needed to associate each segment with its work trace. It removes all evidence-ID lists before the summary enters React state.
 
 The locator remains available only inside the trusted verification path where it is needed to bind a citation to the exact edition manifest unit. It is not retained in the React message state or rendered component props.
 
 ## Fail-closed behavior
 
-A presentation that has segments without a layout, a layout without segments, or an empty segmented answer is rejected. HoidScreen routes this through its existing neutral error path, clears the conversational context binding, and displays no partial citations.
+A presentation that has segments without a layout, a layout without segments, or an empty segmented answer is rejected. An inconsistent cross-work summary is also rejected. HoidScreen routes invalid answer projection through its neutral error path, clears the conversational context binding, and displays no partial citations.
 
-The screen continues to render book titles and chapter numbers for each claim. Cross-work summaries remain metadata-only and do not contain EPUB locators.
+The screen continues to render book titles and chapter numbers for each claim. Cross-work summaries remain metadata-only.
 
 ## Tests
 
-The focused suite verifies locator stripping, omission of unlock metadata and raw evidence arrays, preservation of claim-to-source attribution, deep freezing, detached object identity, non-segmented answers, and rejection of incomplete presentation contracts.
+The focused suite verifies locator and evidence-ID stripping, omission of unlock metadata and raw provenance arrays, preservation of claim-to-source attribution, deep freezing, detached object identity, non-segmented answers, rejection of incomplete presentation contracts, and cross-work summary minimization.
 
 ## Privacy and spoiler safety
 

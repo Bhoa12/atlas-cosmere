@@ -81,10 +81,17 @@ describe("cosmere.epub navigation audit", () => {
     }
   });
 
-  it("preserves the existing Roshar locator inventory", () => {
+  it("includes exact duplicate-label locators without widening the numeric progress inventory", () => {
     expect(
       ["twok", "wor", "ob", "row", "sawt", "edgedancer", "dawnshard"]
         .reduce((sum, bookId) => sum + getVerifiedChapterLocatorCount(bookId), 0),
-    ).toBe(453);
+    ).toBe(457);
+    const sawt = getHoidReadingManifest("sawt");
+    expect(sawt.status).toBe("ready");
+    if (sawt.status === "ready") {
+      expect(sawt.manifest.units.filter(unit => unit.chapterNumber === 12)).toHaveLength(2);
+      expect(sawt.manifest.units.filter(unit => unit.chapterNumber === 14)).toHaveLength(2);
+      expect(sawt.manifest.units.filter(unit => unit.chapterNumber <= 11)).toHaveLength(11);
+    }
   });
 });

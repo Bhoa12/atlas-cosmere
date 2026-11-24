@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getHoidSourceIngestionPlan } from "./sourceIngestionPlan";
+import { getHoidSourceIngestionPlan, getHoidSafeIngestionUnits } from "./sourceIngestionPlan";
+import { getHoidReadingManifest } from "./readingManifest";
 
 describe("Hoid metadata-only source ingestion plan", () => {
   it("covers the full 24-work catalogue without claiming source access", () => {
@@ -70,6 +71,37 @@ describe("Hoid metadata-only source ingestion plan", () => {
       safeChapterCount: 11,
       manifestCoverage: "partial-before-ambiguous-chapter",
     });
+  });
+
+  it("keeps duplicate-label identity units out of sequential ingestion", () => {
+    const result = getHoidReadingManifest("sawt");
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+
+    const safeUnits = getHoidSafeIngestionUnits(result.manifest);
+    expect(safeUnits).toHaveLength(11);
+    expect(safeUnits.map(unit => unit.chapterNumber)).toEqual(
+      Array.from({ length: 11 }, (_, index) => index + 1),
+    );
+    expect(safeUnits.some(unit => [12, 14].includes(unit.chapterNumber))).toBe(false);
+    expect(Object.isFrozen(safeUnits)).toBe(true);
+
+    const extendedManifest = Object.freeze({
+      ...result.manifest,
+      units: Object.freeze([
+        ...result.manifest.units,
+        Object.freeze({
+          id: "chapter:013:synthetic",
+          kind: "chapter" as const,
+          ordinal: 13,
+          chapterNumber: 13,
+        }),
+      ]),
+    });
+    const extendedSafeUnits = getHoidSafeIngestionUnits(extendedManifest);
+    expect(extendedSafeUnits.map(unit => unit.chapterNumber)).toEqual(
+      Array.from({ length: 11 }, (_, index) => index + 1),
+    );
   });
 
   it("blocks White Sand volumes and Arcanum until their units are segmented", () => {

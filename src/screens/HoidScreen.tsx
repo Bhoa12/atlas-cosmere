@@ -570,7 +570,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 }
                 // The legacy conversation binding stores chapter numbers only.
                 // Do not retain follow-up context when a visible label needed an ordinal disambiguator.
-                const hasAmbiguousChapterIdentity = presentation.citations.some(
+                const hasAmbiguousChapterIdentity = displayProjection.citations.some(
                   citation => citation.chapterLabelAmbiguous,
                 );
                 const bindingMatchesPresentation = !hasAmbiguousChapterIdentity && (!returnedBinding || (

@@ -1,6 +1,10 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { getHoidEditionProgressPolicy } from "./editionStructure";
-import { getHoidReadingManifest } from "./readingManifest";
+import {
+  getHoidReadingManifest,
+  type HoidReadingManifest,
+  type HoidReadingUnit,
+} from "./readingManifest";
 import { getVerifiedChapterDocumentNumbers } from "./verifiedChapterDocuments";
 import { getHoidSourceCoverageReport } from "./sourceCoverage";
 
@@ -101,6 +105,28 @@ function resolveRelativeHref(locatorId: string, editionId: string, navigationSha
   return href;
 }
 
+/**
+ * Return only units that can participate in sequential numeric ingestion.
+ * Exact locators for duplicated labels are identity/display metadata and must
+ * never become chapter-number tasks or unlock thresholds.
+ */
+export function getHoidSafeIngestionUnits(
+  manifest: HoidReadingManifest,
+): readonly HoidReadingUnit[] {
+  if (manifest.coverage !== "partial-before-ambiguous-chapter") {
+    return manifest.units;
+  }
+  if (manifest.ambiguousChapterNumbers.length === 0) return Object.freeze([]);
+  const firstAmbiguousChapter = Math.min(...manifest.ambiguousChapterNumbers);
+  const safeThrough = firstAmbiguousChapter - 1;
+  if (!Number.isSafeInteger(safeThrough) || safeThrough < 1) return Object.freeze([]);
+  return Object.freeze(manifest.units.filter(unit =>
+    unit.ordinal <= safeThrough &&
+    unit.chapterNumber <= safeThrough &&
+    !manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
+  ));
+}
+
 function priorityRank(priority: HoidSourceIngestionTaskPriority): number {
   if (priority === "continue-inspected-work") return 0;
   if (priority === "start-cosmere-work") return 1;
@@ -171,19 +197,19 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       continue;
     }
     const manifest = manifestResult.manifest;
-    const units = manifest.units;
+    const safeUnits = getHoidSafeIngestionUnits(manifest);
 
-    if (inspected.some(chapter => !units.some(unit => unit.chapterNumber === chapter))) {
-      block("inspected-document-outside-manifest", units.length);
+    if (inspected.some(chapter => !safeUnits.some(unit => unit.chapterNumber === chapter))) {
+      block("inspected-document-outside-manifest", safeUnits.length);
       continue;
     }
 
-    const nextUnit = units.find(unit => !inspectedSet.has(unit.chapterNumber));
+    const nextUnit = safeUnits.find(unit => !inspectedSet.has(unit.chapterNumber));
     if (!nextUnit) {
       if (manifest.coverage === "partial-before-ambiguous-chapter") {
         block(
           "ambiguous-numbering-after-safe-prefix",
-          units.length,
+          safeUnits.length,
           manifest.ambiguousChapterNumbers[0],
           manifest.ambiguousChapterNumbers,
         );
@@ -191,7 +217,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
         completedWorks.push(Object.freeze({
           workId: source.id,
           title: source.title,
-          numberedChapterCount: units.length,
+          numberedChapterCount: safeUnits.length,
           scope: "numbered-chapters-only",
         }));
       }
@@ -199,7 +225,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
     }
 
     if (!nextUnit.locatorId) {
-      block("missing-verified-locator", units.length, nextUnit.chapterNumber);
+      block("missing-verified-locator", safeUnits.length, nextUnit.chapterNumber);
       continue;
     }
 
@@ -209,7 +235,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       manifest.navigationSha256,
     );
     if (!navigationHref) {
-      block("invalid-relative-locator", units.length, nextUnit.chapterNumber);
+      block("invalid-relative-locator", safeUnits.length, nextUnit.chapterNumber);
       continue;
     }
 
@@ -228,7 +254,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       locatorId: nextUnit.locatorId,
       navigationHref,
       manifestCoverage: manifest.coverage,
-      safeChapterCount: units.length,
+      safeChapterCount: safeUnits.length,
       inspectedChapterCount: inspected.length,
       priority,
       status: "awaiting-explicit-local-source-selection",

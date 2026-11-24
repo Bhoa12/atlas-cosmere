@@ -131,6 +131,8 @@ describe("Hoid answer display projection", () => {
         sourceBookId: "elantris",
         title: "Elantris",
         chapter: 4,
+        chapterOrdinal: 4,
+        chapterLabelAmbiguous: false,
       }],
     });
     expect(display).not.toHaveProperty("layout");

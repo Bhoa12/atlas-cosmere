@@ -249,7 +249,7 @@ describe("Hoid recommendation display projections", () => {
           citations: [{
             evidenceId: "evidence-sawt-" + String(unit.ordinal),
             sourceBookId: "sawt",
-            title: "Viento y verdad",
+            title: "Viento y Verdad",
             chapter: 12,
             locatorId: unit.locatorId,
           }],
@@ -258,7 +258,7 @@ describe("Hoid recommendation display projections", () => {
       const display = projectHoidTopicRecommendationsForDisplay(changed);
       expect(display?.[0].matches[0].citations[0]).toEqual({
         sourceBookId: "sawt",
-        title: "Viento y verdad",
+        title: "Viento y Verdad",
         chapter: 12,
         chapterOrdinal: unit.ordinal,
         chapterLabelAmbiguous: true,
@@ -279,7 +279,7 @@ describe("Hoid recommendation display projections", () => {
       choices: [
         {
           sourceId: "sawt",
-          title: "Viento y verdad",
+          title: "Viento y Verdad",
           currentChapter: 12,
           completedThroughChapter: 11,
           detail: "Continuar desde el capítulo indicado.",

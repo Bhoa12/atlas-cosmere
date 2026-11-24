@@ -225,7 +225,10 @@ export function createHoidReadingCursor(
     return Object.freeze({ status: "unavailable", reason: "unit-not-found" });
   }
 
-  if (result.manifest.ambiguousChapterNumbers.includes(chapterNumber)) {
+  const firstAmbiguousChapter = result.manifest.ambiguousChapterNumbers.length > 0
+    ? Math.min(...result.manifest.ambiguousChapterNumbers)
+    : null;
+  if (firstAmbiguousChapter !== null && chapterNumber >= firstAmbiguousChapter) {
     return Object.freeze({ status: "unavailable", reason: "ambiguous-chapter" });
   }
 
@@ -313,7 +316,10 @@ export function validateHoidReadingCursor(value: unknown): HoidReadingCursorVali
   }
   // Exact chapter identities are not numeric cursor-v1 authorization.
   // A forged cursor must not bypass the ambiguity guard in createHoidReadingCursor().
-  if (manifest.ambiguousChapterNumbers.includes(record.chapterNumber)) {
+  const firstAmbiguousChapter = manifest.ambiguousChapterNumbers.length > 0
+    ? Math.min(...manifest.ambiguousChapterNumbers)
+    : null;
+  if (firstAmbiguousChapter !== null && record.chapterNumber >= firstAmbiguousChapter) {
     return Object.freeze({ status: "invalid", reason: "unit-not-found" });
   }
 

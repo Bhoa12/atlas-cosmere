@@ -302,7 +302,8 @@ describe("Hoid exact-unit evidence runtime", () => {
     expect(result.answer.claimIds).toEqual(["claim-alpha"]);
   });
 
-  it("invalidates an answer when another coordinator changes progress during provider work", async () =>    const store = new MemoryStore(snapshot([{ bookId: "twok", chapter: 4 }]));
+  it("invalidates an answer when another coordinator changes progress during provider work", async () => {
+    const store = new MemoryStore(snapshot([{ bookId: "twok", chapter: 4 }]));
     const selector = vi.fn(async () => {
       store.value = snapshot([{ bookId: "twok", chapter: 2 }], 2);
       return ["claim-alpha"];

@@ -181,6 +181,23 @@ function registryHeader(value: unknown): Readonly<{ revision: number; issuedAt: 
   return Object.freeze({ revision: record.revision as number, issuedAt: record.issuedAt });
 }
 
+function registryUnsignedPayload(
+  value: unknown,
+): Parameters<typeof buildHoidReviewerTrustRegistrySigningMessage>[0] | null {
+  const record = exactRecord(value, REGISTRY_KEYS);
+  if (!record || record.schemaVersion !== 1 ||
+    !Number.isSafeInteger(record.revision) || (record.revision as number) < 1 ||
+    !canonicalIso(record.issuedAt) || !canonicalIso(record.expiresAt) ||
+    !Array.isArray(record.keys)) return null;
+  return Object.freeze({
+    schemaVersion: 1,
+    revision: record.revision as number,
+    issuedAt: record.issuedAt,
+    expiresAt: record.expiresAt,
+    keys: record.keys,
+  }) as Parameters<typeof buildHoidReviewerTrustRegistrySigningMessage>[0];
+}
+
 function sameCheckpoint(left: HoidReviewerTrustCheckpoint, right: HoidReviewerTrustCheckpoint): boolean {
   return left.revision === right.revision && left.registryFingerprint === right.registryFingerprint;
 }
@@ -287,7 +304,10 @@ export class HoidTrustedExactUnitAnswerHost {
       return Object.freeze({ status: "blocked", reason: "trust-source-unavailable" });
     }
 
-    const registryMessage = buildHoidReviewerTrustRegistrySigningMessage(registry);
+    const unsignedRegistry = registryUnsignedPayload(registry);
+    const registryMessage = unsignedRegistry
+      ? buildHoidReviewerTrustRegistrySigningMessage(unsignedRegistry)
+      : null;
     const header = registryHeader(registry);
     if (!registryMessage || !header || !canonicalIso(now)) {
       return Object.freeze({ status: "blocked", reason: "registry-invalid" });

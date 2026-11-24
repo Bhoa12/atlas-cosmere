@@ -115,36 +115,33 @@ describe("Hoid recommendation display projections", () => {
       const manifest = getHoidReadingManifest(work.id);
       return manifest.status === "ready" && manifest.manifest.units.length > 1;
     }).slice(0, 2);
+    const choices = works.map(work => {
+      const manifest = getHoidReadingManifest(work.id);
+      if (manifest.status !== "ready") throw new Error("Selection manifest fixture unavailable");
+      const previousUnit = manifest.manifest.units[0];
+      const currentUnit = manifest.manifest.units[1];
+      if (!previousUnit || !currentUnit) throw new Error("Selection manifest requires two chapters");
+      return {
+        sourceId: work.id,
+        title: work.title,
+        currentChapter: currentUnit.chapterNumber,
+        completedThroughChapter: previousUnit.chapterNumber,
+        detail: "Continuar desde el capítulo actual.",
+      };
+    });
     const display = projectHoidEditionRecommendationsForDisplay({
       status: "selection-required",
       progressRevision: 9,
       progressFingerprint: fingerprint,
       heading: "Elige una obra",
       detail: "Hay varias lecturas en curso.",
-      choices: works.map(work => ({
-        sourceId: work.id,
-        title: work.title,
-        currentChapter: getHoidReadingManifest(work.id).status === "ready"
-          ? getHoidReadingManifest(work.id).manifest.units[1].chapterNumber
-          : 4,
-        completedThroughChapter: getHoidReadingManifest(work.id).status === "ready"
-          ? getHoidReadingManifest(work.id).manifest.units[0].chapterNumber
-          : 3,
-        detail: "Continuar desde el capítulo actual.",
-      })),
+      choices,
     });
     expect(display).toEqual({
       status: "selection-required",
       heading: "Elige una obra",
       detail: "Hay varias lecturas en curso.",
-      choices: works.map(work => ({
-        sourceId: work.id,
-        title: work.title,
-        currentChapter: getHoidReadingManifest(work.id).status === "ready"
-          ? getHoidReadingManifest(work.id).manifest.units[1].chapterNumber
-          : 4,
-        detail: "Continuar desde el capítulo actual.",
-      })),
+      choices: choices.map(({ completedThroughChapter: _completed, ...choice }) => choice),
     });
     expect(JSON.stringify(display)).not.toContain("progressFingerprint");
     expect(JSON.stringify(display)).not.toContain("progressRevision");

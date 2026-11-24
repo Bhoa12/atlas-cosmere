@@ -64,7 +64,8 @@ export function createHoidApprovedClaimAnswerPort(
 ): ((claimIds: readonly string[], progressSnapshot: unknown) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
   if (runtime === null || typeof runtime.renderApprovedClaimById !== "function") return undefined;
 
-  return (claimIdsInput, progressSnapshot) => {
+  return (claimIdsInput, progressSnapshot, signal) => {
+    if (signal?.aborted) return Object.freeze([]);
     const claimIds = canonicalClaimIds(claimIdsInput);
     if (!claimIds) return Object.freeze([]);
 
@@ -73,7 +74,9 @@ export function createHoidApprovedClaimAnswerPort(
 
     const records: HoidApprovedClaimAnswerRecord[] = [];
     for (const claimId of claimIds) {
+      if (signal?.aborted) return Object.freeze([]);
       const answer = runtime.renderApprovedClaimById(claimId, projection.reading);
+      if (signal?.aborted) return Object.freeze([]);
       if (
         answer.status !== "authorized" ||
         answer.claimIds.length !== 1 ||

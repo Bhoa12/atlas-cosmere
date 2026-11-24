@@ -1,5 +1,8 @@
 import { HOID_EDITION_STRUCTURES } from "./editionStructure";
-import { getVerifiedChapterLocatorId } from "./verifiedChapterLocators";
+import {
+  getVerifiedAmbiguousChapterLocatorEntries,
+  getVerifiedChapterLocatorId,
+} from "./verifiedChapterLocators";
 import type { ReadingPosition } from "./types";
 
 export type HoidReadingUnit = Readonly<{
@@ -155,6 +158,35 @@ export function getHoidReadingManifest(bookId: unknown): HoidReadingManifestResu
         ...(locatorId === null ? {} : { locatorId }),
       }));
     }
+
+    // Exact locators for duplicate labels support identity resolution only.
+    // The legacy numeric cursor remains capped before the first ambiguity.
+    const ambiguousLocators = getVerifiedAmbiguousChapterLocatorEntries(
+      bookId,
+      source.editionId,
+      source.navigationSha256,
+    );
+    for (const entry of ambiguousLocators) {
+      if (
+        !ambiguousChapterNumbers.includes(entry.chapterNumber) ||
+        entry.ordinal <= lastSafeChapter ||
+        units.some(unit => unit.ordinal === entry.ordinal || unit.locatorId === entry.locatorId)
+      ) {
+        return Object.freeze({
+          status: "unavailable",
+          reason: "segmentation-unverified",
+          editionId: source.editionId,
+        });
+      }
+      units.push(Object.freeze({
+        id: `${chapterUnitId(entry.chapterNumber)}:unit:${String(entry.ordinal).padStart(3, "0")}`,
+        kind: "chapter" as const,
+        ordinal: entry.ordinal,
+        chapterNumber: entry.chapterNumber,
+        locatorId: entry.locatorId,
+      }));
+    }
+    units.sort((left, right) => left.ordinal - right.ordinal);
 
     const manifestId = `hoid:${source.editionId}:${bookId}:${source.navigationSha256}`;
     const manifest: HoidReadingManifest = Object.freeze({

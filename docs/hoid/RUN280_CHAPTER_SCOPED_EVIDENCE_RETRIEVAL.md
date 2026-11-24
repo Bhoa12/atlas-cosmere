@@ -11,7 +11,7 @@ The scope is a retrieval filter, not a progress cursor or an editorial grant.
 1. The conversation gateway validates the existing HoidConversationScopeBinding against the live cursor snapshot.
 2. The binding validation returns its module-private, edition-bound chapterReferences.
 3. The gateway forwards those references only to the cursor-native runtime as chapterScope.
-4. The cursor facade forwards the local metadata to HoidEvidenceRuntime.
+4. The cursor facade forwards the local metadata to HoidEvidenceRuntime. Exact, already-reauthorized entity IDs may also restore catalog entries for pronoun-only follow-ups.
 5. The evidence runtime validates every reference again, verifies that every work in the active book scope is represented, and filters authorized evidence by exact source book/chapter.
 6. Existing evidenceUnlock, first-safe-appearance, claim-attestation, scope, and progress checks still run independently.
 7. The provider selector receives only the already-filtered approved claim candidates. It never receives chapter references, unit IDs, fingerprints, EPUB locators, or navigation hashes.

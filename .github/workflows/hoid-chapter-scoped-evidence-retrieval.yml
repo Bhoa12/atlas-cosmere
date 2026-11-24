@@ -14,6 +14,8 @@ on:
       - "src/hoid/cursorEvidenceRuntime.test.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/retrieval.ts"
+      - "src/hoid/retrieval.test.ts"
       - ".github/workflows/hoid-chapter-scoped-evidence-retrieval.yml"
   push:
     branches:
@@ -30,6 +32,8 @@ on:
       - "src/hoid/cursorEvidenceRuntime.test.ts"
       - "src/hoid/evidenceRuntime.ts"
       - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/retrieval.ts"
+      - "src/hoid/retrieval.test.ts"
       - ".github/workflows/hoid-chapter-scoped-evidence-retrieval.yml"
 
 permissions:
@@ -48,6 +52,6 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Test chapter-scoped retrieval and spoiler boundaries
-        run: npx vitest run src/hoid/chapterEvidenceScope.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/conversationGateway.test.ts src/hoid/typedConversationGateway.test.ts
+        run: npx vitest run src/hoid/chapterEvidenceScope.test.ts src/hoid/evidenceRuntime.test.ts src/hoid/cursorEvidenceRuntime.test.ts src/hoid/conversationGateway.test.ts src/hoid/typedConversationGateway.test.ts src/hoid/retrieval.test.ts
       - name: Strict type-check chapter-scoped retrieval
         run: npx tsc --noEmit --strict --target ES2022 --module commonjs --moduleResolution node --lib ES2022,DOM --skipLibCheck src/hoid/chapterEvidenceScope.ts src/hoid/evidenceRuntime.ts src/hoid/cursorEvidenceRuntime.ts src/hoid/conversationGateway.ts

@@ -181,6 +181,24 @@ describe("HoidEvidenceRuntime", () => {
     expect(selector).toHaveBeenCalledTimes(1);
   });
 
+  it("reauthorizes exact entity IDs for pronoun-only follow-ups without sending them to the selector", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
+      expect("entityIds" in request).toBe(false);
+      return createHoidClaimSelectionResponse(request, ["claim-alpha"]);
+    });
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Y ella?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      entityIds: ["e-alpha"],
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
   it("uses the previous exact chapter as a local evidence filter and never sends chapter references to the selector", async () => {
     const gamma: HoidKnowledgeEntry = {
       id: "e-gamma",

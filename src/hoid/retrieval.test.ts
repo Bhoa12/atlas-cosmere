@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { retrieveAuthorized } from "./retrieval";
 import { HoidKnowledgeEntry } from "./catalog";
 import { ReadingPosition } from "./types";
@@ -95,3 +96,22 @@ export function runRetrievalChecks(): void {
     "multi-word aliases must not match inside longer unrelated words",
   );
 }
+
+
+describe("retrieveAuthorized exact entity context", () => {
+  it("supports pronoun-only follow-ups through exact IDs without bypassing progress or provenance", () => {
+    const exact: ReadingPosition[] = [{ bookId: "elantris", chapter: 3 }];
+    expect(retrieveAuthorized(items, exact, "¿Y ella?", ["elantris-safe"]).map(item => item.id))
+      .toEqual(["elantris-safe"]);
+
+    const early: ReadingPosition[] = [{ bookId: "elantris", chapter: 2 }];
+    expect(retrieveAuthorized(items, early, "¿Y ella?", ["elantris-safe"])).toEqual([]);
+
+    const completed: ReadingPosition[] = [{ bookId: "elantris", completed: true }];
+    expect(retrieveAuthorized(items, completed, "¿Y eso?", ["limited-context"])).toEqual([]);
+  });
+
+  it("preserves the existing lexical and provenance invariants", () => {
+    expect(() => runRetrievalChecks()).not.toThrow();
+  });
+});

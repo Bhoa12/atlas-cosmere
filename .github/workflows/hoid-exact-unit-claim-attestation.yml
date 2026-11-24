@@ -1,0 +1,73 @@
+name: Hoid exact-unit claim attestation v2
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimIntegrity.test.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/knowledgeKinds.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN288_EXACT_UNIT_CLAIM_ATTESTATION.md"
+      - ".github/workflows/hoid-exact-unit-claim-attestation.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run288"
+    paths:
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimIntegrity.test.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/knowledgeKinds.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN288_EXACT_UNIT_CLAIM_ATTESTATION.md"
+      - ".github/workflows/hoid-exact-unit-claim-attestation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-claim-attestation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test v2 contracts and legacy regressions
+        run: >-
+          npx vitest run
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/unitEvidenceAuthorization.test.ts
+          src/hoid/unitEvidenceRuntime.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+      - name: Strict type-check v2 boundaries
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/unitEvidenceAuthorizationV2.ts
+          src/hoid/exactUnitClaimIntegrity.ts
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts

@@ -429,7 +429,11 @@ export class ExpoSqliteHoidUnitProgressStore implements HoidUnitProgressStore {
         ) return;
 
         const current = decodeV3Row(row);
-        if (!current || current.revision !== expectedRevision) return;
+        if (
+          !current ||
+          current.revision < marker.source_revision ||
+          current.revision !== expectedRevision
+        ) return;
 
         const result = await transaction.runAsync(
           UPDATE_V3_SQL,

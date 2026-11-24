@@ -15,6 +15,8 @@ export type HoidRecommendationRequestSession = Readonly<{
   isCurrent(ticket: unknown): ticket is HoidRecommendationRequestTicket;
   /** Invalidates the current request and aborts its local signal. */
   invalidate(): void;
+  /** User-initiated cancellation; releases ownership and returns whether work was active. */
+  cancelCurrent(): boolean;
   /** Releases the slot only for its current owner. */
   finish(ticket: unknown): boolean;
   /** Reports whether a request currently owns the slot. */
@@ -66,6 +68,12 @@ export function createHoidRecommendationRequestSession(): HoidRecommendationRequ
     },
 
     invalidate,
+
+    cancelCurrent(): boolean {
+      if (active === null || active.epoch !== epoch) return false;
+      invalidate();
+      return true;
+    },
 
     finish(ticket: unknown): boolean {
       if (

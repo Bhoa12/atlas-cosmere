@@ -11,6 +11,10 @@ import {
 import type { HoidTrustedScreenAnswerPort } from "./trustedScreenAnswer";
 import type { HoidTopicRecommendation } from "./topicRecommendations";
 import type { HoidPresentedCitation } from "./answerPresentation";
+import {
+  awaitHoidOperationWithSignal,
+  isHoidOperationCancelled,
+} from "./abortableOperation";
 
 export type HoidTrustedTopicRecommendationResult =
   | Readonly<{
@@ -24,6 +28,7 @@ export type HoidTrustedTopicRecommendationResult =
       status: "withheld";
       reason:
         | "invalid-input"
+        | "cancelled"
         | "invalid-progress"
         | "progress-changed"
         | "invalid-recommendations"
@@ -34,18 +39,22 @@ export type HoidTrustedTopicRecommendationResult =
 
 export type HoidTrustedTopicRecommendationPresenterConfig = Readonly<{
   /** Local-only loader; it must return claim records, never provider-authored prose. */
-  loadApprovedClaims: (claimIds: readonly string[], progress: unknown) => unknown | Promise<unknown>;
+  loadApprovedClaims: (
+    claimIds: readonly string[],
+    progress: unknown,
+    signal?: AbortSignal,
+  ) => unknown | Promise<unknown>;
   /** The same signed presenter used by ordinary narrative answers. */
   trustedAnswerPort: HoidTrustedScreenAnswerPort;
   /** Required durable read-through from the host-owned SQLite progress coordinator. */
-  refreshCurrentProgress: () => unknown | Promise<unknown>;
+  refreshCurrentProgress: (signal?: AbortSignal) => unknown | Promise<unknown>;
   /** Trusted test/composition seam; production defaults to the signed local assignment resolver. */
   resolveApprovedAssignments?: () => unknown;
 }>;
 
 export type HoidTrustedTopicRecommendationPresenter = Readonly<{
   /** Re-authenticates every distinct claim before any recommendation is returned to the UI. */
-  present(input: unknown): Promise<HoidTrustedTopicRecommendationResult>;
+  present(input: unknown, signal?: AbortSignal): Promise<HoidTrustedTopicRecommendationResult>;
 }>;
 
 type ProgressIdentity = Readonly<{ revision: number; fingerprint: string }>;
@@ -404,9 +413,15 @@ function canonicalTrustedClaimPresentation(
   });
 }
 
-async function readProgress(refresh: () => unknown | Promise<unknown>): Promise<unknown | null> {
+async function readProgress(
+  refresh: (signal?: AbortSignal) => unknown | Promise<unknown>,
+  signal?: AbortSignal,
+): Promise<unknown | null> {
   try {
-    return await refresh();
+    return await awaitHoidOperationWithSignal(
+      () => signal ? refresh(signal) : refresh(),
+      signal,
+    );
   } catch {
     return null;
   }
@@ -449,8 +464,11 @@ export function createHoidTrustedTopicRecommendationPresenter(
   const loadApprovedClaims = config.loadApprovedClaims as (
     claimIds: readonly string[],
     progress: unknown,
+    signal?: AbortSignal,
   ) => unknown | Promise<unknown>;
-  const refreshCurrentProgress = config.refreshCurrentProgress as () => unknown | Promise<unknown>;
+  const refreshCurrentProgress = config.refreshCurrentProgress as (
+    signal?: AbortSignal,
+  ) => unknown | Promise<unknown>;
   const resolveApprovedAssignments = typeof config.resolveApprovedAssignments === "function"
     ? config.resolveApprovedAssignments as () => unknown
     : resolveProductionHoidTopicAssignments;
@@ -458,7 +476,11 @@ export function createHoidTrustedTopicRecommendationPresenter(
     .bind(config.trustedAnswerPort);
 
   return Object.freeze({
-    async present(input: unknown): Promise<HoidTrustedTopicRecommendationResult> {
+    async present(
+      input: unknown,
+      signal?: AbortSignal,
+    ): Promise<HoidTrustedTopicRecommendationResult> {
+      if (signal?.aborted) return withheld("cancelled");
       const request = exactRecord(input, [
         "items", "progress", "progressRevision", "progressFingerprint",
       ]);
@@ -508,17 +530,26 @@ export function createHoidTrustedTopicRecommendationPresenter(
         )
       ) return withheld("invalid-recommendations");
 
-      const currentBefore = await readProgress(refreshCurrentProgress);
+      const currentBefore = await readProgress(refreshCurrentProgress, signal);
+      if (signal?.aborted) return withheld("cancelled");
       const beforeIdentity = currentBefore === null ? null : progressIdentity(currentBefore);
       if (!beforeIdentity) return withheld("invalid-progress");
       if (!sameProgress(requestedProgress, beforeIdentity)) return withheld("progress-changed");
 
       let rawRecords: unknown;
       try {
-        rawRecords = await loadApprovedClaims(recommendations.claimIds, request.progress);
-      } catch {
-        return withheld("approved-claims-unavailable");
+        rawRecords = await awaitHoidOperationWithSignal(
+          () => signal
+            ? loadApprovedClaims(recommendations.claimIds, request.progress, signal)
+            : loadApprovedClaims(recommendations.claimIds, request.progress),
+          signal,
+        );
+      } catch (error) {
+        return withheld(isHoidOperationCancelled(error) || signal?.aborted
+          ? "cancelled"
+          : "approved-claims-unavailable");
       }
+      if (signal?.aborted) return withheld("cancelled");
       const records = canonicalAnswerRecords(rawRecords, recommendations.claimIds);
       if (!records) return withheld("approved-claims-unavailable");
 
@@ -529,12 +560,21 @@ export function createHoidTrustedTopicRecommendationPresenter(
 
       const verifiedClaims = new Map<string, VerifiedClaim>();
       for (const claimId of recommendations.claimIds) {
+        if (signal?.aborted) return withheld("cancelled");
         let rawResult: unknown;
         try {
-          rawResult = await presentClaim(records.get(claimId), "brief");
-        } catch {
-          return withheld("claim-presentation-withheld");
+          rawResult = await awaitHoidOperationWithSignal(
+            () => signal
+              ? presentClaim(records.get(claimId), "brief", signal)
+              : presentClaim(records.get(claimId), "brief"),
+            signal,
+          );
+        } catch (error) {
+          return withheld(isHoidOperationCancelled(error) || signal?.aborted
+            ? "cancelled"
+            : "claim-presentation-withheld");
         }
+        if (signal?.aborted) return withheld("cancelled");
         let resultStatus: unknown;
         try {
           if (rawResult !== null && typeof rawResult === "object" && !Array.isArray(rawResult)) {
@@ -580,7 +620,8 @@ export function createHoidTrustedTopicRecommendationPresenter(
       if (!requestAfter || !sameProgress(requestedProgress, requestAfter)) {
         return withheld("progress-changed");
       }
-      const currentAfter = await readProgress(refreshCurrentProgress);
+      const currentAfter = await readProgress(refreshCurrentProgress, signal);
+      if (signal?.aborted) return withheld("cancelled");
       const afterIdentity = currentAfter === null ? null : progressIdentity(currentAfter);
       if (!afterIdentity) return withheld("invalid-progress");
       if (!sameProgress(requestedProgress, afterIdentity)) return withheld("progress-changed");

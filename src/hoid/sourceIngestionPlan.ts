@@ -171,19 +171,25 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       continue;
     }
     const manifest = manifestResult.manifest;
-    const units = manifest.units;
+    // Exact locators for duplicate labels exist for identity/display only.
+    // The ingestion queue must never turn those units into numeric chapter tasks.
+    const safeUnits = manifest.coverage === "partial-before-ambiguous-chapter"
+      ? manifest.units.filter(unit =>
+          !manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
+        )
+      : manifest.units;
 
-    if (inspected.some(chapter => !units.some(unit => unit.chapterNumber === chapter))) {
-      block("inspected-document-outside-manifest", units.length);
+    if (inspected.some(chapter => !safeUnits.some(unit => unit.chapterNumber === chapter))) {
+      block("inspected-document-outside-manifest", safeUnits.length);
       continue;
     }
 
-    const nextUnit = units.find(unit => !inspectedSet.has(unit.chapterNumber));
+    const nextUnit = safeUnits.find(unit => !inspectedSet.has(unit.chapterNumber));
     if (!nextUnit) {
       if (manifest.coverage === "partial-before-ambiguous-chapter") {
         block(
           "ambiguous-numbering-after-safe-prefix",
-          units.length,
+          safeUnits.length,
           manifest.ambiguousChapterNumbers[0],
           manifest.ambiguousChapterNumbers,
         );
@@ -191,7 +197,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
         completedWorks.push(Object.freeze({
           workId: source.id,
           title: source.title,
-          numberedChapterCount: units.length,
+          numberedChapterCount: safeUnits.length,
           scope: "numbered-chapters-only",
         }));
       }
@@ -199,7 +205,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
     }
 
     if (!nextUnit.locatorId) {
-      block("missing-verified-locator", units.length, nextUnit.chapterNumber);
+      block("missing-verified-locator", safeUnits.length, nextUnit.chapterNumber);
       continue;
     }
 
@@ -228,7 +234,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       locatorId: nextUnit.locatorId,
       navigationHref,
       manifestCoverage: manifest.coverage,
-      safeChapterCount: units.length,
+      safeChapterCount: safeUnits.length,
       inspectedChapterCount: inspected.length,
       priority,
       status: "awaiting-explicit-local-source-selection",

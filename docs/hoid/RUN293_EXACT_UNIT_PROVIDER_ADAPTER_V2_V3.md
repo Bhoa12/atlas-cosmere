@@ -54,7 +54,7 @@ La fábrica comprueba:
 7. Contexto de invocación congelado, sin propiedades adicionales ni getters.
 8. AbortSignal real, comprobado mediante el getter nativo de AbortSignal.prototype.
 
-Las propiedades se inspeccionan mediante descriptores de datos. Los getters de solicitudes o contextos hostiles no se ejecutan. Las excepciones de reflexión se convierten en rechazo antes de despachar el transporte.
+Las propiedades se inspeccionan mediante descriptores de datos. Los getters de solicitudes o contextos hostiles no se ejecutan. Las excepciones de reflexión se convierten en rechazo antes de despachar el transporte. Los IDs de candidato duplicados se clasifican como valores inválidos; un orden lexicográfico incorrecto entre IDs distintos se clasifica como error de orden.
 
 ## Cancelación y reintentos
 

@@ -27,7 +27,6 @@ import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
 import {
   createHoidCursorBackedUnitProgressRuntime,
   type HoidCursorProgressInvalidationSource,
-  type HoidTrustedProgressInvalidationPort,
 } from "./cursorBackedUnitProgressStore";
 import type { HoidCursorProgressStore } from "./cursorSqliteProgressStore";
 

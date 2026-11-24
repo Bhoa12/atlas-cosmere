@@ -105,7 +105,7 @@ export class HoidUnitProgressCoordinator {
 
   setInitialCursor(
     bookId: string,
-    cursor: HoidUnitProgressCursor | unknown,
+    cursor: unknown,
     expectedRevision: number,
     confirmation: unknown,
   ): Promise<HoidUnitProgressCoordinatorResult> {
@@ -116,7 +116,7 @@ export class HoidUnitProgressCoordinator {
 
   advance(
     bookId: string,
-    cursor: HoidUnitProgressCursor | unknown,
+    cursor: unknown,
     expectedRevision: number,
     confirmation: unknown,
   ): Promise<HoidUnitProgressCoordinatorResult> {
@@ -127,7 +127,7 @@ export class HoidUnitProgressCoordinator {
 
   correctCursor(
     bookId: string,
-    cursor: HoidUnitProgressCursor | unknown,
+    cursor: unknown,
     expectedRevision: number,
     confirmation: unknown,
   ): Promise<HoidUnitProgressCoordinatorResult> {
@@ -165,6 +165,9 @@ export class HoidUnitProgressCoordinator {
   ): Promise<HoidUnitProgressCoordinatorResult> {
     return this.serialize(async () => {
       if (this.disposed) return this.unavailable("disposed");
+      if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+        return Object.freeze({ status: "rejected" as const, reason: "invalid-input" as const });
+      }
 
       // Always reload before a write. A stale in-memory coordinator must not
       // overwrite a newer v3 snapshot merely because its local queue is idle.
@@ -187,6 +190,8 @@ export class HoidUnitProgressCoordinator {
           ? refreshed
           : this.unavailable("storage-error");
       }
+
+      if (this.disposed) return this.unavailable("disposed");
 
       if (result.status === "ready") {
         this.acceptSnapshot(result.snapshot);
@@ -293,4 +298,12 @@ export class HoidUnitProgressCoordinator {
   ): HoidUnitProgressCoordinatorResult {
     return Object.freeze({ status: "unavailable", reason });
   }
+}
+
+/** Construct the v3 coordinator without exposing its ledger implementation. */
+export function createHoidUnitProgressCoordinator(
+  store: HoidUnitProgressStore,
+  now?: () => string,
+): HoidUnitProgressCoordinator {
+  return new HoidUnitProgressCoordinator(store, now);
 }

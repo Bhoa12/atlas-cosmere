@@ -54,6 +54,7 @@ export type HoidExactUnitClaimSignatureVerification =
       status: "invalid";
       reason:
         | "invalid-context"
+        | "invalid-requests"
         | "invalid-package"
         | "duplicate-claim"
         | "invalid-signature-envelope"
@@ -399,7 +400,7 @@ export function buildHoidExactUnitClaimReviewSigningMessage(
 function invalid(
   reason: Extract<HoidExactUnitClaimSignatureVerification, { status: "invalid" }>["reason"],
   index?: number,
-): HoidExactUnitClaimSignatureVerification {
+): Extract<HoidExactUnitClaimSignatureVerification, { status: "invalid" }> {
   return Object.freeze({
     status: "invalid",
     reason,
@@ -514,10 +515,12 @@ export type HoidSignedExactUnitEvidenceRuntimeConfig = Readonly<{
 }>;
 
 /**
- * Production-oriented factory. It refuses to construct the exact-unit runtime
- * until every package has a valid reviewer signature under the pinned trust
- * registry. The low-level runtime factory remains available for isolated tests
- * and explicitly local-only editorial workflows.
+ * Host-composed factory. It refuses to construct the exact-unit runtime until
+ * every package has a valid reviewer signature. The caller must source now and
+ * minimumRegistryRevision from host-owned clock and durable monotonic trust state;
+ * never pass either value from a provider, user request or untrusted UI state.
+ * The low-level runtime factory remains available for isolated tests and
+ * explicitly local-only editorial workflows.
  */
 export async function createHoidSignedExactUnitEvidenceRuntime(
   configInput: unknown,

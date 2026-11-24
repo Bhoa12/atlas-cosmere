@@ -35,6 +35,24 @@ mutations continue through the existing Atlas cursor coordinator. This avoids
 two independent writers and preserves the current SQLite migration and CAS
 rules.
 
+## Trusted composition
+
+`createHoidTrustedCursorConversationComposition()` is the composition entry
+point for callers that already hold the Atlas cursor store and its invalidation
+source. It:
+
+1. Creates the read-only v3 projection.
+2. Initializes it from durable storage before constructing the host.
+3. Refuses composition if progress cannot be loaded and validated.
+4. Passes the same coordinator and payload-free invalidation port to the
+   authenticated host and conversation gateway.
+5. Returns one disposer that closes the gateway/host and the derived
+   coordinator together.
+
+This does not provision trust material or activate the screen. Root-key
+pinning, reviewer registry, anti-rollback checkpoint, signed editorial
+packages and the native App/HoidScreen wiring remain separate prerequisites.
+
 ## Invalidation
 
 The runtime exposes a payload-free invalidation port backed by the same cursor

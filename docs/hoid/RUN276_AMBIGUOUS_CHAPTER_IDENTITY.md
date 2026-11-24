@@ -36,7 +36,7 @@ Los ordinales se cuentan entre las entradas de capítulos numerados del TOC; no 
 
 ## Garantías que no cambian
 
-- El cursor numérico v1 sigue bloqueado en el prefijo seguro 1–11 de Viento y verdad.
+- El cursor numérico v1 sigue bloqueado en el prefijo seguro 1–11 de Viento y verdad: cualquier capítulo desde la primera ambigüedad (12) en adelante queda fuera del cursor, aunque una unidad posterior tenga locator exacto.
 - Las etiquetas 12 y 14 no se convierten en progreso.
 - Las unidades intermedias no incorporadas al manifiesto no se inventan.
 - La identidad exacta no autentica hechos narrativos, no acredita lectura y no aprueba resúmenes.

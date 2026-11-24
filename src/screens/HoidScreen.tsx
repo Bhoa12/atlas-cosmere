@@ -84,6 +84,12 @@ interface Mensaje {
   evidenciaTransversal?: HoidDisplayCrossBookEvidenceSummary;
 }
 
+function formatHoidCitationLocation(title: string, chapter: number, chapterOrdinal: number): string {
+  return chapterOrdinal === chapter
+    ? `${title} · capítulo ${chapter}`
+    : `${title} · capítulo ${chapter} · posición ${chapterOrdinal} de la edición`;
+}
+
 export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort: trustedAnswerPortInput = null }) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
   // Only the module-private capability issued by the signed presenter factory
@@ -557,7 +563,12 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                   }
                   chapters.add(citation.chapter);
                 }
-                const bindingMatchesPresentation = !returnedBinding || (
+                // The legacy conversation binding stores chapter numbers only.
+                // Do not retain follow-up context when a visible label needed an ordinal disambiguator.
+                const hasAmbiguousChapterIdentity = presentation.citations.some(
+                  citation => citation.chapterOrdinal !== citation.chapter,
+                );
+                const bindingMatchesPresentation = !hasAmbiguousChapterIdentity && (!returnedBinding || (
                   bindingBookIds.length === presentedBookIds.length &&
                   bindingBookIds.every((bookId, index) => bookId === presentedBookIds[index]) &&
                   returnedBinding.works.every(work => {
@@ -566,7 +577,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                     return chapters.length === work.chapters.length &&
                       chapters.every((chapter, index) => chapter === work.chapters[index]);
                   })
-                );
+                ));
                 if (!bindingMatchesPresentation) {
                   respuesta = 'La procedencia del contexto conversacional no coincide con las fuentes presentadas. No conservaré ese contexto.';
                   citas = undefined;
@@ -1377,7 +1388,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 <Text style={styles.bubbleText}>{match.reasonText}</Text>
                 {match.citations.map((citation, citationIndex) => (
                   <Text key={citation.sourceBookId + ':' + citation.chapter + ':' + citationIndex} style={styles.citationText}>
-                    {citation.title} · capítulo {citation.chapter}
+                    {formatHoidCitationLocation(citation.title, citation.chapter, citation.chapterOrdinal)}
                   </Text>
                 ))}
               </View>
@@ -1433,7 +1444,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                             ))
                           : segmento.citations.map((cita, citationIndex) => (
                               <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
-                                {cita.title} · capítulo {cita.chapter}
+                                {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal)}
                               </Text>
                             ));
                       })()}
@@ -1449,7 +1460,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
                 {item.citas.map((cita, citationIndex) => (
                   <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
-                    {cita.title} · capítulo {cita.chapter}
+                    {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal)}
                   </Text>
                 ))}
               </View>

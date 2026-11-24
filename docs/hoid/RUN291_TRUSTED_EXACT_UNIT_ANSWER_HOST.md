@@ -6,7 +6,8 @@ Componer el runtime exact-unit v2 con una frontera de presentación que vuelva a
 ## Contratos
 - `HoidReviewerTrustCheckpointStore`: lectura y compare-and-swap atómico de revisión monotónica y fingerprint.
 - `HoidReviewerTrustRegistrySource`: carga del registro firmado más reciente.
-- `HoidSignedClaimPackageSource`: carga de claims firmados.
+- `HoidSignedClaimPackageSource`: carga de claims firmados y suscripción a invalidaciones del bundle.
+- `HoidTrustedProgressInvalidationPort`: puente de invalidación de progreso entre coordinadores/procesos.
 - `HoidTrustedClock`: reloj suministrado por el host.
 - `HoidTrustedScreenAnswerPort`: sink síncrono de presentación y retirada.
 - `HoidTrustedExactUnitAnswerHost`: composition root para preparar y presentar respuestas exact-unit v2.
@@ -31,6 +32,8 @@ El checkpoint guarda `{ revision, registryFingerprint }`. El fingerprint deriva 
 - Misma revisión con fingerprint distinto: rechazo por equivocación.
 - Revisión superior: se acepta solo tras verificar registro raíz y todas las firmas editoriales.
 - El avance exige CAS durable. Si el CAS falla y no se observa exactamente el checkpoint esperado, el host se bloquea.
+- El checkpoint store debe emitir cambios durables; el package source debe emitir invalidaciones del bundle.
+- La presentación instala suscripciones de confianza, bundle y progreso, vuelve a leer el checkpoint y verifica el recibo. Cualquier invalidación durante esa barrera impide la entrega.
 
 El store de producción debe resistir escrituras concurrentes y restauraciones de backup. AsyncStorage o estado React no cumplen el contrato.
 
@@ -47,6 +50,7 @@ Este PR añade contratos y pruebas, pero no modifica `HoidScreen`, SQLite ni ada
 - Implementación Android Keystore / iOS Keychain del checkpoint anti-rollback.
 - Fuente de registro con política de frescura.
 - Root public key fijada fuera de un bundle mutable.
+- Adaptadores de suscripción que propaguen invalidaciones entre procesos y no solo dentro de una instancia.
 - Adaptador del selector del proveedor.
 - Conexión de `HoidTrustedScreenAnswerPort` con la pantalla real.
 - Pruebas end-to-end, concurrencia, restauración y reloj nativo.

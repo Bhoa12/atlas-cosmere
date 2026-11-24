@@ -1,0 +1,78 @@
+name: Hoid exact-unit evidence answer runtime v2
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/requestValidation.ts"
+      - "src/hoid/providerTimeout.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN289_EXACT_UNIT_EVIDENCE_RUNTIME.md"
+      - ".github/workflows/hoid-exact-unit-evidence-runtime-v2.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run289"
+    paths:
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/requestValidation.ts"
+      - "src/hoid/providerTimeout.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN289_EXACT_UNIT_EVIDENCE_RUNTIME.md"
+      - ".github/workflows/hoid-exact-unit-evidence-runtime-v2.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-evidence-runtime-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit runtime v2 and legacy regressions
+        run: >-
+          npx vitest run
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/unitEvidenceRuntime.test.ts
+          src/hoid/unitEvidenceAuthorization.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+      - name: Strict type-check exact-unit runtime v2
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/exactUnitEvidenceRuntime.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts

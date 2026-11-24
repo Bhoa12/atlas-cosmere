@@ -122,6 +122,7 @@ const CHECKPOINT_KEYS = ["revision", "registryFingerprint"] as const;
 const REGISTRY_KEYS = ["schemaVersion", "revision", "issuedAt", "expiresAt", "keys", "rootSignature"] as const;
 const DEFAULT_MAX_REGISTRY_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_REGISTRY_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const MAX_ACTIVE_PRESENTATIONS = 64;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 
 function exactRecord(value: unknown, allowed: readonly string[], required: readonly string[] = allowed): Record<string, unknown> | null {
@@ -220,22 +221,33 @@ function mapPresentationFailure(result: HoidExactPresentationVerification): Hoid
  */
 export class HoidTrustedExactUnitAnswerHost {
   private readonly pending = new WeakMap<object, PendingAnswer>();
-  private activePresentation: ActivePresentation | null = null;
+  private readonly activePresentations = new Map<object, ActivePresentation>();
   private constructor(private readonly config: HostConfig) {}
 
-  private clearActivePresentation(reason: HoidTrustedAnswerBlockReason): void {
-    const active = this.activePresentation;
+  private clearPresentation(token: object, reason: HoidTrustedAnswerBlockReason): void {
+    const active = this.activePresentations.get(token);
     if (!active) return;
-    this.activePresentation = null;
+    this.activePresentations.delete(token);
     for (const unsubscribe of active.unsubscribers) {
       try { unsubscribe(); } catch { /* continue clearing remaining ports */ }
     }
     try { active.sink.clear(reason); } catch { /* fail closed */ }
   }
 
-  /** Retract the currently displayed answer and release its invalidation subscriptions. */
+  private clearActivePresentation(reason: HoidTrustedAnswerBlockReason): void {
+    for (const token of [...this.activePresentations.keys()]) this.clearPresentation(token, reason);
+  }
+
+  /** Retract every answer owned by this host and release its subscriptions. */
   clear(reason: HoidTrustedAnswerBlockReason = "invalid-prepared-answer"): void {
     this.clearActivePresentation(reason);
+  }
+
+  /** Retract one message without disturbing other turns or sessions. */
+  clearSink(sink: HoidTrustedScreenAnswerPort, reason: HoidTrustedAnswerBlockReason = "invalid-prepared-answer"): void {
+    for (const [token, active] of [...this.activePresentations.entries()]) {
+      if (active.sink === sink) this.clearPresentation(token, reason);
+    }
   }
 
   dispose(): void {
@@ -467,9 +479,7 @@ export class HoidTrustedExactUnitAnswerHost {
     let handedOff = false;
     const presentationToken = Object.freeze({});
     const invalidateActive = (reason: HoidTrustedAnswerBlockReason) => {
-      if (this.activePresentation?.token === presentationToken) {
-        this.clearActivePresentation(reason);
-      }
+      this.clearPresentation(presentationToken, reason);
     };
     try {
       unsubscribeTrust = this.config.checkpointStore.subscribe(value => {
@@ -554,24 +564,28 @@ export class HoidTrustedExactUnitAnswerHost {
         progressRevision: progress.progressRevision,
         progressFingerprint: progress.progressFingerprint,
       });
-      // Keep invalidation subscriptions alive for the lifetime of the displayed answer.
-      this.clearActivePresentation("invalid-prepared-answer");
-      this.activePresentation = Object.freeze({
+      // Keep independent invalidation subscriptions for every visible conversation answer.
+      // New turns must not silently retract earlier messages. Bound retained listeners.
+      if (this.activePresentations.size >= MAX_ACTIVE_PRESENTATIONS) {
+        const oldest = this.activePresentations.keys().next().value as object | undefined;
+        if (oldest) this.clearPresentation(oldest, "invalid-prepared-answer");
+      }
+      this.activePresentations.set(presentationToken, Object.freeze({
         token: presentationToken,
         sink,
         unsubscribers: Object.freeze([
           unsubscribeTrust, unsubscribeProgress, unsubscribeLocalProgress, unsubscribeBundle,
         ]),
-      });
+      }));
       handedOff = true;
       // No await occurs between the final durable checks and this synchronous handoff.
       try {
         sink.present(pending.answer, permit);
       } catch {
-        this.clearActivePresentation("presentation-sink-failed");
+        this.clearPresentation(presentationToken, "presentation-sink-failed");
         return Object.freeze({ status: "blocked", reason: "presentation-sink-failed" });
       }
-      if (this.activePresentation?.token !== presentationToken) {
+      if (!this.activePresentations.has(presentationToken)) {
         const reason = bundleInvalidated ? "claim-bundle-changed" :
           trustInvalidated ? "trust-checkpoint-conflict" : "progress-changed";
         return Object.freeze({ status: "blocked", reason });

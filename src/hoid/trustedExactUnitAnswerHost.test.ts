@@ -384,4 +384,38 @@ describe("Hoid trusted exact-unit answer host", () => {
     expect(state.answer).toBeUndefined();
     expect(state.cleared).toBe("claim-bundle-changed");
   });
+
+  it("keeps multiple verified conversation messages active and retracts all on progress invalidation", async () => {
+    const harness = createHostHarness();
+    const firstPrepared = await prepare(harness);
+    const secondPrepared = await prepare(harness);
+    const first = createSink();
+    const second = createSink();
+    expect((await harness.host.present(firstPrepared, first.sink)).status).toBe("presented");
+    expect((await harness.host.present(secondPrepared, second.sink)).status).toBe("presented");
+    expect(first.state.answer?.text).toBe(core.text);
+    expect(second.state.answer?.text).toBe(core.text);
+    harness.progressInvalidation.emit();
+    expect(first.state.answer).toBeUndefined();
+    expect(second.state.answer).toBeUndefined();
+    expect(first.state.cleared).toBe("progress-changed");
+    expect(second.state.cleared).toBe("progress-changed");
+  });
+
+  it("can retract one conversation message without clearing another session", async () => {
+    const harness = createHostHarness();
+    const firstPrepared = await prepare(harness);
+    const secondPrepared = await prepare(harness);
+    const first = createSink();
+    const second = createSink();
+    expect((await harness.host.present(firstPrepared, first.sink)).status).toBe("presented");
+    expect((await harness.host.present(secondPrepared, second.sink)).status).toBe("presented");
+    harness.host.clearSink(first.sink, "invalid-host");
+    expect(first.state.answer).toBeUndefined();
+    expect(first.state.cleared).toBe("invalid-host");
+    expect(second.state.answer?.text).toBe(core.text);
+    harness.host.clear();
+    expect(second.state.answer).toBeUndefined();
+  });
+
 });

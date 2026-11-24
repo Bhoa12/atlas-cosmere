@@ -19,6 +19,7 @@ import {
   type HoidExactClaimSelector,
 } from "./exactUnitEvidenceRuntime";
 import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
+import { sha256Hex } from "./sha256";
 
 const fixedNow = () => "2026-11-24T18:10:00.000Z";
 
@@ -313,4 +314,126 @@ describe("Hoid exact-unit evidence runtime v2", () => {
       selector: selectorFor(),
     })).toBeNull();
   });
+
+  it("passes bounded conversation identifiers using selection protocol v3 without progress or chapter metadata", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    let providerRequest: HoidExactClaimSelectionRequest | undefined;
+    const { runtime } = createRuntime(store, selectorFor(async request => {
+      providerRequest = request;
+      return {
+        schemaVersion: request.schemaVersion,
+        requestFingerprint: request.requestFingerprint,
+        claimIds: ["claim.alpha"],
+      };
+    }));
+    const result = await runtime.answer({
+      question: "¿Y qué relación tiene con ella?",
+      intent: "explain",
+      depth: "detailed",
+      entityIds: ["evidence.alpha"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      conversationContext: {
+        schemaVersion: 1,
+        priorClaimIds: ["claim.alpha"],
+        entityIds: ["evidence.alpha"],
+        bookIds: ["twok"],
+      },
+    });
+    expect(result.status).toBe("ready");
+    expect(providerRequest?.schemaVersion).toBe(3);
+    expect(providerRequest?.conversationContext).toEqual({
+      schemaVersion: 1,
+      priorClaimIds: ["claim.alpha"],
+      entityIds: ["evidence.alpha"],
+      bookIds: ["twok"],
+    });
+    expect(JSON.stringify(providerRequest)).not.toContain("progressRevision");
+    expect(JSON.stringify(providerRequest)).not.toContain("progressFingerprint");
+    expect(JSON.stringify(providerRequest)).not.toContain("unitId");
+    expect(JSON.stringify(providerRequest)).not.toContain("identityFingerprint");
+    if (result.status === "ready") expect(result.answer.entityIds).toEqual(["evidence.alpha"]);
+  });
+
+  it("rejects conversation context that widens entity scope before provider invocation", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+    expect(await runtime.answer({
+      question: "Seguimos.",
+      intent: "explain",
+      entityIds: ["evidence.alpha"],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      conversationContext: {
+        schemaVersion: 1,
+        priorClaimIds: ["claim.alpha"],
+        entityIds: ["evidence.other"],
+        bookIds: ["twok"],
+      },
+    })).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown works in provider-visible conversation context", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+    expect(await runtime.answer({
+      question: "Seguimos.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      conversationContext: {
+        schemaVersion: 1,
+        priorClaimIds: ["claim.alpha"],
+        entityIds: [],
+        bookIds: ["unknown-work"],
+      },
+    })).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+
+  it("preserves the original v2 selector fingerprint when no conversation context is supplied", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    let providerRequest: HoidExactClaimSelectionRequest | undefined;
+    const { runtime } = createRuntime(store, selectorFor(async request => {
+      providerRequest = request;
+      return { schemaVersion: 2, requestFingerprint: request.requestFingerprint, claimIds: ["claim.alpha"] };
+    }));
+    const result = await runtime.answer({
+      question: "Explica Entidad Alfa.",
+      intent: "explain",
+      depth: "brief",
+    });
+    expect(result.status).toBe("ready");
+    const request = providerRequest!;
+    expect(request.schemaVersion).toBe(2);
+    expect(request.conversationContext).toBeUndefined();
+    expect(request.requestFingerprint).toBe(sha256Hex(JSON.stringify({
+      protocol: "hoid.exact-claim-selection.v2",
+      schemaVersion: 2,
+      question: request.question,
+      intent: request.intent,
+      depth: "brief",
+      bookScope: null,
+      selectionBudget: request.selectionBudget,
+      candidates: request.candidates.map(candidate => ({
+        id: candidate.id,
+        text: candidate.text,
+        evidenceIds: [...candidate.evidenceIds],
+      })),
+    })));
+  });
+
 });

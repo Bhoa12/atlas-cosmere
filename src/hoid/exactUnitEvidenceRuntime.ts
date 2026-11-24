@@ -25,6 +25,7 @@ import { validHoidQuestion } from "./requestValidation";
 import { invokeWithProviderDeadline } from "./providerTimeout";
 import { sha256Hex } from "./sha256";
 import type { HoidAnswerSelectionBudget } from "./types";
+import { isKnownHoidSource } from "./bibliography";
 
 export type HoidExactClaimPackage = Readonly<{
   claim: HoidExactApprovedClaim;
@@ -38,13 +39,22 @@ export type HoidExactClaimSelectionCandidate = Readonly<{
   evidenceIds: readonly string[];
 }>;
 
+export type HoidExactConversationSelectionContext = Readonly<{
+  schemaVersion: 1;
+  priorClaimIds: readonly string[];
+  entityIds: readonly string[];
+  bookIds: readonly string[];
+}>;
+
 export type HoidExactClaimSelectionRequest = Readonly<{
-  schemaVersion: 2;
+  schemaVersion: 2 | 3;
   requestFingerprint: string;
   question: string;
   intent: "explain" | "recommend" | "context";
   candidates: readonly HoidExactClaimSelectionCandidate[];
   selectionBudget: HoidAnswerSelectionBudget;
+  /** Bounded metadata only: never includes progress, chapter refs, or answer prose. */
+  conversationContext?: HoidExactConversationSelectionContext;
 }>;
 
 export type HoidExactClaimSelectionContext = Readonly<{
@@ -76,6 +86,8 @@ export type HoidExactEvidenceAnswer = Readonly<{
   text: string;
   claimIds: readonly string[];
   evidenceIds: readonly string[];
+  /** Entity IDs come only from the selected, signed editorial claims. */
+  entityIds: readonly string[];
   sources: readonly HoidExactEvidenceCitation[];
   segments: readonly HoidExactEvidenceAnswerSegment[];
   layout: "plain" | "grouped";
@@ -136,6 +148,7 @@ type CanonicalRequest = Readonly<{
   depth: HoidExplanationDepth;
   entityIds?: readonly string[];
   bookScope?: HoidAnswerBookScope;
+  conversationContext?: HoidExactConversationSelectionContext;
 }>;
 
 type CanonicalPackage = Readonly<{
@@ -153,7 +166,7 @@ const MAX_CANDIDATES = 32;
 const MAX_SELECTED_CLAIMS = 12;
 const MAX_TIMEOUT_MS = 60_000;
 const DEFAULT_TIMEOUT_MS = 10_000;
-const REQUEST_KEYS = new Set(["question", "intent", "depth", "entityIds", "bookScope"]);
+const REQUEST_KEYS = new Set(["question", "intent", "depth", "entityIds", "bookScope", "conversationContext"]);
 const PACKAGE_KEYS = new Set(["claim", "evidence", "policies"]);
 const EVIDENCE_KEYS = new Set(["id", "aliases", "kind", "provenance", "summary"]);
 const RESPONSE_KEYS = new Set(["schemaVersion", "requestFingerprint", "claimIds"]);
@@ -250,6 +263,32 @@ function canonicalIds(value: unknown, maximum: number): readonly string[] | null
   return Object.freeze(ids.sort());
 }
 
+function canonicalContextIds(value: unknown, minimum: number, maximum: number): readonly string[] | null {
+  const raw = denseArray(value, minimum, maximum);
+  if (!raw) return null;
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== "string" || item !== item.trim() || item.length < 1 ||
+      item.length > 128 || !ID_PATTERN.test(item) || seen.has(item)) return null;
+    seen.add(item);
+    ids.push(item);
+  }
+  return Object.freeze(ids.sort());
+}
+
+function canonicalConversationContext(value: unknown): HoidExactConversationSelectionContext | null {
+  const record = exactRecord(value,
+    new Set(["schemaVersion", "priorClaimIds", "entityIds", "bookIds"]),
+    ["schemaVersion", "priorClaimIds", "entityIds", "bookIds"]);
+  if (!record || record.schemaVersion !== 1) return null;
+  const priorClaimIds = canonicalContextIds(record.priorClaimIds, 1, 12);
+  const entityIds = canonicalContextIds(record.entityIds, 0, 8);
+  const bookIds = canonicalContextIds(record.bookIds, 0, 4);
+  if (!priorClaimIds || !entityIds || !bookIds || !bookIds.every(isKnownHoidSource)) return null;
+  return Object.freeze({ schemaVersion: 1, priorClaimIds, entityIds, bookIds });
+}
+
 function canonicalEvidence(value: unknown): HoidExactEvidenceRecord | null {
   const record = exactRecord(value, EVIDENCE_KEYS, ["id", "aliases", "kind", "provenance", "summary"]);
   if (
@@ -335,12 +374,24 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
     if (!parsed) return null;
     bookScope = parsed;
   }
+  let conversationContext: HoidExactConversationSelectionContext | undefined;
+  if (Object.prototype.hasOwnProperty.call(record, "conversationContext")) {
+    const parsed = canonicalConversationContext(record.conversationContext);
+    if (!parsed) return null;
+    const requestEntityIds = entityIds ?? Object.freeze([]);
+    if (parsed.entityIds.length !== requestEntityIds.length ||
+      !parsed.entityIds.every((id, index) => id === requestEntityIds[index])) return null;
+    if (parsed.bookIds.length > 0 &&
+      (!bookScope || !parsed.bookIds.every(id => bookScope!.bookIds.includes(id)))) return null;
+    conversationContext = parsed;
+  }
   return Object.freeze({
     question,
     intent: record.intent as CanonicalRequest["intent"],
     depth,
     ...(entityIds ? { entityIds } : {}),
     ...(bookScope ? { bookScope } : {}),
+    ...(conversationContext ? { conversationContext } : {}),
   });
 }
 
@@ -439,7 +490,7 @@ function canonicalSelectionResponse(
   const record = exactRecord(value, RESPONSE_KEYS, ["schemaVersion", "requestFingerprint", "claimIds"]);
   if (
     !record ||
-    record.schemaVersion !== 2 ||
+    record.schemaVersion !== request.schemaVersion ||
     typeof record.requestFingerprint !== "string" ||
     !SHA_PATTERN.test(record.requestFingerprint) ||
     record.requestFingerprint !== request.requestFingerprint
@@ -608,15 +659,17 @@ export class HoidExactUnitEvidenceRuntime {
     if (candidates.length === 0) return unavailable("no-authorized-claims");
     if (candidates.length > MAX_CANDIDATES) return unavailable("too-many-candidates");
 
+    const selectionSchemaVersion = request.conversationContext ? 3 : 2;
     const requestFingerprint = sha256Hex(JSON.stringify({
-      protocol: "hoid.exact-claim-selection.v2",
-      schemaVersion: 2,
+      protocol: selectionSchemaVersion === 3 ? "hoid.exact-claim-selection.v3" : "hoid.exact-claim-selection.v2",
+      schemaVersion: selectionSchemaVersion,
       question: request.question,
       intent: request.intent,
       depth: request.depth,
       bookScope: request.bookScope
         ? { mode: request.bookScope.mode, bookIds: [...request.bookScope.bookIds] }
         : null,
+      ...(request.conversationContext ? { conversationContext: request.conversationContext } : {}),
       selectionBudget: budget,
       candidates: candidates.map(candidate => ({
         id: candidate.id,
@@ -625,12 +678,13 @@ export class HoidExactUnitEvidenceRuntime {
       })),
     }));
     const selectionRequest: HoidExactClaimSelectionRequest = Object.freeze({
-      schemaVersion: 2,
+      schemaVersion: selectionSchemaVersion,
       requestFingerprint,
       question: request.question,
       intent: request.intent,
       candidates: Object.freeze(candidates),
       selectionBudget: budget,
+      ...(request.conversationContext ? { conversationContext: request.conversationContext } : {}),
     });
 
     const controller = new AbortController();
@@ -738,6 +792,7 @@ export class HoidExactUnitEvidenceRuntime {
         text: segments.map(segment => segment.text).join("\n\n"),
         claimIds: Object.freeze(selectedPackages.map(item => item.claim.id)),
         evidenceIds: Object.freeze(selectedEvidenceIds),
+        entityIds: Object.freeze([...new Set(selectedPackages.flatMap(item => [...(item.claim.entityIds ?? [])]))].sort()),
         sources: Object.freeze(sources),
         segments: Object.freeze(segments),
         layout: segments.length > 1 ? "grouped" : "plain",

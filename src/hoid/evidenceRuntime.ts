@@ -581,6 +581,7 @@ export class HoidEvidenceRuntime {
           isHoidEvidenceInChapterScope(
             entry.evidenceSource.bookId,
             entry.evidenceSource.chapter,
+            entry.evidenceSource.locatorId,
             chapterScope,
           )
         ))

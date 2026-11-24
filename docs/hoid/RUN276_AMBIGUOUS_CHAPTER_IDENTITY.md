@@ -46,7 +46,7 @@ Los ordinales se cuentan entre las entradas de capítulos numerados del TOC; no 
 
 ## Limitación de contexto conversacional
 
-El binding conversacional existente conserva capítulos como números, no como identidades de unidad. Para evitar que una cita desambiguada se convierta en un contexto ambiguo, HoidScreen descarta el binding de seguimiento cuando `chapterOrdinal !== chapter`. La respuesta actual puede mostrar la cita exacta; la continuidad conversacional sobre esa unidad requiere un contrato de binding versionado en una iteración posterior.
+El binding conversacional existente conserva capítulos como números, no como identidades de unidad. Para evitar que una cita desambiguada se convierta en un contexto ambiguo, HoidScreen rechaza la respuesta en la ruta conversacional cuando `chapterOrdinal !== chapter`. La proyección de presentación puede representar la cita exacta, pero la continuidad conversacional sobre esa unidad requiere un contrato de binding versionado en una iteración posterior.
 
 ## Fuentes no revalidadas
 

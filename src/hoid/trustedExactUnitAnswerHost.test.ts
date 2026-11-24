@@ -123,6 +123,10 @@ class MemoryTrustCheckpointStore implements HoidReviewerTrustCheckpointStore {
     for (const listener of this.listeners) listener(this.value);
     return true;
   }
+  publish(next: HoidReviewerTrustCheckpoint): void {
+    this.value = next;
+    for (const listener of this.listeners) listener(this.value);
+  }
   subscribe(listener: (checkpoint: unknown) => void): () => void {
     this.listeners.add(listener);
     if (this.emitChangedOnSubscribe !== null) listener(this.emitChangedOnSubscribe);
@@ -343,6 +347,40 @@ describe("Hoid trusted exact-unit answer host", () => {
     const { sink, state } = createSink();
     const result = await harness.host.present(prepared, sink);
     expect(result).toEqual({ status: "blocked", reason: "claim-bundle-changed" });
+    expect(state.answer).toBeUndefined();
+    expect(state.cleared).toBe("claim-bundle-changed");
+  });
+
+  it("keeps invalidation subscriptions alive and retracts a displayed answer after progress changes", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const { sink, state } = createSink();
+    const result = await harness.host.present(prepared, sink);
+    expect(result.status).toBe("presented");
+    expect(state.answer).toBeDefined();
+    harness.progressInvalidation.emit();
+    expect(state.answer).toBeUndefined();
+    expect(state.cleared).toBe("progress-changed");
+  });
+
+  it("retracts an already displayed answer when the trust checkpoint advances", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const { sink, state } = createSink();
+    const result = await harness.host.present(prepared, sink);
+    expect(result.status).toBe("presented");
+    harness.checkpointStore.publish({ revision: 4, registryFingerprint: "e".repeat(64) });
+    expect(state.answer).toBeUndefined();
+    expect(state.cleared).toBe("trust-checkpoint-conflict");
+  });
+
+  it("retracts an already displayed answer when the signed editorial bundle changes", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const { sink, state } = createSink();
+    const result = await harness.host.present(prepared, sink);
+    expect(result.status).toBe("presented");
+    harness.setPackages(Object.freeze([signedPackage("Afirmación editorial renovada y firmada.")]));
     expect(state.answer).toBeUndefined();
     expect(state.cleared).toBe("claim-bundle-changed");
   });

@@ -388,10 +388,11 @@ function canonicalTopicCitation(
     /[\u0000-\u001F\u007F]/u.test(citation.locatorId)
   ) return null;
   const manifestResult = getHoidReadingManifest(citation.sourceBookId);
-  if (
-    manifestResult.status !== "ready" ||
-    !manifestResult.manifest.units.some(unit => unit.chapterNumber === citation.chapter)
-  ) return null;
+  if (manifestResult.status !== "ready") return null;
+  const unit = manifestResult.manifest.units.find(
+    candidate => candidate.chapterNumber === citation.chapter,
+  );
+  if (!unit || unit.locatorId !== citation.locatorId) return null;
 
   return Object.freeze({
     evidenceId: citation.evidenceId,

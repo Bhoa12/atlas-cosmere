@@ -47,6 +47,7 @@ export type HoidTopicRecommendationDisplayCitation = Readonly<{
   chapter: number;
   /** Stable numbered-unit ordinal; distinguishes repeated visible chapter labels. */
   chapterOrdinal: number;
+  chapterLabelAmbiguous: boolean;
 }>;
 
 export type HoidTopicRecommendationDisplayMatch = Readonly<{
@@ -404,6 +405,10 @@ function canonicalTopicCitation(
     locatorId: citation.locatorId,
   });
   if (identity.status !== "resolved") return null;
+  const labelResolution = resolveHoidChapterIdentity(citation.sourceBookId, {
+    chapterNumber: citation.chapter,
+  });
+  if (labelResolution.status === "unavailable") return null;
 
   return Object.freeze({
     evidenceId: citation.evidenceId,
@@ -412,6 +417,7 @@ function canonicalTopicCitation(
       title: citation.title,
       chapter: citation.chapter as number,
       chapterOrdinal: identity.identity.ordinal,
+      chapterLabelAmbiguous: labelResolution.status === "ambiguous",
     }),
   });
 }

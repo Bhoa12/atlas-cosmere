@@ -112,6 +112,11 @@ type PendingAnswer = Readonly<{
   contextFingerprint: string;
   packageFingerprint: string;
 }>;
+type ActivePresentation = Readonly<{
+  token: object;
+  sink: HoidTrustedScreenAnswerPort;
+  unsubscribers: readonly (() => void)[];
+}>;
 
 const CHECKPOINT_KEYS = ["revision", "registryFingerprint"] as const;
 const REGISTRY_KEYS = ["schemaVersion", "revision", "issuedAt", "expiresAt", "keys", "rootSignature"] as const;
@@ -198,7 +203,27 @@ function mapPresentationFailure(result: HoidExactPresentationVerification): Hoid
  */
 export class HoidTrustedExactUnitAnswerHost {
   private readonly pending = new WeakMap<object, PendingAnswer>();
+  private activePresentation: ActivePresentation | null = null;
   private constructor(private readonly config: HostConfig) {}
+
+  private clearActivePresentation(reason: HoidTrustedAnswerBlockReason): void {
+    const active = this.activePresentation;
+    if (!active) return;
+    this.activePresentation = null;
+    for (const unsubscribe of active.unsubscribers) {
+      try { unsubscribe(); } catch { /* continue clearing remaining ports */ }
+    }
+    try { active.sink.clear(reason); } catch { /* fail closed */ }
+  }
+
+  /** Retract the currently displayed answer and release its invalidation subscriptions. */
+  clear(reason: HoidTrustedAnswerBlockReason = "invalid-prepared-answer"): void {
+    this.clearActivePresentation(reason);
+  }
+
+  dispose(): void {
+    this.clearActivePresentation("invalid-host");
+  }
 
   static create(configInput: unknown): HoidTrustedExactUnitAnswerHost | null {
     const record = exactRecord(configInput, [
@@ -419,19 +444,32 @@ export class HoidTrustedExactUnitAnswerHost {
     let unsubscribeProgress = () => {};
     let unsubscribeLocalProgress = () => {};
     let unsubscribeBundle = () => {};
+    let handedOff = false;
+    const presentationToken = Object.freeze({});
+    const invalidateActive = (reason: HoidTrustedAnswerBlockReason) => {
+      if (this.activePresentation?.token === presentationToken) {
+        this.clearActivePresentation(reason);
+      }
+    };
     try {
       unsubscribeTrust = this.config.checkpointStore.subscribe(value => {
         const checkpoint = canonicalCheckpoint(value);
-        if (!checkpoint || !sameCheckpoint(checkpoint, expectedCheckpoint)) trustInvalidated = true;
+        if (!checkpoint || !sameCheckpoint(checkpoint, expectedCheckpoint)) {
+          trustInvalidated = true;
+          invalidateActive("trust-checkpoint-conflict");
+        }
       });
       unsubscribeProgress = this.config.progressInvalidation.subscribe(() => {
         progressInvalidated = true;
+        invalidateActive("progress-changed");
       });
       unsubscribeBundle = this.config.packageSource.subscribe(() => {
         bundleInvalidated = true;
+        invalidateActive("claim-bundle-changed");
       });
       unsubscribeLocalProgress = this.config.coordinator.subscribe(() => {
         progressInvalidated = true;
+        invalidateActive("progress-changed");
       });
 
       // Close the gap between trust refresh and subscription installation.
@@ -466,12 +504,27 @@ export class HoidTrustedExactUnitAnswerHost {
         progressRevision: progress.progressRevision,
         progressFingerprint: progress.progressFingerprint,
       });
+      // Keep invalidation subscriptions alive for the lifetime of the displayed answer.
+      this.clearActivePresentation("invalid-prepared-answer");
+      this.activePresentation = Object.freeze({
+        token: presentationToken,
+        sink,
+        unsubscribers: Object.freeze([
+          unsubscribeTrust, unsubscribeProgress, unsubscribeLocalProgress, unsubscribeBundle,
+        ]),
+      });
+      handedOff = true;
       // No await occurs between the final durable checks and this synchronous handoff.
       try {
         sink.present(pending.answer, permit);
       } catch {
-        clear("presentation-sink-failed");
+        this.clearActivePresentation("presentation-sink-failed");
         return Object.freeze({ status: "blocked", reason: "presentation-sink-failed" });
+      }
+      if (this.activePresentation?.token !== presentationToken) {
+        const reason = bundleInvalidated ? "claim-bundle-changed" :
+          trustInvalidated ? "trust-checkpoint-conflict" : "progress-changed";
+        return Object.freeze({ status: "blocked", reason });
       }
       return Object.freeze({
         status: "presented",
@@ -482,10 +535,12 @@ export class HoidTrustedExactUnitAnswerHost {
       clear("trust-checkpoint-unavailable");
       return Object.freeze({ status: "blocked", reason: "trust-checkpoint-unavailable" });
     } finally {
-      unsubscribeTrust();
-      unsubscribeProgress();
-      unsubscribeLocalProgress();
-      unsubscribeBundle();
+      if (!handedOff) {
+        unsubscribeTrust();
+        unsubscribeProgress();
+        unsubscribeLocalProgress();
+        unsubscribeBundle();
+      }
     }
   }
 

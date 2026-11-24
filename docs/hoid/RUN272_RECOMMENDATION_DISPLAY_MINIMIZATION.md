@@ -24,7 +24,7 @@ The projection is not an authorization mechanism. Edition recommendations are cr
 
 Thematic recommendations are projected only after \`trustedTopicRecommendationPresenter.present()\` succeeds and the result is confirmed against the latest progress revision/fingerprint and the selected topic snapshot.
 
-The private ref is cleared on progress/trust changes, cancellation, request replacement and unmount. The visible projection is tied to the exact object held by a private ref; a stale or replaced projection cannot resolve a navigation target.
+The private edition target ref is cleared on progress/trust changes, cancellation, request replacement and unmount. The thematic freshness/trust binding is also held outside React state and cleared whenever its result is invalidated. The visible edition projection is tied to the exact object held by its private ref; a stale or replaced projection cannot resolve a navigation target.
 
 ## Tests
 

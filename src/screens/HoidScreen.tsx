@@ -852,7 +852,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setTopicRecommendations(verified.items);
         setTopicRecommendationRevision(verified.progressRevision);
         setTopicRecommendationFingerprint(verified.progressFingerprint);
-        setTopicRecommendationSelectionKey(selectedTopicSnapshot.join('\\n'));
+        setTopicRecommendationSelectionKey(selectedTopicSnapshot.join('\n'));
         setTopicRecommendationTrustPort(trustedAnswerPort);
         setTopicRecommendationMessage(
           verified.items.length === 0

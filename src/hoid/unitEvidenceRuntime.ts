@@ -681,10 +681,11 @@ export class HoidUnitEvidenceRuntime {
       );
     }
 
-    const projectedBooks = [...new Set(allowedEntries.map(entry => entry.evidenceSource!.bookId))]
-      .sort()
-      .map(bookId => legacyReadingForBook(snapshot, bookId))
-      .filter((position): position is NonNullable<typeof position> => position !== null);
+    const projectedBooks: Readonly<{ bookId: string; chapter?: number; completed?: true }>[] = [];
+    for (const bookId of [...new Set(allowedEntries.map(entry => entry.evidenceSource!.bookId))].sort()) {
+      const position = legacyReadingForBook(snapshot, bookId);
+      if (position) projectedBooks.push(position);
+    }
     if (projectedBooks.length === 0) {
       return ready(
         makeAnswer(
@@ -756,12 +757,38 @@ export class HoidUnitEvidenceRuntime {
 
     const evidenceIds = [...innerAnswer.evidenceIds];
     const claimIds = [...innerAnswer.claimIds];
+    const selectedClaims = claimIds.map(id => this.claimById.get(id));
     if (
       evidenceIds.length === 0 ||
       claimIds.length === 0 ||
       evidenceIds.some(id => !this.policyById.has(id)) ||
-      claimIds.some(id => !this.claimById.has(id))
+      selectedClaims.some(claim => !claim)
     ) return unavailable("invalid-policy");
+
+    const expectedEvidenceIds = [...new Set(
+      (selectedClaims as HoidApprovedClaim[]).flatMap(claim => claim.evidenceIds),
+    )].sort();
+    if (
+      expectedEvidenceIds.length !== evidenceIds.length ||
+      expectedEvidenceIds.some((id, index) => id !== [...evidenceIds].sort()[index]) ||
+      !innerAnswer.segments ||
+      innerAnswer.segments.length !== selectedClaims.length ||
+      innerAnswer.segments.some((segment, index) => {
+        const claim = selectedClaims[index]!;
+        return segment.claimId !== claim.id ||
+          segment.text !== claim.text ||
+          segment.evidenceIds.length !== claim.evidenceIds.length ||
+          segment.evidenceIds.some((id, evidenceIndex) => id !== claim.evidenceIds[evidenceIndex]);
+      }) ||
+      innerAnswer.text !== innerAnswer.segments.map(segment => segment.text).join("\n\n")
+    ) return unavailable("invalid-policy");
+
+    for (const claim of selectedClaims as HoidApprovedClaim[]) {
+      if (
+        claim.intent !== request.intent ||
+        !claim.evidenceIds.every(id => authorization.get(id)?.status === "authorized")
+      ) return unavailable("invalid-policy");
+    }
 
     for (const evidenceId of evidenceIds) {
       const result = authorizeHoidUnitEvidence(latest, this.policyById.get(evidenceId));
@@ -821,7 +848,7 @@ export class HoidUnitEvidenceRuntime {
       status: "ready",
       progressRevision: validation.snapshot.revision,
       progressFingerprint: fingerprint,
-      works: Object.freeze(works as NonNullable<typeof works[number]>[]),
+      works: Object.freeze(works as HoidUnitReadingContext["works"]),
     });
   }
 

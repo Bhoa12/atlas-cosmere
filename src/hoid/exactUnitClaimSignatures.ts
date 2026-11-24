@@ -81,6 +81,7 @@ export type HoidSignedExactUnitEvidenceRuntimeBuild =
   | Readonly<{
       status: "ready";
       runtime: HoidExactUnitEvidenceRuntime;
+      packages: readonly HoidExactClaimPackage[];
       verifiedClaimCount: number;
       registryRevision: number;
       contextFingerprint: string;
@@ -588,6 +589,7 @@ export async function createHoidSignedExactUnitEvidenceRuntime(
   return Object.freeze({
     status: "ready",
     runtime,
+    packages: verified.packages,
     verifiedClaimCount: verified.verifiedCount,
     registryRevision: verified.registryRevision,
     contextFingerprint: verified.contextFingerprint,

@@ -438,7 +438,11 @@ function canonicalRequest(value: unknown, knownIds: ReadonlySet<string>): Canoni
     const seen = new Set<string>();
     for (const ref of refs) {
       const validated = validateHoidChapterReference(ref);
-      if (validated.status !== "valid" || seen.has(validated.reference.identityFingerprint)) return null;
+      if (
+        validated.status !== "valid" ||
+        validated.reference.labelAmbiguous ||
+        seen.has(validated.reference.identityFingerprint)
+      ) return null;
       if (bookScope && !bookScope.bookIds.includes(validated.reference.bookId)) return null;
       seen.add(validated.reference.identityFingerprint);
       canonical.push(validated.reference);

@@ -313,13 +313,13 @@ export class HoidTrustedConversationSessionV3 {
         return Object.freeze({ status: "cancelled", turnId: `${this.config.sessionId}:${this.turnSequence + 1}` });
       }
       const turnId = `${this.config.sessionId}:${++this.turnSequence}`;
-      let delivered: HoidExactEvidenceAnswer | null = null;
+      const delivery: { answer?: HoidExactEvidenceAnswer } = {};
       let turnSink: HoidTrustedScreenAnswerPort;
       turnSink = Object.freeze({
         present: (answer: HoidExactEvidenceAnswer, permit: HoidTrustedPresentationPermit) => {
           if (this.disposed || generation !== this.generation || controller.signal.aborted) throw new Error("Stale conversation turn");
           this.config.sink.present(turnId, answer, permit);
-          delivered = answer;
+          delivery.answer = answer;
         },
         clear: (reason: HoidTrustedAnswerBlockReason) => {
           try { this.config.sink.clear(turnId, reason); }
@@ -336,6 +336,7 @@ export class HoidTrustedConversationSessionV3 {
         this.config.host.clearSink(turnSink, presentation.reason);
         return Object.freeze({ status: "blocked", reason: "host-blocked", hostReason: presentation.reason });
       }
+      const delivered = delivery.answer;
       if (!delivered || generation !== this.generation || controller.signal.aborted) {
         this.config.host.clearSink(turnSink, "progress-changed");
         return Object.freeze({ status: "cancelled", turnId });

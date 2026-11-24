@@ -163,7 +163,7 @@ describe("Hoid exact-unit provider adapter v2/v3", () => {
     });
     expect(inspectHoidExactProviderSelectionSnapshot(unknownBook)).toBe("conversation-context-values");
     expect(inspectHoidExactProviderSelectionSnapshot(unsorted)).toBe("conversation-context-order");
-    expect(inspectHoidExactProviderSelectionSnapshot(duplicateCandidates)).toBe("candidate-order");
+    expect(inspectHoidExactProviderSelectionSnapshot(duplicateCandidates)).toBe("candidate-values");
   });
 
   it("rejects accessor-backed request fields without invoking getters", () => {

@@ -85,6 +85,23 @@ describe("Hoid metadata-only source ingestion plan", () => {
     );
     expect(safeUnits.some(unit => [12, 14].includes(unit.chapterNumber))).toBe(false);
     expect(Object.isFrozen(safeUnits)).toBe(true);
+
+    const extendedManifest = Object.freeze({
+      ...result.manifest,
+      units: Object.freeze([
+        ...result.manifest.units,
+        Object.freeze({
+          id: "chapter:013:synthetic",
+          kind: "chapter" as const,
+          ordinal: 13,
+          chapterNumber: 13,
+        }),
+      ]),
+    });
+    const extendedSafeUnits = getHoidSafeIngestionUnits(extendedManifest);
+    expect(extendedSafeUnits.map(unit => unit.chapterNumber)).toEqual(
+      Array.from({ length: 11 }, (_, index) => index + 1),
+    );
   });
 
   it("blocks White Sand volumes and Arcanum until their units are segmented", () => {

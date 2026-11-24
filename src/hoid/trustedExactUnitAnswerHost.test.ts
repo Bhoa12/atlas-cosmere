@@ -66,7 +66,7 @@ const core = Object.freeze({
   intent: "explain" as const, evidenceIds: Object.freeze(["evidence.exact-alpha"]),
   entityIds: Object.freeze(["evidence.exact-alpha"]),
 });
-function signedPackage(text = core.text): HoidSignedExactUnitClaimPackage {
+function signedPackage(text: string = core.text): HoidSignedExactUnitClaimPackage {
   const claimCore = Object.freeze({ ...core, text });
   const attestation = createHoidExactApprovedClaimAttestation(
     claimCore, evidence, [policy],

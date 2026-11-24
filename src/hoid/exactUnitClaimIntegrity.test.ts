@@ -84,11 +84,10 @@ describe("Hoid exact-unit approved-claim attestation v2", () => {
     const result = createHoidExactApprovedClaimAttestation(core, evidence, [duplicatePolicy], reviewer);
     expect(result.status).toBe("valid");
     if (result.status !== "valid") return;
-    expect(result.integrity.evidenceSha256).not.toBe(
-      createHoidExactApprovedClaimAttestation(core, evidence, [policy], reviewer).status === "valid"
-        ? (createHoidExactApprovedClaimAttestation(core, evidence, [policy], reviewer) as { integrity: { evidenceSha256: string } }).integrity.evidenceSha256
-        : "",
-    );
+    const ordinary = createHoidExactApprovedClaimAttestation(core, evidence, [policy], reviewer);
+    expect(ordinary.status).toBe("valid");
+    if (ordinary.status !== "valid") return;
+    expect(result.integrity.evidenceSha256).not.toBe(ordinary.integrity.evidenceSha256);
   });
 
   it("supports cross-work first appearance and unlock references", () => {
@@ -203,7 +202,7 @@ describe("Hoid exact-unit approved-claim attestation v2", () => {
       get() { invoked = true; return "hostile"; },
     });
     expect(createHoidExactApprovedClaimAttestation(core, [hostile], [policy], reviewer))
-      .toEqual({ status: "invalid", reason: "unverified-source" });
+      .toEqual({ status: "invalid", reason: "invalid-evidence" });
     expect(invoked).toBe(false);
 
     const hostileReviewer = Object.defineProperty({}, "reviewerId", {

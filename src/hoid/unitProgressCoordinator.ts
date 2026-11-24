@@ -242,7 +242,7 @@ export class HoidUnitProgressCoordinator {
       if (previous) this.notifyProgressChanged();
       return Object.freeze({
         status: "unavailable" as const,
-        reason: loaded.reason,
+        reason: loaded.status === "unavailable" ? loaded.reason : "corrupt-ledger" as const,
       });
     }
 

@@ -39,8 +39,11 @@ function policy(
   });
 }
 
-function snapshotAt(bookId: string, chapterNumber: number, revision = 1): HoidUnitProgressSnapshot {
-  const created = createHoidUnitProgressCursor(bookId, { chapterNumber });
+function snapshotAt(bookId: string, chapterNumber: number, revision = 1, unitId?: string): HoidUnitProgressSnapshot {
+  const created = createHoidUnitProgressCursor(bookId, {
+    chapterNumber,
+    ...(unitId === undefined ? {} : { unitId }),
+  });
   if (created.status !== "ready") throw new Error("Exact test cursor unavailable");
   return Object.freeze({
     schemaVersion: 3,
@@ -140,7 +143,7 @@ describe("Hoid exact-unit evidence authorization", () => {
       firstSafeAppearance: reference("sawt", 10),
       unlock: duplicate,
     });
-    const result = authorizeHoidUnitEvidence(snapshotAt("sawt", 12), duplicatePolicy);
+    const result = authorizeHoidUnitEvidence(snapshotAt("sawt", 12, 1, "chapter:012:unit:012"), duplicatePolicy);
     expect(result.status).toBe("invalid");
   });
 

@@ -15,7 +15,7 @@ El módulo no elige un proveedor ni contiene credenciales. El transporte se inye
 
 `createHoidTrustedConversationComposition(config)` valida una estructura cerrada sin evaluar getters. Construye el adaptador mediante `createHoidExactUnitSelectionAdapter`, lo inyecta como selector del `HoidTrustedExactUnitAnswerHost` y conecta ese host al `HoidTrustedConversationGatewayV3`.
 
-La composición administra sesiones identificadas, rechaza IDs duplicados, permite cerrar sesiones de forma independiente y dispone todas las sesiones y presentaciones al destruir el host.
+La composición administra sesiones identificadas, rechaza IDs duplicados, limita las sesiones activas a 64, permite cerrar sesiones de forma independiente y dispone todas las sesiones y presentaciones al destruir el host. Captura los métodos de los puertos de confianza en wrappers inmutables y copia la clave raíz pública y el contexto de revisión para impedir que una sustitución posterior de propiedades cambie silenciosamente las implementaciones fijadas.
 
 ## Semántica de estado
 

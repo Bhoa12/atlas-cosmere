@@ -57,6 +57,8 @@ recommend() prioritizes resuming explicitly active works and then lists unstarte
 
 The existing approved-claim integrity format still binds firstSafeAppearance and evidenceUnlock as numeric chapter labels. Consequently, this runtime currently rejects duplicate-label thresholds at configuration time even though the standalone v3 authorizer can distinguish them. A future exact-unit claim-attestation format must bind the complete HoidChapterReference identities before duplicate-label evidence can be promoted into this runtime.
 
+The current policy contract also requires source, first-safe-appearance and unlock references to belong to the same work. Cross-work comparisons are supported by combining independently authorized evidence records in one reviewed claim; a single evidence record cannot yet bind a first appearance in one work to a source in another.
+
 The runtime is not yet wired into HoidConversationGateway, HoidScreen or the active v2 Atlas progress authority. It is a separately testable v3 answer boundary. Native SQLite device tests and end-to-end UI integration remain required before activation.
 
 ## Tests

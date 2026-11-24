@@ -102,7 +102,7 @@ describe("Hoid chapter evidence scope", () => {
     const stale = { ...anchor, identityFingerprint: "0".repeat(64) };
     expect(isHoidEvidenceInChapterScope("twok", 2, locator("twok", 2), [stale])).toBe(false);
 
-    const sparse = new Array(1) as typeof anchor[];
+    const sparse: Array<typeof anchor> = new Array(1);
     expect(isHoidEvidenceInChapterScope("twok", 2, locator("twok", 2), sparse)).toBe(false);
   });
 });

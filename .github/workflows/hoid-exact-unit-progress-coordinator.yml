@@ -1,0 +1,88 @@
+name: Hoid exact-unit v3 progress coordinator
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressCoordinator.test.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitSqliteProgressStore.ts"
+      - "src/hoid/unitSqliteProgressStore.test.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/RUN285_EXACT_UNIT_PROGRESS_COORDINATOR.md"
+      - ".github/workflows/hoid-exact-unit-progress-coordinator.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run285"
+    paths:
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressCoordinator.test.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitSqliteProgressStore.ts"
+      - "src/hoid/unitSqliteProgressStore.test.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/RUN285_EXACT_UNIT_PROGRESS_COORDINATOR.md"
+      - ".github/workflows/hoid-exact-unit-progress-coordinator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-progress-coordinator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit v3 coordinator and persistence regressions
+        run: >-
+          npx vitest run
+          src/hoid/unitProgressCoordinator.test.ts
+          src/hoid/unitProgressLedger.test.ts
+          src/hoid/unitProgressCursor.test.ts
+          src/hoid/unitSqliteProgressStore.test.ts
+      - name: Strict type-check exact-unit progress coordination boundary
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/unitProgressCoordinator.ts
+          src/hoid/unitProgressLedger.ts
+          src/hoid/unitProgressCursor.ts
+          src/hoid/unitSqliteProgressStore.ts
+          src/hoid/chapterReference.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/cursorSqliteProgressStore.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/progressLedger.ts
+          src/hoid/sqliteProgressStore.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts
+          src/hoid/types.ts

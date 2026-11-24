@@ -321,21 +321,31 @@ type CanonicalBundle = Readonly<{
   bindings: readonly unknown[];
 }>;
 
+type CanonicalBundleResult =
+  | Readonly<{ status: "valid"; bundle: CanonicalBundle }>
+  | Readonly<{ status: "invalid"; reason: "invalid-evidence" | "invalid-policy" | "unverified-source" }>;
+
 function canonicalBundle(
   claim: HoidExactApprovedClaimCore,
   evidenceInput: unknown,
   policiesInput: unknown,
-): CanonicalBundle | null {
+): CanonicalBundleResult {
   const rawEvidence = denseArray(evidenceInput, 1, MAX_EVIDENCE);
   const rawPolicies = denseArray(policiesInput, 1, MAX_EVIDENCE);
-  if (!rawEvidence || !rawPolicies || rawEvidence.length !== claim.evidenceIds.length ||
-      rawPolicies.length !== claim.evidenceIds.length) return null;
+  if (!rawEvidence || rawEvidence.length !== claim.evidenceIds.length) {
+    return Object.freeze({ status: "invalid", reason: "invalid-evidence" });
+  }
+  if (!rawPolicies || rawPolicies.length !== claim.evidenceIds.length) {
+    return Object.freeze({ status: "invalid", reason: "invalid-policy" });
+  }
 
   const evidence: HoidExactEvidenceRecord[] = [];
   const evidenceById = new Map<string, HoidExactEvidenceRecord>();
   for (const raw of rawEvidence) {
     const item = canonicalEvidence(raw);
-    if (!item || evidenceById.has(item.id)) return null;
+    if (!item || evidenceById.has(item.id)) {
+      return Object.freeze({ status: "invalid", reason: "invalid-evidence" });
+    }
     evidenceById.set(item.id, item);
     evidence.push(item);
   }
@@ -345,7 +355,9 @@ function canonicalBundle(
   const policyById = new Map<string, HoidExactUnitEvidencePolicy>();
   for (const raw of rawPolicies) {
     const policy = canonicalizeHoidExactUnitEvidencePolicy(raw);
-    if (!policy || policyById.has(policy.evidenceId)) return null;
+    if (!policy || policyById.has(policy.evidenceId)) {
+      return Object.freeze({ status: "invalid", reason: "invalid-policy" });
+    }
     policyById.set(policy.evidenceId, policy);
     policies.push(policy);
   }
@@ -353,17 +365,23 @@ function canonicalBundle(
 
   if (
     claim.evidenceIds.length !== evidenceById.size ||
+    !claim.evidenceIds.every(id => evidenceById.has(id))
+  ) return Object.freeze({ status: "invalid", reason: "invalid-evidence" });
+
+  if (
     claim.evidenceIds.length !== policyById.size ||
-    !claim.evidenceIds.every(id => evidenceById.has(id) && policyById.has(id))
-  ) return null;
+    !claim.evidenceIds.every(id => policyById.has(id))
+  ) return Object.freeze({ status: "invalid", reason: "invalid-policy" });
 
   const bindings: unknown[] = [];
   for (const evidenceId of claim.evidenceIds) {
     const item = evidenceById.get(evidenceId);
     const policy = policyById.get(evidenceId);
-    if (!item || !policy) return null;
+    if (!item || !policy) return Object.freeze({ status: "invalid", reason: "invalid-policy" });
     const documentSha256 = sourceDocumentDigest(policy);
-    if (!documentSha256) return null;
+    if (!documentSha256) {
+      return Object.freeze({ status: "invalid", reason: "unverified-source" });
+    }
     bindings.push(Object.freeze({
       evidenceId,
       source: referenceBinding(policy.source),
@@ -378,9 +396,12 @@ function canonicalBundle(
   }
 
   return Object.freeze({
-    evidence: Object.freeze(evidence),
-    policies: Object.freeze(policies),
-    bindings: Object.freeze(bindings),
+    status: "valid",
+    bundle: Object.freeze({
+      evidence: Object.freeze(evidence),
+      policies: Object.freeze(policies),
+      bindings: Object.freeze(bindings),
+    }),
   });
 }
 
@@ -426,22 +447,13 @@ export function createHoidExactApprovedClaimAttestation(
 ): HoidExactApprovedClaimAttestationResult {
   const core = canonicalCore(claimInput);
   if (!core) return Object.freeze({ status: "invalid", reason: "invalid-claim" });
-  const rawEvidence = denseArray(evidenceInput, 1, MAX_EVIDENCE);
-  const rawPolicies = denseArray(policiesInput, 1, MAX_EVIDENCE);
-  if (!rawEvidence || !rawPolicies) {
-    return Object.freeze({ status: "invalid", reason: "invalid-evidence" });
-  }
-  const bundle = canonicalBundle(core, rawEvidence, rawPolicies);
-  if (!bundle) {
-    const policiesValid = rawPolicies.every(item => canonicalizeHoidExactUnitEvidencePolicy(item) !== null);
-    return Object.freeze({
-      status: "invalid",
-      reason: policiesValid ? "unverified-source" : "invalid-policy",
-    });
+  const bundleResult = canonicalBundle(core, evidenceInput, policiesInput);
+  if (bundleResult.status !== "valid") {
+    return Object.freeze({ status: "invalid", reason: bundleResult.reason });
   }
   const reviewer = canonicalReviewer(reviewerInput);
   if (!reviewer) return Object.freeze({ status: "invalid", reason: "invalid-review" });
-  return buildAttestation(core, bundle, reviewer);
+  return buildAttestation(core, bundleResult.bundle, reviewer);
 }
 
 /** Validate a schema-v2 claim and its exact evidence/policy bindings. */
@@ -464,8 +476,10 @@ export function validateHoidExactApprovedClaimAttestation(
   const core = canonicalCore(rawCore);
   if (!core) return Object.freeze({ status: "invalid", reason: "invalid-claim" });
 
-  const bundle = canonicalBundle(core, evidenceInput, policiesInput);
-  if (!bundle) return Object.freeze({ status: "invalid", reason: "unverified-source" });
+  const bundleResult = canonicalBundle(core, evidenceInput, policiesInput);
+  if (bundleResult.status !== "valid") {
+    return Object.freeze({ status: "invalid", reason: bundleResult.reason });
+  }
 
   const integrity = exactRecord(record.integrity, INTEGRITY_KEYS, [
     "schemaVersion", "claimSha256", "evidenceSha256", "reviewSha256",
@@ -493,7 +507,7 @@ export function validateHoidExactApprovedClaimAttestation(
     !SHA_PATTERN.test(integrity.reviewSha256)
   ) return Object.freeze({ status: "invalid", reason: "invalid-review" });
 
-  const expected = buildAttestation(core, bundle, reviewer);
+  const expected = buildAttestation(core, bundleResult.bundle, reviewer);
   if (expected.status !== "valid") return expected;
   if (
     review.claimSha256 !== expected.review.claimSha256 ||

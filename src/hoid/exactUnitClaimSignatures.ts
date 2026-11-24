@@ -90,7 +90,7 @@ export type HoidSignedExactUnitEvidenceRuntimeBuild =
         | "invalid-config"
         | "signature-verification-failed"
         | "runtime-unavailable";
-      signatureReason?: HoidExactUnitClaimSignatureVerification extends { status: "invalid"; reason: infer R } ? R : never;
+      signatureReason?: Extract<HoidExactUnitClaimSignatureVerification, { status: "invalid" }>["reason"];
       index?: number;
     }>;
 

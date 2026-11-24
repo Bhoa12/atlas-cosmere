@@ -146,6 +146,51 @@ describe("Hoid topic-interest recommendation gateway", () => {
     expect(refreshCurrentProgress).toHaveBeenCalledTimes(1);
   });
 
+  it("does not read progress when the request signal is already aborted", async () => {
+    const getCurrentProgress = vi.fn(() => snapshot());
+    const gateway = createHoidTopicInterestRecommendationGateway({ getCurrentProgress });
+    if (!gateway) throw new Error("Gateway unavailable");
+    const current = snapshot();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(gateway.recommend({
+      progress: current,
+      context: context(current),
+    }, controller.signal)).resolves.toEqual({
+      status: "unavailable",
+      reason: "cancelled",
+    });
+    expect(getCurrentProgress).not.toHaveBeenCalled();
+  });
+
+  it("returns promptly when a durable progress refresh is aborted and ignores its late result", async () => {
+    const initial = snapshot(3, 7);
+    let resolveRefresh!: (value: unknown) => void;
+    const refreshCurrentProgress = vi.fn(() => new Promise<unknown>(resolve => {
+      resolveRefresh = resolve;
+    }));
+    const gateway = createHoidTopicInterestRecommendationGateway({
+      getCurrentProgress: () => initial,
+      refreshCurrentProgress,
+    });
+    if (!gateway) throw new Error("Gateway unavailable");
+    const controller = new AbortController();
+    const pending = gateway.recommend({
+      progress: initial,
+      context: context(initial),
+    }, controller.signal);
+
+    expect(refreshCurrentProgress).toHaveBeenCalledTimes(1);
+    controller.abort();
+    await expect(pending).resolves.toEqual({
+      status: "unavailable",
+      reason: "cancelled",
+    });
+    resolveRefresh(initial);
+    await Promise.resolve();
+  });
+
   it("fails closed when the durable progress refresh cannot read SQLite", async () => {
     const initial = snapshot(3, 7);
     const refreshCurrentProgress = vi.fn(async () => null);

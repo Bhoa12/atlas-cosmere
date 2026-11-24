@@ -61,10 +61,15 @@ function canonicalClaimIds(value: unknown): readonly string[] | null {
  */
 export function createHoidApprovedClaimAnswerPort(
   runtime: HoidEvidenceRuntime | null,
-): ((claimIds: readonly string[], progressSnapshot: unknown) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
+): ((
+  claimIds: readonly string[],
+  progressSnapshot: unknown,
+  signal?: AbortSignal,
+) => readonly HoidApprovedClaimAnswerRecord[]) | undefined {
   if (runtime === null || typeof runtime.renderApprovedClaimById !== "function") return undefined;
 
-  return (claimIdsInput, progressSnapshot) => {
+  return (claimIdsInput, progressSnapshot, signal) => {
+    if (signal?.aborted) return Object.freeze([]);
     const claimIds = canonicalClaimIds(claimIdsInput);
     if (!claimIds) return Object.freeze([]);
 
@@ -73,7 +78,9 @@ export function createHoidApprovedClaimAnswerPort(
 
     const records: HoidApprovedClaimAnswerRecord[] = [];
     for (const claimId of claimIds) {
+      if (signal?.aborted) return Object.freeze([]);
       const answer = runtime.renderApprovedClaimById(claimId, projection.reading);
+      if (signal?.aborted) return Object.freeze([]);
       if (
         answer.status !== "authorized" ||
         answer.claimIds.length !== 1 ||

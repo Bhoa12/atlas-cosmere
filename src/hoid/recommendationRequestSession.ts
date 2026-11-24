@@ -15,6 +15,8 @@ export type HoidRecommendationRequestSession = Readonly<{
   isCurrent(ticket: unknown): ticket is HoidRecommendationRequestTicket;
   /** Invalidates the current request and aborts its local signal. */
   invalidate(): void;
+  /** User-initiated cancellation; releases ownership and returns whether work was active. */
+  cancelCurrent(): boolean;
   /** Releases the slot only for its current owner. */
   finish(ticket: unknown): boolean;
   /** Reports whether a request currently owns the slot. */
@@ -28,9 +30,9 @@ export type HoidRecommendationRequestSession = Readonly<{
  * dispatch a second request while the slot is occupied. Progress changes,
  * selection changes, trust-port changes and unmount invalidate the owner.
  * Callers must check isCurrent(ticket) after every await and before each UI
- * commit. The signal is exposed for future cooperative adapter cancellation;
- * this coordinator alone guarantees stale-result suppression, not physical
- * cancellation inside a non-cooperative gateway.
+ * commit. The same signal is passed to recommendation gateways, the local
+ * approved-claim renderer and the trusted presentation boundary. Non-cooperative
+ * adapter internals may still finish later; their results are observed and discarded.
  */
 export function createHoidRecommendationRequestSession(): HoidRecommendationRequestSession {
   let epoch = 0;
@@ -66,6 +68,12 @@ export function createHoidRecommendationRequestSession(): HoidRecommendationRequ
     },
 
     invalidate,
+
+    cancelCurrent(): boolean {
+      if (active === null || active.epoch !== epoch) return false;
+      invalidate();
+      return true;
+    },
 
     finish(ticket: unknown): boolean {
       if (

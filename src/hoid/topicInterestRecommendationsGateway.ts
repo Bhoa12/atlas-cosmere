@@ -1,4 +1,8 @@
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
+import {
+  awaitHoidOperationWithSignal,
+  isHoidOperationCancelled,
+} from "./abortableOperation";
 import { buildHoidCursorReadingContext } from "./cursorReadingContext";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { resolveProductionHoidTopicAssignments } from "./topicAssignmentActivation";
@@ -16,6 +20,7 @@ type ProgressIdentity = Readonly<{ revision: number; fingerprint: string }>;
 export type HoidTopicAnswerPort = (
   approvedClaimIds: readonly string[],
   progress: unknown,
+  signal?: AbortSignal,
 ) => unknown | Promise<unknown>;
 
 export type HoidTopicInterestRecommendationResult =
@@ -35,6 +40,7 @@ export type HoidTopicInterestRecommendationResult =
       status: "unavailable";
       reason:
         | "invalid-request"
+        | "cancelled"
         | "invalid-progress"
         | "progress-changed"
         | "context-missing"
@@ -48,9 +54,9 @@ export type HoidTopicInterestRecommendationResult =
 
 export type HoidTopicInterestRecommendationGatewayConfig = Readonly<{
   /** Must return the authoritative SQLite v2 snapshot. */
-  getCurrentProgress: () => unknown;
+  getCurrentProgress: (signal?: AbortSignal) => unknown | Promise<unknown>;
   /** Optional durable read-through used before and after recommendation composition. */
-  refreshCurrentProgress?: () => unknown | Promise<unknown>;
+  refreshCurrentProgress?: (signal?: AbortSignal) => unknown | Promise<unknown>;
   /**
    * Trusted local port for rendering already-approved claims. It receives only
    * approved claim IDs and the current progress snapshot, never topic labels,
@@ -102,11 +108,20 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
-async function readCurrentProgress(config: HoidTopicInterestRecommendationGatewayConfig): Promise<unknown> {
-  if (typeof config.refreshCurrentProgress === "function") {
-    return await config.refreshCurrentProgress();
-  }
-  return config.getCurrentProgress();
+async function readCurrentProgress(
+  config: HoidTopicInterestRecommendationGatewayConfig,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return await awaitHoidOperationWithSignal(
+    () => typeof config.refreshCurrentProgress === "function"
+      ? signal
+        ? config.refreshCurrentProgress(signal)
+        : config.refreshCurrentProgress()
+      : signal
+        ? config.getCurrentProgress(signal)
+        : config.getCurrentProgress(),
+    signal,
+  );
 }
 
 function unavailable(
@@ -124,7 +139,8 @@ function unavailable(
 export class HoidTopicInterestRecommendationGateway {
   constructor(private readonly config: HoidTopicInterestRecommendationGatewayConfig) {}
 
-  async recommend(input: unknown): Promise<HoidTopicInterestRecommendationResult> {
+  async recommend(input: unknown, signal?: AbortSignal): Promise<HoidTopicInterestRecommendationResult> {
+    if (signal?.aborted) return unavailable("cancelled");
     const raw = canonicalRecord(input, ["progress", "context", "limit"], ["progress", "context"]);
     if (!raw) return unavailable("invalid-request");
     const limit = raw.limit === undefined ? 5 : raw.limit;
@@ -144,16 +160,19 @@ export class HoidTopicInterestRecommendationGateway {
 
     let currentBefore: unknown;
     try {
-      currentBefore = await readCurrentProgress(this.config);
-    } catch {
-      return unavailable("invalid-progress");
+      currentBefore = await readCurrentProgress(this.config, signal);
+    } catch (error) {
+      return unavailable(isHoidOperationCancelled(error) || signal?.aborted ? "cancelled" : "invalid-progress");
     }
+    if (signal?.aborted) return unavailable("cancelled");
     const beforeIdentity = progressIdentity(currentBefore);
     if (!beforeIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, beforeIdentity)) return unavailable("progress-changed");
 
+    if (signal?.aborted) return unavailable("cancelled");
     const reading = buildHoidCursorReadingContext(raw.progress);
     if (reading.status !== "ready") return unavailable("invalid-progress");
+    if (signal?.aborted) return unavailable("cancelled");
     const startedWorks = new Set(reading.context.positions.map(position => position.bookId));
     const selected = new Set(validation.context.topicIds);
     const activation = resolveProductionHoidTopicAssignments();
@@ -187,29 +206,38 @@ export class HoidTopicInterestRecommendationGateway {
         return unavailable("answers-unavailable");
       }
       try {
-        answers = await this.config.answerApprovedClaims(Object.freeze(claimIds), raw.progress);
-      } catch {
-        return unavailable("answers-failed");
+        answers = await awaitHoidOperationWithSignal(
+          () => signal
+            ? this.config.answerApprovedClaims!(Object.freeze(claimIds), raw.progress, signal)
+            : this.config.answerApprovedClaims!(Object.freeze(claimIds), raw.progress),
+          signal,
+        );
+      } catch (error) {
+        return unavailable(isHoidOperationCancelled(error) || signal?.aborted ? "cancelled" : "answers-failed");
       }
+      if (signal?.aborted) return unavailable("cancelled");
     }
 
     // Revalidate both the caller-owned request snapshot and the live coordinator
     // snapshot after the optional asynchronous local answer port. This closes
     // mutation races in either object before evidence is composed.
+    if (signal?.aborted) return unavailable("cancelled");
     const requestAfterIdentity = progressIdentity(raw.progress);
     if (!requestAfterIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, requestAfterIdentity)) return unavailable("progress-changed");
 
     let currentAfter: unknown;
     try {
-      currentAfter = await readCurrentProgress(this.config);
-    } catch {
-      return unavailable("invalid-progress");
+      currentAfter = await readCurrentProgress(this.config, signal);
+    } catch (error) {
+      return unavailable(isHoidOperationCancelled(error) || signal?.aborted ? "cancelled" : "invalid-progress");
     }
+    if (signal?.aborted) return unavailable("cancelled");
     const afterIdentity = progressIdentity(currentAfter);
     if (!afterIdentity) return unavailable("invalid-progress");
     if (!sameProgress(requestedProgress, afterIdentity)) return unavailable("progress-changed");
 
+    if (signal?.aborted) return unavailable("cancelled");
     const composed = composeHoidTopicRecommendations(
       validation.context.topicIds,
       raw.progress,
@@ -219,6 +247,7 @@ export class HoidTopicInterestRecommendationGateway {
     );
     if (composed.status === "invalid") return unavailable("invalid-recommendations");
 
+    if (signal?.aborted) return unavailable("cancelled");
     if (composed.status === "none") {
       return Object.freeze({
         status: "none",

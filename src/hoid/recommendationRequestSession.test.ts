@@ -57,6 +57,22 @@ describe("Hoid recommendation request session", () => {
     expect(session.isCurrent(ticket)).toBe(true);
   });
 
+  it("cancels the active request and releases the slot for a new request", () => {
+    const session = createHoidRecommendationRequestSession();
+    const previous = session.begin();
+    if (!previous) throw new Error("Expected a request ticket");
+
+    expect(session.cancelCurrent()).toBe(true);
+    expect(previous.signal.aborted).toBe(true);
+    expect(session.isCurrent(previous)).toBe(false);
+    expect(session.isActive()).toBe(false);
+    expect(session.cancelCurrent()).toBe(false);
+
+    const next = session.begin();
+    expect(next).not.toBeNull();
+    expect(session.isCurrent(next)).toBe(true);
+  });
+
   it("handles invalidation and finish safely while idle", () => {
     const session = createHoidRecommendationRequestSession();
 

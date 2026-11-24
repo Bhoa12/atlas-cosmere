@@ -195,6 +195,29 @@ describe("Hoid trusted topic recommendation presentation", () => {
     expect(fixture.present).toHaveBeenCalledWith({ status: "authorized" }, "brief");
   });
 
+  it("returns promptly when approved-claim loading is cancelled and ignores the late result", async () => {
+    const fixture = setup();
+    let resolveClaims!: (value: unknown) => void;
+    fixture.loadApprovedClaims.mockImplementation(() => new Promise<unknown>(resolve => {
+      resolveClaims = resolve;
+    }));
+    const controller = new AbortController();
+    const pending = fixture.port.present(fixture.input, controller.signal);
+
+    await vi.waitFor(() => {
+      expect(fixture.loadApprovedClaims).toHaveBeenCalledTimes(1);
+    });
+    controller.abort();
+    await expect(pending).resolves.toEqual({
+      status: "withheld",
+      reason: "cancelled",
+    });
+
+    resolveClaims([{ claimId: CLAIM_ID, answer: Object.freeze({ status: "authorized" }) }]);
+    await Promise.resolve();
+    expect(fixture.present).not.toHaveBeenCalled();
+  });
+
   it("withholds recommendations when the approved-claim loader omits a referenced claim", async () => {
     const fixture = setup({ records: [] });
     await expect(fixture.port.present(fixture.input)).resolves.toEqual({

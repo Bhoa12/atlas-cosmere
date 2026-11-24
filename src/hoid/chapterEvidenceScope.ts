@@ -124,7 +124,7 @@ export function isHoidEvidenceInChapterScope(
       ) return false;
 
       const validation = validateHoidChapterReference(descriptor.value);
-      if (validation.status !== "valid" || validation.reference.labelAmbiguous) continue;
+      if (validation.status !== "valid" || validation.reference.labelAmbiguous) return false;
       const anchor = validation.reference;
       if (
         anchor.bookId === source.reference.bookId &&

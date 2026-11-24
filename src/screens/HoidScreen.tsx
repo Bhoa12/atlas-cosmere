@@ -23,6 +23,7 @@ import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
 import type { HoidConversationScopeBinding } from '../hoid/conversationScopeBinding';
 import { createHoidConversationTurnSession } from '../hoid/conversationTurnSession';
+import { createHoidRecommendationRequestSession } from '../hoid/recommendationRequestSession';
 import {
   createHoidEditionBoundRecommendationPresentation,
   type HoidEditionBoundRecommendationPresentation,
@@ -98,6 +99,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
   const conversationScopeBindingRef = useRef<HoidConversationScopeBinding | null>(null);
   const [conversationTurnSession] = useState(() => createHoidConversationTurnSession());
+  const [recommendationRequestSession] = useState(() => createHoidRecommendationRequestSession());
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({
         runtime: hoidRuntime,
@@ -182,6 +184,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
 
   useEffect(() => {
     conversationTurnSession.invalidate();
+    recommendationRequestSession.invalidate();
+    setCargandoRecomendaciones(false);
     setCanCancelAnswer(false);
     setCargando(false);
     conversationContextRef.current = null;
@@ -203,6 +207,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
+    recommendationRequestSession.invalidate();
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
   }, []);
@@ -661,14 +666,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const cargarRecomendaciones = async (activeBookId?: string) => {
+    if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready') return;
+    const ticket = recommendationRequestSession.begin();
+    if (!ticket) return;
+
     conversationTurnSession.invalidate();
     setCanCancelAnswer(false);
     setCargando(false);
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
-    if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready') return;
-
     setCargandoRecomendaciones(true);
     setRecommendationPresentation(null);
     setRecommendationMessage('');
@@ -676,6 +683,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
 
     try {
       const currentProgress = await progressRefreshRef.current();
+      if (!recommendationRequestSession.isCurrent(ticket)) return;
       const projection = currentProgress
         ? projectHoidCursorProgressSnapshot(currentProgress)
         : null;
@@ -701,6 +709,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       // The synchronous adapter is still followed by a fresh authoritative read.
       // This closes the interval between calculation and committing React state.
       const latestProgress = await progressRefreshRef.current();
+      if (!recommendationRequestSession.isCurrent(ticket)) return;
       const latestProjection = latestProgress
         ? projectHoidCursorProgressSnapshot(latestProgress)
         : null;
@@ -721,14 +730,19 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         ? 'Hay varias obras en curso. Selecciona explícitamente cuál quieres reanudar.'
         : `Se han preparado ${presentation.items.length} recomendaciones vinculadas al progreso y a sus manifiestos. No es una ruta canónica.`);
     } catch {
+      if (!recommendationRequestSession.isCurrent(ticket)) return;
       setRecommendationPresentation(null);
       setRecommendationMessage('No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
     } finally {
-      setCargandoRecomendaciones(false);
+      if (recommendationRequestSession.finish(ticket)) {
+        setCargandoRecomendaciones(false);
+      }
     }
   };
 
   const toggleTopicInterest = (topicId: HoidTopicId) => {
+    recommendationRequestSession.invalidate();
+    setCargandoRecomendaciones(false);
     setSelectedTopicIds(previous => previous.includes(topicId)
       ? previous.filter(item => item !== topicId)
       : [...previous, topicId]);
@@ -741,6 +755,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const cargarRecomendacionesTematicas = async () => {
+    if (cargandoRecomendaciones) return;
+    const ticket = recommendationRequestSession.begin();
+    if (!ticket) return;
+
     conversationTurnSession.invalidate();
     setCanCancelAnswer(false);
     setCargando(false);
@@ -753,42 +771,46 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendationSelectionKey(null);
     setTopicRecommendationTrustPort(null);
     setTopicRecommendationMessage('');
-
-    if (!topicRecommendationsTrustReady || !trustedAnswerPort || !trustedTopicRecommendationPresenter) {
-      setTopicRecommendationMessage('Las recomendaciones temáticas están temporalmente bloqueadas hasta que cada afirmación pase por la autoridad editorial Ed25519 del host.');
-      return;
-    }
-    if (selectedTopicIds.length === 0) {
-      setTopicRecommendationMessage('Selecciona al menos un tema de interés explícito.');
-      return;
-    }
-    if (progresoPersistenciaEstado !== 'ready' || !topicInterestGateway) {
-      setTopicRecommendationMessage('El progreso o el servicio de recomendaciones no está disponible. No mostraré resultados.');
-      return;
-    }
-
-    const currentProgress = await progressRefreshRef.current();
-    const projection = currentProgress ? projectHoidCursorProgressSnapshot(currentProgress) : null;
-    if (!currentProgress || projection?.status !== 'ready') {
-      setTopicRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones temáticas.');
-      return;
-    }
-    const progressIdentity = {      revision: projection.revision,
-      fingerprint: fingerprintHoidCursorProgressProjection(projection),
-    };
-    const context = createHoidTopicInterestContext(selectedTopicIds, progressIdentity);
-    if (!context) {
-      setTopicRecommendationMessage('La selección temática no es válida. No mostraré recomendaciones.');
-      return;
-    }
-
     setCargandoRecomendaciones(true);
+    const selectedTopicSnapshot = Object.freeze([...selectedTopicIds]);
+
     try {
+      if (!topicRecommendationsTrustReady || !trustedAnswerPort || !trustedTopicRecommendationPresenter) {
+        setTopicRecommendationMessage('Las recomendaciones temáticas están temporalmente bloqueadas hasta que cada afirmación pase por la autoridad editorial Ed25519 del host.');
+        return;
+      }
+      if (selectedTopicSnapshot.length === 0) {
+        setTopicRecommendationMessage('Selecciona al menos un tema de interés explícito.');
+        return;
+      }
+      if (progresoPersistenciaEstado !== 'ready' || !topicInterestGateway) {
+        setTopicRecommendationMessage('El progreso o el servicio de recomendaciones no está disponible. No mostraré resultados.');
+        return;
+      }
+
+      const currentProgress = await progressRefreshRef.current();
+      if (!recommendationRequestSession.isCurrent(ticket)) return;
+      const projection = currentProgress ? projectHoidCursorProgressSnapshot(currentProgress) : null;
+      if (!currentProgress || projection?.status !== 'ready') {
+        setTopicRecommendationMessage('No puedo verificar el progreso actual. No mostraré recomendaciones temáticas.');
+        return;
+      }
+      const progressIdentity = {
+        revision: projection.revision,
+        fingerprint: fingerprintHoidCursorProgressProjection(projection),
+      };
+      const context = createHoidTopicInterestContext(selectedTopicSnapshot, progressIdentity);
+      if (!context) {
+        setTopicRecommendationMessage('La selección temática no es válida. No mostraré recomendaciones.');
+        return;
+      }
+
       const result = await topicInterestGateway.recommend({
         progress: currentProgress,
         context,
         limit: 5,
       });
+      if (!recommendationRequestSession.isCurrent(ticket)) return;
       if (result.status === 'ready') {
         const verified = await trustedTopicRecommendationPresenter.present({
           items: result.items,
@@ -796,6 +818,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           progressRevision: result.progressRevision,
           progressFingerprint: result.progressFingerprint,
         });
+        if (!recommendationRequestSession.isCurrent(ticket)) return;
         if (verified.status !== 'ready') {
           setTopicRecommendations([]);
           setTopicRecommendationRevision(null);
@@ -810,6 +833,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         }
 
         const latestProgress = await progressRefreshRef.current();
+        if (!recommendationRequestSession.isCurrent(ticket)) return;
         const latestProjection = latestProgress
           ? projectHoidCursorProgressSnapshot(latestProgress)
           : null;
@@ -828,7 +852,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setTopicRecommendations(verified.items);
         setTopicRecommendationRevision(verified.progressRevision);
         setTopicRecommendationFingerprint(verified.progressFingerprint);
-        setTopicRecommendationSelectionKey(selectedTopicIds.join('\n'));
+        setTopicRecommendationSelectionKey(selectedTopicSnapshot.join('\\n'));
         setTopicRecommendationTrustPort(trustedAnswerPort);
         setTopicRecommendationMessage(
           verified.items.length === 0
@@ -849,13 +873,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         );
       }
     } catch {
+      if (!recommendationRequestSession.isCurrent(ticket)) return;
       setTopicRecommendations([]);
       setTopicRecommendationRevision(null);
       setTopicRecommendationFingerprint(null);
       setTopicRecommendationSelectionKey(null);
       setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
     } finally {
-      setCargandoRecomendaciones(false);
+      if (recommendationRequestSession.finish(ticket)) {
+        setCargandoRecomendaciones(false);
+      }
     }
   };
 

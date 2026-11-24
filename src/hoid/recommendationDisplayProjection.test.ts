@@ -205,27 +205,22 @@ describe("Hoid recommendation display projections", () => {
   });
 
   it("removes claim, evidence and EPUB locator identifiers from thematic recommendations", () => {
-    const display = projectHoidTopicRecommendationsForDisplay(topicFixture());
+    const fixture = topicFixture();
+    const citation = fixture[0].matches[0].citations[0];
+    const identity = resolveHoidChapterIdentity(citation.sourceBookId, {
+      chapterNumber: citation.chapter,
+      locatorId: citation.locatorId,
+    });
+    expect(identity.status).toBe("resolved");
+    if (identity.status !== "resolved") return;
+
+    const display = projectHoidTopicRecommendationsForDisplay(fixture);
     expect(display).not.toBeNull();
     expect(display?.[0].matches[0].citations[0]).toEqual({
-      sourceBookId: topicFixture()[0].matches[0].citations[0].sourceBookId,
-      title: topicFixture()[0].matches[0].citations[0].title,
-      chapter: topicFixture()[0].matches[0].citations[0].chapter,
-      chapterOrdinal: resolveHoidChapterIdentity(
-        topicFixture()[0].matches[0].citations[0].sourceBookId,
-        {
-          chapterNumber: topicFixture()[0].matches[0].citations[0].chapter,
-          locatorId: topicFixture()[0].matches[0].citations[0].locatorId,
-        },
-      ).status === "resolved"
-        ? (resolveHoidChapterIdentity(
-            topicFixture()[0].matches[0].citations[0].sourceBookId,
-            {
-              chapterNumber: topicFixture()[0].matches[0].citations[0].chapter,
-              locatorId: topicFixture()[0].matches[0].citations[0].locatorId,
-            },
-          ) as { status: "resolved"; identity: { ordinal: number } }).identity.ordinal
-        : -1,
+      sourceBookId: citation.sourceBookId,
+      title: citation.title,
+      chapter: citation.chapter,
+      chapterOrdinal: identity.identity.ordinal,
     });
     const serialized = JSON.stringify(display);
     for (const secret of [

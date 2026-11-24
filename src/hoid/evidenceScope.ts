@@ -2,7 +2,7 @@ import { isKnownHoidSource } from "./bibliography";
 import type { HoidKnowledgeEntry } from "./catalog";
 import type { ReadingPosition } from "./types";
 import { validEditionBoundReadingPositions } from "./editionProgressValidation";
-import { getHoidReadingManifest } from "./readingManifest";
+import { resolveHoidChapterIdentity } from "./chapterIdentity";
 
 export type HoidEvidenceCitation = Readonly<{
   evidenceId: string;
@@ -94,19 +94,26 @@ export function canonicalEvidenceScope(
   if (!locatorId || locatorId.length > MAX_LOCATOR_LENGTH) return null;
   if (/[\u0000-\u001F\u007F]/u.test(locatorId)) return null;
 
-  // A plausible-looking locator is not provenance. It must match the exact
-  // chapter unit in the current edition manifest, and the unlock threshold
-  // must also be a real unit in that same verified numeric sequence.
-  const manifestResult = getHoidReadingManifest(sourceBookId);
-  if (manifestResult.status !== "ready") return null;
-  const sourceUnit = manifestResult.manifest.units.find(unit => unit.chapterNumber === sourceChapter);
-  const unlockUnit = manifestResult.manifest.units.find(unit => unit.chapterNumber === unlockChapter);
-  if (!sourceUnit || !unlockUnit || sourceUnit.locatorId !== locatorId) return null;
+  // Chapter numbers are labels, not identities. Resolve the source by its
+  // exact edition-bound locator and require a unique unlock unit as well.
+  const sourceIdentity = resolveHoidChapterIdentity(sourceBookId, {
+    chapterNumber: sourceChapter,
+    locatorId,
+  });
+  const unlockIdentity = resolveHoidChapterIdentity(unlockBookId, {
+    chapterNumber: unlockChapter,
+  });
+  if (
+    sourceIdentity.status !== "resolved" ||
+    unlockIdentity.status !== "resolved" ||
+    sourceIdentity.identity.manifestId !== unlockIdentity.identity.manifestId ||
+    sourceIdentity.identity.bookId !== unlockIdentity.identity.bookId
+  ) return null;
 
   return Object.freeze({
     sourceBookId,
     sourceChapter,
-    locatorId,
+    locatorId: sourceIdentity.identity.locatorId,
     unlockBookId,
     unlockChapter,
   });

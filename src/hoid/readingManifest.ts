@@ -44,7 +44,7 @@ export type HoidReadingCursorCreation =
   | Readonly<{ status: "ready"; cursor: HoidReadingCursor }>
   | Readonly<{
       status: "unavailable";
-      reason: "unknown-work" | "segmentation-unverified" | "unit-not-found";
+      reason: "unknown-work" | "segmentation-unverified" | "unit-not-found" | "ambiguous-chapter";
     }>;
 
 export type HoidReadingCursorValidation =
@@ -193,8 +193,18 @@ export function createHoidReadingCursor(
     return Object.freeze({ status: "unavailable", reason: "unit-not-found" });
   }
 
-  const unit = result.manifest.units.find(candidate => candidate.chapterNumber === chapterNumber);
-  if (!unit) return Object.freeze({ status: "unavailable", reason: "unit-not-found" });
+  if (result.manifest.ambiguousChapterNumbers.includes(chapterNumber)) {
+    return Object.freeze({ status: "unavailable", reason: "ambiguous-chapter" });
+  }
+
+  const matchingUnits = result.manifest.units.filter(candidate => candidate.chapterNumber === chapterNumber);
+  if (matchingUnits.length === 0) {
+    return Object.freeze({ status: "unavailable", reason: "unit-not-found" });
+  }
+  if (matchingUnits.length > 1) {
+    return Object.freeze({ status: "unavailable", reason: "ambiguous-chapter" });
+  }
+  const unit = matchingUnits[0];
 
   return Object.freeze({
     status: "ready",

@@ -2,6 +2,7 @@ import type { HoidKnowledgeKind } from "./catalog";
 import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { canonicalEvidenceScope } from "./evidenceScope";
 import { getHoidReadingManifest } from "./readingManifest";
+import { resolveHoidChapterIdentity } from "./chapterIdentity";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { sha256Hex } from "./sha256";
 
@@ -161,11 +162,10 @@ export function validateHoidEditorialDraft(value: unknown): HoidEditorialDraftVa
     !validPositiveChapter(appearance.chapter)
   ) return Object.freeze({ status: "invalid", reason: "invalid-appearance" });
 
-  const appearanceManifest = getHoidReadingManifest(appearance.bookId);
-  const appearanceUnit = appearanceManifest.status === "ready"
-    ? appearanceManifest.manifest.units.find(unit => unit.chapterNumber === appearance.chapter)
-    : undefined;
-  if (!appearanceUnit || !appearanceUnit.locatorId) {
+  const appearanceIdentity = resolveHoidChapterIdentity(appearance.bookId, {
+    chapterNumber: appearance.chapter,
+  });
+  if (appearanceIdentity.status !== "resolved") {
     return Object.freeze({ status: "invalid", reason: "invalid-appearance" });
   }
 

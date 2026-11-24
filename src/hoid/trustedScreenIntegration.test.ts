@@ -13,14 +13,25 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).not.toContain("presentHoidExplanation(");
   });
 
-  it("routes topic recommendations through the signed presenter and binds visible results to its trust session", () => {
+  it("routes topic recommendations through the signed presenter and keeps trust bindings outside React state", () => {
     const screen = readFileSync(screenPath, "utf8");
     expect(screen).toContain("createHoidTrustedTopicRecommendationPresenter({");
     expect(screen).toContain("const topicRecommendationsTrustReady = trustedTopicRecommendationPresenter !== null");
     expect(screen).toContain("if (!topicRecommendationsTrustReady || !trustedAnswerPort || !trustedTopicRecommendationPresenter)");
     expect(screen).toContain("trustedTopicRecommendationPresenter.present({");
-    expect(screen).toContain("setTopicRecommendationTrustPort(trustedAnswerPort)");
-    expect(screen).toContain("topicRecommendationTrustPort === trustedAnswerPort");
+
+    // The UI stores only the minimized projection. Freshness and presenter
+    // identity remain in an ephemeral ref and are checked on every render.
+    expect(screen).toContain("const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendationDisplayItem[]>([]);");
+    expect(screen).toContain("topicRecommendationBindingRef.current = Object.freeze({");
+    expect(screen).toContain("topicRecommendationBinding.trustPort === trustedAnswerPort");
+    expect(screen).toContain("setTopicRecommendations(topicDisplayItems)");
+    expect(screen).toContain("topicRecommendationBindingRef.current = null;");
+    expect(screen).toContain("liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort");
+    expect(screen).not.toContain("setTopicRecommendationTrustPort(");
+    expect(screen).not.toContain("const [topicRecommendationTrustPort");
+    expect(screen).not.toContain("const [topicRecommendationRevision");
+    expect(screen).not.toContain("const [topicRecommendationFingerprint");
     expect(screen).not.toContain("const topicRecommendationsTrustReady = false");
   });
 

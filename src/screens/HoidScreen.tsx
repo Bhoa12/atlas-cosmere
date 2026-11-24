@@ -87,7 +87,7 @@ interface Mensaje {
 function formatHoidCitationLocation(title: string, chapter: number, chapterOrdinal: number): string {
   return chapterOrdinal === chapter
     ? `${title} · capítulo ${chapter}`
-    : `${title} · capítulo ${chapter} · posición ${chapterOrdinal} de la edición`;
+    : `${title} · capítulo ${chapter} · entrada ${chapterOrdinal} del índice`;
 }
 
 export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort: trustedAnswerPortInput = null }) => {

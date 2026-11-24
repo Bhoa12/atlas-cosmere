@@ -183,12 +183,43 @@ describe("edition-bound chapter identity", () => {
     }
   });
 
-  it("keeps Viento y verdad beyond its currently verified prefix unavailable", () => {
+  it("keeps Viento y verdad ambiguous chapter labels blocked without inventing candidate counts", () => {
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 11 }).status).toBe("resolved");
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 12 })).toEqual({
-      status: "unavailable",
-      reason: "chapter-not-found",
+      status: "ambiguous",
+      chapterNumber: 12,
+      candidateCount: null,
     });
+    expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 14 })).toEqual({
+      status: "ambiguous",
+      chapterNumber: 14,
+      candidateCount: null,
+    });
+  });
+
+  it("does not resolve a declared ambiguous number from a partial single-candidate manifest", () => {
+    const manifest = duplicateNumberManifest();
+    const partial = Object.freeze({
+      ...manifest,
+      units: Object.freeze([manifest.units[0], manifest.units[1]]),
+    });
+    expect(resolveHoidChapterIdentityInManifest(partial, { chapterNumber: 12 })).toEqual({
+      status: "ambiguous",
+      chapterNumber: 12,
+      candidateCount: null,
+    });
+  });
+
+  it("rejects duplicate chapter units that are not declared ambiguous by the manifest", () => {
+    const manifest = duplicateNumberManifest();
+    const malformed = Object.freeze({
+      ...manifest,
+      ambiguousChapterNumbers: Object.freeze([]),
+    });
+    expect(resolveHoidChapterIdentityInManifest(
+      malformed,
+      { chapterNumber: 12, unitId: "chapter:012-a" },
+    )).toEqual({ status: "unavailable", reason: "invalid-manifest" });
   });
 
   it("rejects malformed, accessor-bearing and unknown chapter selections", () => {

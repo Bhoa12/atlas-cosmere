@@ -111,7 +111,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     : null;
   const topicInterestGateway = createHoidTopicInterestRecommendationGateway({
     getCurrentProgress: () => progressReaderRef.current(),
-    refreshCurrentProgress: signal => awaitHoidOperationWithSignal(
+    refreshCurrentProgress: (signal?: AbortSignal) => awaitHoidOperationWithSignal(
       () => progressRefreshRef.current(),
       signal,
     ),
@@ -124,7 +124,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     ? createHoidTrustedTopicRecommendationPresenter({
         loadApprovedClaims: topicApprovedClaimAnswerPort,
         trustedAnswerPort,
-        refreshCurrentProgress: signal => awaitHoidOperationWithSignal(
+        refreshCurrentProgress: (signal?: AbortSignal) => awaitHoidOperationWithSignal(
           () => progressRefreshRef.current(),
           signal,
         ),

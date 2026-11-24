@@ -549,7 +549,8 @@ export class HoidUnitEvidenceRuntime {
       "selector",
       "providerTimeoutMs",
     ]), ["coordinator", "knowledge", "claims", "policies"]);
-    if (!record || !(record.coordinator instanceof HoidUnitProgressCoordinator)) return null;
+    const coordinator = record?.coordinator;
+    if (!record || !(coordinator instanceof HoidUnitProgressCoordinator)) return null;
 
     const knowledge = canonicalKnowledge(record.knowledge);
     if (!knowledge) return null;
@@ -577,7 +578,7 @@ export class HoidUnitEvidenceRuntime {
     ) return null;
 
     return new HoidUnitEvidenceRuntime(
-      record.coordinator,
+      coordinator,
       knowledge,
       claims,
       policies,

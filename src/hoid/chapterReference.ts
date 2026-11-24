@@ -11,7 +11,8 @@ import { sha256Hex } from "./sha256";
  * It deliberately omits EPUB locators and navigation hashes. Its fingerprint
  * commits to those private identity fields so the reference can be revalidated
  * against the current manifest without exposing them to UI or conversation
- * state. It is not a reading cursor and never grants evidence access.
+ * state. The digest is a consistency fingerprint, not authentication. It is
+ * not a reading cursor and never grants evidence access.
  */
 export type HoidChapterReference = Readonly<{
   schemaVersion: 1;

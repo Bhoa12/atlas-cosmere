@@ -244,6 +244,12 @@ describe("Hoid exact-unit evidence runtime", () => {
     expect(result.answer.status).toBe("blocked");
     expect(result.answer.reason).toBe("reading-position");
     expect(selector).not.toHaveBeenCalled();
+    const presentation = await runtime!.verifyForPresentation({
+      progressRevision: result.progressRevision,
+      progressFingerprint: result.progressFingerprint,
+      evidenceIds: [],
+    });
+    expect(presentation).toMatchObject({ status: "ready", progressRevision: 1 });
   });
 
   it("rejects an exact chapter scope that points at the currently open unit", async () => {

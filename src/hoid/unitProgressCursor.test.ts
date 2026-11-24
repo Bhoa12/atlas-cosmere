@@ -6,7 +6,7 @@ import {
 
 describe("Hoid exact unit progress cursor", () => {
   it("allows the first duplicated chapter only when its exact unit is inside the contiguous prefix", () => {
-    const result = createHoidUnitProgressCursor("twok", {
+    const result = createHoidUnitProgressCursor("sawt", {
       chapterNumber: 12,
       unitId: "chapter:012:unit:012",
     });
@@ -14,18 +14,18 @@ describe("Hoid exact unit progress cursor", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.boundary).toMatchObject({
-      bookId: "twok",
+      bookId: "sawt",
       currentUnitId: "chapter:012:unit:012",
       currentOrdinal: 12,
       currentChapterNumber: 12,
       completedThroughOrdinal: 11,
-      legacyReadingPosition: { bookId: "twok", chapter: 11 },
+      legacyReadingPosition: { bookId: "sawt", chapter: 11 },
     });
     expect(validateHoidUnitProgressCursor(result.cursor).status).toBe("valid");
   });
 
   it("does not unlock the currently open duplicated chapter through the legacy numeric projection", () => {
-    const result = createHoidUnitProgressCursor("twok", {
+    const result = createHoidUnitProgressCursor("sawt", {
       chapterNumber: 12,
       unitId: "chapter:012:unit:012",
     });
@@ -33,14 +33,14 @@ describe("Hoid exact unit progress cursor", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.boundary.legacyReadingPosition).toEqual({
-      bookId: "twok",
+      bookId: "sawt",
       chapter: 11,
     });
     expect(result.boundary.legacyReadingPosition?.chapter).not.toBe(12);
   });
 
   it("requires an exact unit ID when a visible chapter number is duplicated", () => {
-    expect(createHoidUnitProgressCursor("twok", {
+    expect(createHoidUnitProgressCursor("sawt", {
       chapterNumber: 12,
     })).toMatchObject({
       status: "ambiguous",
@@ -50,7 +50,7 @@ describe("Hoid exact unit progress cursor", () => {
   });
 
   it("rejects the second occurrence when the preceding ordinal is absent", () => {
-    expect(createHoidUnitProgressCursor("twok", {
+    expect(createHoidUnitProgressCursor("sawt", {
       chapterNumber: 12,
       unitId: "chapter:012:unit:014",
     })).toEqual({
@@ -60,14 +60,14 @@ describe("Hoid exact unit progress cursor", () => {
   });
 
   it("rejects later duplicate-number units beyond the verified contiguous prefix", () => {
-    expect(createHoidUnitProgressCursor("twok", {
+    expect(createHoidUnitProgressCursor("sawt", {
       chapterNumber: 14,
       unitId: "chapter:014:unit:015",
     })).toEqual({
       status: "unavailable",
       reason: "non-contiguous-prefix",
     });
-    expect(createHoidUnitProgressCursor("twok", {
+    expect(createHoidUnitProgressCursor("sawt", {
       chapterNumber: 14,
       unitId: "chapter:014:unit:035",
     })).toEqual({
@@ -97,7 +97,7 @@ describe("Hoid exact unit progress cursor", () => {
   });
 
   it("keeps locators and navigation hashes out of the cursor", () => {
-    const result = createHoidUnitProgressCursor("twok", {
+    const result = createHoidUnitProgressCursor("sawt", {
       chapterNumber: 12,
       unitId: "chapter:012:unit:012",
     });
@@ -111,7 +111,7 @@ describe("Hoid exact unit progress cursor", () => {
   });
 
   it("rejects a stale identity fingerprint", () => {
-    const result = createHoidUnitProgressCursor("twok", {
+    const result = createHoidUnitProgressCursor("sawt", {
       chapterNumber: 12,
       unitId: "chapter:012:unit:012",
     });

@@ -997,6 +997,8 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
     if (!gateway) throw new Error("No se pudo crear el gateway sintético");
 
     const binding = scopeBindingFor(current);
+    const chapterReference = createHoidChapterReference("twok", { chapterNumber: 1 });
+    if (chapterReference.status !== "ready") throw new Error("Referencia sintética no disponible");
     const result = await gateway.answer({
       question: "¿Y ella?",
       progress: current,
@@ -1013,6 +1015,7 @@ describe("HoidConversationGateway reviewed pronoun follow-ups", () => {
       entityIds: ["synthetic.entity-beta"],
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [chapterReference.reference],
     }, undefined);
     expect(runtime.answer.mock.calls[0][0]).not.toHaveProperty("context");
     if (result.status === "ready") {

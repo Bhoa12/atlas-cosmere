@@ -582,7 +582,7 @@ export class HoidTrustedExactUnitAnswerHost {
       try {
         sink.present(pending.answer, permit);
       } catch {
-        this.clearActivePresentation("presentation-sink-failed");
+        this.clearPresentation(presentationToken, "presentation-sink-failed");
         return Object.freeze({ status: "blocked", reason: "presentation-sink-failed" });
       }
       if (!this.activePresentations.has(presentationToken)) {

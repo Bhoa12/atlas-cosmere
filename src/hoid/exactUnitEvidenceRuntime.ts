@@ -669,7 +669,7 @@ export class HoidExactUnitEvidenceRuntime {
       bookScope: request.bookScope
         ? { mode: request.bookScope.mode, bookIds: [...request.bookScope.bookIds] }
         : null,
-      conversationContext: request.conversationContext ?? null,
+      ...(request.conversationContext ? { conversationContext: request.conversationContext } : {}),
       selectionBudget: budget,
       candidates: candidates.map(candidate => ({
         id: candidate.id,

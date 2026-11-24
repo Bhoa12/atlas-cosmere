@@ -78,7 +78,14 @@ export function projectHoidCursorProgressToUnitProgress(
 
   const positions: HoidUnitProgressSnapshot["positions"][number][] = [];
   for (const position of validated.snapshot.positions) {
-    if ("completed" in position && position.completed === true) {
+    if (!("cursor" in position)) {
+      if (position.completed !== true) {
+        return Object.freeze({
+          status: "unavailable",
+          reason: "invalid-cursor-snapshot",
+          bookId: position.bookId,
+        });
+      }
       positions.push(Object.freeze({ bookId: position.bookId, completed: true }));
       continue;
     }

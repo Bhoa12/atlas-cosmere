@@ -123,6 +123,14 @@ export class HoidTrustedConversationComposition {
     private readonly gateway: HoidTrustedConversationGatewayV3,
   ) {}
 
+  /** Construct only from components already created by their trusted factories. */
+  static fromTrustedComponents(
+    host: HoidTrustedExactUnitAnswerHost,
+    gateway: HoidTrustedConversationGatewayV3,
+  ): HoidTrustedConversationComposition {
+    return new HoidTrustedConversationComposition(host, gateway);
+  }
+
   createSession(
     sessionIdInput: unknown,
     sinkInput: unknown,
@@ -227,6 +235,6 @@ export function createHoidTrustedConversationComposition(
 
   return Object.freeze({
     status: "composed",
-    composition: new HoidTrustedConversationComposition(host, gateway),
+    composition: HoidTrustedConversationComposition.fromTrustedComponents(host, gateway),
   });
 }

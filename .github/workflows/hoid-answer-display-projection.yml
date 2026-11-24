@@ -1,0 +1,45 @@
+name: Hoid answer display data minimization
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/crossBookEvidence.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "docs/hoid/RUN271_DISPLAY_DATA_MINIMIZATION.md"
+      - ".github/workflows/hoid-answer-display-projection.yml"
+  pull_request:
+    paths:
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/crossBookEvidence.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "docs/hoid/RUN271_DISPLAY_DATA_MINIMIZATION.md"
+      - ".github/workflows/hoid-answer-display-projection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  display-projection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test display data minimization
+        run: npx vitest run src/hoid/answerDisplayProjection.test.ts
+      - name: Type-check the projection boundary
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/answerDisplayProjection.ts

@@ -6,9 +6,12 @@ import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } fr
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import {
-  type HoidPresentedCitation,
-  type HoidPresentedSegment,
-} from '../hoid/answerPresentation';
+  projectHoidAnswerForDisplay,
+  projectHoidCrossBookEvidenceForDisplay,
+  type HoidDisplayCitation,
+  type HoidDisplayCrossBookEvidenceSummary,
+  type HoidDisplaySegment,
+} from '../hoid/answerDisplayProjection';
 import type { HoidExplanationDepth } from '../hoid/explanationDepth';
 import {
   isHoidTrustedScreenAnswerPort,
@@ -17,7 +20,7 @@ import {
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 import { summarizeHoidPresentedCrossBookEvidence } from '../hoid/crossBookEvidence';
-import type { HoidCrossBookEvidenceSummary } from '../hoid/crossBookEvidence';
+
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
@@ -70,10 +73,10 @@ interface Mensaje {
   texto: string;
   kind?: typeof HOID_STATIC_GREETING_KIND;
   progressScope?: HoidConversationProgressScope;
-  citas?: readonly HoidPresentedCitation[];
-  segmentos?: readonly HoidPresentedSegment[];
+  citas?: readonly HoidDisplayCitation[];
+  segmentos?: readonly HoidDisplaySegment[];
   formato?: HoidNarrativeLayout;
-  evidenciaTransversal?: HoidCrossBookEvidenceSummary;
+  evidenciaTransversal?: HoidDisplayCrossBookEvidenceSummary;
 }
 
 export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort: trustedAnswerPortInput = null }) => {
@@ -329,10 +332,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       const answerScopeSelection = buildHoidAnswerScopeSelection(answerScopeMode, answerScopeBookIds);
       let respuesta: string;
-      let citas: readonly HoidPresentedCitation[] | undefined;
-      let segmentos: readonly HoidPresentedSegment[] | undefined;
+      let citas: readonly HoidDisplayCitation[] | undefined;
+      let segmentos: readonly HoidDisplaySegment[] | undefined;
       let formato: HoidNarrativeLayout | undefined;
-      let evidenciaTransversal: HoidCrossBookEvidenceSummary | undefined;
+      let evidenciaTransversal: HoidDisplayCrossBookEvidenceSummary | undefined;
       // Even neutral fallback text is scoped to the request snapshot. Stale
       // results and cancelled work explicitly clear this scope below.
       let responseScope: HoidConversationProgressScope | null = requestScope;
@@ -495,14 +498,21 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                     : null;
                 responseScope = requestScope;
               } else {
-                respuesta = presentation.text;
-                citas = presentation.citations;
-                segmentos = presentation.segments;
-                formato = presentation.layout;
+                const displayProjection = projectHoidAnswerForDisplay(presentation);
+                if (!displayProjection) {
+                  throw new Error('Invalid trusted answer display projection');
+                }
+                respuesta = displayProjection.text;
+                citas = displayProjection.citations;
+                segmentos = displayProjection.segments;
+                formato = displayProjection.layout;
                 if (
                   crossBookResult?.status === 'ready' &&
                   crossBookResult.summary.workCount > 1
-                ) evidenciaTransversal = crossBookResult.summary;
+                ) {
+                  evidenciaTransversal =
+                    projectHoidCrossBookEvidenceForDisplay(crossBookResult.summary) ?? undefined;
+                }
                 const returnedBinding = result.conversationScopeBinding ?? null;
                 const bindingBookIds = returnedBinding?.scope.bookIds ?? [];
                 const presentedBookIds = [...scopeValidation.sourceBookIds].sort();
@@ -657,6 +667,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         setMensajes(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           emisor: 'hoid',
@@ -1356,8 +1367,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                                 {work.title} · capítulos {work.chapters.join(', ')}
                               </Text>
                             ))
-                          : segmento.citations.map(cita => (
-                              <Text key={cita.evidenceId} style={styles.citationText}>
+                          : segmento.citations.map((cita, citationIndex) => (
+                              <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
                                 {cita.title} · capítulo {cita.chapter}
                               </Text>
                             ));
@@ -1372,8 +1383,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             {(!item.segmentos || item.segmentos.length === 0) && item.citas && item.citas.length > 0 && (
               <View style={styles.citationBlock}>
                 <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
-                {item.citas.map(cita => (
-                  <Text key={cita.evidenceId} style={styles.citationText}>
+                {item.citas.map((cita, citationIndex) => (
+                  <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
                     {cita.title} · capítulo {cita.chapter}
                   </Text>
                 ))}

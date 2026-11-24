@@ -286,13 +286,12 @@ describe("Hoid exact-unit evidence runtime", () => {
 
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
+    expect(selector).toHaveBeenCalledTimes(1);
     expect(result.answer.status).toBe("authorized");
     expect(result.answer.claimIds).toEqual(["claim-alpha"]);
-    expect(selector).toHaveBeenCalledTimes(1);
   });
 
-  it("invalidates an answer when another coordinator changes progress during provider work", async () => {
-    const store = new MemoryStore(snapshot([{ bookId: "twok", chapter: 4 }]));
+  it("invalidates an answer when another coordinator changes progress during provider work", async () =>    const store = new MemoryStore(snapshot([{ bookId: "twok", chapter: 4 }]));
     const selector = vi.fn(async () => {
       store.value = snapshot([{ bookId: "twok", chapter: 2 }], 2);
       return ["claim-alpha"];

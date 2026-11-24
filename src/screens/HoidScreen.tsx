@@ -202,10 +202,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   }, []);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendationDisplayItem[]>([]);
-  const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
-  const [topicRecommendationFingerprint, setTopicRecommendationFingerprint] = useState<string | null>(null);
-  const [topicRecommendationSelectionKey, setTopicRecommendationSelectionKey] = useState<string | null>(null);
-  const [topicRecommendationTrustPort, setTopicRecommendationTrustPort] = useState<HoidTrustedScreenAnswerPort | null>(null);
+  const topicRecommendationBindingRef = useRef<Readonly<{
+    revision: number;
+    fingerprint: string;
+    selectionKey: string;
+    trustPort: HoidTrustedScreenAnswerPort;
+  }> | null>(null);
+  const clearTopicRecommendationBinding = () => {
+    topicRecommendationBindingRef.current = null;
+  };
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
   const [answerScopeMode, setAnswerScopeMode] = useState<HoidAnswerScopeMode>('automatic');
   const [answerScopeBookIds, setAnswerScopeBookIds] = useState<readonly string[]>([]);
@@ -236,10 +241,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     readerAbortControllerRef.current = null;
     setReaderOpening(false);
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort]);
 
@@ -804,10 +809,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       ? previous.filter(item => item !== topicId)
       : [...previous, topicId]);
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
 
@@ -823,10 +828,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
     setCargandoRecomendaciones(true);
     const selectedTopicSnapshot = Object.freeze([...selectedTopicIds]);
@@ -881,9 +886,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         if (!recommendationRequestSession.isCurrent(ticket)) return;
         if (verified.status !== 'ready') {
           setTopicRecommendations([]);
-          setTopicRecommendationRevision(null);
-          setTopicRecommendationFingerprint(null);
-          setTopicRecommendationSelectionKey(null);
+          clearTopicRecommendationBinding();
+          clearTopicRecommendationBinding();
+          clearTopicRecommendationBinding();
           setTopicRecommendationMessage(
             verified.reason === 'progress-changed'
               ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
@@ -906,38 +911,40 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           fingerprintHoidCursorProgressProjection(latestProjection) !== result.progressFingerprint
         ) {
           setTopicRecommendations([]);
-          setTopicRecommendationRevision(null);
-          setTopicRecommendationFingerprint(null);
-          setTopicRecommendationSelectionKey(null);
+          clearTopicRecommendationBinding();
+          clearTopicRecommendationBinding();
+          clearTopicRecommendationBinding();
           setTopicRecommendationMessage('Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.');
           return;
         }
         const topicDisplayItems = projectHoidTopicRecommendationsForDisplay(verified.items);
         if (!topicDisplayItems) {
           setTopicRecommendations([]);
-          setTopicRecommendationRevision(null);
-          setTopicRecommendationFingerprint(null);
-          setTopicRecommendationSelectionKey(null);
+          clearTopicRecommendationBinding();
+          clearTopicRecommendationBinding();
+          clearTopicRecommendationBinding();
           setTopicRecommendationMessage('No puedo reducir las recomendaciones temáticas a metadatos seguros. No mostraré resultados.');
           return;
         }
         setTopicRecommendations(topicDisplayItems);
-        setTopicRecommendationRevision(verified.progressRevision);
-        setTopicRecommendationFingerprint(verified.progressFingerprint);
-        setTopicRecommendationSelectionKey(selectedTopicSnapshot.join('\n'));
-        setTopicRecommendationTrustPort(trustedAnswerPort);
+        topicRecommendationBindingRef.current = Object.freeze({
+          revision: verified.progressRevision,
+          fingerprint: verified.progressFingerprint,
+          selectionKey: selectedTopicSnapshot.join('\n'),
+          trustPort: trustedAnswerPort,
+        });
         setTopicRecommendationMessage(
           verified.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'
             : 'Estas recomendaciones utilizan afirmaciones firmadas, asociaciones editoriales aprobadas y evidencias ya desbloqueadas.',
         );
       } else if (result.status === 'none') {
-        setTopicRecommendationSelectionKey(null);
+        clearTopicRecommendationBinding();
         setTopicRecommendationMessage(
           'Todavía no hay asociaciones temáticas aprobadas y seguras para estos intereses. No inferiré recomendaciones por semejanza.',
         );
       } else {
-        setTopicRecommendationSelectionKey(null);
+        clearTopicRecommendationBinding();
         setTopicRecommendationMessage(
           result.reason === 'progress-changed' || result.reason === 'context-stale'
             ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
@@ -947,9 +954,9 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     } catch {
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       setTopicRecommendations([]);
-      setTopicRecommendationRevision(null);
-      setTopicRecommendationFingerprint(null);
-      setTopicRecommendationSelectionKey(null);
+      clearTopicRecommendationBinding();
+      clearTopicRecommendationBinding();
+      clearTopicRecommendationBinding();
       setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
     } finally {
       if (recommendationRequestSession.finish(ticket)) {
@@ -965,10 +972,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setRecommendationSelectedBookId(null);
     setRecommendationMessage('Solicitud cancelada. No mostraré resultados parciales.');
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
 
@@ -1111,15 +1118,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
+  const topicRecommendationBinding = topicRecommendationBindingRef.current;
   const topicRecommendationsAreCurrent =
     topicRecommendationsTrustReady &&
-    topicRecommendationRevision !== null &&
-    topicRecommendationFingerprint !== null &&
+    topicRecommendationBinding !== null &&
     liveProgressScope !== null &&
-    topicRecommendationRevision === liveProgressScope.revision &&
-    topicRecommendationFingerprint === liveProgressScope.fingerprint &&
-    topicRecommendationSelectionKey === selectedTopicIds.join('\n') &&
-    topicRecommendationTrustPort === trustedAnswerPort;
+    topicRecommendationBinding.revision === liveProgressScope.revision &&
+    topicRecommendationBinding.fingerprint === liveProgressScope.fingerprint &&
+    topicRecommendationBinding.selectionKey === selectedTopicIds.join('\n') &&
+    topicRecommendationBinding.trustPort === trustedAnswerPort;
   const activeConversationScopeBinding = conversationScopeBindingRef.current;
 
   return (

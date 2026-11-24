@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { emptyHoidUnitProgressSnapshot, type HoidUnitProgressStore } from "./unitProgressLedger";
 import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
-import { createHoidTrustedConversationComposition } from "./trustedConversationComposition";
+import { createHoidTrustedConversationComposition, createHoidTrustedCursorConversationComposition } from "./trustedConversationComposition";
+import { createHoidReadingCursor } from "./readingManifest";
+import { emptyHoidCursorProgressSnapshot, type HoidCursorProgressSnapshot } from "./cursorProgressLedger";
+import type { HoidCursorProgressStore, HoidCursorStoreLoadResult } from "./cursorSqliteProgressStore";
+import type { HoidCursorProgressInvalidationSource } from "./cursorBackedUnitProgressStore";
 
 const fixedNow = "2026-11-24T22:00:00.000Z";
 
@@ -230,3 +234,145 @@ describe("Hoid trusted conversation composition v3", () => {
     composition.dispose();
   });
 });
+
+class MemoryCursorProgressStore implements HoidCursorProgressStore {
+  value: HoidCursorProgressSnapshot = emptyHoidCursorProgressSnapshot();
+  loadResult: HoidCursorStoreLoadResult | null = null;
+  casCalls = 0;
+
+  async load(): Promise<HoidCursorStoreLoadResult> {
+    return this.loadResult ?? Object.freeze({
+      status: "ready" as const,
+      snapshot: this.value,
+      migratedFromV1: false,
+    });
+  }
+
+  async read(): Promise<unknown> {
+    const result = await this.load();
+    return result.status === "ready" ? result.snapshot : null;
+  }
+
+  async compareAndSwap(): Promise<boolean> {
+    this.casCalls += 1;
+    return false;
+  }
+}
+
+class MemoryCursorProgressInvalidation implements HoidCursorProgressInvalidationSource {
+  private readonly listeners = new Set<() => void>();
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  emit(): void {
+    for (const listener of [...this.listeners]) listener();
+  }
+}
+
+function cursorSnapshot(bookId = "tfe", chapterNumber = 3, revision = 1): HoidCursorProgressSnapshot {
+  const created = createHoidReadingCursor(bookId, chapterNumber);
+  if (created.status !== "ready") throw new Error("Synthetic cursor unavailable");
+  return Object.freeze({
+    schemaVersion: 2,
+    revision,
+    positions: Object.freeze([
+      Object.freeze({ bookId, cursor: created.cursor }),
+    ]),
+    updatedAt: fixedNow,
+  });
+}
+
+describe("Hoid trusted composition over Atlas cursor progress", () => {
+  it("uses the existing cursor ledger as the only progress authority", async () => {
+    const base = setup();
+    const cursorStore = new MemoryCursorProgressStore();
+    cursorStore.value = cursorSnapshot("tfe", 3, 7);
+    const invalidation = new MemoryCursorProgressInvalidation();
+    const cursorConfig = {
+      transport: base.config.transport,
+      packageSource: base.config.packageSource,
+      registrySource: base.config.registrySource,
+      checkpointStore: base.config.checkpointStore,
+      clock: base.config.clock,
+      context: base.config.context,
+      rootKey: base.config.rootKey,
+      verifier: base.config.verifier,
+    };
+
+    const result = await createHoidTrustedCursorConversationComposition(
+      cursorConfig,
+      cursorStore,
+      invalidation,
+      () => fixedNow,
+    );
+    expect(result.status).toBe("composed");
+    if (result.status !== "composed") return;
+
+    expect(result.coordinator.getSnapshot()).toMatchObject({
+      schemaVersion: 3,
+      revision: 7,
+      positions: [{
+        bookId: "tfe",
+        cursor: { reference: { unitId: "chapter:003", ordinal: 3 } },
+      }],
+    });
+
+    const listener = vi.fn();
+    const unsubscribe = result.progressInvalidation.subscribe(listener);
+    invalidation.emit();
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+
+    const created = result.composition.createSession("screen:cursor-backed", sink());
+    expect(created.status).toBe("created");
+    if (created.status === "created") {
+      const answer = await created.session.send({
+        question: "Pregunta sintética.",
+        intent: "explain",
+        depth: "brief",
+      });
+      expect(answer).toMatchObject({
+        status: "blocked",
+        reason: "host-blocked",
+        hostReason: "trust-checkpoint-invalid",
+      });
+    }
+
+    expect(base.transport).not.toHaveBeenCalled();
+    expect(cursorStore.casCalls).toBe(0);
+    result.dispose();
+    base.composition.dispose();
+  });
+
+  it("does not compose when the authoritative cursor ledger is unavailable", async () => {
+    const base = setup();
+    const cursorStore = new MemoryCursorProgressStore();
+    cursorStore.loadResult = Object.freeze({
+      status: "unavailable",
+      reason: "storage-error",
+    });
+    const result = await createHoidTrustedCursorConversationComposition(
+      {
+        transport: base.config.transport,
+        packageSource: base.config.packageSource,
+        registrySource: base.config.registrySource,
+        checkpointStore: base.config.checkpointStore,
+        clock: base.config.clock,
+        context: base.config.context,
+        rootKey: base.config.rootKey,
+        verifier: base.config.verifier,
+      },
+      cursorStore,
+      new MemoryCursorProgressInvalidation(),
+      () => fixedNow,
+    );
+
+    expect(result).toEqual({ status: "blocked", reason: "progress-unavailable" });
+    expect(cursorStore.casCalls).toBe(0);
+    base.composition.dispose();
+  });
+});
+

@@ -116,7 +116,13 @@ export function getHoidSafeIngestionUnits(
   if (manifest.coverage !== "partial-before-ambiguous-chapter") {
     return manifest.units;
   }
+  if (manifest.ambiguousChapterNumbers.length === 0) return Object.freeze([]);
+  const firstAmbiguousChapter = Math.min(...manifest.ambiguousChapterNumbers);
+  const safeThrough = firstAmbiguousChapter - 1;
+  if (!Number.isSafeInteger(safeThrough) || safeThrough < 1) return Object.freeze([]);
   return Object.freeze(manifest.units.filter(unit =>
+    unit.ordinal <= safeThrough &&
+    unit.chapterNumber <= safeThrough &&
     !manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
   ));
 }

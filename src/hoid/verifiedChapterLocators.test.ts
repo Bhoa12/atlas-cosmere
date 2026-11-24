@@ -10,7 +10,7 @@ describe("verified EPUB chapter locators", () => {
     expect(getVerifiedChapterLocatorCount("wor")).toBe(89);
     expect(getVerifiedChapterLocatorCount("ob")).toBe(122);
     expect(getVerifiedChapterLocatorCount("row")).toBe(117);
-    expect(getVerifiedChapterLocatorCount("sawt")).toBe(11);
+    expect(getVerifiedChapterLocatorCount("sawt")).toBe(15);
     expect(getVerifiedChapterLocatorCount("edgedancer")).toBe(20);
     expect(getVerifiedChapterLocatorCount("dawnshard")).toBe(19);
   });

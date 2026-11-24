@@ -181,6 +181,15 @@ describe("Hoid exact-unit provider adapter v2/v3", () => {
     expect(getterCalls).toBe(0);
   });
 
+  it("distinguishes malformed budget shape from out-of-range budget values", () => {
+    const malformedBudget = Object.freeze({ ...budget, unexpected: true });
+    const malformed = Object.freeze({ ...requestV2(), selectionBudget: malformedBudget });
+    const outOfRangeBudget = Object.freeze({ ...budget, maxCharacters: 32_001 });
+    const outOfRange = Object.freeze({ ...requestV2(), selectionBudget: outOfRangeBudget });
+    expect(inspectHoidExactProviderSelectionSnapshot(malformed)).toBe("budget-shape");
+    expect(inspectHoidExactProviderSelectionSnapshot(outOfRange)).toBe("budget-values");
+  });
+
   it("rejects mutable nested candidates before transport dispatch", async () => {
     const request = requestV2();
     const mutable = {

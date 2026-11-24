@@ -152,6 +152,10 @@ describe("edition-bound chapter identity", () => {
       manifestResult.manifest,
       resolved.identity,
     )).toEqual({ status: "valid", identity: resolved.identity });
+    expect(validateHoidChapterIdentity(resolved.identity)).toEqual({
+      status: "valid",
+      identity: resolved.identity,
+    });
     expect(isHoidChapterIdentityForManifest(
       manifestResult.manifest,
       resolved.identity,

@@ -1,0 +1,71 @@
+name: Hoid exact-unit progress ledger v3
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressLedger.test.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/RUN283_EXACT_UNIT_PROGRESS_LEDGER_V3.md"
+      - ".github/workflows/hoid-exact-unit-progress-ledger-v3.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run283"
+    paths:
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressLedger.test.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "src/hoid/types.ts"
+      - "docs/hoid/RUN283_EXACT_UNIT_PROGRESS_LEDGER_V3.md"
+      - ".github/workflows/hoid-exact-unit-progress-ledger-v3.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-progress-ledger-v3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test exact-unit progress ledger
+        run: npx vitest run src/hoid/unitProgressLedger.test.ts
+      - name: Strict type-check exact-unit progress ledger
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/unitProgressLedger.ts
+          src/hoid/unitProgressCursor.ts
+          src/hoid/chapterReference.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts
+          src/hoid/types.ts

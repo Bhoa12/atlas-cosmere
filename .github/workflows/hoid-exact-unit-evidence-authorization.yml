@@ -1,0 +1,69 @@
+name: Hoid exact-unit evidence authorization
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/unitEvidenceAuthorization.ts"
+      - "src/hoid/unitEvidenceAuthorization.test.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN286_EXACT_UNIT_EVIDENCE_AUTHORIZATION.md"
+      - ".github/workflows/hoid-exact-unit-evidence-authorization.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run286"
+    paths:
+      - "src/hoid/unitEvidenceAuthorization.ts"
+      - "src/hoid/unitEvidenceAuthorization.test.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN286_EXACT_UNIT_EVIDENCE_AUTHORIZATION.md"
+      - ".github/workflows/hoid-exact-unit-evidence-authorization.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-evidence-authorization:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit authorization and regressions
+        run: >-
+          npx vitest run
+          src/hoid/unitEvidenceAuthorization.test.ts
+          src/hoid/unitProgressCoordinator.test.ts
+          src/hoid/unitProgressCursor.test.ts
+          src/hoid/unitProgressLedger.test.ts
+      - name: Strict type-check exact-unit authorization boundary
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/unitEvidenceAuthorization.ts

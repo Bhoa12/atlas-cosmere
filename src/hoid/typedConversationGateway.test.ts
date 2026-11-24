@@ -5,6 +5,7 @@ import {
   type HoidConversationGatewayConfig,
 } from "./conversationGateway";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidChapterReference } from "./chapterReference";
 import { createHoidConversationScopeBinding } from "./conversationScopeBinding";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
@@ -48,6 +49,12 @@ function scopeBinding(progress: unknown) {
   const binding = createHoidConversationScopeBinding(answer, progress);
   if (!binding) throw new Error("Synthetic conversation scope unavailable");
   return binding;
+}
+
+function chapterScope() {
+  const reference = createHoidChapterReference("twok", { chapterNumber: 1 });
+  if (reference.status !== "ready") throw new Error("Synthetic chapter reference unavailable");
+  return [reference.reference];
 }
 
 const refs = Object.freeze([
@@ -133,6 +140,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.organization-a"],
       bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: chapterScope(),
     }, undefined);
     if (result.status === "ready") {
       expect(result.typedConversationContext?.entities).toEqual(refs);
@@ -181,6 +189,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.detailed,
       entityIds: ["synthetic.phenomenon-a"],
       bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: chapterScope(),
     }, undefined);
   });
 
@@ -203,6 +212,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
       entityIds: ["synthetic.phenomenon-a"],
       bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: chapterScope(),
     }, undefined);
   });
 
@@ -225,6 +235,7 @@ describe("Hoid typed entity follow-up gateway", () => {
       selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.comparative,
       entityIds: ["synthetic.organization-a"],
       bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: chapterScope(),
     }, undefined);
   });
 
@@ -247,6 +258,7 @@ describe("Hoid typed entity follow-up gateway", () => {
         entityIds: ["synthetic.phenomenon-a"],
         selectionBudget: HOID_EXPLANATION_DEPTH_BUDGETS.brief,
         bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: chapterScope(),
       }),
       { signal: controller.signal },
     );

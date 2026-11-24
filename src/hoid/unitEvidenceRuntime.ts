@@ -40,6 +40,7 @@ import {
 } from "./unitProgressLedger";
 import { validateHoidUnitProgressCursor } from "./unitProgressCursor";
 import { sha256Hex } from "./sha256";
+import type { HoidAnswerSelectionBudget, ReadingPosition } from "./types";
 import type { HoidEvidenceAnswerSegment } from "./evidenceRuntime";
 
 export type HoidUnitEvidenceCitation = Readonly<{
@@ -479,7 +480,7 @@ function referenceCompleted(
 function legacyReadingForBook(
   snapshot: HoidUnitProgressSnapshot,
   bookId: string,
-): Readonly<{ bookId: string; chapter?: number; completed?: true }> | null {
+): ReadingPosition | null {
   const position = snapshot.positions.find(item => item.bookId === bookId);
   if (!position) return null;
   if ("completed" in position && position.completed === true) {
@@ -681,7 +682,7 @@ export class HoidUnitEvidenceRuntime {
       );
     }
 
-    const projectedBooks: Readonly<{ bookId: string; chapter?: number; completed?: true }>[] = [];
+    const projectedBooks: ReadingPosition[] = [];
     for (const bookId of [...new Set(allowedEntries.map(entry => entry.evidenceSource!.bookId))].sort()) {
       const position = legacyReadingForBook(snapshot, bookId);
       if (position) projectedBooks.push(position);
@@ -696,6 +697,9 @@ export class HoidUnitEvidenceRuntime {
         snapshot,
       );
     }
+    const selectionBudget: HoidAnswerSelectionBudget | null =
+      resolveHoidExplanationDepthBudget(request.depth);
+    if (!selectionBudget) return unavailable("invalid-request");
     const innerRuntime = createHoidEvidenceRuntime({
       knowledge: allowedEntries,
       claims: allowedClaims,
@@ -722,7 +726,7 @@ export class HoidUnitEvidenceRuntime {
         question: request.question,
         reading: projectedBooks,
         intent: request.intent,
-        selectionBudget: resolveHoidExplanationDepthBudget(request.depth),
+        selectionBudget,
         ...(request.entityIds ? { entityIds: request.entityIds } : {}),
         ...(request.bookScope ? { bookScope: request.bookScope } : {}),
         ...(request.chapterReferences ? { chapterScope: request.chapterReferences } : {}),

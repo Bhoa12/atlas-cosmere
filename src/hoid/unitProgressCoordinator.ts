@@ -4,7 +4,6 @@ import {
   type HoidUnitProgressSnapshot,
   type HoidUnitProgressStore,
 } from "./unitProgressLedger";
-import type { HoidUnitProgressCursor } from "./unitProgressCursor";
 
 export type HoidUnitProgressCoordinatorResult =
   | Readonly<{

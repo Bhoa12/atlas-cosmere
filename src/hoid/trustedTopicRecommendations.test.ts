@@ -198,7 +198,7 @@ describe("Hoid trusted topic recommendation presentation", () => {
   it("returns promptly when approved-claim loading is cancelled and ignores the late result", async () => {
     const fixture = setup();
     let resolveClaims!: (value: unknown) => void;
-    fixture.loadApprovedClaims.mockImplementation(() => new Promise(resolve => {
+    fixture.loadApprovedClaims.mockImplementation(() => new Promise<unknown>(resolve => {
       resolveClaims = resolve;
     }));
     const controller = new AbortController();

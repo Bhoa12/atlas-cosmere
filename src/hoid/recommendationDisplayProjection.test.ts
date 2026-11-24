@@ -221,6 +221,7 @@ describe("Hoid recommendation display projections", () => {
       title: citation.title,
       chapter: citation.chapter,
       chapterOrdinal: identity.identity.ordinal,
+      chapterLabelAmbiguous: false,
     });
     const serialized = JSON.stringify(display);
     for (const secret of [
@@ -260,6 +261,7 @@ describe("Hoid recommendation display projections", () => {
         title: "Viento y verdad",
         chapter: 12,
         chapterOrdinal: unit.ordinal,
+        chapterLabelAmbiguous: true,
       });
       expect(JSON.stringify(display)).not.toContain(unit.locatorId);
     }

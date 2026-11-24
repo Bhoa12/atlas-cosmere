@@ -22,6 +22,7 @@ export type HoidDisplayCitation = Readonly<{
   chapter: number;
   /** Stable numbered-unit ordinal; distinguishes repeated visible chapter labels. */
   chapterOrdinal: number;
+  chapterLabelAmbiguous: boolean;
 }>;
 
 export type HoidDisplaySegment = Readonly<{
@@ -60,11 +61,16 @@ function projectCitation(citation: HoidPresentedCitation): HoidDisplayCitation |
     locatorId: citation.locatorId,
   });
   if (identity.status !== "resolved") return null;
+  const labelResolution = resolveHoidChapterIdentity(citation.sourceBookId, {
+    chapterNumber: citation.chapter,
+  });
+  if (labelResolution.status === "unavailable") return null;
   return Object.freeze({
     sourceBookId: citation.sourceBookId,
     title: citation.title,
     chapter: citation.chapter,
     chapterOrdinal: identity.identity.ordinal,
+    chapterLabelAmbiguous: labelResolution.status === "ambiguous",
   });
 }
 

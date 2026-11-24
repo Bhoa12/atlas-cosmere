@@ -472,11 +472,41 @@ export class HoidTrustedExactUnitAnswerHost {
         invalidateActive("progress-changed");
       });
 
+      // Re-read the complete trust/bundle snapshot after subscriptions are installed.
+      // This closes the publication-to-subscription race for package and registry sources.
+      const recheckedTrust = await this.loadTrustedRuntime(null);
+      if (recheckedTrust.status !== "ready") {
+        clear(recheckedTrust.reason);
+        return Object.freeze({ status: "blocked", reason: recheckedTrust.reason });
+      }
+      if (recheckedTrust.value.packageFingerprint !== pending.packageFingerprint ||
+        recheckedTrust.value.contextFingerprint !== pending.contextFingerprint) {
+        clear("claim-bundle-changed");
+        return Object.freeze({ status: "blocked", reason: "claim-bundle-changed" });
+      }
+      if (recheckedTrust.value.registryRevision !== currentTrust.value.registryRevision ||
+        recheckedTrust.value.registryFingerprint !== currentTrust.value.registryFingerprint) {
+        clear("trust-checkpoint-conflict");
+        return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
+      }
+
       // Close the gap between trust refresh and subscription installation.
       const durableCheckpoint = canonicalCheckpoint(await this.config.checkpointStore.read());
       if (!durableCheckpoint || !sameCheckpoint(durableCheckpoint, expectedCheckpoint)) {
         clear("trust-checkpoint-conflict");
         return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
+      }
+      if (bundleInvalidated) {
+        clear("claim-bundle-changed");
+        return Object.freeze({ status: "blocked", reason: "claim-bundle-changed" });
+      }
+      if (trustInvalidated) {
+        clear("trust-checkpoint-conflict");
+        return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
+      }
+      if (progressInvalidated) {
+        clear("progress-changed");
+        return Object.freeze({ status: "blocked", reason: "progress-changed" });
       }
 
       const progress = await pending.runtime.verifyForPresentation(pending.receipt);

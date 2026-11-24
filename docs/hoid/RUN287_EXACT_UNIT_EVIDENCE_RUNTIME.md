@@ -33,7 +33,9 @@ The currently open unit is never counted as completed. A progress change during 
 
 ## Legacy runtime containment
 
-The existing HoidEvidenceRuntime is reused only as a request-local selector/renderer over the already-authorized subset. Its synthetic completed positions are constructed locally from the source works represented in that subset. They are not persisted, are not returned to the UI, and are never sent as raw progress to the provider.
+The existing HoidEvidenceRuntime is reused only as a request-local selector/renderer over the already-authorized subset. Its secondary reading filter receives a conservative projection of the same v3 completed prefix only when that prefix has an unambiguous numeric representation. An explicitly completed v3 work remains explicitly completed. A cursor whose completed prefix cannot be represented without collapsing duplicate labels is excluded from this compatibility bridge.
+
+No synthetic whole-work completion is manufactured. The projected positions are request-local, are not persisted, are not returned to the UI, and are never sent as raw progress to the provider.
 
 This is a compatibility bridge, not a new authorization source. The v3 exact-unit prefilter and post-selection reauthorization remain authoritative. The legacy runtime cannot see evidence or claims that the exact-unit gate did not admit.
 

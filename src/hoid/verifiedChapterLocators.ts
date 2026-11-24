@@ -12,16 +12,24 @@
  * A TOC locator proves navigation structure only; it is not a chapter-body digest.
  * Accepted hrefs are restricted to safe relative paths without traversal segments.
  */
+type AmbiguousChapterLocator = Readonly<{
+  chapterNumber: number;
+  ordinal: number;
+  href: string;
+}>;
+
 type RawNavigationSource = Readonly<{
   editionId: string;
   navigationSha256: string;
   chapterHrefs: string;
+  ambiguousChapterLocators?: readonly AmbiguousChapterLocator[];
 }>;
 
 type VerifiedNavigationSource = Readonly<{
   editionId: string;
   navigationSha256: string;
   chapterHrefs: readonly string[];
+  ambiguousChapterLocators: readonly AmbiguousChapterLocator[];
 }>;
 
 const RAW: Readonly<Record<string, RawNavigationSource>> = Object.freeze({
@@ -49,6 +57,12 @@ const RAW: Readonly<Record<string, RawNavigationSource>> = Object.freeze({
     editionId: "roshar-omnibus-v1",
     navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
     chapterHrefs: "L5-011.xhtml,L5-012.xhtml,L5-013.xhtml,L5-014.xhtml,L5-015.xhtml,L5-016.xhtml,L5-017.xhtml,L5-018.xhtml,L5-019.xhtml,L5-020.xhtml,L5-021.xhtml",
+    ambiguousChapterLocators: Object.freeze([
+      Object.freeze({ chapterNumber: 12, ordinal: 12, href: "L5-023.xhtml" }),
+      Object.freeze({ chapterNumber: 12, ordinal: 14, href: "L5-028.xhtml" }),
+      Object.freeze({ chapterNumber: 14, ordinal: 15, href: "L5-030.xhtml" }),
+      Object.freeze({ chapterNumber: 14, ordinal: 35, href: "L5-055.xhtml" }),
+    ]),
   },
   edgedancer: {
     editionId: "edgedancer-epub-v1",
@@ -176,19 +190,50 @@ const COSMERE_RAW: Readonly<Record<string, RawNavigationSource>> = Object.freeze
 const VERIFIED: Readonly<Record<string, VerifiedNavigationSource>> = Object.freeze(
   Object.fromEntries(Object.entries({ ...RAW, ...COSMERE_RAW }).map(([bookId, source]) => {
     const hrefs = source.chapterHrefs.split(",");
+    const ambiguous = source.ambiguousChapterLocators ?? [];
+    const seenAmbiguous = new Set<string>();
+    const seenOrdinals = new Set<number>();
+    const seenAmbiguousHrefs = new Set<string>();
     if (
       !/^[a-z0-9-]{3,96}$/.test(source.editionId) ||
       !/^[a-f0-9]{64}$/.test(source.navigationSha256) ||
       hrefs.length === 0 ||
       new Set(hrefs).size !== hrefs.length ||
-      !hrefs.every(href => /^(?:(?:L[1-5]-[0-9]{3}|Text[/][0-9]{1,3})[.]xhtml|books[/]b[0-9]{6}[/]OEBPS[/]Text[/][A-Za-z0-9._-]+[.](?:xhtml|html))$/.test(href) && !href.includes(".."))
+      !hrefs.every(href => /^(?:(?:L[1-5]-[0-9]{3}|Text[/][0-9]{1,3})[.]xhtml|books[/]b[0-9]{6}[/]OEBPS[/]Text[/][A-Za-z0-9._-]+[.](?:xhtml|html))$/.test(href) && !href.includes("..")) ||
+      !Array.isArray(ambiguous) ||
+      ambiguous.length > 64
     ) {
       throw new Error("Invalid verified Hoid chapter navigation metadata");
     }
+    const ambiguousChapterLocators = ambiguous.map(entry => {
+      if (
+        !entry ||
+        !Number.isSafeInteger(entry.chapterNumber) ||
+        entry.chapterNumber < 1 ||
+        !Number.isSafeInteger(entry.ordinal) ||
+        entry.ordinal < 1 ||
+        typeof entry.href !== "string" ||
+        !/^(?:(?:L[1-5]-[0-9]{3}|Text[/][0-9]{1,3})[.]xhtml|books[/]b[0-9]{6}[/]OEBPS[/]Text[/][A-Za-z0-9._-]+[.](?:xhtml|html))$/.test(entry.href) ||
+        entry.href.includes("..") ||
+        hrefs.includes(entry.href) ||
+        seenAmbiguous.has(entry.chapterNumber + ":" + entry.ordinal) ||
+        seenOrdinals.has(entry.ordinal) ||
+        seenAmbiguousHrefs.has(entry.href)
+      ) throw new Error("Invalid ambiguous Hoid chapter locator metadata");
+      seenAmbiguous.add(entry.chapterNumber + ":" + entry.ordinal);
+      seenOrdinals.add(entry.ordinal);
+      seenAmbiguousHrefs.add(entry.href);
+      return Object.freeze({
+        chapterNumber: entry.chapterNumber,
+        ordinal: entry.ordinal,
+        href: entry.href,
+      });
+    }).sort((left, right) => left.ordinal - right.ordinal);
     return [bookId, Object.freeze({
       editionId: source.editionId,
       navigationSha256: source.navigationSha256,
       chapterHrefs: Object.freeze(hrefs),
+      ambiguousChapterLocators: Object.freeze(ambiguousChapterLocators),
     })];
   })),
 );
@@ -227,10 +272,40 @@ export function getVerifiedChapterLocatorId(
     : null;
 }
 
-/** Number of chapter locators verified for a work in its exact source edition. */
+/**
+ * Resolve one explicitly disambiguated chapter locator from the inspected TOC.
+ * This metadata identifies a chapter unit; it does not grant numeric progress.
+ */
+export function getVerifiedAmbiguousChapterLocatorEntries(
+  bookId: unknown,
+  editionId: unknown,
+  navigationSha256: unknown,
+): readonly Readonly<{ chapterNumber: number; ordinal: number; locatorId: string }>[] {
+  if (
+    typeof bookId !== "string" ||
+    typeof editionId !== "string" ||
+    typeof navigationSha256 !== "string" ||
+    !Object.prototype.hasOwnProperty.call(VERIFIED, bookId)
+  ) return Object.freeze([]);
+
+  const source = VERIFIED[bookId];
+  if (
+    !source ||
+    source.editionId !== editionId ||
+    source.navigationSha256 !== navigationSha256
+  ) return Object.freeze([]);
+
+  return Object.freeze(source.ambiguousChapterLocators.map(entry => Object.freeze({
+    chapterNumber: entry.chapterNumber,
+    ordinal: entry.ordinal,
+    locatorId: `nav:${source.editionId}:${source.navigationSha256}:${entry.href}`,
+  })));
+}
+
+/** Number of exact chapter locators verified for a work in its source edition. */
 export function getVerifiedChapterLocatorCount(bookId: unknown): number {
   if (typeof bookId !== "string") return 0;
-  return Object.prototype.hasOwnProperty.call(VERIFIED, bookId)
-    ? VERIFIED[bookId].chapterHrefs.length
-    : 0;
+  if (!Object.prototype.hasOwnProperty.call(VERIFIED, bookId)) return 0;
+  const source = VERIFIED[bookId];
+  return source.chapterHrefs.length + source.ambiguousChapterLocators.length;
 }

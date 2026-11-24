@@ -235,7 +235,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       manifest.navigationSha256,
     );
     if (!navigationHref) {
-      block("invalid-relative-locator", units.length, nextUnit.chapterNumber);
+      block("invalid-relative-locator", safeUnits.length, nextUnit.chapterNumber);
       continue;
     }
 

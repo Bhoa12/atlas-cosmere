@@ -24,7 +24,7 @@ A cursor at ordinal N is accepted only when the current manifest contains every 
 
 This prevents progress from jumping across missing structural entries. The manifest is never completed by inference.
 
-For the inspected `twok` / *Viento y verdad* edition:
+For the inspected `sawt` / *Viento y verdad* edition:
 
 - Ordinals 1–11 form the existing verified numeric prefix.
 - The first occurrence of chapter 12 is present at ordinal 12 with an exact locator.

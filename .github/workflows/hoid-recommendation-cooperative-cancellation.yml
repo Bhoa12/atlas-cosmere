@@ -1,0 +1,77 @@
+name: Hoid cooperative recommendation cancellation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/abortableOperation.ts"
+      - "src/hoid/abortableOperation.test.ts"
+      - "src/hoid/recommendationRequestSession.ts"
+      - "src/hoid/recommendationRequestSession.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/topicApprovedClaimAnswerPort.ts"
+      - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
+      - "src/hoid/trustedTopicRecommendations.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN269_COOPERATIVE_RECOMMENDATION_CANCELLATION.md"
+      - ".github/workflows/hoid-recommendation-cooperative-cancellation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/abortableOperation.ts"
+      - "src/hoid/abortableOperation.test.ts"
+      - "src/hoid/recommendationRequestSession.ts"
+      - "src/hoid/recommendationRequestSession.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/topicApprovedClaimAnswerPort.ts"
+      - "src/hoid/topicApprovedClaimAnswerPort.test.ts"
+      - "src/hoid/trustedTopicRecommendations.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/trustedScreenAnswer.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN269_COOPERATIVE_RECOMMENDATION_CANCELLATION.md"
+      - ".github/workflows/hoid-recommendation-cooperative-cancellation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recommendation-cancellation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cooperative cancellation boundaries
+        run: >-
+          npx vitest run
+          src/hoid/abortableOperation.test.ts
+          src/hoid/recommendationRequestSession.test.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
+          src/hoid/topicApprovedClaimAnswerPort.test.ts
+          src/hoid/trustedTopicRecommendations.test.ts
+      - name: Strict type-check recommendation cancellation integration
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native --esModuleInterop
+          src/hoid/abortableOperation.ts
+          src/hoid/abortableOperation.test.ts
+          src/hoid/recommendationRequestSession.ts
+          src/hoid/recommendationRequestSession.test.ts
+          src/hoid/topicInterestRecommendationsGateway.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
+          src/hoid/topicApprovedClaimAnswerPort.ts
+          src/hoid/topicApprovedClaimAnswerPort.test.ts
+          src/hoid/trustedTopicRecommendations.ts
+          src/hoid/trustedTopicRecommendations.test.ts
+          src/hoid/trustedScreenAnswer.ts
+          src/screens/HoidScreen.tsx

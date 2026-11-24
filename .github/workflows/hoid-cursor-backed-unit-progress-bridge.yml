@@ -1,0 +1,89 @@
+name: Hoid cursor-backed exact-unit progress bridge
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/cursorBackedUnitProgressStore.ts"
+      - "src/hoid/cursorBackedUnitProgressStore.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN295_CURSOR_BACKED_UNIT_PROGRESS_BRIDGE.md"
+      - ".github/workflows/hoid-cursor-backed-unit-progress-bridge.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run295"
+    paths:
+      - "src/hoid/cursorBackedUnitProgressStore.ts"
+      - "src/hoid/cursorBackedUnitProgressStore.test.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/cursorSqliteProgressStore.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN295_CURSOR_BACKED_UNIT_PROGRESS_BRIDGE.md"
+      - ".github/workflows/hoid-cursor-backed-unit-progress-bridge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cursor-backed-unit-progress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test cursor-to-unit projection and freshness bridge
+        run: >-
+          npx vitest run
+          src/hoid/cursorBackedUnitProgressStore.test.ts
+          src/hoid/cursorProgressLedger.test.ts
+          src/hoid/cursorSqliteProgressStore.test.ts
+          src/hoid/unitProgressLedger.test.ts
+          src/hoid/unitProgressCoordinator.test.ts
+          src/hoid/unitProgressCursor.test.ts
+          src/hoid/chapterReference.test.ts
+          src/hoid/chapterIdentity.test.ts
+      - name: Strict type-check progress bridge
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/cursorBackedUnitProgressStore.ts
+          src/hoid/cursorBackedUnitProgressStore.test.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/cursorProgressCoordinator.ts
+          src/hoid/cursorSqliteProgressStore.ts
+          src/hoid/unitProgressLedger.ts
+          src/hoid/unitProgressCoordinator.ts
+          src/hoid/unitProgressCursor.ts
+          src/hoid/chapterReference.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts
+          src/hoid/types.ts

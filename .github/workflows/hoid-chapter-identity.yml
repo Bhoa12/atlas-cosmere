@@ -7,6 +7,8 @@ on:
     paths:
       - "src/hoid/chapterIdentity.ts"
       - "src/hoid/chapterIdentity.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/readingManifest.test.ts"
       - "src/hoid/evidenceScope.ts"
       - "src/hoid/evidenceScope.test.ts"
       - "src/hoid/editorialDrafts.ts"
@@ -38,6 +40,6 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Test chapter identity and editorial authorization
-        run: npx vitest run src/hoid/chapterIdentity.test.ts src/hoid/evidenceScope.test.ts src/hoid/editorialDrafts.test.ts
+        run: npx vitest run src/hoid/chapterIdentity.test.ts src/hoid/readingManifest.test.ts src/hoid/evidenceScope.test.ts src/hoid/editorialDrafts.test.ts
       - name: Type-check chapter identity and editorial authorization
         run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck src/hoid/chapterIdentity.ts src/hoid/readingManifest.ts src/hoid/evidenceScope.ts src/hoid/editorialDrafts.ts

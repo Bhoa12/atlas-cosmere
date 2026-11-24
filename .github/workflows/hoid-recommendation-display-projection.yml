@@ -1,0 +1,49 @@
+name: Hoid recommendation display data minimization
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/recommendationDisplayProjection.ts"
+      - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN272_RECOMMENDATION_DISPLAY_MINIMIZATION.md"
+      - ".github/workflows/hoid-recommendation-display-projection.yml"
+  pull_request:
+    paths:
+      - "src/hoid/recommendationDisplayProjection.ts"
+      - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/topicRecommendations.ts"
+      - "src/hoid/topicTaxonomy.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN272_RECOMMENDATION_DISPLAY_MINIMIZATION.md"
+      - ".github/workflows/hoid-recommendation-display-projection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recommendation-display-projection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test recommendation display projections
+        run: npx vitest run src/hoid/recommendationDisplayProjection.test.ts
+      - name: Type-check recommendation display boundary
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --skipLibCheck src/hoid/recommendationDisplayProjection.ts

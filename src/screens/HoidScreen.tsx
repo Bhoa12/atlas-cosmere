@@ -52,7 +52,12 @@ import {
   openHoidRecommendationChapter,
   type HoidRecommendationReaderPort,
 } from '../hoid/recommendationReaderPort';
-import type { HoidTopicRecommendation } from '../hoid/topicRecommendations';
+import {
+  projectHoidEditionRecommendationsForDisplay,
+  projectHoidTopicRecommendationsForDisplay,
+  type HoidEditionRecommendationDisplayProjection,
+  type HoidTopicRecommendationDisplayItem,
+} from '../hoid/recommendationDisplayProjection';
 import {
   HOID_STATIC_GREETING_ID,
   HOID_STATIC_GREETING_KIND,
@@ -150,7 +155,30 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   ]);
   const [input, setInput] = useState('');
   const [explanationDepth, setExplanationDepth] = useState<HoidExplanationDepth>('detailed');
-  const [recommendationPresentation, setRecommendationPresentation] = useState<HoidEditionBoundRecommendationPresentation | null>(null);
+  const [recommendationPresentation, setRecommendationPresentation] = useState<HoidEditionRecommendationDisplayProjection | null>(null);
+  // Full edition-bound targets stay outside React state. The UI receives only
+  // the display projection; navigation resolves the private target from this ref
+  // and revalidates it against live progress immediately before opening.
+  const recommendationPresentationRef = useRef<HoidEditionBoundRecommendationPresentation | null>(null);
+  const recommendationDisplayProjectionRef = useRef<HoidEditionRecommendationDisplayProjection | null>(null);
+  const clearRecommendationPresentation = () => {
+    recommendationPresentationRef.current = null;
+    recommendationDisplayProjectionRef.current = null;
+    setRecommendationPresentation(null);
+  };
+  const commitRecommendationPresentation = (
+    trustedPresentation: HoidEditionBoundRecommendationPresentation,
+  ): boolean => {
+    const display = projectHoidEditionRecommendationsForDisplay(trustedPresentation);
+    if (!display) {
+      clearRecommendationPresentation();
+      return false;
+    }
+    recommendationPresentationRef.current = trustedPresentation;
+    recommendationDisplayProjectionRef.current = display;
+    setRecommendationPresentation(display);
+    return true;
+  };
   const [recommendationMessage, setRecommendationMessage] = useState('');
   const [recommendationSelectedBookId, setRecommendationSelectedBookId] = useState<string | null>(null);
   const [readerPortState, setReaderPortState] = useState<Readonly<{
@@ -173,11 +201,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     }
   }, []);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
-  const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendation[]>([]);
-  const [topicRecommendationRevision, setTopicRecommendationRevision] = useState<number | null>(null);
-  const [topicRecommendationFingerprint, setTopicRecommendationFingerprint] = useState<string | null>(null);
-  const [topicRecommendationSelectionKey, setTopicRecommendationSelectionKey] = useState<string | null>(null);
-  const [topicRecommendationTrustPort, setTopicRecommendationTrustPort] = useState<HoidTrustedScreenAnswerPort | null>(null);
+  const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendationDisplayItem[]>([]);
+  const topicRecommendationBindingRef = useRef<Readonly<{
+    revision: number;
+    fingerprint: string;
+    selectionKey: string;
+    trustPort: HoidTrustedScreenAnswerPort;
+  }> | null>(null);
+  const clearTopicRecommendationBinding = () => {
+    topicRecommendationBindingRef.current = null;
+  };
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
   const [answerScopeMode, setAnswerScopeMode] = useState<HoidAnswerScopeMode>('automatic');
   const [answerScopeBookIds, setAnswerScopeBookIds] = useState<readonly string[]>([]);
@@ -201,23 +234,22 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
-    setRecommendationPresentation(null);
+    clearRecommendationPresentation();
     setRecommendationMessage('');
     setRecommendationSelectedBookId(null);
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
     setReaderOpening(false);
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
     recommendationRequestSession.invalidate();
+    recommendationPresentationRef.current = null;
+    recommendationDisplayProjectionRef.current = null;
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
   }, []);
@@ -695,7 +727,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     setCargandoRecomendaciones(true);
-    setRecommendationPresentation(null);
+    clearRecommendationPresentation();
     setRecommendationMessage('');
     setRecommendationSelectedBookId(activeBookId ?? null);
 
@@ -749,13 +781,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         return;
       }
 
-      setRecommendationPresentation(presentation);
+      if (!commitRecommendationPresentation(presentation)) {
+        setRecommendationMessage('No puedo reducir la recomendación a metadatos de presentación seguros. No mostraré resultados.');
+        return;
+      }
       setRecommendationMessage(presentation.status === 'selection-required'
         ? 'Hay varias obras en curso. Selecciona explícitamente cuál quieres reanudar.'
         : `Se han preparado ${presentation.items.length} recomendaciones vinculadas al progreso y a sus manifiestos. No es una ruta canónica.`);
     } catch {
       if (!recommendationRequestSession.isCurrent(ticket)) return;
-      setRecommendationPresentation(null);
+      clearRecommendationPresentation();
       setRecommendationMessage('No puedo verificar el progreso o el catálogo. No mostraré recomendaciones.');
     } finally {
       if (recommendationRequestSession.finish(ticket)) {
@@ -771,10 +806,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       ? previous.filter(item => item !== topicId)
       : [...previous, topicId]);
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
 
@@ -790,10 +822,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
     setCargandoRecomendaciones(true);
     const selectedTopicSnapshot = Object.freeze([...selectedTopicIds]);
@@ -848,9 +877,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         if (!recommendationRequestSession.isCurrent(ticket)) return;
         if (verified.status !== 'ready') {
           setTopicRecommendations([]);
-          setTopicRecommendationRevision(null);
-          setTopicRecommendationFingerprint(null);
-          setTopicRecommendationSelectionKey(null);
+          clearTopicRecommendationBinding();
           setTopicRecommendationMessage(
             verified.reason === 'progress-changed'
               ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
@@ -873,29 +900,36 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           fingerprintHoidCursorProgressProjection(latestProjection) !== result.progressFingerprint
         ) {
           setTopicRecommendations([]);
-          setTopicRecommendationRevision(null);
-          setTopicRecommendationFingerprint(null);
-          setTopicRecommendationSelectionKey(null);
+          clearTopicRecommendationBinding();
           setTopicRecommendationMessage('Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.');
           return;
         }
-        setTopicRecommendations(verified.items);
-        setTopicRecommendationRevision(verified.progressRevision);
-        setTopicRecommendationFingerprint(verified.progressFingerprint);
-        setTopicRecommendationSelectionKey(selectedTopicSnapshot.join('\n'));
-        setTopicRecommendationTrustPort(trustedAnswerPort);
+        const topicDisplayItems = projectHoidTopicRecommendationsForDisplay(verified.items);
+        if (!topicDisplayItems) {
+          setTopicRecommendations([]);
+          clearTopicRecommendationBinding();
+          setTopicRecommendationMessage('No puedo reducir las recomendaciones temáticas a metadatos seguros. No mostraré resultados.');
+          return;
+        }
+        setTopicRecommendations(topicDisplayItems);
+        topicRecommendationBindingRef.current = Object.freeze({
+          revision: verified.progressRevision,
+          fingerprint: verified.progressFingerprint,
+          selectionKey: selectedTopicSnapshot.join('\n'),
+          trustPort: trustedAnswerPort,
+        });
         setTopicRecommendationMessage(
           verified.items.length === 0
             ? 'No hay coincidencias temáticas aprobadas para esta selección.'
             : 'Estas recomendaciones utilizan afirmaciones firmadas, asociaciones editoriales aprobadas y evidencias ya desbloqueadas.',
         );
       } else if (result.status === 'none') {
-        setTopicRecommendationSelectionKey(null);
+        clearTopicRecommendationBinding();
         setTopicRecommendationMessage(
           'Todavía no hay asociaciones temáticas aprobadas y seguras para estos intereses. No inferiré recomendaciones por semejanza.',
         );
       } else {
-        setTopicRecommendationSelectionKey(null);
+        clearTopicRecommendationBinding();
         setTopicRecommendationMessage(
           result.reason === 'progress-changed' || result.reason === 'context-stale'
             ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
@@ -905,9 +939,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     } catch {
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       setTopicRecommendations([]);
-      setTopicRecommendationRevision(null);
-      setTopicRecommendationFingerprint(null);
-      setTopicRecommendationSelectionKey(null);
+      clearTopicRecommendationBinding();
       setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
     } finally {
       if (recommendationRequestSession.finish(ticket)) {
@@ -919,23 +951,23 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   const cancelarRecomendaciones = () => {
     if (!recommendationRequestSession.cancelCurrent()) return;
     setCargandoRecomendaciones(false);
-    setRecommendationPresentation(null);
+    clearRecommendationPresentation();
     setRecommendationSelectedBookId(null);
     setRecommendationMessage('Solicitud cancelada. No mostraré resultados parciales.');
     setTopicRecommendations([]);
-    setTopicRecommendationRevision(null);
-    setTopicRecommendationFingerprint(null);
-    setTopicRecommendationSelectionKey(null);
-    setTopicRecommendationTrustPort(null);
+    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
 
   // A recommendation view model is visible only for its exact validated progress revision and fingerprint.
+  const privateRecommendationPresentation = recommendationPresentationRef.current;
   const recommendationsAreCurrent =
     recommendationPresentation !== null &&
+    recommendationDisplayProjectionRef.current === recommendationPresentation &&
+    privateRecommendationPresentation !== null &&
     liveProjection?.status === 'ready' &&
     validateHoidEditionBoundRecommendationFreshness(
-      recommendationPresentation,
+      privateRecommendationPresentation,
       liveProjection,
     ) === 'current';
   const describeRecommendationNavigation = (
@@ -960,6 +992,22 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     return readerReady
       ? `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. Lector EPUB local disponible.`
       : `Destino revalidado contra el progreso y la edición · capítulo ${handoff.handoff.cursor.chapterNumber}. Importa y verifica el EPUB de esta obra para abrirlo localmente.`;
+  };
+
+  const describeRecommendationNavigationForDisplay = (sourceId: string): string => {
+    const trusted = recommendationPresentationRef.current;
+    if (
+      recommendationDisplayProjectionRef.current !== recommendationPresentation ||
+      !trusted ||
+      trusted.status !== 'ready'
+    ) return 'Destino no disponible: actualiza las recomendaciones para volver a verificarlo.';
+    const item = trusted.items.find(candidate => candidate.sourceId === sourceId);
+    if (!item) return 'Destino no disponible: no existe una recomendación privada asociada a esta obra.';
+    return describeRecommendationNavigation(
+      item.target,
+      trusted.progressRevision,
+      trusted.progressFingerprint,
+    );
   };
 
   const openRecommendationInReader = async (
@@ -1015,6 +1063,33 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     }
   };
 
+  const openRecommendationFromDisplay = (sourceId: string) => {
+    const trusted = recommendationPresentationRef.current;
+    if (
+      recommendationDisplayProjectionRef.current !== recommendationPresentation ||
+      !trusted ||
+      trusted.status !== 'ready'
+    ) {
+      setReaderMessage('La recomendación ya no está vigente. Actualiza el catálogo antes de abrirla.');
+      return;
+    }
+    const item = trusted.items.find(candidate => candidate.sourceId === sourceId);
+    if (
+      !item ||
+      item.target.kind !== 'edition-cursor' ||
+      item.target.locatorStatus !== 'verified'
+    ) {
+      setReaderMessage('No existe un destino EPUB verificado para esta recomendación.');
+      return;
+    }
+    void openRecommendationInReader(
+      item.target,
+      item.sourceId,
+      trusted.progressRevision,
+      trusted.progressFingerprint,
+    );
+  };
+
   const cancelReaderOpen = () => {
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
@@ -1023,15 +1098,15 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
   };
 
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
+  const topicRecommendationBinding = topicRecommendationBindingRef.current;
   const topicRecommendationsAreCurrent =
     topicRecommendationsTrustReady &&
-    topicRecommendationRevision !== null &&
-    topicRecommendationFingerprint !== null &&
+    topicRecommendationBinding !== null &&
     liveProgressScope !== null &&
-    topicRecommendationRevision === liveProgressScope.revision &&
-    topicRecommendationFingerprint === liveProgressScope.fingerprint &&
-    topicRecommendationSelectionKey === selectedTopicIds.join('\n') &&
-    topicRecommendationTrustPort === trustedAnswerPort;
+    topicRecommendationBinding.revision === liveProgressScope.revision &&
+    topicRecommendationBinding.fingerprint === liveProgressScope.fingerprint &&
+    topicRecommendationBinding.selectionKey === selectedTopicIds.join('\n') &&
+    topicRecommendationBinding.trustPort === trustedAnswerPort;
   const activeConversationScopeBinding = conversationScopeBindingRef.current;
 
   return (
@@ -1127,27 +1202,16 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             <Text style={styles.recommendationItemText}>{item.heading}</Text>
             <Text style={styles.recommendationItemMeta}>{item.detail}</Text>
             <Text style={styles.recommendationTarget}>
-              {item.target.kind === 'catalog-only'
+              {item.navigation === 'catalog-only'
                 ? 'Solo catálogo · no existe un destino por capítulo verificado.'
-                : describeRecommendationNavigation(
-                    item.target,
-                    recommendationPresentation.progressRevision,
-                    recommendationPresentation.progressFingerprint,
-                  )}
+                : describeRecommendationNavigationForDisplay(item.sourceId)}
             </Text>
-            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'verified' && readerPortState?.workId === item.sourceId && (
+            {item.navigation === 'verified' && readerPortState?.workId === item.sourceId && (
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={`Abrir ${item.heading} en el lector EPUB local`}
                 disabled={readerOpening}
-                onPress={() => {
-                  void openRecommendationInReader(
-                    item.target,
-                    item.sourceId,
-                    recommendationPresentation.progressRevision,
-                    recommendationPresentation.progressFingerprint,
-                  );
-                }}
+                onPress={() => openRecommendationFromDisplay(item.sourceId)}
                 style={[styles.readerOpenButton, readerOpening && styles.disabledButton]}
               >
                 <Text style={styles.readerOpenButtonText}>
@@ -1155,12 +1219,12 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 </Text>
               </TouchableOpacity>
             )}
-            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'verified' && readerPortState?.workId !== item.sourceId && (
+            {item.navigation === 'verified' && readerPortState?.workId !== item.sourceId && (
               <Text style={styles.readerHint}>
                 Importa y verifica la edición EPUB de esta obra para abrir el capítulo localmente.
               </Text>
             )}
-            {item.target.kind === 'edition-cursor' && item.target.locatorStatus === 'cursor-only' && (
+            {item.navigation === 'cursor-only' && (
               <Text style={styles.readerHint}>
                 El cursor está verificado, pero esta edición no tiene un localizador de capítulo aprobado para apertura.
               </Text>
@@ -1306,13 +1370,13 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           <View key={item.sourceId} style={styles.topicRecommendationItem}>
             <Text style={styles.recommendationItemText}>{item.title}</Text>
             {item.matches.map(match => (
-              <View key={match.claimId} style={styles.provenanceSegment}>
+              <View key={match.key} style={styles.provenanceSegment}>
                 <Text style={styles.recommendationItemMeta}>
                   {match.topicLabel} · {match.dimensionLabel}
                 </Text>
                 <Text style={styles.bubbleText}>{match.reasonText}</Text>
-                {match.citations.map(citation => (
-                  <Text key={citation.evidenceId} style={styles.citationText}>
+                {match.citations.map((citation, citationIndex) => (
+                  <Text key={citation.sourceBookId + ':' + citation.chapter + ':' + citationIndex} style={styles.citationText}>
                     {citation.title} · capítulo {citation.chapter}
                   </Text>
                 ))}

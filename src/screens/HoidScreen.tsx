@@ -242,9 +242,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setReaderOpening(false);
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort]);
 
@@ -810,9 +807,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       : [...previous, topicId]);
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
 
@@ -828,9 +822,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     setTopicRecommendations([]);
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
     setCargandoRecomendaciones(true);
@@ -887,8 +878,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         if (verified.status !== 'ready') {
           setTopicRecommendations([]);
           clearTopicRecommendationBinding();
-          clearTopicRecommendationBinding();
-          clearTopicRecommendationBinding();
           setTopicRecommendationMessage(
             verified.reason === 'progress-changed'
               ? 'Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.'
@@ -912,16 +901,12 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         ) {
           setTopicRecommendations([]);
           clearTopicRecommendationBinding();
-          clearTopicRecommendationBinding();
-          clearTopicRecommendationBinding();
           setTopicRecommendationMessage('Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.');
           return;
         }
         const topicDisplayItems = projectHoidTopicRecommendationsForDisplay(verified.items);
         if (!topicDisplayItems) {
           setTopicRecommendations([]);
-          clearTopicRecommendationBinding();
-          clearTopicRecommendationBinding();
           clearTopicRecommendationBinding();
           setTopicRecommendationMessage('No puedo reducir las recomendaciones temáticas a metadatos seguros. No mostraré resultados.');
           return;
@@ -955,8 +940,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       setTopicRecommendations([]);
       clearTopicRecommendationBinding();
-      clearTopicRecommendationBinding();
-      clearTopicRecommendationBinding();
       setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
     } finally {
       if (recommendationRequestSession.finish(ticket)) {
@@ -972,9 +955,6 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setRecommendationSelectedBookId(null);
     setRecommendationMessage('Solicitud cancelada. No mostraré resultados parciales.');
     setTopicRecommendations([]);
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
-    clearTopicRecommendationBinding();
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };

@@ -114,8 +114,12 @@ async function readCurrentProgress(
 ): Promise<unknown> {
   return await awaitHoidOperationWithSignal(
     () => typeof config.refreshCurrentProgress === "function"
-      ? config.refreshCurrentProgress(signal)
-      : config.getCurrentProgress(signal),
+      ? signal
+        ? config.refreshCurrentProgress(signal)
+        : config.refreshCurrentProgress()
+      : signal
+        ? config.getCurrentProgress(signal)
+        : config.getCurrentProgress(),
     signal,
   );
 }
@@ -203,7 +207,9 @@ export class HoidTopicInterestRecommendationGateway {
       }
       try {
         answers = await awaitHoidOperationWithSignal(
-          () => this.config.answerApprovedClaims!(Object.freeze(claimIds), raw.progress, signal),
+          () => signal
+            ? this.config.answerApprovedClaims!(Object.freeze(claimIds), raw.progress, signal)
+            : this.config.answerApprovedClaims!(Object.freeze(claimIds), raw.progress),
           signal,
         );
       } catch (error) {

@@ -8,6 +8,7 @@ import {
 import { createHoidClaimSelectionResponse } from "./selectionProtocol";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { getHoidReadingManifest } from "./readingManifest";
+import { createHoidChapterReference } from "./chapterReference";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 
 function locator(bookId: string, chapter: number): string {
@@ -178,6 +179,94 @@ describe("HoidEvidenceRuntime", () => {
       unlockChapter: 2,
     }]);
     expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("reauthorizes exact entity IDs for pronoun-only follow-ups without sending them to the selector", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
+      expect("entityIds" in request).toBe(false);
+      return createHoidClaimSelectionResponse(request, ["claim-alpha"]);
+    });
+    const runtime = createRuntime(selector);
+    const result = await runtime!.answer({
+      question: "¿Y ella?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      entityIds: ["e-alpha"],
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the previous exact chapter as a local evidence filter and never sends chapter references to the selector", async () => {
+    const gamma: HoidKnowledgeEntry = {
+      id: "e-gamma",
+      aliases: ["Personaje Gamma"],
+      kind: "character",
+      firstSafeAppearance: { bookId: "twok", chapter: 3 },
+      evidenceSource: { bookId: "twok", chapter: 3, locatorId: locator("twok", 3) },
+      evidenceUnlock: { bookId: "twok", chapter: 3 },
+      provenance: "verified",
+      summary: "Resumen editorial sintético de prueba sobre Personaje Gamma.",
+    };
+    const scopedKnowledge = [...knowledge, gamma];
+    const gammaPair = approvedClaim({
+      id: "claim-alpha-gamma",
+      text: "Relación sintética entre Alfa y Gamma.",
+      intent: "explain",
+      evidenceIds: ["e-alpha", "e-gamma"],
+      entityIds: ["e-alpha", "e-gamma"],
+    }, scopedKnowledge);
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
+      expect("chapterScope" in request).toBe(false);
+      expect("identityFingerprint" in request.candidates[0]).toBe(false);
+      expect("unitId" in request.candidates[0]).toBe(false);
+      return createHoidClaimSelectionResponse(request, ["claim-alpha"]);
+    });
+    const runtime = createHoidEvidenceRuntime({
+      knowledge: scopedKnowledge,
+      claims: [...claims, gammaPair],
+      selector: selectorAdapter(selector),
+    });
+    const reference = createHoidChapterReference("twok", { chapterNumber: 2 });
+    if (reference.status !== "ready") throw new Error("Referencia sintética no disponible");
+
+    const result = await runtime!.answer({
+      question: "¿Qué relación hay entre Personaje Alfa y Personaje Gamma?",
+      reading: [{ bookId: "twok", chapter: 3 }],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [reference.reference],
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects stale chapter-scope fingerprints before selector invocation", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) =>
+      createHoidClaimSelectionResponse(request, ["claim-alpha"])
+    );
+    const runtime = createRuntime(selector);
+    const reference = createHoidChapterReference("twok", { chapterNumber: 2 });
+    if (reference.status !== "ready") throw new Error("Referencia sintética no disponible");
+    const staleReference = Object.freeze({
+      ...reference.reference,
+      identityFingerprint: "0".repeat(64),
+    });
+
+    const result = await runtime!.answer({
+      question: "¿Quién es Personaje Alfa?",
+      reading: [{ bookId: "twok", chapter: 2 }],
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [staleReference],
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("invalid-input");
+    expect(selector).not.toHaveBeenCalled();
   });
 
   it("rejects a selector response replayed for a different question and progress snapshot", async () => {

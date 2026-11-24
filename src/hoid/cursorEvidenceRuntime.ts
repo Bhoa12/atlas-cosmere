@@ -29,7 +29,7 @@ export type HoidCursorProgressProjection =
       reason: "invalid-snapshot" | "cursor-unavailable";
     }>;
 
-const ANSWER_REQUEST_KEYS = new Set(["question", "progress", "intent", "entityIds", "selectionBudget", "bookScope"]);
+const ANSWER_REQUEST_KEYS = new Set(["question", "progress", "intent", "entityIds", "selectionBudget", "bookScope", "chapterScope"]);
 const MAX_RECOMMENDATION_LIMIT = 20;
 
 function canonicalDataRecord(
@@ -167,6 +167,9 @@ export class HoidCursorEvidenceRuntime {
         : {}),
       ...(Object.prototype.hasOwnProperty.call(request, "bookScope")
         ? { bookScope: request.bookScope }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(request, "chapterScope")
+        ? { chapterScope: request.chapterScope }
         : {}),
     }, options);
     if (answer.status !== "authorized") return answer;

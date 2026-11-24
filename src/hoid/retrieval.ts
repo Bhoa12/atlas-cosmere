@@ -37,6 +37,7 @@ export function retrieveAuthorized(
   items: HoidKnowledgeEntry[],
   progress: ReadingPosition[],
   question: string,
+  entityIds: readonly string[] = [],
 ): HoidKnowledgeEntry[] {
   const catalog = new HoidKnowledgeCatalog(items);
   // entriesForContext is stricter than simple reading authorization. Never let
@@ -44,8 +45,12 @@ export function retrieveAuthorized(
   const authorized = catalog.entriesForContext(progress);
   const normalizedQuestion = normalizeForRetrieval(question);
   const terms = questionTerms(question);
+  const requestedIds = new Set(entityIds);
 
   return authorized.filter(item => {
+    // Exact IDs have already been resolved and reauthorized by the evidence runtime.
+    // They restore context for pronoun-only follow-ups without bypassing catalog progress gates.
+    if (requestedIds.has(item.id)) return true;
     if (terms.length === 0) return false;
     return item.aliases.some(alias => {
       const normalizedAlias = normalizeForRetrieval(alias).trim();

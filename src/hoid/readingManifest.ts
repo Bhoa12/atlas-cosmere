@@ -193,6 +193,10 @@ export function createHoidReadingCursor(
     return Object.freeze({ status: "unavailable", reason: "unit-not-found" });
   }
 
+  if (result.manifest.ambiguousChapterNumbers.includes(chapterNumber)) {
+    return Object.freeze({ status: "unavailable", reason: "ambiguous-chapter" });
+  }
+
   const matchingUnits = result.manifest.units.filter(candidate => candidate.chapterNumber === chapterNumber);
   if (matchingUnits.length === 0) {
     return Object.freeze({ status: "unavailable", reason: "unit-not-found" });

@@ -23,7 +23,7 @@ describe("Hoid metadata-only source coverage", () => {
 
     expect(report.navigation).toEqual({
       worksWithVerifiedLocators: 20,
-      totalVerifiedChapterLocators: 1106,
+      totalVerifiedChapterLocators: 1110,
     });
     expect(report.chapterBodies).toEqual({
       worksWithInspectedDocuments: 4,
@@ -80,8 +80,8 @@ describe("Hoid metadata-only source coverage", () => {
       chapterCount: 147,
       safeNumericProgressThroughChapter: 11,
       ambiguousChapterNumbers: [12, 14],
-      verifiedLocatorCount: 11,
-      manifestUnitCount: 11,
+      verifiedLocatorCount: 15,
+      manifestUnitCount: 15,
       safePrefixComplete: true,
     });
   });

@@ -159,7 +159,16 @@ function createHostHarness() {
   let currentRegistry: unknown = createRegistry(3);
   let currentPackages: unknown = Object.freeze([signedPackage()]);
   const registrySource: HoidReviewerTrustRegistrySource = { async load() { return currentRegistry; } };
-  const packageSource: HoidSignedClaimPackageSource = { async load() { return currentPackages; } };
+  const packageListeners = new Set<() => void>();
+  const packageSource: HoidSignedClaimPackageSource = {
+    emitOnSubscribe: false,
+    async load() { return currentPackages; },
+    subscribe(listener) {
+      packageListeners.add(listener);
+      if (this.emitOnSubscribe) listener();
+      return () => packageListeners.delete(listener);
+    },
+  };
   const selector = {
     async selectClaims(request: { requestFingerprint: string; candidates: readonly { id: string }[] }) {
       return Object.freeze({
@@ -177,7 +186,11 @@ function createHostHarness() {
   return {
     host, progressStore, checkpointStore, progressInvalidation,
     setRegistry(value: unknown) { currentRegistry = value; },
-    setPackages(value: unknown) { currentPackages = value; },
+    setPackages(value: unknown) {
+      currentPackages = value;
+      for (const listener of packageListeners) listener();
+    },
+    packageSource,
   };
 }
 function createSink() {
@@ -321,5 +334,16 @@ describe("Hoid trusted exact-unit answer host", () => {
     expect(result).toEqual({ status: "blocked", reason: "trust-checkpoint-conflict" });
     expect(state.answer).toBeUndefined();
     expect(state.cleared).toBe("trust-checkpoint-conflict");
+  });
+
+  it("blocks if the verified editorial package source invalidates during presentation", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    harness.packageSource.emitOnSubscribe = true;
+    const { sink, state } = createSink();
+    const result = await harness.host.present(prepared, sink);
+    expect(result).toEqual({ status: "blocked", reason: "claim-bundle-changed" });
+    expect(state.answer).toBeUndefined();
+    expect(state.cleared).toBe("claim-bundle-changed");
   });
 });

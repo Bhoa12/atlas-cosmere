@@ -27,6 +27,25 @@ describe("verified EPUB chapter locators", () => {
     );
   });
 
+  it("matches the exact first-chapter NCX locators of both inspected Roshar novellas", () => {
+    expect(getVerifiedChapterLocatorId(
+      "edgedancer",
+      "edgedancer-epub-v1",
+      "5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517",
+      1,
+    )).toBe(
+      "nav:edgedancer-epub-v1:5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517:Text/001.xhtml",
+    );
+    expect(getVerifiedChapterLocatorId(
+      "dawnshard",
+      "dawnshard-epub-v1",
+      "8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075",
+      1,
+    )).toBe(
+      "nav:dawnshard-epub-v1:8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075:Text/1.xhtml",
+    );
+  });
+
   it("rejects another edition or navigation digest", () => {
     expect(getVerifiedChapterLocatorId(
       "twok",

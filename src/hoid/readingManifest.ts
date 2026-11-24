@@ -311,6 +311,11 @@ export function validateHoidReadingCursor(value: unknown): HoidReadingCursorVali
   if (record.manifestId !== manifest.manifestId) {
     return Object.freeze({ status: "invalid", reason: "manifest-mismatch" });
   }
+  // Exact chapter identities are not numeric cursor-v1 authorization.
+  // A forged cursor must not bypass the ambiguity guard in createHoidReadingCursor().
+  if (manifest.ambiguousChapterNumbers.includes(record.chapterNumber)) {
+    return Object.freeze({ status: "invalid", reason: "unit-not-found" });
+  }
 
   const unit = manifest.units.find(candidate =>
     candidate.id === record.unitId &&

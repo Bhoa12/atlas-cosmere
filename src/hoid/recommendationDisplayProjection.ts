@@ -341,7 +341,10 @@ export function projectHoidEditionRecommendationsForDisplay(
 function canonicalTopicCitation(
   value: unknown,
   recommendedSourceId: string,
-): HoidTopicRecommendationDisplayCitation | null {
+): Readonly<{
+  evidenceId: string;
+  display: HoidTopicRecommendationDisplayCitation;
+}> | null {
   const citation = canonicalRecord(value, [
     "evidenceId", "sourceBookId", "title", "chapter", "locatorId",
   ]);
@@ -362,9 +365,12 @@ function canonicalTopicCitation(
   ) return null;
 
   return Object.freeze({
-    sourceBookId: citation.sourceBookId,
-    title: citation.title,
-    chapter: citation.chapter as number,
+    evidenceId: citation.evidenceId,
+    display: Object.freeze({
+      sourceBookId: citation.sourceBookId,
+      title: citation.title,
+      chapter: citation.chapter as number,
+    }),
   });
 }
 
@@ -426,11 +432,9 @@ export function projectHoidTopicRecommendationsForDisplay(
       const seenEvidence = new Set<string>();
       for (const rawCitation of rawCitations) {
         const citation = canonicalTopicCitation(rawCitation, item.sourceId);
-        if (!citation) return null;
-        const evidenceId = (rawCitation as Record<string, unknown>).evidenceId;
-        if (typeof evidenceId !== "string" || seenEvidence.has(evidenceId)) return null;
-        seenEvidence.add(evidenceId);
-        citations.push(citation);
+        if (!citation || seenEvidence.has(citation.evidenceId)) return null;
+        seenEvidence.add(citation.evidenceId);
+        citations.push(citation.display);
       }
 
       seenClaims.add(match.claimId);

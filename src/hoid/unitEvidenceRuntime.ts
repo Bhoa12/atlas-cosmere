@@ -178,6 +178,24 @@ function plainRecord(value: unknown): Record<string, unknown> | null {
   }
 }
 
+function hasCallableMethod(value: unknown, methodName: string): boolean {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+    let current: object | null = value;
+    while (current && current !== Object.prototype) {
+      const descriptor = Object.getOwnPropertyDescriptor(current, methodName);
+      if (descriptor) {
+        return Object.prototype.hasOwnProperty.call(descriptor, "value") &&
+          typeof descriptor.value === "function";
+      }
+      current = Object.getPrototypeOf(current) as object | null;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function exactRecord(
   value: unknown,
   allowed: ReadonlySet<string>,
@@ -453,6 +471,29 @@ function referenceCompleted(
     (cursor.boundary.completedThroughOrdinal ?? 0) >= reference.ordinal;
 }
 
+/**
+ * The legacy runtime is a second, conservative filter. Only project a v3
+ * position when its completed prefix has an unambiguous numeric representation.
+ * Explicit whole-work completion remains an explicit v3 attestation.
+ */
+function legacyReadingForBook(
+  snapshot: HoidUnitProgressSnapshot,
+  bookId: string,
+): Readonly<{ bookId: string; chapter?: number; completed?: true }> | null {
+  const position = snapshot.positions.find(item => item.bookId === bookId);
+  if (!position) return null;
+  if ("completed" in position && position.completed === true) {
+    return Object.freeze({ bookId, completed: true });
+  }
+  if (!("cursor" in position)) return null;
+  const cursor = validateHoidUnitProgressCursor(position.cursor);
+  if (cursor.status !== "valid" || !cursor.boundary.legacyReadingPosition) return null;
+  return Object.freeze({
+    bookId,
+    chapter: cursor.boundary.legacyReadingPosition.chapter,
+  });
+}
+
 function makeAnswer(
   status: HoidEvidenceAnswer["status"],
   text: string,
@@ -519,8 +560,8 @@ export class HoidUnitEvidenceRuntime {
 
     const selector = record.selector === undefined || record.selector === null
       ? null
-      : plainRecord(record.selector) && typeof record.selector.selectClaims === "function"
-        ? record.selector as unknown as HoidClaimSelector
+      : hasCallableMethod(record.selector, "selectClaims")
+        ? record.selector as HoidClaimSelector
         : null;
     if (record.selector !== undefined && record.selector !== null && selector === null) return null;
 
@@ -598,7 +639,10 @@ export class HoidUnitEvidenceRuntime {
       if (request.chapterReferences && !request.chapterReferences.some(reference =>
         sameReference(reference, this.policyById.get(entry.id)!.source)
       )) return false;
-      return true;
+      // Never promote a non-projectable ordinal prefix into a legacy numeric
+      // permission. The exact gate has authorized this evidence, but the
+      // compatibility runtime must also be able to represent the same prefix.
+      return legacyReadingForBook(snapshot, sourceBookId) !== null;
     });
     const allowedIds = new Set(allowedEntries.map(entry => entry.id));
     const allowedClaims = this.claims.filter(claim => {
@@ -637,9 +681,20 @@ export class HoidUnitEvidenceRuntime {
       );
     }
 
-    const syntheticReading = [...new Set(allowedEntries.map(entry => entry.evidenceSource!.bookId))]
+    const projectedBooks = [...new Set(allowedEntries.map(entry => entry.evidenceSource!.bookId))]
       .sort()
-      .map(bookId => Object.freeze({ bookId, completed: true }));
+      .map(bookId => legacyReadingForBook(snapshot, bookId))
+      .filter((position): position is NonNullable<typeof position> => position !== null);
+    if (projectedBooks.length === 0) {
+      return ready(
+        makeAnswer(
+          "abstain",
+          "El progreso exacto no puede proyectarse sin ambigüedad para el filtro heredado. Hoid no ampliará el acceso.",
+          "no-authorized-evidence",
+        ),
+        snapshot,
+      );
+    }
     const innerRuntime = createHoidEvidenceRuntime({
       knowledge: allowedEntries,
       claims: allowedClaims,
@@ -664,7 +719,7 @@ export class HoidUnitEvidenceRuntime {
     try {
       innerAnswer = await innerRuntime.answer({
         question: request.question,
-        reading: syntheticReading,
+        reading: projectedBooks,
         intent: request.intent,
         selectionBudget: resolveHoidExplanationDepthBudget(request.depth),
         ...(request.entityIds ? { entityIds: request.entityIds } : {}),

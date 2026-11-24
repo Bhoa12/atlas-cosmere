@@ -55,7 +55,7 @@ recommend() prioritizes resuming explicitly active works and then lists unstarte
 
 ## Current compatibility limit
 
-The existing approved-claim integrity format still binds firstSafeAppearance and evidenceUnlock as numeric chapter labels. Consequently, this runtime currently rejects duplicate-label thresholds at configuration time even though the standalone v3 authorizer can distinguish them. A future exact-unit claim-attestation format must bind the complete HoidChapterReference identities before duplicate-label evidence can be promoted into this runtime.
+The existing approved-claim integrity format still binds firstSafeAppearance and evidenceUnlock as numeric chapter labels. Consequently, this runtime currently rejects duplicate-label thresholds at configuration time even though the standalone v3 authorizer can distinguish them. The legacy chapter-scope filter also rejects ambiguous-label anchors, and the legacy catalog canonicalizer may reject duplicate source labels. A future exact-unit claim-attestation and catalog format must bind the complete HoidChapterReference identities before duplicate-label evidence can be promoted into this runtime.
 
 The current policy contract also requires source, first-safe-appearance and unlock references to belong to the same work. Cross-work comparisons are supported by combining independently authorized evidence records in one reviewed claim; a single evidence record cannot yet bind a first appearance in one work to a source in another.
 

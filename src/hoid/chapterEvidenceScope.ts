@@ -1,5 +1,6 @@
 import { canonicalizeHoidAnswerBookScope, type HoidAnswerBookScope } from "./answerScope";
 import {
+  createHoidChapterReference,
   validateHoidChapterReference,
   type HoidChapterReference,
 } from "./chapterReference";
@@ -76,15 +77,65 @@ export function canonicalizeHoidChapterEvidenceScope(
   }
 }
 
-/** True only when an evidence source is one of the exact, validated anchors. */
+/**
+ * Match an evidence source to a chapter anchor by its edition-bound locator,
+ * not by its display number alone. This is defense in depth: catalog
+ * canonicalization also validates the source tuple, but the chapter-scope
+ * boundary independently reconstructs both identities before admitting it.
+ */
 export function isHoidEvidenceInChapterScope(
   sourceBookId: string,
   sourceChapter: number,
+  sourceLocatorId: string,
   chapterScope: readonly HoidChapterReference[],
 ): boolean {
-  return chapterScope.some(reference =>
-    reference.bookId === sourceBookId &&
-    reference.chapterNumber === sourceChapter &&
-    reference.labelAmbiguous === false
-  );
+  try {
+    if (
+      !Array.isArray(chapterScope) ||
+      chapterScope.length < 1 ||
+      chapterScope.length > MAX_CHAPTER_REFERENCES ||
+      Object.getPrototypeOf(chapterScope) !== Array.prototype
+    ) return false;
+
+    const source = createHoidChapterReference(sourceBookId, {
+      chapterNumber: sourceChapter,
+      locatorId: sourceLocatorId,
+    });
+    if (source.status !== "ready" || source.reference.labelAmbiguous) return false;
+
+    const keys = Reflect.ownKeys(chapterScope);
+    if (keys.length !== chapterScope.length + 1 || !keys.includes("length")) return false;
+
+    for (let index = 0; index < chapterScope.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(chapterScope, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return false;
+
+      const validation = validateHoidChapterReference(descriptor.value);
+      if (validation.status !== "valid" || validation.reference.labelAmbiguous) continue;
+      const anchor = validation.reference;
+      if (
+        anchor.bookId === source.reference.bookId &&
+        anchor.unitId === source.reference.unitId &&
+        anchor.ordinal === source.reference.ordinal &&
+        anchor.chapterNumber === source.reference.chapterNumber &&
+        anchor.identityFingerprint === source.reference.identityFingerprint
+      ) return true;
+    }
+
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (
+        typeof key !== "string" ||
+        !/^(0|[1-9][0-9]*)$/u.test(key) ||
+        Number(key) >= chapterScope.length
+      ) return false;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }

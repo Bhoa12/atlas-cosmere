@@ -3,6 +3,7 @@ import {
   createHoidEvidenceRuntime,
   type HoidApprovedClaim,
   type HoidClaimSelectionRequest,
+  type HoidEvidenceRuntime,
 } from "./evidenceRuntime";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
@@ -297,6 +298,37 @@ describe("Hoid local approved-claim answer port", () => {
     expect(unlocked.status).toBe("ready");
     if (unlocked.status !== "ready") return;
     expect(unlocked.items[0].matches[0].citations.map(citation => citation.sourceBookId)).toEqual(["tfe", "twok"]);
+  });
+
+  it("does not invoke the local renderer when its signal is already aborted", () => {
+    const controller = new AbortController();
+    controller.abort();
+    const renderApprovedClaimById = vi.fn();
+    const port = createHoidApprovedClaimAnswerPort({
+      renderApprovedClaimById,
+    } as unknown as HoidEvidenceRuntime);
+
+    expect(port?.(["claim-topic"], progress([{ bookId: "twok", chapter: 3 }]), controller.signal)).toEqual([]);
+    expect(renderApprovedClaimById).not.toHaveBeenCalled();
+  });
+
+  it("stops between local claim renders when the request is aborted", () => {
+    const controller = new AbortController();
+    const renderApprovedClaimById = vi.fn(() => {
+      controller.abort();
+      return Object.freeze({ status: "blocked" });
+    });
+    const port = createHoidApprovedClaimAnswerPort({
+      renderApprovedClaimById,
+    } as unknown as HoidEvidenceRuntime);
+
+    expect(port?.(
+      ["claim-topic", "claim-cross-book"],
+      progress([{ bookId: "twok", chapter: 3 }]),
+      controller.signal,
+    )).toEqual([]);
+    expect(renderApprovedClaimById).toHaveBeenCalledTimes(1);
+    expect(renderApprovedClaimById).toHaveBeenCalledWith("claim-topic", expect.any(Object));
   });
 
   it("returns no port when the editorial runtime is unavailable", () => {

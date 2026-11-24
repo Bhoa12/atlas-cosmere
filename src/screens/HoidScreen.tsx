@@ -1465,7 +1465,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
                 {item.citas.map((cita, citationIndex) => (
                   <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
-                    {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal)}
+                    {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal, cita.chapterLabelAmbiguous)}
                   </Text>
                 ))}
               </View>

@@ -30,9 +30,9 @@ Los ordinales se cuentan entre las entradas de capítulos numerados del TOC; no 
 - `getVerifiedAmbiguousChapterLocatorEntries()` solo devuelve identidades para la edición y el digest exactos.
 - `readingManifest.ts` añade esas cuatro unidades al manifiesto parcial, con IDs y ordinales estables.
 - `chapterIdentity.ts` puede resolver cada unidad por su locator exacto y sigue devolviendo `ambiguous` si solo se proporciona el número visible.
-- Las proyecciones de respuestas y recomendaciones vuelven a resolver las citas contra la identidad de edición y conservan únicamente `chapterOrdinal` junto al número visible. No conservan el locator.
+- Las proyecciones de respuestas y recomendaciones vuelven a resolver las citas contra la identidad de edición y conservan únicamente `chapterOrdinal` y `chapterLabelAmbiguous` junto al número visible. No conservan el locator.
 - Los resúmenes transversales que solo contienen números visibles se rechazan si alguno corresponde a una etiqueta ambigua.
-- HoidScreen distingue visualmente las citas con ordinal distinto y no conserva contexto conversacional heredado cuando ese contexto solo puede representar el número ambiguo.
+- HoidScreen distingue visualmente ambas ocurrencias mediante la entrada del índice, incluso cuando la primera tiene un ordinal igual al número de capítulo. No conserva contexto conversacional heredado cuando ese contexto solo puede representar el número ambiguo.
 
 ## Garantías que no cambian
 

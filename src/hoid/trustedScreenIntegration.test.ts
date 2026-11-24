@@ -26,6 +26,8 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).toContain("topicRecommendationBindingRef.current = Object.freeze({");
     expect(screen).toContain("topicRecommendationBinding.trustPort === trustedAnswerPort");
     expect(screen).toContain("setTopicRecommendations(topicDisplayItems)");
+    expect(screen).toContain("topicRecommendationBindingRef.current = null;");
+    expect(screen).toContain("liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort");
     expect(screen).not.toContain("setTopicRecommendationTrustPort(");
     expect(screen).not.toContain("const [topicRecommendationTrustPort");
     expect(screen).not.toContain("const [topicRecommendationRevision");

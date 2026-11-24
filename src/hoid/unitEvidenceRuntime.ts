@@ -920,7 +920,11 @@ export class HoidUnitEvidenceRuntime {
       typeof record.progressFingerprint !== "string" ||
       !/^[a-f0-9]{64}$/u.test(record.progressFingerprint)
     ) return Object.freeze({ status: "unavailable", reason: "invalid-receipt" });
-    const evidenceIds = canonicalIds(record.evidenceIds, 16);
+    const rawEvidenceIds = denseArray(record.evidenceIds, 16);
+    if (!rawEvidenceIds) return Object.freeze({ status: "unavailable", reason: "invalid-receipt" });
+    const evidenceIds = rawEvidenceIds.length === 0
+      ? Object.freeze([] as string[])
+      : canonicalIds(rawEvidenceIds, 16);
     if (!evidenceIds) return Object.freeze({ status: "unavailable", reason: "invalid-receipt" });
 
     const refreshed = await this.coordinator.refresh();

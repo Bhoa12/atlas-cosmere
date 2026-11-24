@@ -30,10 +30,16 @@ export type HoidReviewerTrustCheckpoint = Readonly<{
 export interface HoidReviewerTrustCheckpointStore {
   read(): Promise<unknown>;
   compareAndSwap(expected: HoidReviewerTrustCheckpoint, next: HoidReviewerTrustCheckpoint): Promise<boolean>;
+  /** Broadcast every committed checkpoint change across all host instances. */
+  subscribe(listener: (checkpoint: unknown) => void): () => void;
 }
 export interface HoidReviewerTrustRegistrySource { load(): Promise<unknown>; }
 export interface HoidSignedClaimPackageSource { load(): Promise<unknown>; }
 export interface HoidTrustedClock { nowIso(): string; }
+/** Must broadcast durable progress commits from every coordinator/process sharing the ledger. */
+export interface HoidTrustedProgressInvalidationPort {
+  subscribe(listener: () => void): () => void;
+}
 
 export type HoidTrustedPresentationPermit = Readonly<{
   registryRevision: number;
@@ -79,6 +85,7 @@ type HostConfig = Readonly<{
   packageSource: HoidSignedClaimPackageSource;
   registrySource: HoidReviewerTrustRegistrySource;
   checkpointStore: HoidReviewerTrustCheckpointStore;
+  progressInvalidation: HoidTrustedProgressInvalidationPort;
   clock: HoidTrustedClock;
   context: HoidApprovedClaimReviewSignatureContext;
   rootKey: HoidReviewerTrustRootKey;
@@ -191,7 +198,7 @@ export class HoidTrustedExactUnitAnswerHost {
 
   static create(configInput: unknown): HoidTrustedExactUnitAnswerHost | null {
     const record = exactRecord(configInput, [
-      "coordinator", "packageSource", "registrySource", "checkpointStore", "clock",
+      "coordinator", "packageSource", "registrySource", "checkpointStore", "progressInvalidation", "clock",
       "context", "rootKey", "verifier", "selector", "providerTimeoutMs", "maxRegistryAgeMs",
     ], [
       "coordinator", "packageSource", "registrySource", "checkpointStore", "clock",
@@ -200,6 +207,8 @@ export class HoidTrustedExactUnitAnswerHost {
     if (!record || !(record.coordinator instanceof HoidUnitProgressCoordinator) ||
       !callableMethod(record.packageSource, "load") || !callableMethod(record.registrySource, "load") ||
       !callableMethod(record.checkpointStore, "read") || !callableMethod(record.checkpointStore, "compareAndSwap") ||
+      !callableMethod(record.checkpointStore, "subscribe") ||
+      !callableMethod(record.progressInvalidation, "subscribe") ||
       !callableMethod(record.clock, "nowIso") || !callableMethod(record.verifier, "verify") ||
       !callableMethod(record.selector, "selectClaims") ||
       record.context === null || typeof record.context !== "object" ||
@@ -217,6 +226,7 @@ export class HoidTrustedExactUnitAnswerHost {
       packageSource: record.packageSource as HoidSignedClaimPackageSource,
       registrySource: record.registrySource as HoidReviewerTrustRegistrySource,
       checkpointStore: record.checkpointStore as HoidReviewerTrustCheckpointStore,
+      progressInvalidation: record.progressInvalidation as HoidTrustedProgressInvalidationPort,
       clock: record.clock as HoidTrustedClock,
       context: record.context as HoidApprovedClaimReviewSignatureContext,
       rootKey: record.rootKey as HoidReviewerTrustRootKey,
@@ -263,10 +273,6 @@ export class HoidTrustedExactUnitAnswerHost {
       return Object.freeze({ status: "blocked", reason: "registry-equivocation" });
     }
 
-    let packageFingerprint: string;
-    try { packageFingerprint = sha256Hex(JSON.stringify(signedPackages)); }
-    catch { return Object.freeze({ status: "blocked", reason: "signature-invalid" }); }
-
     const build = await createHoidSignedExactUnitEvidenceRuntime({
       coordinator: this.config.coordinator,
       signedPackages: signedPackages as readonly HoidSignedExactUnitClaimPackage[],
@@ -280,6 +286,16 @@ export class HoidTrustedExactUnitAnswerHost {
       providerTimeoutMs: this.config.providerTimeoutMs,
     });
     if (build.status !== "ready" || build.registryRevision !== header.revision) {
+      return Object.freeze({ status: "blocked", reason: "signature-invalid" });
+    }
+    let packageFingerprint: string;
+    try {
+      const canonicalPackagesJson = JSON.stringify(signedPackages);
+      if (typeof canonicalPackagesJson !== "string") {
+        return Object.freeze({ status: "blocked", reason: "signature-invalid" });
+      }
+      packageFingerprint = sha256Hex(canonicalPackagesJson);
+    } catch {
       return Object.freeze({ status: "blocked", reason: "signature-invalid" });
     }
 
@@ -382,30 +398,70 @@ export class HoidTrustedExactUnitAnswerHost {
       return Object.freeze({ status: "blocked", reason: "claim-bundle-changed" });
     }
 
-    const progress = await pending.runtime.verifyForPresentation(pending.receipt);
-    if (progress.status !== "ready") {
-      const reason = mapPresentationFailure(progress);
-      clear(reason);
-      return Object.freeze({ status: "blocked", reason });
-    }
-    const permit: HoidTrustedPresentationPermit = Object.freeze({
-      registryRevision: currentTrust.value.registryRevision,
+    const expectedCheckpoint: HoidReviewerTrustCheckpoint = Object.freeze({
+      revision: currentTrust.value.registryRevision,
       registryFingerprint: currentTrust.value.registryFingerprint,
-      progressRevision: progress.progressRevision,
-      progressFingerprint: progress.progressFingerprint,
     });
+    let trustInvalidated = false;
+    let progressInvalidated = false;
+    let unsubscribeTrust = () => {};
+    let unsubscribeProgress = () => {};
+    let unsubscribeLocalProgress = () => {};
     try {
-      // Synchronous handoff: no await between the final checks and the screen sink.
+      unsubscribeTrust = this.config.checkpointStore.subscribe(value => {
+        const checkpoint = canonicalCheckpoint(value);
+        if (!checkpoint || !sameCheckpoint(checkpoint, expectedCheckpoint)) trustInvalidated = true;
+      });
+      unsubscribeProgress = this.config.progressInvalidation.subscribe(() => {
+        progressInvalidated = true;
+      });
+      unsubscribeLocalProgress = this.config.coordinator.subscribe(() => {
+        progressInvalidated = true;
+      });
+
+      // Close the gap between trust refresh and subscription installation.
+      const durableCheckpoint = canonicalCheckpoint(await this.config.checkpointStore.read());
+      if (!durableCheckpoint || !sameCheckpoint(durableCheckpoint, expectedCheckpoint)) {
+        clear("trust-checkpoint-conflict");
+        return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
+      }
+
+      const progress = await pending.runtime.verifyForPresentation(pending.receipt);
+      if (trustInvalidated) {
+        clear("trust-checkpoint-conflict");
+        return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
+      }
+      if (progressInvalidated) {
+        clear("progress-changed");
+        return Object.freeze({ status: "blocked", reason: "progress-changed" });
+      }
+      if (progress.status !== "ready") {
+        const reason = mapPresentationFailure(progress);
+        clear(reason);
+        return Object.freeze({ status: "blocked", reason });
+      }
+
+      const permit: HoidTrustedPresentationPermit = Object.freeze({
+        registryRevision: currentTrust.value.registryRevision,
+        registryFingerprint: currentTrust.value.registryFingerprint,
+        progressRevision: progress.progressRevision,
+        progressFingerprint: progress.progressFingerprint,
+      });
+      // No await occurs between the final durable checks and this synchronous handoff.
       sink.present(pending.answer, permit);
+      return Object.freeze({
+        status: "presented",
+        registryRevision: permit.registryRevision,
+        progressRevision: permit.progressRevision,
+      });
     } catch {
-      clear("presentation-sink-failed");
-      return Object.freeze({ status: "blocked", reason: "presentation-sink-failed" });
+      clear("trust-checkpoint-unavailable");
+      return Object.freeze({ status: "blocked", reason: "trust-checkpoint-unavailable" });
+    } finally {
+      unsubscribeTrust();
+      unsubscribeProgress();
+      unsubscribeLocalProgress();
     }
-    return Object.freeze({
-      status: "presented",
-      registryRevision: permit.registryRevision,
-      progressRevision: permit.progressRevision,
-    });
   }
 
   async answerAndPresent(

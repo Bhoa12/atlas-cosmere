@@ -77,6 +77,7 @@ describe("Hoid answer display projection", () => {
     });
     expect(Object.keys(display!.citations[0]).sort()).toEqual([
       "chapter",
+      "chapterLabelAmbiguous",
       "chapterOrdinal",
       "sourceBookId",
       "title",

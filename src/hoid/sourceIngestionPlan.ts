@@ -1,6 +1,10 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { getHoidEditionProgressPolicy } from "./editionStructure";
-import { getHoidReadingManifest } from "./readingManifest";
+import {
+  getHoidReadingManifest,
+  type HoidReadingManifest,
+  type HoidReadingUnit,
+} from "./readingManifest";
 import { getVerifiedChapterDocumentNumbers } from "./verifiedChapterDocuments";
 import { getHoidSourceCoverageReport } from "./sourceCoverage";
 
@@ -101,6 +105,22 @@ function resolveRelativeHref(locatorId: string, editionId: string, navigationSha
   return href;
 }
 
+/**
+ * Return only units that can participate in sequential numeric ingestion.
+ * Exact locators for duplicated labels are identity/display metadata and must
+ * never become chapter-number tasks or unlock thresholds.
+ */
+export function getHoidSafeIngestionUnits(
+  manifest: HoidReadingManifest,
+): readonly HoidReadingUnit[] {
+  if (manifest.coverage !== "partial-before-ambiguous-chapter") {
+    return manifest.units;
+  }
+  return Object.freeze(manifest.units.filter(unit =>
+    !manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
+  ));
+}
+
 function priorityRank(priority: HoidSourceIngestionTaskPriority): number {
   if (priority === "continue-inspected-work") return 0;
   if (priority === "start-cosmere-work") return 1;
@@ -171,13 +191,7 @@ export function getHoidSourceIngestionPlan(): HoidSourceIngestionPlan {
       continue;
     }
     const manifest = manifestResult.manifest;
-    // Exact locators for duplicate labels exist for identity/display only.
-    // The ingestion queue must never turn those units into numeric chapter tasks.
-    const safeUnits = manifest.coverage === "partial-before-ambiguous-chapter"
-      ? manifest.units.filter(unit =>
-          !manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
-        )
-      : manifest.units;
+    const safeUnits = getHoidSafeIngestionUnits(manifest);
 
     if (inspected.some(chapter => !safeUnits.some(unit => unit.chapterNumber === chapter))) {
       block("inspected-document-outside-manifest", safeUnits.length);

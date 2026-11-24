@@ -1,5 +1,8 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
-import { validateHoidReadingCursor } from "./readingManifest";
+import {
+  getHoidReadingManifest,
+  validateHoidReadingCursor,
+} from "./readingManifest";
 import {
   getHoidTopicDefinition,
   getHoidTopicDimensionDefinition,
@@ -163,6 +166,7 @@ function canonicalNavigationAvailability(
 
   if (record.kind === "catalog-only") {
     if (
+      recommendationReason !== "unread-source" ||
       !hasExactKeys(record, ["kind", "reason"]) ||
       (record.reason !== "segmentation-unverified" && record.reason !== "unit-not-found")
     ) return null;
@@ -193,6 +197,7 @@ function canonicalNavigationAvailability(
   );
   if (!unit) return null;
 
+  if (recommendationReason === "unread-source" && cursor.chapterNumber !== 1) return null;
   if (unit.locatorId) {
     if (
       !hasLocator ||
@@ -204,9 +209,6 @@ function canonicalNavigationAvailability(
   }
 
   if (hasLocator || record.locatorStatus !== "cursor-only") return null;
-  if (recommendationReason !== "resume-current-work" && cursor.chapterNumber !== 1) {
-    return null;
-  }
   return "cursor-only";
 }
 
@@ -270,7 +272,18 @@ export function projectHoidEditionRecommendationsForDisplay(
         item.sourceId,
         item.reason,
       );
-      if (!navigation) return null;
+      if (
+        !navigation ||
+        (navigation === "catalog-only" &&
+          item.explanationCode !== "catalog-only-unsegmented" &&
+          item.explanationCode !== "catalog-only-unit-missing") ||
+        (navigation !== "catalog-only" &&
+          item.explanationCode !== (
+            item.reason === "resume-current-work"
+              ? "resume-current-cursor"
+              : "start-first-numbered-chapter"
+          ))
+      ) return null;
       seen.add(item.sourceId);
       items.push(Object.freeze({
         sourceId: item.sourceId,
@@ -318,6 +331,17 @@ export function projectHoidEditionRecommendationsForDisplay(
         ) ||
         !safeText(choice.detail, 2_000)
       ) return null;
+      const manifestResult = getHoidReadingManifest(choice.sourceId);
+      if (manifestResult.status !== "ready") return null;
+      const currentUnitIndex = manifestResult.manifest.units.findIndex(
+        unit => unit.chapterNumber === choice.currentChapter,
+      );
+      if (currentUnitIndex < 0) return null;
+      const expectedCompletedChapter = currentUnitIndex === 0
+        ? null
+        : manifestResult.manifest.units[currentUnitIndex - 1]?.chapterNumber ?? null;
+      if (choice.completedThroughChapter !== expectedCompletedChapter) return null;
+
       seen.add(choice.sourceId);
       choices.push(Object.freeze({
         sourceId: choice.sourceId,
@@ -362,6 +386,11 @@ function canonicalTopicCitation(
     citation.locatorId.length < 1 ||
     citation.locatorId.length > 256 ||
     /[\u0000-\u001F\u007F]/u.test(citation.locatorId)
+  ) return null;
+  const manifestResult = getHoidReadingManifest(citation.sourceBookId);
+  if (
+    manifestResult.status !== "ready" ||
+    !manifestResult.manifest.units.some(unit => unit.chapterNumber === citation.chapter)
   ) return null;
 
   return Object.freeze({

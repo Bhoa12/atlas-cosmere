@@ -444,6 +444,18 @@ function canonicalRequest(value: unknown, knownIds: ReadonlySet<string>): Canoni
       canonical.push(validated.reference);
     }
     chapterReferences = Object.freeze(canonical);
+    const representedBooks = [...new Set(canonical.map(reference => reference.bookId))].sort();
+    if (!bookScope) {
+      bookScope = canonicalizeHoidAnswerBookScope({
+        mode: representedBooks.length === 1 ? "single-work" : "cross-work",
+        bookIds: representedBooks,
+      }) ?? undefined;
+    }
+    if (
+      !bookScope ||
+      representedBooks.length !== bookScope.bookIds.length ||
+      !bookScope.bookIds.every(bookId => representedBooks.includes(bookId))
+    ) return null;
   }
 
   return Object.freeze({

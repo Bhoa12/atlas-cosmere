@@ -35,6 +35,8 @@ Una firma de otro PR, un claim modificado, una clave revocada, un registro caduc
 
 `createHoidSignedExactUnitEvidenceRuntime` verifica todas las firmas antes de construir `HoidExactUnitEvidenceRuntime`. No acepta que el proveedor aporte claims, firmas, progreso ni permisos. El selector continúa recibiendo únicamente los candidatos ya autorizados por el runtime exacto.
 
+La fábrica es una composición de host: `now` debe proceder de un reloj controlado por el host y `minimumRegistryRevision` de almacenamiento monotónico durable. Nunca deben proceder de la pregunta, del proveedor ni de estado manipulable de la interfaz. La integración con bootstrap fijado y revision store durable sigue siendo responsabilidad del composition root nativo.
+
 La fábrica de bajo nivel `createHoidExactUnitEvidenceRuntime` se conserva para pruebas y flujos editoriales locales controlados; no debe confundirse con una composición de producción autenticada.
 
 ## Límites explícitos

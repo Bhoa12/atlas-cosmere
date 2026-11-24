@@ -14,6 +14,7 @@ import type {
 } from "./sqliteProgressStore";
 import type { HoidCursorProgressSnapshot } from "./cursorProgressLedger";
 import type { HoidUnitProgressSnapshot } from "./unitProgressLedger";
+import { HoidUnitProgressLedger } from "./unitProgressLedger";
 import { createHoidReadingCursor } from "./readingManifest";
 import { createHoidUnitProgressCursor } from "./unitProgressCursor";
 
@@ -468,4 +469,49 @@ describe("ExpoSqliteHoidUnitProgressStore", () => {
     expect(database.state.v3).toBeNull();
     expect(database.state.v3Marker).toBeNull();
   });
+  it("runs the exact-unit ledger through the durable SQLite adapter", async () => {
+    const database = new MemoryDatabase();
+    const store = createStore(database);
+    const ledger = new HoidUnitProgressLedger(store, fixedNow);
+    const first = createHoidUnitProgressCursor("tfe", { chapterNumber: 1 });
+    const second = createHoidUnitProgressCursor("tfe", { chapterNumber: 2 });
+    if (first.status !== "ready" || second.status !== "ready") {
+      throw new Error("Exact-unit test cursors unavailable");
+    }
+
+    const positioned = await ledger.setInitialCursor(
+      "tfe",
+      first.cursor,
+      0,
+      { confirmed: true },
+    );
+    expect(positioned).toMatchObject({
+      status: "ready",
+      operation: "updated",
+      snapshot: { schemaVersion: 3, revision: 1 },
+    });
+
+    const advanced = await ledger.advance(
+      "tfe",
+      second.cursor,
+      1,
+      { confirmed: true },
+    );
+    expect(advanced).toMatchObject({
+      status: "ready",
+      operation: "updated",
+      snapshot: {
+        schemaVersion: 3,
+        revision: 2,
+        positions: [{ bookId: "tfe", cursor: { reference: { ordinal: 2 } } }],
+      },
+    });
+
+    expect(await ledger.read()).toMatchObject({
+      status: "ready",
+      snapshot: { revision: 2, positions: [{ bookId: "tfe", cursor: { reference: { ordinal: 2 } } }] },
+    });
+  });
+
+
 });

@@ -483,19 +483,23 @@ export async function verifyHoidExactUnitClaimSignatures(
   } catch {
     return invalid("cryptographic-verification-failed");
   }
-  if ("reason" in verification) {
+  if (verification.status !== "verified") {
     return invalid(verification.reason, verification.index);
   }
+  const verifiedBatch = verification as Extract<
+    HoidReviewerBoundPayloadSignatureBatchVerification,
+    { status: "verified" }
+  >;
 
   const contextFingerprint = sha256Hex(JSON.stringify(context));
   return Object.freeze({
     status: "verified",
-    registryRevision: verification.registryRevision,
+    registryRevision: verifiedBatch.registryRevision,
     contextFingerprint,
-    verifiedCount: verification.verifiedCount,
+    verifiedCount: verifiedBatch.verifiedCount,
     claims: Object.freeze(claimMetadata.map((item, index) => Object.freeze({
       ...item,
-      messageFingerprint: verification.messageFingerprints[index],
+      messageFingerprint: verifiedBatch.messageFingerprints[index],
     }))),
     packages: Object.freeze(packages),
   });

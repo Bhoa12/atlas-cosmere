@@ -174,7 +174,7 @@ describe("Hoid trusted conversation gateway v3", () => {
     const started = new Promise<void>(resolve => { markStarted = resolve; });
     h.host.prepareDelay = async signal => {
       calls += 1; if (calls > 1) return; markStarted?.();
-      await new Promise<void>(resolve => { releaseFirst = resolve; signal?.addEventListener("abort", resolve, { once: true }); });
+      await new Promise<void>(resolve => { releaseFirst = resolve; signal?.addEventListener("abort", () => resolve(), { once: true }); });
       observedAbort = signal?.aborted ?? false;
     };
     const firstPromise = h.session.send({ question: "Primera pregunta.", intent: "explain" });

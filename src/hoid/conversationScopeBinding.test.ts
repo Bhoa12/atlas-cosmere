@@ -3,6 +3,7 @@ import { getHoidReadingManifest, createHoidReadingCursor } from "./readingManife
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
 import {
   createHoidConversationScopeBinding,
+  getHoidConversationScopeChapterReferences,
   validateHoidConversationScopeBinding,
 } from "./conversationScopeBinding";
 
@@ -65,6 +66,18 @@ describe("Hoid evidence-bound conversation scope", () => {
     expect(JSON.stringify(binding)).not.toContain("locatorId");
     expect(JSON.stringify(binding)).not.toContain("Explicación sintética");
     expect(JSON.stringify(binding)).not.toContain("El Imperio Final");
+    expect(JSON.stringify(binding)).not.toContain("chapterReferences");
+    expect(JSON.stringify(binding)).not.toContain("identityFingerprint");
+    const chapterReferences = getHoidConversationScopeChapterReferences(binding, current);
+    expect(chapterReferences).toHaveLength(1);
+    expect(chapterReferences?.[0]).toMatchObject({
+      authority: "identity-only",
+      bookId: "tfe",
+      chapterNumber: 1,
+      ordinal: 1,
+      unitId: "chapter:001",
+      labelAmbiguous: false,
+    });
   });
 
   it("derives a deterministic cross-work scope from every cited work", () => {
@@ -84,6 +97,14 @@ describe("Hoid evidence-bound conversation scope", () => {
         { bookId: "twok", chapters: [2] },
       ],
     });
+    expect(getHoidConversationScopeChapterReferences(binding, current)?.map(reference => ({
+      bookId: reference.bookId,
+      chapterNumber: reference.chapterNumber,
+      ordinal: reference.ordinal,
+    }))).toEqual([
+      { bookId: "tfe", chapterNumber: 1, ordinal: 1 },
+      { bookId: "twok", chapterNumber: 2, ordinal: 2 },
+    ]);
   });
 
   it("keeps an explicit single-work scope and rejects evidence outside it", () => {
@@ -154,6 +175,7 @@ describe("Hoid evidence-bound conversation scope", () => {
       status: "unavailable",
       reason: "stale-progress",
     });
+    expect(getHoidConversationScopeChapterReferences(binding, progress(["tfe"], 4, 7))).toBeNull();
   });
 
   it("rejects an explicit scope change instead of widening a follow-up", () => {
@@ -189,13 +211,12 @@ describe("Hoid evidence-bound conversation scope", () => {
       status: "unavailable",
       reason: "invalid-binding",
     });
-    expect(validateHoidConversationScopeBinding(
-      JSON.parse(JSON.stringify(binding)) as unknown,
-      current,
-    )).toEqual({
+    const serializedCopy = JSON.parse(JSON.stringify(binding)) as unknown;
+    expect(validateHoidConversationScopeBinding(serializedCopy, current)).toEqual({
       status: "unavailable",
       reason: "invalid-binding",
     });
+    expect(getHoidConversationScopeChapterReferences(serializedCopy, current)).toBeNull();
   });
 
   it("rejects accessor-backed bindings without invoking accessors", () => {

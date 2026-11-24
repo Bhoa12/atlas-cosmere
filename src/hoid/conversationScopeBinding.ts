@@ -9,6 +9,11 @@ import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { getHoidReadingManifest } from "./readingManifest";
 import type { HoidEvidenceAnswer } from "./evidenceRuntime";
+import {
+  createHoidChapterReference,
+  validateHoidChapterReference,
+  type HoidChapterReference,
+} from "./chapterReference";
 
 export type HoidConversationScopeWork = Readonly<{
   bookId: string;
@@ -31,7 +36,12 @@ export type HoidConversationScopeBinding = Readonly<{
 }>;
 
 export type HoidConversationScopeBindingValidation =
-  | Readonly<{ status: "ready"; binding: HoidConversationScopeBinding; scope: HoidAnswerBookScope }>
+  | Readonly<{
+      status: "ready";
+      binding: HoidConversationScopeBinding;
+      scope: HoidAnswerBookScope;
+      chapterReferences: readonly HoidChapterReference[];
+    }>
   | Readonly<{
       status: "unavailable";
       reason: "invalid-progress" | "invalid-binding" | "stale-progress" | "scope-mismatch";
@@ -41,6 +51,9 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const MAX_WORKS = 4;
 const MAX_CHAPTERS_PER_WORK = 16;
 const issuedBindings = new WeakSet<object>();
+// Exact chapter identities live beside the opaque session binding, never in
+// its serializable shape or in provider/runtime request objects.
+const chapterReferencesByBinding = new WeakMap<object, readonly HoidChapterReference[]>();
 const WORK_IDS = new Set(HOID_SOURCE_BIBLIOGRAPHY.map(work => work.id));
 const WORK_ORDER = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
 
@@ -166,6 +179,108 @@ function canonicalWorks(
   return Object.freeze(works);
 }
 
+function canonicalChapterReferences(
+  citations: readonly Readonly<{
+    sourceBookId: string;
+    chapter: number;
+    locatorId: string;
+  }>[],
+): readonly HoidChapterReference[] | null {
+  if (citations.length < 1 || citations.length > MAX_WORKS * MAX_CHAPTERS_PER_WORK) {
+    return null;
+  }
+
+  const referencesByIdentity = new Map<string, HoidChapterReference>();
+  for (const citation of citations) {
+    const created = createHoidChapterReference(citation.sourceBookId, {
+      chapterNumber: citation.chapter,
+      locatorId: citation.locatorId,
+    });
+    if (
+      created.status !== "ready" ||
+      created.reference.labelAmbiguous ||
+      created.reference.chapterNumber !== citation.chapter
+    ) return null;
+
+    const key = created.reference.bookId + "\n" + created.reference.unitId;
+    const existing = referencesByIdentity.get(key);
+    if (existing && (
+      existing.ordinal !== created.reference.ordinal ||
+      existing.identityFingerprint !== created.reference.identityFingerprint
+    )) return null;
+    referencesByIdentity.set(key, created.reference);
+  }
+
+  const references = [...referencesByIdentity.values()].sort((left, right) =>
+    WORK_ORDER.get(left.bookId)! - WORK_ORDER.get(right.bookId)! ||
+    left.ordinal - right.ordinal
+  );
+  return references.length > 0
+    ? Object.freeze(references)
+    : null;
+}
+
+function chapterReferencesMatchWorks(
+  references: readonly HoidChapterReference[],
+  works: readonly HoidConversationScopeWork[],
+): boolean {
+  if (
+    references.length < 1 ||
+    references.length > MAX_WORKS * MAX_CHAPTERS_PER_WORK
+  ) return false;
+
+  const expected = new Map<string, readonly number[]>(
+    works.map(work => [work.bookId, work.chapters]),
+  );
+  const actual = new Map<string, number[]>();
+  const seen = new Set<string>();
+
+  for (const reference of references) {
+    const validation = validateHoidChapterReference(reference);
+    if (
+      validation.status !== "valid" ||
+      reference.labelAmbiguous ||
+      !expected.has(reference.bookId)
+    ) return false;
+    const key = reference.bookId + "\n" + reference.unitId;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    const chapters = actual.get(reference.bookId) ?? [];
+    chapters.push(reference.chapterNumber);
+    actual.set(reference.bookId, chapters);
+  }
+
+  if (actual.size !== expected.size) return false;
+  for (const [bookId, expectedChapters] of expected) {
+    const actualChapters = actual.get(bookId);
+    if (!actualChapters) return false;
+    actualChapters.sort((left, right) => left - right);
+    if (
+      actualChapters.length !== expectedChapters.length ||
+      actualChapters.some((chapter, index) => chapter !== expectedChapters[index])
+    ) return false;
+  }
+  return true;
+}
+
+/**
+ * Read the exact chapter identities associated with an issued session binding.
+ * The returned references contain no EPUB locator or navigation hash. They are
+ * context metadata only; evidence authorization must still be re-run separately.
+ */
+export function getHoidConversationScopeChapterReferences(
+  value: unknown,
+  progress: unknown,
+  requestedScopeInput?: unknown,
+): readonly HoidChapterReference[] | null {
+  const validation = validateHoidConversationScopeBinding(
+    value,
+    progress,
+    requestedScopeInput,
+  );
+  return validation.status === "ready" ? validation.chapterReferences : null;
+}
+
 /**
  * Creates a binding only from a fully presented answer whose citations have
  * already been checked against the current progress and edition manifests.
@@ -218,6 +333,8 @@ export function createHoidConversationScopeBinding(
 
   const canonical = canonicalWorks(works, scope);
   if (!canonical) return null;
+  const chapterReferences = canonicalChapterReferences(presentation.citations);
+  if (!chapterReferences || !chapterReferencesMatchWorks(chapterReferences, canonical)) return null;
   const binding: HoidConversationScopeBinding = Object.freeze({
     schemaVersion: 1,
     kind: "evidence-work-scope",
@@ -227,6 +344,7 @@ export function createHoidConversationScopeBinding(
     progressFingerprint: identity.fingerprint,
   });
   issuedBindings.add(binding);
+  chapterReferencesByBinding.set(binding, chapterReferences);
   return binding;
 }
 
@@ -271,6 +389,10 @@ export function validateHoidConversationScopeBinding(
   }
   const works = canonicalWorks(record.works, scope);
   if (!works) return Object.freeze({ status: "unavailable", reason: "invalid-binding" });
+  const chapterReferences = chapterReferencesByBinding.get(value);
+  if (!chapterReferences || !chapterReferencesMatchWorks(chapterReferences, works)) {
+    return Object.freeze({ status: "unavailable", reason: "invalid-binding" });
+  }
 
   if (
     record.progressRevision !== identity.revision ||
@@ -289,5 +411,5 @@ export function validateHoidConversationScopeBinding(
   // Return the exact issued object so callers can carry the WeakSet capability
   // across turns; cloning here would silently strip that capability.
   const binding = value as HoidConversationScopeBinding;
-  return Object.freeze({ status: "ready", binding, scope });
+  return Object.freeze({ status: "ready", binding, scope, chapterReferences });
 }

@@ -1,0 +1,52 @@
+name: Hoid chapter-bound conversation scope
+on:
+  pull_request:
+    paths:
+      - "src/hoid/conversationScopeBinding.ts"
+      - "src/hoid/conversationScopeBinding.test.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterReference.test.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - ".github/workflows/hoid-chapter-bound-conversation-scope.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run279"
+    paths:
+      - "src/hoid/conversationScopeBinding.ts"
+      - "src/hoid/conversationScopeBinding.test.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/chapterReference.test.ts"
+      - "src/hoid/chapterIdentity.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/answerPresentation.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - ".github/workflows/hoid-chapter-bound-conversation-scope.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  chapter-bound-conversation-scope:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test chapter-bound conversation scope and spoiler boundaries
+        run: npx vitest run src/hoid/conversationScopeBinding.test.ts src/hoid/chapterReference.test.ts src/hoid/chapterIdentity.test.ts src/hoid/readingManifest.test.ts
+      - name: Strict type-check conversation chapter boundary
+        run: npx tsc --noEmit --strict --target ES2022 --module commonjs --moduleResolution node --lib ES2022,DOM --skipLibCheck src/hoid/conversationScopeBinding.ts src/hoid/conversationScopeBinding.test.ts

@@ -24,6 +24,12 @@ import {
   type HoidTrustedConversationSessionV3,
 } from "./trustedConversationGatewayV3";
 import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
+import {
+  createHoidCursorBackedUnitProgressRuntime,
+  type HoidCursorProgressInvalidationSource,
+  type HoidTrustedProgressInvalidationPort,
+} from "./cursorBackedUnitProgressStore";
+import type { HoidCursorProgressStore } from "./cursorSqliteProgressStore";
 
 type DataRecord = Record<string, unknown>;
 
@@ -293,3 +299,100 @@ export function createHoidTrustedConversationComposition(
     composition: HoidTrustedConversationComposition.fromTrustedComponents(host, gateway),
   });
 }
+
+const CURSOR_COMPOSITION_CONFIG_KEYS = [
+  "transport",
+  "packageSource",
+  "registrySource",
+  "checkpointStore",
+  "clock",
+  "context",
+  "rootKey",
+  "verifier",
+  "providerTimeoutMs",
+  "maxRegistryAgeMs",
+] as const;
+const REQUIRED_CURSOR_COMPOSITION_CONFIG_KEYS = CURSOR_COMPOSITION_CONFIG_KEYS.slice(0, 8);
+
+export type HoidTrustedCursorConversationCompositionResult =
+  | Readonly<{
+      status: "composed";
+      composition: HoidTrustedConversationComposition;
+      coordinator: HoidUnitProgressCoordinator;
+      progressInvalidation: HoidTrustedProgressInvalidationPort;
+      dispose(): void;
+    }>
+  | Readonly<{
+      status: "blocked";
+      reason:
+        | "invalid-composition-config"
+        | "progress-unavailable"
+        | "trusted-host-unavailable"
+        | "conversation-gateway-unavailable";
+    }>;
+
+/**
+ * Native composition path for Atlas.
+ *
+ * The caller supplies the existing cursor-v2 SQLite store and the same
+ * cursor-coordinator invalidation source used by the reader. The exact-unit
+ * coordinator is read-only and projects that one durable source; it does not
+ * create a parallel progress ledger.
+ */
+export async function createHoidTrustedCursorConversationComposition(
+  input: unknown,
+  cursorStore: HoidCursorProgressStore,
+  invalidationSource: HoidCursorProgressInvalidationSource,
+  now?: () => string,
+): Promise<HoidTrustedCursorConversationCompositionResult> {
+  const config = exactDataRecord(
+    input,
+    CURSOR_COMPOSITION_CONFIG_KEYS,
+    REQUIRED_CURSOR_COMPOSITION_CONFIG_KEYS,
+  );
+  if (!config) {
+    return Object.freeze({ status: "blocked", reason: "invalid-composition-config" });
+  }
+
+  const progressRuntime = createHoidCursorBackedUnitProgressRuntime(
+    cursorStore,
+    invalidationSource,
+    now,
+  );
+  if (!progressRuntime) {
+    return Object.freeze({ status: "blocked", reason: "invalid-composition-config" });
+  }
+
+  const progress = await progressRuntime.coordinator.initialize();
+  if (progress.status !== "ready") {
+    progressRuntime.coordinator.dispose();
+    return Object.freeze({ status: "blocked", reason: "progress-unavailable" });
+  }
+
+  const composed = createHoidTrustedConversationComposition({
+    ...config,
+    coordinator: progressRuntime.coordinator,
+    progressInvalidation: progressRuntime.progressInvalidation,
+  });
+  if (composed.status !== "composed") {
+    progressRuntime.coordinator.dispose();
+    return composed;
+  }
+
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    composed.composition.dispose();
+    progressRuntime.coordinator.dispose();
+  };
+
+  return Object.freeze({
+    status: "composed",
+    composition: composed.composition,
+    coordinator: progressRuntime.coordinator,
+    progressInvalidation: progressRuntime.progressInvalidation,
+    dispose,
+  });
+}
+

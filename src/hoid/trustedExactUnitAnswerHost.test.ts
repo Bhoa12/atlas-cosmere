@@ -160,7 +160,7 @@ function createHostHarness() {
   let currentPackages: unknown = Object.freeze([signedPackage()]);
   const registrySource: HoidReviewerTrustRegistrySource = { async load() { return currentRegistry; } };
   const packageListeners = new Set<() => void>();
-  const packageSource: HoidSignedClaimPackageSource = {
+  const packageSource: HoidSignedClaimPackageSource & { emitOnSubscribe: boolean } = {
     emitOnSubscribe: false,
     async load() { return currentPackages; },
     subscribe(listener) {

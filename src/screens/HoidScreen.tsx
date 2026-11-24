@@ -6,9 +6,10 @@ import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } fr
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import {
-  type HoidPresentedCitation,
-  type HoidPresentedSegment,
-} from '../hoid/answerPresentation';
+  projectHoidAnswerForDisplay,
+  type HoidDisplayCitation,
+  type HoidDisplaySegment,
+} from '../hoid/answerDisplayProjection';
 import type { HoidExplanationDepth } from '../hoid/explanationDepth';
 import {
   isHoidTrustedScreenAnswerPort,
@@ -70,8 +71,8 @@ interface Mensaje {
   texto: string;
   kind?: typeof HOID_STATIC_GREETING_KIND;
   progressScope?: HoidConversationProgressScope;
-  citas?: readonly HoidPresentedCitation[];
-  segmentos?: readonly HoidPresentedSegment[];
+  citas?: readonly HoidDisplayCitation[];
+  segmentos?: readonly HoidDisplaySegment[];
   formato?: HoidNarrativeLayout;
   evidenciaTransversal?: HoidCrossBookEvidenceSummary;
 }
@@ -329,8 +330,8 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       const answerScopeSelection = buildHoidAnswerScopeSelection(answerScopeMode, answerScopeBookIds);
       let respuesta: string;
-      let citas: readonly HoidPresentedCitation[] | undefined;
-      let segmentos: readonly HoidPresentedSegment[] | undefined;
+      let citas: readonly HoidDisplayCitation[] | undefined;
+      let segmentos: readonly HoidDisplaySegment[] | undefined;
       let formato: HoidNarrativeLayout | undefined;
       let evidenciaTransversal: HoidCrossBookEvidenceSummary | undefined;
       // Even neutral fallback text is scoped to the request snapshot. Stale
@@ -495,10 +496,14 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                     : null;
                 responseScope = requestScope;
               } else {
-                respuesta = presentation.text;
-                citas = presentation.citations;
-                segmentos = presentation.segments;
-                formato = presentation.layout;
+                const displayProjection = projectHoidAnswerForDisplay(presentation);
+                if (!displayProjection) {
+                  throw new Error('Invalid trusted answer display projection');
+                }
+                respuesta = displayProjection.text;
+                citas = displayProjection.citations;
+                segmentos = displayProjection.segments;
+                formato = displayProjection.layout;
                 if (
                   crossBookResult?.status === 'ready' &&
                   crossBookResult.summary.workCount > 1
@@ -657,6 +662,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
       } else {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
         setMensajes(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           emisor: 'hoid',

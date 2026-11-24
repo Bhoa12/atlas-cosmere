@@ -105,7 +105,16 @@ export function isHoidEvidenceInChapterScope(
 
     const keys = Reflect.ownKeys(chapterScope);
     if (keys.length !== chapterScope.length + 1 || !keys.includes("length")) return false;
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (
+        typeof key !== "string" ||
+        !/^(0|[1-9][0-9]*)$/u.test(key) ||
+        Number(key) >= chapterScope.length
+      ) return false;
+    }
 
+    let matched = false;
     for (let index = 0; index < chapterScope.length; index += 1) {
       const descriptor = Object.getOwnPropertyDescriptor(chapterScope, String(index));
       if (
@@ -123,18 +132,9 @@ export function isHoidEvidenceInChapterScope(
         anchor.ordinal === source.reference.ordinal &&
         anchor.chapterNumber === source.reference.chapterNumber &&
         anchor.identityFingerprint === source.reference.identityFingerprint
-      ) return true;
+      ) matched = true;
     }
-
-    for (const key of keys) {
-      if (key === "length") continue;
-      if (
-        typeof key !== "string" ||
-        !/^(0|[1-9][0-9]*)$/u.test(key) ||
-        Number(key) >= chapterScope.length
-      ) return false;
-    }
-    return false;
+    return matched;
   } catch {
     return false;
   }

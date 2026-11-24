@@ -91,6 +91,29 @@ describe("edition-bound reading manifests", () => {
     });
   });
 
+  it("rejects a forged numeric cursor even when an exact ambiguous unit exists in the manifest", () => {
+    const result = getHoidReadingManifest("sawt");
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+
+    const duplicateUnit = result.manifest.units.find(unit => unit.chapterNumber === 12);
+    expect(duplicateUnit?.locatorId).toBeTruthy();
+    if (!duplicateUnit) return;
+    const forgedCursor = {
+      schemaVersion: 1,
+      manifestId: result.manifest.manifestId,
+      bookId: result.manifest.bookId,
+      unitId: duplicateUnit.id,
+      ordinal: duplicateUnit.ordinal,
+      chapterNumber: duplicateUnit.chapterNumber,
+    };
+    expect(validateHoidReadingCursor(forgedCursor)).toEqual({
+      status: "invalid",
+      reason: "unit-not-found",
+    });
+    expect(cursorToLegacyReadingPosition(forgedCursor)).toBeNull();
+  });
+
   it("does not invent units for merged White Sand volumes or Arcanum", () => {
     expect(getHoidReadingManifest("white-sand-1")).toMatchObject({
       status: "unavailable",

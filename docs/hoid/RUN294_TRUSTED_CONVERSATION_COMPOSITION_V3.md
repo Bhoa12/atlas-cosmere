@@ -83,6 +83,6 @@ Los SHA-256 de navegación coinciden exactamente con los fingerprints ya registr
 - El TOC de Elantris contiene etiquetas numéricas duplicadas 48, 51 y 57. Se conserva el tratamiento ambiguo existente; esta inspección no amplía el prefijo de progreso numérico.
 - Arena blanca continúa requiriendo segmentación por volumen. Arcanum ilimitado se mantiene como colección de secciones, no como una secuencia numérica única.
 - Los cuatro OPF resuelven todas las referencias `itemref` del spine. En `cosmere.epub`, los 986 enlaces de navegación apuntan a miembros existentes del ZIP.
-- La inspección de Esquirla del amanecer confirma el fingerprint NCX registrado; no se deduce un recuento numérico a partir de etiquetas romanas.
+- La inspección de Esquirla del amanecer confirma el fingerprint NCX registrado y 19 etiquetas numéricas distintas (1–19), sin duplicados.
 
 Esta verificación acredita identidad y estructura de edición, no contenido narrativo ni aprobación editorial. Los EPUB permanecen fuera del repositorio; no se subieron, transformaron ni incorporaron cuerpos de capítulos.

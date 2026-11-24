@@ -152,11 +152,15 @@ describe("edition-bound reading manifests", () => {
     expect(createHoidReadingCursor("elantris", 47).status).toBe("ready");
     expect(createHoidReadingCursor("elantris", 48)).toEqual({
       status: "unavailable",
-      reason: "unit-not-found",
+      reason: "ambiguous-chapter",
     });
     expect(createHoidReadingCursor("sawt", 12)).toEqual({
       status: "unavailable",
-      reason: "unit-not-found",
+      reason: "ambiguous-chapter",
+    });
+    expect(createHoidReadingCursor("sawt", 14)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-chapter",
     });
   });
 

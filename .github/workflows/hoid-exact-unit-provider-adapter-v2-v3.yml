@@ -1,0 +1,100 @@
+name: Hoid exact-unit provider adapter v2/v3
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/exactUnitProviderAdapter.ts"
+      - "src/hoid/exactUnitProviderAdapter.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/trustedConversationGatewayV3.ts"
+      - "src/hoid/trustedConversationGatewayV3.test.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.test.ts"
+      - "src/hoid/exactUnitClaimSignatures.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/RUN293_EXACT_UNIT_PROVIDER_ADAPTER_V2_V3.md"
+      - ".github/workflows/hoid-exact-unit-provider-adapter-v2-v3.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run293"
+    paths:
+      - "src/hoid/exactUnitProviderAdapter.ts"
+      - "src/hoid/exactUnitProviderAdapter.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/trustedConversationGatewayV3.ts"
+      - "src/hoid/trustedConversationGatewayV3.test.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.test.ts"
+      - "src/hoid/exactUnitClaimSignatures.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/RUN293_EXACT_UNIT_PROVIDER_ADAPTER_V2_V3.md"
+      - ".github/workflows/hoid-exact-unit-provider-adapter-v2-v3.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-provider-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test provider adapter and exact-unit regressions
+        run: >-
+          npx vitest run
+          src/hoid/exactUnitProviderAdapter.test.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/trustedConversationGatewayV3.test.ts
+          src/hoid/trustedExactUnitAnswerHost.test.ts
+          src/hoid/exactUnitClaimSignatures.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+      - name: Strict type-check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/exactUnitProviderAdapter.ts
+          src/hoid/exactUnitProviderAdapter.test.ts
+          src/hoid/exactUnitEvidenceRuntime.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/trustedConversationGatewayV3.ts
+          src/hoid/trustedConversationGatewayV3.test.ts
+          src/hoid/trustedExactUnitAnswerHost.ts
+          src/hoid/trustedExactUnitAnswerHost.test.ts
+          src/hoid/exactUnitClaimSignatures.ts
+          src/hoid/exactUnitClaimIntegrity.ts
+          src/hoid/unitEvidenceAuthorizationV2.ts
+          src/hoid/editorialReviewSignatures.ts
+          src/hoid/unitProgressCoordinator.ts
+          src/hoid/unitProgressLedger.ts
+          src/hoid/unitProgressCursor.ts
+          src/hoid/chapterReference.ts
+          src/hoid/readingManifest.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/answerScope.ts
+          src/hoid/explanationDepth.ts
+          src/hoid/requestValidation.ts
+          src/hoid/providerTimeout.ts
+          src/hoid/knowledgeKinds.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts

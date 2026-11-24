@@ -230,6 +230,38 @@ describe("HoidUnitProgressCoordinator", () => {
       });
   });
 
+  it("rejects malformed expected revisions before touching the ledger", async () => {
+    const { coordinator, store } = setup();
+    await coordinator.initialize();
+
+    expect(await coordinator.setInitialCursor("tfe", cursor("tfe", 1), Number.NaN, confirmed))
+      .toEqual({ status: "rejected", reason: "invalid-input" });
+    expect(store.writes).toBe(0);
+  });
+
+  it("detects a changed snapshot even if an external writer reuses the same revision", async () => {
+    const { coordinator, store } = setup();
+    await coordinator.initialize();
+    await coordinator.setInitialCursor("tfe", cursor("tfe", 1), 0, confirmed);
+    let events = 0;
+    coordinator.subscribe(() => { events += 1; });
+
+    store.value = {
+      schemaVersion: 3,
+      revision: 1,
+      positions: [{ bookId: "warbreaker", cursor: cursor("warbreaker", 1), order: 0 }],
+      updatedAt: fixedNow(),
+    };
+    expect(validateHoidUnitProgressSnapshot(store.value).status).toBe("valid");
+
+    expect(await coordinator.refresh()).toMatchObject({
+      status: "ready",
+      operation: "refreshed",
+      snapshot: { revision: 1, positions: [{ bookId: "warbreaker" }] },
+    });
+    expect(events).toBe(1);
+  });
+
   it("notifies once on disposal and rejects subsequent operations", async () => {
     const { coordinator } = setup();
     await coordinator.initialize();

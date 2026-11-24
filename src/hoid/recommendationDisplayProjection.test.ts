@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { resolveHoidChapterIdentity } from "./chapterIdentity";
 import {
   createHoidReadingCursor,
   getHoidReadingManifest,
@@ -204,12 +205,23 @@ describe("Hoid recommendation display projections", () => {
   });
 
   it("removes claim, evidence and EPUB locator identifiers from thematic recommendations", () => {
-    const display = projectHoidTopicRecommendationsForDisplay(topicFixture());
+    const fixture = topicFixture();
+    const citation = fixture[0].matches[0].citations[0];
+    const identity = resolveHoidChapterIdentity(citation.sourceBookId, {
+      chapterNumber: citation.chapter,
+      locatorId: citation.locatorId,
+    });
+    expect(identity.status).toBe("resolved");
+    if (identity.status !== "resolved") return;
+
+    const display = projectHoidTopicRecommendationsForDisplay(fixture);
     expect(display).not.toBeNull();
     expect(display?.[0].matches[0].citations[0]).toEqual({
-      sourceBookId: topicFixture()[0].matches[0].citations[0].sourceBookId,
-      title: topicFixture()[0].matches[0].citations[0].title,
-      chapter: topicFixture()[0].matches[0].citations[0].chapter,
+      sourceBookId: citation.sourceBookId,
+      title: citation.title,
+      chapter: citation.chapter,
+      chapterOrdinal: identity.identity.ordinal,
+      chapterLabelAmbiguous: false,
     });
     const serialized = JSON.stringify(display);
     for (const secret of [
@@ -218,6 +230,69 @@ describe("Hoid recommendation display projections", () => {
       "locatorId",
       "private.xhtml",
     ]) expect(serialized).not.toContain(secret);
+  });
+
+  it("projects an exact duplicate chapter citation with its edition ordinal", () => {
+    const fixture = topicFixture();
+    const manifest = getHoidReadingManifest("sawt");
+    expect(manifest.status).toBe("ready");
+    if (manifest.status !== "ready") return;
+    const duplicateUnits = manifest.manifest.units.filter(unit => unit.chapterNumber === 12);
+    expect(duplicateUnits).toHaveLength(2);
+
+    for (const unit of duplicateUnits) {
+      if (!unit.locatorId) throw new Error("Duplicate chapter locator must be verified");
+      const changed = [{
+        ...fixture[0],
+        matches: [{
+          ...fixture[0].matches[0],
+          citations: [{
+            evidenceId: "evidence-sawt-" + String(unit.ordinal),
+            sourceBookId: "sawt",
+            title: "Viento y verdad",
+            chapter: 12,
+            locatorId: unit.locatorId,
+          }],
+        }],
+      }];
+      const display = projectHoidTopicRecommendationsForDisplay(changed);
+      expect(display?.[0].matches[0].citations[0]).toEqual({
+        sourceBookId: "sawt",
+        title: "Viento y verdad",
+        chapter: 12,
+        chapterOrdinal: unit.ordinal,
+        chapterLabelAmbiguous: true,
+      });
+      expect(JSON.stringify(display)).not.toContain(unit.locatorId);
+    }
+  });
+
+  it("rejects a numeric edition choice at an ambiguous chapter label", () => {
+    const tfe = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === "tfe");
+    if (!tfe) throw new Error("El Imperio Final fixture unavailable");
+    expect(projectHoidEditionRecommendationsForDisplay({
+      status: "selection-required",
+      progressRevision: 10,
+      progressFingerprint: fingerprint,
+      heading: "Elige una obra",
+      detail: "Hay varias lecturas en curso.",
+      choices: [
+        {
+          sourceId: "sawt",
+          title: "Viento y verdad",
+          currentChapter: 12,
+          completedThroughChapter: 11,
+          detail: "Continuar desde el capítulo indicado.",
+        },
+        {
+          sourceId: tfe.id,
+          title: tfe.title,
+          currentChapter: 2,
+          completedThroughChapter: 1,
+          detail: "Continuar desde el capítulo indicado.",
+        },
+      ],
+    })).toBeNull();
   });
 
   it("rejects non-canonical bibliography titles and topic labels", () => {

@@ -134,4 +134,24 @@ describe("isEvidenceUnlocked public boundary", () => {
     expect(isEvidenceUnlocked(sameChapterEntry, [{ bookId: "twok", chapter: 2 }])).toBe(true);
   });
 
+  it("keeps exact duplicate chapter locators from becoming an evidence unlock", () => {
+    const manifest = getHoidReadingManifest("sawt");
+    expect(manifest.status).toBe("ready");
+    if (manifest.status !== "ready") return;
+
+    const chapterTwelveUnits = manifest.manifest.units.filter(unit => unit.chapterNumber === 12);
+    expect(chapterTwelveUnits).toHaveLength(2);
+    for (const unit of chapterTwelveUnits) {
+      if (!unit.locatorId) throw new Error("Duplicate chapter locator must be verified");
+      expect(canonicalEvidenceScope(
+        { bookId: "sawt", chapter: 12, locatorId: unit.locatorId },
+        { bookId: "sawt", chapter: 12 },
+      )).toBeNull();
+      expect(canonicalEvidenceScope(
+        { bookId: "sawt", chapter: 12, locatorId: unit.locatorId },
+        { bookId: "sawt", chapter: 13 },
+      )).toBeNull();
+    }
+  });
+
 });

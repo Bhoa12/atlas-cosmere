@@ -8,6 +8,7 @@ import type {
   HoidCrossBookWorkEvidence,
 } from "./crossBookEvidence";
 import type { HoidNarrativeLayout } from "./narrativeComposition";
+import { resolveHoidChapterIdentity } from "./chapterIdentity";
 
 /**
  * Minimal citation metadata retained by the chat UI after the trusted
@@ -19,6 +20,9 @@ export type HoidDisplayCitation = Readonly<{
   sourceBookId: string;
   title: string;
   chapter: number;
+  /** Stable numbered-unit ordinal; distinguishes repeated visible chapter labels. */
+  chapterOrdinal: number;
+  chapterLabelAmbiguous: boolean;
 }>;
 
 export type HoidDisplaySegment = Readonly<{
@@ -51,17 +55,45 @@ export type HoidAnswerDisplayProjection = Readonly<{
   segments?: readonly HoidDisplaySegment[];
 }>;
 
-function projectCitation(citation: HoidPresentedCitation): HoidDisplayCitation {
+function projectCitation(citation: HoidPresentedCitation): HoidDisplayCitation | null {
+  const identity = resolveHoidChapterIdentity(citation.sourceBookId, {
+    chapterNumber: citation.chapter,
+    locatorId: citation.locatorId,
+  });
+  if (identity.status !== "resolved") return null;
+  const labelResolution = resolveHoidChapterIdentity(citation.sourceBookId, {
+    chapterNumber: citation.chapter,
+  });
+  if (labelResolution.status === "unavailable") return null;
   return Object.freeze({
     sourceBookId: citation.sourceBookId,
     title: citation.title,
     chapter: citation.chapter,
+    chapterOrdinal: identity.identity.ordinal,
+    chapterLabelAmbiguous: labelResolution.status === "ambiguous",
   });
+}
+
+function projectCitationList(
+  citations: readonly HoidPresentedCitation[],
+): readonly HoidDisplayCitation[] | null {
+  const projected: HoidDisplayCitation[] = [];
+  for (const citation of citations) {
+    const item = projectCitation(citation);
+    if (!item) return null;
+    projected.push(item);
+  }
+  return Object.freeze(projected);
 }
 
 function projectCrossBookWork(
   work: HoidCrossBookWorkEvidence | HoidCrossBookSegmentWorkEvidence,
-): HoidDisplayCrossBookWorkEvidence {
+): HoidDisplayCrossBookWorkEvidence | null {
+  for (const chapter of work.chapters) {
+    if (resolveHoidChapterIdentity(work.sourceBookId, { chapterNumber: chapter }).status !== "resolved") {
+      return null;
+    }
+  }
   return Object.freeze({
     sourceBookId: work.sourceBookId,
     title: work.title,
@@ -83,13 +115,22 @@ export function projectHoidCrossBookEvidenceForDisplay(
     summary.segments.length < 1
   ) return null;
 
+  const works = summary.works.map(projectCrossBookWork);
+  if (works.some(work => work === null)) return null;
+  const segments = summary.segments.map(segment => {
+    const segmentWorks = segment.works.map(projectCrossBookWork);
+    if (segmentWorks.some(work => work === null)) return null;
+    return Object.freeze({
+      claimId: segment.claimId,
+      works: Object.freeze(segmentWorks as HoidDisplayCrossBookWorkEvidence[]),
+    });
+  });
+  if (segments.some(segment => segment === null)) return null;
+
   return Object.freeze({
     workCount: summary.workCount,
-    works: Object.freeze(summary.works.map(projectCrossBookWork)),
-    segments: Object.freeze(summary.segments.map(segment => Object.freeze({
-      claimId: segment.claimId,
-      works: Object.freeze(segment.works.map(projectCrossBookWork)),
-    }))),
+    works: Object.freeze(works as HoidDisplayCrossBookWorkEvidence[]),
+    segments: Object.freeze(segments as HoidDisplayCrossBookSegmentEvidence[]),
   });
 }
 
@@ -109,14 +150,22 @@ export function projectHoidAnswerForDisplay(
   if (hasSegments !== hasLayout) return null;
   if (presentation.segments && presentation.segments.length === 0) return null;
 
-  const citations = Object.freeze(presentation.citations.map(projectCitation));
-  const segments = presentation.segments
-    ? Object.freeze(presentation.segments.map(segment => Object.freeze({
+  const citations = projectCitationList(presentation.citations);
+  if (!citations) return null;
+  let segments: readonly HoidDisplaySegment[] | undefined;
+  if (presentation.segments) {
+    const projectedSegments: HoidDisplaySegment[] = [];
+    for (const segment of presentation.segments) {
+      const segmentCitations = projectCitationList(segment.citations);
+      if (!segmentCitations) return null;
+      projectedSegments.push(Object.freeze({
         claimId: segment.claimId,
         text: segment.text,
-        citations: Object.freeze(segment.citations.map(projectCitation)),
-      })))
-    : undefined;
+        citations: segmentCitations,
+      }));
+    }
+    segments = Object.freeze(projectedSegments);
+  }
 
   return Object.freeze({
     text: presentation.text,

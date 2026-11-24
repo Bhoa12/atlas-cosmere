@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { resolveHoidChapterIdentity } from "./chapterIdentity";
 import {
   getHoidReadingManifest,
   validateHoidReadingCursor,
@@ -44,6 +45,9 @@ export type HoidTopicRecommendationDisplayCitation = Readonly<{
   sourceBookId: string;
   title: string;
   chapter: number;
+  /** Stable numbered-unit ordinal; distinguishes repeated visible chapter labels. */
+  chapterOrdinal: number;
+  chapterLabelAmbiguous: boolean;
 }>;
 
 export type HoidTopicRecommendationDisplayMatch = Readonly<{
@@ -333,13 +337,22 @@ export function projectHoidEditionRecommendationsForDisplay(
       ) return null;
       const manifestResult = getHoidReadingManifest(choice.sourceId);
       if (manifestResult.status !== "ready") return null;
-      const currentUnitIndex = manifestResult.manifest.units.findIndex(
-        unit => unit.chapterNumber === choice.currentChapter,
-      );
-      if (currentUnitIndex < 0) return null;
-      const expectedCompletedChapter = currentUnitIndex === 0
+      const currentIdentity = resolveHoidChapterIdentity(choice.sourceId, {
+        chapterNumber: choice.currentChapter,
+      });
+      if (currentIdentity.status !== "resolved") return null;
+      const previousUnit = currentIdentity.identity.ordinal === 1
         ? null
-        : manifestResult.manifest.units[currentUnitIndex - 1]?.chapterNumber ?? null;
+        : manifestResult.manifest.units.find(
+            unit => unit.ordinal === currentIdentity.identity.ordinal - 1,
+          ) ?? null;
+      if (
+        currentIdentity.identity.ordinal > 1 &&
+        (!previousUnit || resolveHoidChapterIdentity(choice.sourceId, {
+          chapterNumber: previousUnit.chapterNumber,
+        }).status !== "resolved")
+      ) return null;
+      const expectedCompletedChapter = previousUnit?.chapterNumber ?? null;
       if (choice.completedThroughChapter !== expectedCompletedChapter) return null;
 
       seen.add(choice.sourceId);
@@ -387,12 +400,15 @@ function canonicalTopicCitation(
     citation.locatorId.length > 256 ||
     /[\u0000-\u001F\u007F]/u.test(citation.locatorId)
   ) return null;
-  const manifestResult = getHoidReadingManifest(citation.sourceBookId);
-  if (manifestResult.status !== "ready") return null;
-  const unit = manifestResult.manifest.units.find(
-    candidate => candidate.chapterNumber === citation.chapter,
-  );
-  if (!unit || unit.locatorId !== citation.locatorId) return null;
+  const identity = resolveHoidChapterIdentity(citation.sourceBookId, {
+    chapterNumber: citation.chapter,
+    locatorId: citation.locatorId,
+  });
+  if (identity.status !== "resolved") return null;
+  const labelResolution = resolveHoidChapterIdentity(citation.sourceBookId, {
+    chapterNumber: citation.chapter,
+  });
+  if (labelResolution.status === "unavailable") return null;
 
   return Object.freeze({
     evidenceId: citation.evidenceId,
@@ -400,6 +416,8 @@ function canonicalTopicCitation(
       sourceBookId: citation.sourceBookId,
       title: citation.title,
       chapter: citation.chapter as number,
+      chapterOrdinal: identity.identity.ordinal,
+      chapterLabelAmbiguous: labelResolution.status === "ambiguous",
     }),
   });
 }

@@ -1,17 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { HoidAnswerPresentation, HoidPresentedCitation } from "./answerPresentation";
 import type { HoidCrossBookEvidenceSummary } from "./crossBookEvidence";
+import { getHoidReadingManifest } from "./readingManifest";
 import {
   projectHoidAnswerForDisplay,
   projectHoidCrossBookEvidenceForDisplay,
 } from "./answerDisplayProjection";
+
+const elantrisManifest = getHoidReadingManifest("elantris");
+if (elantrisManifest.status !== "ready") throw new Error("Elantris manifest fixture unavailable");
+const elantrisChapterFour = elantrisManifest.manifest.units.find(unit => unit.chapterNumber === 4);
+if (!elantrisChapterFour?.locatorId) throw new Error("Elantris chapter-four locator unavailable");
 
 const citation: HoidPresentedCitation = Object.freeze({
   evidenceId: "evidence-one",
   sourceBookId: "elantris",
   title: "Elantris",
   chapter: 4,
-  locatorId: "private.xhtml#chapter-4",
+  locatorId: elantrisChapterFour.locatorId,
 });
 
 function readyPresentation(
@@ -66,9 +72,13 @@ describe("Hoid answer display projection", () => {
       sourceBookId: "elantris",
       title: "Elantris",
       chapter: 4,
+      chapterOrdinal: 4,
+      chapterLabelAmbiguous: false,
     });
     expect(Object.keys(display!.citations[0]).sort()).toEqual([
       "chapter",
+      "chapterLabelAmbiguous",
+      "chapterOrdinal",
       "sourceBookId",
       "title",
     ]);
@@ -87,6 +97,8 @@ describe("Hoid answer display projection", () => {
         sourceBookId: "elantris",
         title: "Elantris",
         chapter: 4,
+        chapterOrdinal: 4,
+        chapterLabelAmbiguous: false,
       }],
     });
     expect(display?.segments?.[0]).not.toHaveProperty("evidenceIds");
@@ -138,6 +150,68 @@ describe("Hoid answer display projection", () => {
     expect(projectHoidAnswerForDisplay(readyPresentation({
       segments: Object.freeze([]),
     }))).toBeNull();
+  });
+
+  it("disambiguates a repeated chapter label using its exact locator without exposing that locator", () => {
+    const manifest = getHoidReadingManifest("sawt");
+    expect(manifest.status).toBe("ready");
+    if (manifest.status !== "ready") return;
+    const duplicateUnits = manifest.manifest.units.filter(unit => unit.chapterNumber === 12);
+    expect(duplicateUnits).toHaveLength(2);
+
+    for (const unit of duplicateUnits) {
+      if (!unit.locatorId) throw new Error("Duplicate chapter locator must be verified");
+      const exactCitation: HoidPresentedCitation = Object.freeze({
+        evidenceId: "evidence-" + String(unit.ordinal),
+        sourceBookId: "sawt",
+        title: "Viento y verdad",
+        chapter: 12,
+        locatorId: unit.locatorId,
+      });
+      const display = projectHoidAnswerForDisplay(readyPresentation({
+        evidenceIds: Object.freeze([exactCitation.evidenceId]),
+        citations: Object.freeze([exactCitation]),
+        segments: Object.freeze([Object.freeze({
+          claimId: "claim-one",
+          text: "Explicación respaldada.",
+          evidenceIds: Object.freeze([exactCitation.evidenceId]),
+          citations: Object.freeze([exactCitation]),
+        })]),
+      }));
+      expect(display?.citations[0]).toEqual({
+        sourceBookId: "sawt",
+        title: "Viento y verdad",
+        chapter: 12,
+        chapterOrdinal: unit.ordinal,
+        chapterLabelAmbiguous: true,
+      });
+      expect(JSON.stringify(display)).not.toContain(unit.locatorId);
+      expect(JSON.stringify(display)).not.toContain(exactCitation.evidenceId);
+    }
+  });
+
+  it("rejects cross-book summaries that contain an ambiguous chapter without an exact locator", () => {
+    const sawt = Object.freeze({
+      sourceBookId: "sawt",
+      title: "Viento y verdad",
+      chapters: Object.freeze([12]),
+      evidenceIds: Object.freeze(["evidence-sawt"]),
+    });
+    const elantris = Object.freeze({
+      sourceBookId: "elantris",
+      title: "Elantris",
+      chapters: Object.freeze([4]),
+      evidenceIds: Object.freeze(["evidence-one"]),
+    });
+    expect(projectHoidCrossBookEvidenceForDisplay({
+      workCount: 2,
+      works: Object.freeze([elantris, sawt]),
+      segments: Object.freeze([Object.freeze({
+        claimId: "claim-one",
+        sourceBookIds: Object.freeze(["elantris", "sawt"]),
+        works: Object.freeze([elantris, sawt]),
+      })]),
+    })).toBeNull();
   });
 
   it("removes evidence IDs and source-ID lists from cross-work display summaries", () => {

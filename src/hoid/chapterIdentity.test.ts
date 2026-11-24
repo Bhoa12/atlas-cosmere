@@ -187,18 +187,60 @@ describe("edition-bound chapter identity", () => {
     }
   });
 
-  it("keeps Viento y verdad ambiguous chapter labels blocked without inventing candidate counts", () => {
+  it("keeps Viento y verdad labels ambiguous while reporting the exact verified candidate counts", () => {
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 11 }).status).toBe("resolved");
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 12 })).toEqual({
       status: "ambiguous",
       chapterNumber: 12,
-      candidateCount: null,
+      candidateCount: 2,
     });
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 14 })).toEqual({
       status: "ambiguous",
       chapterNumber: 14,
-      candidateCount: null,
+      candidateCount: 2,
     });
+  });
+
+  it("resolves repeated Viento y verdad labels only by their exact verified edition locators", () => {
+    const manifestResult = getHoidReadingManifest("sawt");
+    expect(manifestResult.status).toBe("ready");
+    if (manifestResult.status !== "ready") return;
+
+    for (const [chapterNumber, expectedOrdinals] of [[12, [12, 14]], [14, [15, 35]]] as const) {
+      const units = manifestResult.manifest.units.filter(unit => unit.chapterNumber === chapterNumber);
+      expect(units.map(unit => unit.ordinal)).toEqual(expectedOrdinals);
+      expect(resolveHoidChapterIdentityInManifest(
+        manifestResult.manifest,
+        { chapterNumber },
+      )).toEqual({
+        status: "ambiguous",
+        chapterNumber,
+        candidateCount: 2,
+      });
+
+      for (const unit of units) {
+        expect(unit.locatorId).toBeTruthy();
+        const resolved = resolveHoidChapterIdentityInManifest(
+          manifestResult.manifest,
+          { chapterNumber, locatorId: unit.locatorId },
+        );
+        expect(resolved).toMatchObject({
+          status: "resolved",
+          identity: {
+            bookId: "sawt",
+            chapterNumber,
+            ordinal: unit.ordinal,
+            unitId: unit.id,
+            locatorId: unit.locatorId,
+          },
+        });
+        if (resolved.status !== "resolved") continue;
+        expect(validateHoidChapterIdentityInManifest(
+          manifestResult.manifest,
+          resolved.identity,
+        )).toEqual({ status: "valid", identity: resolved.identity });
+      }
+    }
   });
 
   it("does not resolve a declared ambiguous number from a partial single-candidate manifest", () => {

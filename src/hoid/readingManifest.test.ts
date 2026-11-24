@@ -36,13 +36,86 @@ describe("edition-bound reading manifests", () => {
     expect(result.manifest.coverage).toBe("partial-before-ambiguous-chapter");
   });
 
-  it("creates only the unambiguous prefix for Viento y verdad", () => {
+  it("keeps numeric progress capped while retaining exact locators for duplicate Viento y verdad labels", () => {
     const result = getHoidReadingManifest("sawt");
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
 
-    expect(result.manifest.units).toHaveLength(11);
+    expect(result.manifest.units).toHaveLength(15);
+    expect(result.manifest.units.slice(0, 11).map(unit => unit.chapterNumber)).toEqual(
+      Array.from({ length: 11 }, (_, index) => index + 1),
+    );
+    expect(result.manifest.units.slice(11)).toEqual([
+      {
+        id: "chapter:012:unit:012",
+        kind: "chapter",
+        ordinal: 12,
+        chapterNumber: 12,
+        locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L5-023.xhtml",
+      },
+      {
+        id: "chapter:012:unit:014",
+        kind: "chapter",
+        ordinal: 14,
+        chapterNumber: 12,
+        locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L5-028.xhtml",
+      },
+      {
+        id: "chapter:014:unit:015",
+        kind: "chapter",
+        ordinal: 15,
+        chapterNumber: 14,
+        locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L5-030.xhtml",
+      },
+      {
+        id: "chapter:014:unit:035",
+        kind: "chapter",
+        ordinal: 35,
+        chapterNumber: 14,
+        locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L5-055.xhtml",
+      },
+    ]);
     expect(result.manifest.ambiguousChapterNumbers).toEqual([12, 14]);
+    expect(result.manifest.coverage).toBe("partial-before-ambiguous-chapter");
+    expect(createHoidReadingCursor("sawt", 12)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-chapter",
+    });
+    expect(createHoidReadingCursor("sawt", 14)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-chapter",
+    });
+    expect(createHoidReadingCursor("sawt", 13)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-chapter",
+    });
+    expect(createHoidReadingCursor("sawt", 15)).toEqual({
+      status: "unavailable",
+      reason: "ambiguous-chapter",
+    });
+  });
+
+  it("rejects a forged numeric cursor even when an exact ambiguous unit exists in the manifest", () => {
+    const result = getHoidReadingManifest("sawt");
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+
+    const duplicateUnit = result.manifest.units.find(unit => unit.chapterNumber === 12);
+    expect(duplicateUnit?.locatorId).toBeTruthy();
+    if (!duplicateUnit) return;
+    const forgedCursor = {
+      schemaVersion: 1,
+      manifestId: result.manifest.manifestId,
+      bookId: result.manifest.bookId,
+      unitId: duplicateUnit.id,
+      ordinal: duplicateUnit.ordinal,
+      chapterNumber: duplicateUnit.chapterNumber,
+    };
+    expect(validateHoidReadingCursor(forgedCursor)).toEqual({
+      status: "invalid",
+      reason: "unit-not-found",
+    });
+    expect(cursorToLegacyReadingPosition(forgedCursor)).toBeNull();
   });
 
   it("does not invent units for merged White Sand volumes or Arcanum", () => {

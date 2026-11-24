@@ -124,7 +124,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     ? createHoidTrustedTopicRecommendationPresenter({
         loadApprovedClaims: topicApprovedClaimAnswerPort,
         trustedAnswerPort,
-        refreshCurrentProgress: signal => awaitHoidOperationWithSignal(
+        refreshCurrentProgress: (signal?: AbortSignal) => awaitHoidOperationWithSignal(
           () => progressRefreshRef.current(),
           signal,
         ),

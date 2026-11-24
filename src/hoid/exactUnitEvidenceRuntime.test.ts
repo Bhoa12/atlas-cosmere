@@ -257,6 +257,7 @@ describe("Hoid exact-unit evidence runtime v2", () => {
     const result = await runtime!.answer({
       question: "Explícame Entidad Alfa.",
       intent: "explain",
+      depth: "detailed",
     });
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;

@@ -187,17 +187,17 @@ describe("edition-bound chapter identity", () => {
     }
   });
 
-  it("keeps Viento y verdad ambiguous chapter labels blocked without inventing candidate counts", () => {
+  it("keeps Viento y verdad labels ambiguous while reporting the exact verified candidate counts", () => {
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 11 }).status).toBe("resolved");
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 12 })).toEqual({
       status: "ambiguous",
       chapterNumber: 12,
-      candidateCount: null,
+      candidateCount: 2,
     });
     expect(resolveHoidChapterIdentity("sawt", { chapterNumber: 14 })).toEqual({
       status: "ambiguous",
       chapterNumber: 14,
-      candidateCount: null,
+      candidateCount: 2,
     });
   });
 

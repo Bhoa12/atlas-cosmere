@@ -57,7 +57,9 @@ function topicFixture() {
   if (!evidenceWork) throw new Error("A second manifest-backed evidence work is required");
   const evidenceManifest = getHoidReadingManifest(evidenceWork.id);
   if (evidenceManifest.status !== "ready") throw new Error("Evidence manifest fixture unavailable");
-  const evidenceChapter = evidenceManifest.manifest.units[0].chapterNumber;
+  const evidenceUnit = evidenceManifest.manifest.units.find(unit => Boolean(unit.locatorId));
+  if (!evidenceUnit?.locatorId) throw new Error("A locator-backed evidence chapter is required");
+  const evidenceChapter = evidenceUnit.chapterNumber;
   const topic = HOID_TOPIC_TAXONOMY[0];
   const dimension = topic.dimensions[0];
   return Object.freeze([Object.freeze({
@@ -76,7 +78,7 @@ function topicFixture() {
         sourceBookId: evidenceWork.id,
         title: evidenceWork.title,
         chapter: evidenceChapter,
-        locatorId: "private.xhtml#chapter-" + String(evidenceChapter),
+        locatorId: evidenceUnit.locatorId,
       })]),
     })]),
   })]);

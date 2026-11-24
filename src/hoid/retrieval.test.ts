@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { retrieveAuthorized } from "./retrieval";
 import { HoidKnowledgeEntry } from "./catalog";
+import { getHoidReadingManifest } from "./readingManifest";
 import { ReadingPosition } from "./types";
+
+function locator(bookId: string, chapter: number): string {
+  const manifest = getHoidReadingManifest(bookId);
+  if (manifest.status !== "ready") throw new Error("Synthetic manifest unavailable");
+  const unit = manifest.manifest.units.find(item => item.chapterNumber === chapter);
+  if (!unit?.locatorId) throw new Error("Synthetic locator unavailable");
+  return unit.locatorId;
+}
 
 function assert(condition: unknown, message: string): void {
   if (!condition) throw new Error(message);
@@ -13,6 +22,8 @@ const items: HoidKnowledgeEntry[] = [
     aliases: ["Elantris", "ciudad"],
     kind: "place",
     firstSafeAppearance: { bookId: "elantris", chapter: 3 },
+    evidenceSource: { bookId: "elantris", chapter: 3, locatorId: locator("elantris", 3) },
+    evidenceUnlock: { bookId: "elantris", chapter: 3 },
     summary: "Resumen original de prueba.",
     provenance: "verified",
   },
@@ -21,6 +32,8 @@ const items: HoidKnowledgeEntry[] = [
     aliases: ["limitado"],
     kind: "concept",
     firstSafeAppearance: { bookId: "elantris", chapter: 1 },
+    evidenceSource: { bookId: "elantris", chapter: 1, locatorId: locator("elantris", 1) },
+    evidenceUnlock: { bookId: "elantris", chapter: 1 },
     summary: "Resumen que no debe llegar al proveedor.",
     provenance: "limited",
   },
@@ -29,6 +42,8 @@ const items: HoidKnowledgeEntry[] = [
     aliases: ["sinprocedencia"],
     kind: "concept",
     firstSafeAppearance: { bookId: "elantris", chapter: 1 },
+    evidenceSource: { bookId: "elantris", chapter: 1, locatorId: locator("elantris", 1) },
+    evidenceUnlock: { bookId: "elantris", chapter: 1 },
     summary: "Resumen sin procedencia explícita.",
   },
   {
@@ -36,6 +51,8 @@ const items: HoidKnowledgeEntry[] = [
     aliases: ["otro"],
     kind: "concept",
     firstSafeAppearance: { bookId: "warbreaker", chapter: 1 },
+    evidenceSource: { bookId: "warbreaker", chapter: 1, locatorId: locator("warbreaker", 1) },
+    evidenceUnlock: { bookId: "warbreaker", chapter: 1 },
     summary: "Resumen original de prueba.",
     provenance: "verified",
   },
@@ -82,6 +99,8 @@ export function runRetrievalChecks(): void {
       aliases: ["mar esmeralda"],
       kind: "concept",
       firstSafeAppearance: { bookId: "elantris", chapter: 1 },
+      evidenceSource: { bookId: "elantris", chapter: 1, locatorId: locator("elantris", 1) },
+      evidenceUnlock: { bookId: "elantris", chapter: 1 },
       summary: "Resumen original de prueba.",
       provenance: "verified",
     },

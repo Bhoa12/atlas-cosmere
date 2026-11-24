@@ -23,7 +23,7 @@ export type HoidChapterIdentitySelection = Readonly<{
 
 export type HoidChapterIdentityResolution =
   | Readonly<{ status: "resolved"; identity: HoidChapterIdentity }>
-  | Readonly<{ status: "ambiguous"; chapterNumber: number; candidateCount: number }>
+  | Readonly<{ status: "ambiguous"; chapterNumber: number; candidateCount: number | null }>
   | Readonly<{
       status: "unavailable";
       reason:
@@ -63,6 +63,7 @@ type CanonicalManifest = Readonly<{
   navigationSha256: string;
   bookId: string;
   units: readonly CanonicalUnit[];
+  ambiguousChapterNumbers: readonly number[];
 }>;
 
 const ID_PATTERN = /^[a-z0-9]+(?::[a-z0-9]+)*(?:[.-][a-z0-9]+)*$/u;
@@ -244,12 +245,23 @@ function canonicalManifest(value: unknown): CanonicalManifest | null {
     previousAmbiguous = number;
   }
 
+  const duplicateNumbers = new Set<number>();
+  const chapterCounts = new Map<number, number>();
+  for (const unit of canonicalUnits) {
+    const count = (chapterCounts.get(unit.chapterNumber) ?? 0) + 1;
+    chapterCounts.set(unit.chapterNumber, count);
+    if (count > 1) duplicateNumbers.add(unit.chapterNumber);
+  }
+  const ambiguousSet = new Set(ambiguousNumbers as readonly number[]);
+  if ([...duplicateNumbers].some(number => !ambiguousSet.has(number))) return null;
+
   return Object.freeze({
     manifestId: raw.manifestId,
     editionId: raw.editionId,
     navigationSha256: raw.navigationSha256,
     bookId: raw.bookId,
     units: Object.freeze(canonicalUnits),
+    ambiguousChapterNumbers: Object.freeze([...(ambiguousNumbers as readonly number[])]),
   });
 }
 
@@ -326,6 +338,19 @@ export function resolveHoidChapterIdentityInManifest(
   }
 
   let candidates = manifest.units.filter(unit => unit.chapterNumber === selection.chapterNumber);
+  const hasDisambiguator =
+    selection.unitId !== undefined || selection.locatorId !== undefined;
+  const isDeclaredAmbiguous =
+    manifest.ambiguousChapterNumbers.includes(selection.chapterNumber);
+
+  if (!hasDisambiguator && isDeclaredAmbiguous) {
+    return Object.freeze({
+      status: "ambiguous",
+      chapterNumber: selection.chapterNumber,
+      candidateCount: candidates.length > 1 ? candidates.length : null,
+    });
+  }
+
   if (selection.unitId !== undefined) {
     candidates = candidates.filter(unit => unit.id === selection.unitId);
   }
@@ -334,8 +359,6 @@ export function resolveHoidChapterIdentityInManifest(
   }
 
   if (candidates.length === 0) {
-    const hasDisambiguator =
-      selection.unitId !== undefined || selection.locatorId !== undefined;
     return Object.freeze({
       status: "unavailable",
       reason: hasDisambiguator ? "identity-mismatch" : "chapter-not-found",

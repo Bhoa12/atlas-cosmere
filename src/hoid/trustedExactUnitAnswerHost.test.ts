@@ -114,11 +114,19 @@ class MemoryTrustCheckpointStore implements HoidReviewerTrustCheckpointStore {
   value: HoidReviewerTrustCheckpoint = Object.freeze({ revision: 0, registryFingerprint: null });
   failWrites = false;
   async read(): Promise<unknown> { return this.value; }
+  listeners = new Set<(checkpoint: unknown) => void>();
+  emitChangedOnSubscribe: unknown = null;
   async compareAndSwap(expected: HoidReviewerTrustCheckpoint, next: HoidReviewerTrustCheckpoint): Promise<boolean> {
     if (this.failWrites || this.value.revision !== expected.revision ||
       this.value.registryFingerprint !== expected.registryFingerprint) return false;
     this.value = next;
+    for (const listener of this.listeners) listener(this.value);
     return true;
+  }
+  subscribe(listener: (checkpoint: unknown) => void): () => void {
+    this.listeners.add(listener);
+    if (this.emitChangedOnSubscribe !== null) listener(this.emitChangedOnSubscribe);
+    return () => this.listeners.delete(listener);
   }
 }
 function createProgressStore(): MemoryProgressStore {
@@ -132,10 +140,22 @@ function createProgressStore(): MemoryProgressStore {
   });
   return store;
 }
+class MemoryProgressInvalidation {
+  listeners = new Set<() => void>();
+  emitOnSubscribe = false;
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    if (this.emitOnSubscribe) listener();
+    return () => this.listeners.delete(listener);
+  }
+  emit(): void { for (const listener of this.listeners) listener(); }
+}
+
 function createHostHarness() {
   const progressStore = createProgressStore();
   const coordinator = new HoidUnitProgressCoordinator(progressStore);
   const checkpointStore = new MemoryTrustCheckpointStore();
+  const progressInvalidation = new MemoryProgressInvalidation();
   let currentRegistry: unknown = createRegistry(3);
   let currentPackages: unknown = Object.freeze([signedPackage()]);
   const registrySource: HoidReviewerTrustRegistrySource = { async load() { return currentRegistry; } };
@@ -149,13 +169,13 @@ function createHostHarness() {
     },
   };
   const host = createHoidTrustedExactUnitAnswerHost({
-    coordinator, packageSource, registrySource, checkpointStore,
+    coordinator, packageSource, registrySource, checkpointStore, progressInvalidation,
     clock: { nowIso: () => now }, context, rootKey, verifier, selector,
     maxRegistryAgeMs: 7 * 24 * 60 * 60 * 1000,
   });
   if (!host) throw new Error("Trusted host configuration rejected");
   return {
-    host, progressStore, checkpointStore,
+    host, progressStore, checkpointStore, progressInvalidation,
     setRegistry(value: unknown) { currentRegistry = value; },
     setPackages(value: unknown) { currentPackages = value; },
   };
@@ -276,5 +296,30 @@ describe("Hoid trusted exact-unit answer host", () => {
     }));
     const result = await harness.host.prepare({ question: "Explica Entidad Alfa", intent: "explain", depth: "brief" });
     expect(result).toEqual({ status: "blocked", reason: "registry-stale" });
+  });
+
+  it("blocks if a durable cross-instance progress invalidation arrives during the presentation barrier", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    harness.progressInvalidation.emitOnSubscribe = true;
+    const { sink, state } = createSink();
+    const result = await harness.host.present(prepared, sink);
+    expect(result).toEqual({ status: "blocked", reason: "progress-changed" });
+    expect(state.answer).toBeUndefined();
+    expect(state.cleared).toBe("progress-changed");
+  });
+
+  it("blocks if the durable trust checkpoint changes during the presentation barrier", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    harness.checkpointStore.emitChangedOnSubscribe = Object.freeze({
+      revision: 4,
+      registryFingerprint: "d".repeat(64),
+    });
+    const { sink, state } = createSink();
+    const result = await harness.host.present(prepared, sink);
+    expect(result).toEqual({ status: "blocked", reason: "trust-checkpoint-conflict" });
+    expect(state.answer).toBeUndefined();
+    expect(state.cleared).toBe("trust-checkpoint-conflict");
   });
 });

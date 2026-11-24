@@ -24,6 +24,7 @@ import type { HoidTypedConversationContext } from '../hoid/typedConversationCont
 import type { HoidConversationScopeBinding } from '../hoid/conversationScopeBinding';
 import { createHoidConversationTurnSession } from '../hoid/conversationTurnSession';
 import { createHoidRecommendationRequestSession } from '../hoid/recommendationRequestSession';
+import { awaitHoidOperationWithSignal } from '../hoid/abortableOperation';
 import {
   createHoidEditionBoundRecommendationPresentation,
   type HoidEditionBoundRecommendationPresentation,
@@ -682,7 +683,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setRecommendationSelectedBookId(activeBookId ?? null);
 
     try {
-      const currentProgress = await progressRefreshRef.current();
+      const currentProgress = await awaitHoidOperationWithSignal(
+        () => progressRefreshRef.current(),
+        ticket.signal,
+      );
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       const projection = currentProgress
         ? projectHoidCursorProgressSnapshot(currentProgress)
@@ -708,7 +712,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
 
       // The synchronous adapter is still followed by a fresh authoritative read.
       // This closes the interval between calculation and committing React state.
-      const latestProgress = await progressRefreshRef.current();
+      const latestProgress = await awaitHoidOperationWithSignal(
+        () => progressRefreshRef.current(),
+        ticket.signal,
+      );
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       const latestProjection = latestProgress
         ? projectHoidCursorProgressSnapshot(latestProgress)
@@ -788,7 +795,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         return;
       }
 
-      const currentProgress = await progressRefreshRef.current();
+      const currentProgress = await awaitHoidOperationWithSignal(
+        () => progressRefreshRef.current(),
+        ticket.signal,
+      );
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       const projection = currentProgress ? projectHoidCursorProgressSnapshot(currentProgress) : null;
       if (!currentProgress || projection?.status !== 'ready') {
@@ -809,7 +819,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         progress: currentProgress,
         context,
         limit: 5,
-      });
+      }, ticket.signal);
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       if (result.status === 'ready') {
         const verified = await trustedTopicRecommendationPresenter.present({
@@ -817,7 +827,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           progress: currentProgress,
           progressRevision: result.progressRevision,
           progressFingerprint: result.progressFingerprint,
-        });
+        }, ticket.signal);
         if (!recommendationRequestSession.isCurrent(ticket)) return;
         if (verified.status !== 'ready') {
           setTopicRecommendations([]);
@@ -832,7 +842,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           return;
         }
 
-        const latestProgress = await progressRefreshRef.current();
+        const latestProgress = await awaitHoidOperationWithSignal(
+          () => progressRefreshRef.current(),
+          ticket.signal,
+        );
         if (!recommendationRequestSession.isCurrent(ticket)) return;
         const latestProjection = latestProgress
           ? projectHoidCursorProgressSnapshot(latestProgress)
@@ -884,6 +897,20 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
         setCargandoRecomendaciones(false);
       }
     }
+  };
+
+  const cancelarRecomendaciones = () => {
+    if (!recommendationRequestSession.cancelCurrent()) return;
+    setCargandoRecomendaciones(false);
+    setRecommendationPresentation(null);
+    setRecommendationSelectedBookId(null);
+    setRecommendationMessage('Solicitud cancelada. No mostraré resultados parciales.');
+    setTopicRecommendations([]);
+    setTopicRecommendationRevision(null);
+    setTopicRecommendationFingerprint(null);
+    setTopicRecommendationSelectionKey(null);
+    setTopicRecommendationTrustPort(null);
+    setTopicRecommendationMessage('');
   };
 
   // A recommendation view model is visible only for its exact validated progress revision and fingerprint.
@@ -1029,7 +1056,19 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
             <Text style={styles.recommendationButtonText}>Explorar</Text>
           </TouchableOpacity>
         </View>
-        {cargandoRecomendaciones && <ActivityIndicator color="#818cf8" style={{ marginTop: 8 }} />}
+        {cargandoRecomendaciones && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            <ActivityIndicator color="#818cf8" style={{ marginRight: 12 }} />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Cancelar recomendaciones"
+              onPress={cancelarRecomendaciones}
+              style={styles.readerCancelButton}
+            >
+              <Text style={styles.readerCancelButtonText}>Cancelar recomendaciones</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {recommendationMessage.length > 0 && (
           <Text style={styles.recommendationMessage}>{recommendationMessage}</Text>
         )}

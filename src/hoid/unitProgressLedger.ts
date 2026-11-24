@@ -499,11 +499,11 @@ export class HoidUnitProgressLedger {
     replacement: HoidUnitProgressPosition,
     expectedRevision: number,
   ): Promise<HoidUnitProgressResult> {
-    return this.commit(
-      current,
-      current.positions.map(position => position.bookId === bookId ? replacement : position),
-      expectedRevision,
-    );
+    const exists = current.positions.some(position => position.bookId === bookId);
+    const positions = exists
+      ? current.positions.map(position => position.bookId === bookId ? replacement : position)
+      : [...current.positions, replacement];
+    return this.commit(current, positions, expectedRevision);
   }
 
   private async commit(

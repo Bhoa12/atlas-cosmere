@@ -17,11 +17,16 @@ on:
       - "src/hoid/typedConversationGateway.test.ts"
       - "src/hoid/retrieval.ts"
       - "src/hoid/retrieval.test.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitProgressCursor.test.ts"
+      - "docs/hoid/RUN282_EXACT_UNIT_PROGRESS_CURSOR.md"
+      - ".github/workflows/hoid-exact-unit-progress-cursor.yml"
       - "docs/hoid/RUN281_EXACT_EDITION_IDENTITY_AT_EVIDENCE_BOUNDARY.md"
       - ".github/workflows/hoid-exact-edition-evidence-identity.yml"
   push:
     branches:
       - "feat/hoid-ia-core-run281"
+      - "feat/hoid-ia-core-run282"
     paths:
       - "src/hoid/chapterEvidenceScope.ts"
       - "src/hoid/chapterEvidenceScope.test.ts"
@@ -36,6 +41,10 @@ on:
       - "src/hoid/conversationGateway.test.ts"
       - "src/hoid/typedConversationGateway.test.ts"
       - "src/hoid/retrieval.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitProgressCursor.test.ts"
+      - "docs/hoid/RUN282_EXACT_UNIT_PROGRESS_CURSOR.md"
+      - ".github/workflows/hoid-exact-unit-progress-cursor.yml"
       - "src/hoid/retrieval.test.ts"
       - "docs/hoid/RUN281_EXACT_EDITION_IDENTITY_AT_EVIDENCE_BOUNDARY.md"
       - ".github/workflows/hoid-exact-edition-evidence-identity.yml"
@@ -64,6 +73,7 @@ jobs:
           src/hoid/conversationGateway.test.ts
           src/hoid/typedConversationGateway.test.ts
           src/hoid/retrieval.test.ts
+          src/hoid/unitProgressCursor.test.ts
       - name: Strict type-check exact chapter identity
         run: >-
           npx tsc --noEmit --strict
@@ -78,3 +88,4 @@ jobs:
           src/hoid/evidenceRuntime.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/conversationGateway.ts
+          src/hoid/unitProgressCursor.ts

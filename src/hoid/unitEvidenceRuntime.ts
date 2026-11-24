@@ -32,6 +32,7 @@ import {
   authorizeHoidUnitEvidence,
   type HoidUnitEvidencePolicy,
 } from "./unitEvidenceAuthorization";
+export type { HoidUnitEvidencePolicy } from "./unitEvidenceAuthorization";
 import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
 import {
   emptyHoidUnitProgressSnapshot,

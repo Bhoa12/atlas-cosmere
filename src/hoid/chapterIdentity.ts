@@ -240,9 +240,11 @@ function canonicalManifest(value: unknown): CanonicalManifest | null {
   }
 
   let previousAmbiguous = 0;
+  const canonicalAmbiguousNumbers: number[] = [];
   for (const number of ambiguousNumbers) {
     if (!positiveInteger(number, MAX_CHAPTER) || number <= previousAmbiguous) return null;
     previousAmbiguous = number;
+    canonicalAmbiguousNumbers.push(number);
   }
 
   const duplicateNumbers = new Set<number>();
@@ -252,7 +254,7 @@ function canonicalManifest(value: unknown): CanonicalManifest | null {
     chapterCounts.set(unit.chapterNumber, count);
     if (count > 1) duplicateNumbers.add(unit.chapterNumber);
   }
-  const ambiguousSet = new Set(ambiguousNumbers as readonly number[]);
+  const ambiguousSet = new Set(canonicalAmbiguousNumbers);
   if ([...duplicateNumbers].some(number => !ambiguousSet.has(number))) return null;
 
   return Object.freeze({
@@ -261,7 +263,7 @@ function canonicalManifest(value: unknown): CanonicalManifest | null {
     navigationSha256: raw.navigationSha256,
     bookId: raw.bookId,
     units: Object.freeze(canonicalUnits),
-    ambiguousChapterNumbers: Object.freeze([...(ambiguousNumbers as readonly number[])]),
+    ambiguousChapterNumbers: Object.freeze(canonicalAmbiguousNumbers),
   });
 }
 

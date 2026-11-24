@@ -1,0 +1,44 @@
+name: Hoid recommendation request lifecycle
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/recommendationRequestSession.ts"
+      - "src/hoid/recommendationRequestSession.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN268_RECOMMENDATION_REQUEST_LIFECYCLE.md"
+      - ".github/workflows/hoid-recommendation-request-session.yml"
+  pull_request:
+    paths:
+      - "src/hoid/recommendationRequestSession.ts"
+      - "src/hoid/recommendationRequestSession.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN268_RECOMMENDATION_REQUEST_LIFECYCLE.md"
+      - ".github/workflows/hoid-recommendation-request-session.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recommendation-request-session:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test recommendation request lifecycle
+        run: npx vitest run src/hoid/recommendationRequestSession.test.ts
+      - name: Strict type-check coordinator and Hoid screen
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --skipLibCheck --jsx react-native --esModuleInterop
+          src/hoid/recommendationRequestSession.ts
+          src/hoid/recommendationRequestSession.test.ts
+          src/screens/HoidScreen.tsx

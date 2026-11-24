@@ -200,12 +200,13 @@ describe("Hoid exact-unit reviewer signatures v2", () => {
   });
 
   it("rejects a changed claim before reviewer signature verification", async () => {
+    const signed = signedPackage();
     const changedClaim = Object.freeze({
-      ...claim,
+      ...signed.claim,
       text: "Afirmación modificada después de la revisión.",
     });
     const result = await verifyHoidExactUnitClaimSignatures(
-      [signedPackage({ claim: changedClaim })],
+      [{ ...signed, claim: changedClaim }],
       context,
       createRegistry(),
       rootKey,

@@ -5,6 +5,10 @@ import {
   selectedEvidenceSatisfiesHoidBookScope,
   type HoidAnswerBookScope,
 } from "./answerScope";
+import {
+  canonicalizeHoidChapterEvidenceScope,
+  isHoidEvidenceInChapterScope,
+} from "./chapterEvidenceScope";
 import { isHoidKnowledgeKind } from "./knowledgeKinds";
 import { canonicalEvidenceScope, evidenceCitationFor, isEvidenceUnlocked, type HoidEvidenceCitation } from "./evidenceScope";
 import { HoidKnowledgeCatalog, type HoidKnowledgeEntry } from "./catalog";
@@ -528,6 +532,23 @@ export class HoidEvidenceRuntime {
       return blocked("invalid-input", "El ámbito por obra no puede validarse.");
     }
 
+    let chapterScope: ReturnType<typeof canonicalizeHoidChapterEvidenceScope> | undefined;
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(input, "chapterScope");
+      if (descriptor) {
+        if (!Object.prototype.hasOwnProperty.call(descriptor, "value") || descriptor.enumerable !== true) {
+          return blocked("invalid-input", "El contexto exacto de capítulos no puede validarse.");
+        }
+        const canonicalScope = canonicalizeHoidChapterEvidenceScope(descriptor.value, bookScope);
+        if (!canonicalScope) {
+          return blocked("invalid-input", "El contexto exacto de capítulos no coincide con el ámbito conversacional.");
+        }
+        chapterScope = canonicalScope;
+      }
+    } catch {
+      return blocked("invalid-input", "El contexto exacto de capítulos no puede validarse.");
+    }
+
     if (bookScope && (
       parsedSelectionBudget.maxWorks < bookScope.bookIds.length ||
       parsedSelectionBudget.minimumWorks > bookScope.bookIds.length
@@ -553,7 +574,17 @@ export class HoidEvidenceRuntime {
     // the full editorial summary. A short alias threshold must never authorize
     // a summary that contains later-chapter detail.
     const authorizedContext = retrieveAuthorized([...this.knowledge], reading, question)
-      .filter(entry => isEvidenceUnlocked(entry, reading));
+      .filter(entry =>
+        isEvidenceUnlocked(entry, reading) &&
+        (!chapterScope || (
+          entry.evidenceSource !== undefined &&
+          isHoidEvidenceInChapterScope(
+            entry.evidenceSource.bookId,
+            entry.evidenceSource.chapter,
+            chapterScope,
+          )
+        ))
+      );
     const authorizedEvidenceIds = new Set(authorizedContext.map(entry => entry.id));
     const knowledgeById = new Map(this.knowledge.map(entry => [entry.id, entry]));
 

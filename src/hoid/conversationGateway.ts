@@ -42,6 +42,7 @@ import {
   validateHoidConversationScopeBinding,
   type HoidConversationScopeBinding,
 } from "./conversationScopeBinding";
+import type { HoidChapterReference } from "./chapterReference";
 import {
   resolveProductionHoidCoreference,
   type HoidCoreferenceResolutionResult,
@@ -403,7 +404,11 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
 }
 
 type FollowUpScopeResolution =
-  | Readonly<{ status: "ready"; scope: HoidAnswerBookScope }>
+  | Readonly<{
+      status: "ready";
+      scope: HoidAnswerBookScope;
+      chapterReferences: readonly HoidChapterReference[];
+    }>
   | Readonly<{ status: "unavailable"; reason: "context-scope-unavailable" | "context-scope-mismatch" | "context-stale" }>;
 
 function resolveFollowUpScope(
@@ -419,7 +424,11 @@ function resolveFollowUpScope(
     request.bookScope,
   );
   if (validation.status === "ready") {
-    return Object.freeze({ status: "ready", scope: validation.scope });
+    return Object.freeze({
+      status: "ready",
+      scope: validation.scope,
+      chapterReferences: validation.chapterReferences,
+    });
   }
   if (validation.reason === "stale-progress") {
     return Object.freeze({ status: "unavailable", reason: "context-stale" });
@@ -435,6 +444,7 @@ type ActiveConversationScopeResolution =
       status: "ready";
       scope?: HoidAnswerBookScope;
       binding?: HoidConversationScopeBinding;
+      chapterReferences?: readonly HoidChapterReference[];
     }>
   | Readonly<{
       status: "unavailable";
@@ -466,6 +476,7 @@ function resolveActiveConversationScope(
       status: "ready",
       scope: validation.scope,
       binding: validation.binding,
+      chapterReferences: validation.chapterReferences,
     });
   }
   if (validation.reason === "stale-progress") {
@@ -755,6 +766,7 @@ export class HoidConversationGateway {
             selectionBudget: request.selectionBudget,
             entityIds: [typedFollowUp.entityId],
             bookScope: effectiveBookScope,
+            chapterScope: followUpScope.chapterReferences,
           }, runtimeOptions),
         );
         if (invocation.status === "cancelled") return unavailable("cancelled");
@@ -864,6 +876,7 @@ export class HoidConversationGateway {
             selectionBudget: request.selectionBudget,
             entityIds: followUp.entityIds,
             bookScope: effectiveBookScope,
+            chapterScope: followUpScope.chapterReferences,
           }, runtimeOptions),
         );
         if (invocation.status === "cancelled") return unavailable("cancelled");
@@ -1011,6 +1024,7 @@ export class HoidConversationGateway {
             selectionBudget: request.selectionBudget,
             entityIds: [coreference.entityId],
             bookScope: effectiveBookScope,
+            chapterScope: followUpScope.chapterReferences,
           }, runtimeOptions),
         );
         if (invocation.status === "cancelled") return unavailable("cancelled");
@@ -1106,6 +1120,9 @@ export class HoidConversationGateway {
         selectionBudget: request.selectionBudget,
         ...(entityIds === undefined ? {} : { entityIds }),
         ...(activeBookScope ? { bookScope: activeBookScope } : {}),
+        ...(activeScopeResolution.chapterReferences
+          ? { chapterScope: activeScopeResolution.chapterReferences }
+          : {}),
       }, runtimeOptions),
         );
         if (invocation.status === "cancelled") return unavailable("cancelled");

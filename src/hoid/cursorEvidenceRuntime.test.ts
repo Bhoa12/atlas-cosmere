@@ -6,6 +6,7 @@ import {
   projectHoidCursorProgressSnapshot,
 } from "./cursorEvidenceRuntime";
 import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
+import { createHoidChapterReference } from "./chapterReference";
 import type { HoidKnowledgeEntry } from "./catalog";
 import { createHoidApprovedClaimAttestation, type HoidApprovedClaimCore } from "./approvedClaimIntegrity";
 import { fingerprintHoidCursorProgressProjection } from "./cursorProgressFingerprint";
@@ -354,6 +355,29 @@ describe("HoidCursorEvidenceRuntime", () => {
 
     expect(result.status).toBe("authorized");
     expect(result.claimIds).toEqual(["claim-cross-book"]);
+    expect(selector).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards a validated chapter scope to local evidence filtering without exposing it to the selector", async () => {
+    const selector = vi.fn(async (request: HoidClaimSelectionRequest) => {
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(["claim-alpha"]);
+      expect("chapterScope" in request).toBe(false);
+      expect("identityFingerprint" in request).toBe(false);
+      return ["claim-alpha"];
+    });
+    const { facade } = createFacade(selector);
+    const reference = createHoidChapterReference("twok", { chapterNumber: 2 });
+    if (reference.status !== "ready") throw new Error("Referencia sintética no disponible");
+
+    const result = await facade.answer({
+      question: "¿Quién es Personaje Alfa?",
+      progress: snapshot([{ bookId: "twok", cursor: cursor("twok", 3) }]),
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [reference.reference],
+    });
+
+    expect(result.status).toBe("authorized");
+    expect(result.claimIds).toEqual(["claim-alpha"]);
     expect(selector).toHaveBeenCalledTimes(1);
   });
 

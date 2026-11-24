@@ -3,7 +3,10 @@ import type { HoidEditionProgressPolicy } from "./editionStructure";
 import { getHoidEditionProgressPolicy } from "./editionStructure";
 import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentNumbers } from "./verifiedChapterDocuments";
-import { getVerifiedChapterLocatorCount } from "./verifiedChapterLocators";
+import {
+  getVerifiedAmbiguousChapterLocatorEntries,
+  getVerifiedChapterLocatorCount,
+} from "./verifiedChapterLocators";
 import { HOID_EDITORIAL_DRAFTS, getHoidEditorialDraftStatus } from "./editorialDrafts";
 import {
   HOID_APPROVED_CLAIMS,
@@ -126,6 +129,7 @@ function getEditionId(policy: HoidEditionProgressPolicy): string | null {
 }
 
 function getNavigationCoverage(
+  bookId: string,
   policy: HoidEditionProgressPolicy,
   verifiedLocatorCount: number,
   manifest: HoidSourceManifestCoverage,
@@ -153,7 +157,50 @@ function getNavigationCoverage(
   if (policy.kind === "chapter-number-with-duplicate-locators") {
     const manifestUnitCount = manifest.status === "ready" ? manifest.unitCount : null;
     const safeThrough = policy.safeNumericProgressThroughChapter;
-    const consistent = manifestUnitCount === safeThrough && verifiedLocatorCount <= safeThrough;
+    const fullManifestResult = getHoidReadingManifest(bookId);
+    const fullManifest = fullManifestResult.status === "ready"
+      ? fullManifestResult.manifest
+      : null;
+    const safeUnits = fullManifest?.units.filter(unit =>
+      unit.chapterNumber <= safeThrough &&
+      !policy.duplicateChapterNumbers.includes(unit.chapterNumber),
+    ) ?? [];
+    const safePrefixComplete = safeUnits.length === safeThrough &&
+      safeUnits.every((unit, index) =>
+        unit.chapterNumber === index + 1 &&
+        unit.ordinal === index + 1 &&
+        typeof unit.locatorId === "string",
+      );
+    const verifiedAmbiguousLocators = fullManifest
+      ? getVerifiedAmbiguousChapterLocatorEntries(
+          bookId,
+          fullManifest.editionId,
+          fullManifest.navigationSha256,
+        )
+      : [];
+    const manifestAmbiguousUnits = fullManifest?.units.filter(unit =>
+      policy.duplicateChapterNumbers.includes(unit.chapterNumber),
+    ) ?? [];
+    const ambiguousLocatorsConsistent =
+      verifiedAmbiguousLocators.length === manifestAmbiguousUnits.length &&
+      verifiedAmbiguousLocators.every(entry =>
+        policy.duplicateChapterNumbers.includes(entry.chapterNumber) &&
+        manifestAmbiguousUnits.some(unit =>
+          unit.chapterNumber === entry.chapterNumber &&
+          unit.ordinal === entry.ordinal &&
+          unit.locatorId === entry.locatorId,
+        ),
+      );
+    const manifestInventoryConsistent =
+      manifestUnitCount !== null &&
+      manifestUnitCount === safeThrough + verifiedAmbiguousLocators.length &&
+      verifiedLocatorCount === manifestUnitCount;
+    const consistent = Boolean(
+      fullManifest &&
+      safePrefixComplete &&
+      ambiguousLocatorsConsistent &&
+      manifestInventoryConsistent,
+    );
     return Object.freeze({
       kind: "ambiguous-numbered-chapters",
       status: consistent ? "partial" : "inconsistent",
@@ -162,7 +209,7 @@ function getNavigationCoverage(
       ambiguousChapterNumbers: Object.freeze([...policy.duplicateChapterNumbers]),
       verifiedLocatorCount,
       manifestUnitCount,
-      safePrefixComplete: consistent && verifiedLocatorCount === safeThrough,
+      safePrefixComplete: consistent && safePrefixComplete,
       scope: "numbered-chapter-navigation-only",
     });
   }
@@ -214,7 +261,7 @@ export function getHoidSourceCoverageReport(): HoidSourceCoverageReport {
       sourceGroup: source.sourceGroup,
       editionId: getEditionId(policy),
       readingManifest: manifest,
-      navigation: getNavigationCoverage(policy, locatorCount, manifest),
+      navigation: getNavigationCoverage(source.id, policy, locatorCount, manifest),
       inspectedChapterNumbers,
       inspectedChapterDocumentCount: inspectedChapterNumbers.length,
       stagedSummaryChapterNumbers,

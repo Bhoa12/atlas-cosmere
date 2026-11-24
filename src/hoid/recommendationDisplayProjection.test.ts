@@ -51,7 +51,13 @@ function editionFixture() {
 
 function topicFixture() {
   const recommended = HOID_SOURCE_BIBLIOGRAPHY[0];
-  const evidenceWork = HOID_SOURCE_BIBLIOGRAPHY[1];
+  const evidenceWork = HOID_SOURCE_BIBLIOGRAPHY.find(work =>
+    work.id !== recommended.id && getHoidReadingManifest(work.id).status === "ready"
+  );
+  if (!evidenceWork) throw new Error("A second manifest-backed evidence work is required");
+  const evidenceManifest = getHoidReadingManifest(evidenceWork.id);
+  if (evidenceManifest.status !== "ready") throw new Error("Evidence manifest fixture unavailable");
+  const evidenceChapter = evidenceManifest.manifest.units[0].chapterNumber;
   const topic = HOID_TOPIC_TAXONOMY[0];
   const dimension = topic.dimensions[0];
   return Object.freeze([Object.freeze({
@@ -69,8 +75,8 @@ function topicFixture() {
         evidenceId: "evidence-private-one",
         sourceBookId: evidenceWork.id,
         title: evidenceWork.title,
-        chapter: 3,
-        locatorId: "private.xhtml#chapter-3",
+        chapter: evidenceChapter,
+        locatorId: "private.xhtml#chapter-" + String(evidenceChapter),
       })]),
     })]),
   })]);
@@ -105,7 +111,10 @@ describe("Hoid recommendation display projections", () => {
   });
 
   it("keeps the selection-required UI projection free of internal progress identity", () => {
-    const works = HOID_SOURCE_BIBLIOGRAPHY.slice(0, 2);
+    const works = HOID_SOURCE_BIBLIOGRAPHY.filter(work => {
+      const manifest = getHoidReadingManifest(work.id);
+      return manifest.status === "ready" && manifest.manifest.units.length > 1;
+    }).slice(0, 2);
     const display = projectHoidEditionRecommendationsForDisplay({
       status: "selection-required",
       progressRevision: 9,
@@ -115,8 +124,12 @@ describe("Hoid recommendation display projections", () => {
       choices: works.map(work => ({
         sourceId: work.id,
         title: work.title,
-        currentChapter: 4,
-        completedThroughChapter: 3,
+        currentChapter: getHoidReadingManifest(work.id).status === "ready"
+          ? getHoidReadingManifest(work.id).manifest.units[1].chapterNumber
+          : 4,
+        completedThroughChapter: getHoidReadingManifest(work.id).status === "ready"
+          ? getHoidReadingManifest(work.id).manifest.units[0].chapterNumber
+          : 3,
         detail: "Continuar desde el capítulo actual.",
       })),
     });
@@ -127,7 +140,9 @@ describe("Hoid recommendation display projections", () => {
       choices: works.map(work => ({
         sourceId: work.id,
         title: work.title,
-        currentChapter: 4,
+        currentChapter: getHoidReadingManifest(work.id).status === "ready"
+          ? getHoidReadingManifest(work.id).manifest.units[1].chapterNumber
+          : 4,
         detail: "Continuar desde el capítulo actual.",
       })),
     });
@@ -193,9 +208,9 @@ describe("Hoid recommendation display projections", () => {
     const display = projectHoidTopicRecommendationsForDisplay(topicFixture());
     expect(display).not.toBeNull();
     expect(display?.[0].matches[0].citations[0]).toEqual({
-      sourceBookId: HOID_SOURCE_BIBLIOGRAPHY[1].id,
-      title: HOID_SOURCE_BIBLIOGRAPHY[1].title,
-      chapter: 3,
+      sourceBookId: topicFixture()[0].matches[0].citations[0].sourceBookId,
+      title: topicFixture()[0].matches[0].citations[0].title,
+      chapter: topicFixture()[0].matches[0].citations[0].chapter,
     });
     const serialized = JSON.stringify(display);
     for (const secret of [

@@ -84,10 +84,15 @@ interface Mensaje {
   evidenciaTransversal?: HoidDisplayCrossBookEvidenceSummary;
 }
 
-function formatHoidCitationLocation(title: string, chapter: number, chapterOrdinal: number): string {
-  return chapterOrdinal === chapter
-    ? `${title} · capítulo ${chapter}`
-    : `${title} · capítulo ${chapter} · entrada ${chapterOrdinal} del índice`;
+function formatHoidCitationLocation(
+  title: string,
+  chapter: number,
+  chapterOrdinal: number,
+  chapterLabelAmbiguous: boolean,
+): string {
+  return chapterLabelAmbiguous
+    ? `${title} · capítulo ${chapter} · entrada ${chapterOrdinal} del índice`
+    : `${title} · capítulo ${chapter}`;
 }
 
 export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort: trustedAnswerPortInput = null }) => {
@@ -566,7 +571,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 // The legacy conversation binding stores chapter numbers only.
                 // Do not retain follow-up context when a visible label needed an ordinal disambiguator.
                 const hasAmbiguousChapterIdentity = presentation.citations.some(
-                  citation => citation.chapterOrdinal !== citation.chapter,
+                  citation => citation.chapterLabelAmbiguous,
                 );
                 const bindingMatchesPresentation = !hasAmbiguousChapterIdentity && (!returnedBinding || (
                   bindingBookIds.length === presentedBookIds.length &&
@@ -1388,7 +1393,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                 <Text style={styles.bubbleText}>{match.reasonText}</Text>
                 {match.citations.map((citation, citationIndex) => (
                   <Text key={citation.sourceBookId + ':' + citation.chapter + ':' + citationIndex} style={styles.citationText}>
-                    {formatHoidCitationLocation(citation.title, citation.chapter, citation.chapterOrdinal)}
+                    {formatHoidCitationLocation(citation.title, citation.chapter, citation.chapterOrdinal, citation.chapterLabelAmbiguous)}
                   </Text>
                 ))}
               </View>
@@ -1444,7 +1449,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
                             ))
                           : segmento.citations.map((cita, citationIndex) => (
                               <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
-                                {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal)}
+                                {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal, cita.chapterLabelAmbiguous)}
                               </Text>
                             ));
                       })()}

@@ -192,33 +192,32 @@ export class HoidUnitProgressCoordinator {
 
       if (this.disposed) return this.unavailable("disposed");
 
-      if (result.status === "ready") {
-        this.acceptSnapshot(result.snapshot);
-        return Object.freeze({
-          status: "ready" as const,
-          operation: result.operation,
-          snapshot: result.snapshot,
-        });
+      switch (result.status) {
+        case "ready":
+          this.acceptSnapshot(result.snapshot);
+          return Object.freeze({
+            status: "ready" as const,
+            operation: result.operation,
+            snapshot: result.snapshot,
+          });
+        case "conflict": {
+          const refreshed = await this.loadLatest(true);
+          if (refreshed.status !== "ready") return refreshed;
+          return Object.freeze({
+            status: "conflict" as const,
+            expectedRevision: result.expectedRevision,
+            snapshot: refreshed.snapshot,
+          });
+        }
+        case "unavailable": {
+          const refreshed = await this.loadLatest(true);
+          return refreshed.status === "unavailable"
+            ? refreshed
+            : Object.freeze({ status: "unavailable" as const, reason: result.reason });
+        }
+        case "rejected":
+          return Object.freeze({ status: "rejected" as const, reason: result.reason });
       }
-
-      if (result.status === "conflict") {
-        const refreshed = await this.loadLatest(true);
-        if (refreshed.status !== "ready") return refreshed;
-        return Object.freeze({
-          status: "conflict" as const,
-          expectedRevision: result.expectedRevision,
-          snapshot: refreshed.snapshot,
-        });
-      }
-
-      if (result.status === "unavailable") {
-        const refreshed = await this.loadLatest(true);
-        return refreshed.status === "unavailable"
-          ? refreshed
-          : Object.freeze({ status: "unavailable" as const, reason: result.reason });
-      }
-
-      return Object.freeze({ status: "rejected" as const, reason: result.reason });
     });
   }
 

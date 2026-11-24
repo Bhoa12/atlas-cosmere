@@ -152,7 +152,7 @@ function setup(options?: {
 }) {
   const progress = options?.progress ?? snapshot();
   const current = options?.refresh ?? (() => progress);
-  const loadApprovedClaims = vi.fn(async () =>
+  const loadApprovedClaims = vi.fn(async (): Promise<unknown> =>
     options?.records ?? [{ claimId: CLAIM_ID, answer: Object.freeze({ status: "authorized" }) }],
   );
   const present = vi.fn(async () => options?.presentation ?? readyClaimResult());

@@ -101,6 +101,7 @@ describe("Hoid chapter evidence scope", () => {
     const anchor = reference(2);
     const stale = { ...anchor, identityFingerprint: "0".repeat(64) };
     expect(isHoidEvidenceInChapterScope("twok", 2, locator("twok", 2), [stale])).toBe(false);
+    expect(isHoidEvidenceInChapterScope("twok", 2, locator("twok", 2), [anchor, stale])).toBe(false);
 
     const sparse: Array<typeof anchor> = new Array(1);
     expect(isHoidEvidenceInChapterScope("twok", 2, locator("twok", 2), sparse)).toBe(false);

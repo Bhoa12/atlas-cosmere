@@ -186,8 +186,8 @@ export function inspectHoidExactProviderSelectionSnapshot(
       request.question.length > MAX_QUESTION_LENGTH || request.question !== request.question.trim() ||
       /[\u0000-\u001f\u007f\p{Cf}]/u.test(request.question) ||
       typeof request.intent !== "string" || !INTENTS.has(request.intent)) return "request-values";
-    if (!validBudget(request.selectionBudget)) return "budget-values";
     if (!exactFrozenRecord(request.selectionBudget, BUDGET_KEYS)) return "budget-shape";
+    if (!validBudget(request.selectionBudget)) return "budget-values";
 
     const candidates = frozenDenseArray(request.candidates, 1, MAX_CANDIDATES);
     if (!candidates) return "candidate-array";

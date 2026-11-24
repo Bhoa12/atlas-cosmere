@@ -483,7 +483,7 @@ export async function verifyHoidExactUnitClaimSignatures(
   } catch {
     return invalid("cryptographic-verification-failed");
   }
-  if (verification.status !== "verified") {
+  if ("reason" in verification) {
     return invalid(verification.reason, verification.index);
   }
 

@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { emptyHoidUnitProgressSnapshot, type HoidUnitProgressStore } from "./unitProgressLedger";
 import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
-import {
-  createHoidTrustedConversationComposition,
-  type HoidTrustedConversationComposition,
-} from "./trustedConversationComposition";
+import { createHoidTrustedConversationComposition } from "./trustedConversationComposition";
 
 const fixedNow = "2026-11-24T22:00:00.000Z";
 
@@ -46,6 +43,11 @@ function setup() {
   const progressInvalidation = new ProgressInvalidation();
   const transport = vi.fn(async () => Object.freeze({}));
 
+  const checkpointStore = {
+    read: async () => null as unknown,
+    compareAndSwap: async () => false,
+    subscribe: (_listener: (checkpoint: unknown) => void) => () => {},
+  };
   const config = Object.freeze({
     coordinator,
     progressInvalidation,
@@ -57,14 +59,21 @@ function setup() {
     registrySource: Object.freeze({
       load: async () => null,
     }),
-    checkpointStore: Object.freeze({
-      read: async () => null,
-      compareAndSwap: async () => false,
-      subscribe: (_listener: (checkpoint: unknown) => void) => () => {},
-    }),
+    checkpointStore,
     clock: Object.freeze({ nowIso: () => fixedNow }),
-    context: Object.freeze({}),
-    rootKey: Object.freeze({}),
+    context: Object.freeze({
+      schemaVersion: 1,
+      repositoryFullName: "Bhoa12/atlas-cosmere",
+      pullRequestNumber: 294,
+      baseRef: "feat/hoid-ia-core-run293",
+      baseSha: "9233af55823e32cfca2fc9b3a34cfe1c3423e2d3",
+      headRef: "feat/hoid-ia-core-run294",
+      headSha: "753c54644a416c8853dffedbe57e273a34b8c292",
+      promotionManifestPath: "docs/hoid/promotions/run294.json",
+      promotionPlanFingerprint: "a".repeat(64),
+      reviewBundleFingerprint: "b".repeat(64),
+    }),
+    rootKey: Object.freeze({ keyId: "root-test", publicKeyHex: "c".repeat(64) }),
     verifier: Object.freeze({ verify: async () => false }),
   });
 
@@ -72,7 +81,7 @@ function setup() {
   if (result.status !== "composed") {
     throw new Error("Synthetic composition was not constructed: " + result.reason);
   }
-  return { ...result, transport, progressInvalidation, coordinator, config };
+  return { ...result, transport, progressInvalidation, coordinator, checkpointStore, config };
 }
 
 describe("Hoid trusted conversation composition v3", () => {
@@ -88,7 +97,7 @@ describe("Hoid trusted conversation composition v3", () => {
   });
 
   it("rejects accessor-backed composition fields without invoking getters", () => {
-    const base = setup().config;
+    const { config: base, composition } = setup();
     let getterCalls = 0;
     const hostile = { ...base };
     Object.defineProperty(hostile, "transport", {
@@ -106,6 +115,7 @@ describe("Hoid trusted conversation composition v3", () => {
       reason: "invalid-composition-config",
     });
     expect(getterCalls).toBe(0);
+    composition.dispose();
   });
 
   it("creates isolated sessions and rejects duplicate or malformed IDs", () => {
@@ -169,12 +179,45 @@ describe("Hoid trusted conversation composition v3", () => {
   });
 
   it("does not create a composition when the provider transport is not callable", () => {
-    const { config } = setup();
+    const { config, composition } = setup();
     const invalid = { ...config, transport: "not-a-transport" };
     expect(createHoidTrustedConversationComposition(invalid)).toEqual({
       status: "blocked",
       reason: "invalid-composition-config",
     });
+    composition.dispose();
+  });
+
+  it("captures trust-port methods so later property replacement cannot swap the checkpoint reader", async () => {
+    const { composition, checkpointStore, transport } = setup();
+    checkpointStore.read = async () => Object.freeze({ revision: 0, registryFingerprint: null });
+    const created = composition.createSession("screen:captured-port", sink());
+    expect(created.status).toBe("created");
+    if (created.status !== "created") return;
+
+    const result = await created.session.send({
+      question: "Pregunta sintética.",
+      intent: "explain",
+      depth: "brief",
+    });
+
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "host-blocked",
+      hostReason: "trust-checkpoint-invalid",
+    });
+    expect(transport).not.toHaveBeenCalled();
+    composition.dispose();
+  });
+
+  it("caps active sessions to the host presentation limit", () => {
+    const { composition } = setup();
+    for (let index = 0; index < 64; index += 1) {
+      expect(composition.createSession(`screen:${index}`, sink()).status).toBe("created");
+    }
+    expect(composition.activeSessionCount).toBe(64);
+    expect(composition.createSession("screen:overflow", sink())).toEqual({ status: "session-limit" });
+    composition.dispose();
   });
 
   it("closes a session idempotently without affecting other sessions", () => {

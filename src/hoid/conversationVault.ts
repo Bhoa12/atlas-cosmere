@@ -275,8 +275,11 @@ export function createHoidConversationVault(input: Readonly<{
     if (checkpointValue === null && storedValue === null) {
       return Object.freeze({ status: "empty", revision: 0 });
     }
-    if (checkpointValue === null || !validRevision(checkpointValue) || checkpointValue < 1) {
-      return blocked("checkpoint-unavailable");
+    if (!validRevision(checkpointValue)) return blocked("checkpoint-unavailable");
+    if (checkpointValue === 0) {
+      return storedValue === null
+        ? Object.freeze({ status: "empty", revision: 0 })
+        : blocked("checkpoint-envelope-mismatch");
     }
     if (storedValue === null) return blocked("checkpoint-envelope-mismatch");
 
@@ -364,6 +367,7 @@ export function createHoidConversationVault(input: Readonly<{
         return blocked("codec-rejected");
       }
       plaintext = new Uint8Array(encoded);
+      encoded.fill(0);
     }
 
     let key: HoidConversationVaultKeyHandle | null = null;
@@ -451,7 +455,9 @@ export function createHoidConversationVault(input: Readonly<{
 
   return Object.freeze({
     restore,
-    save: (sessionId, expectedRevision, snapshot) => commit(sessionId, expectedRevision, "snapshot", snapshot),
-    clear: (sessionId, expectedRevision) => commit(sessionId, expectedRevision, "tombstone"),
+    save: (sessionId: string, expectedRevision: number, snapshot: unknown) =>
+      commit(sessionId, expectedRevision, "snapshot", snapshot),
+    clear: (sessionId: string, expectedRevision: number) =>
+      commit(sessionId, expectedRevision, "tombstone"),
   });
 }

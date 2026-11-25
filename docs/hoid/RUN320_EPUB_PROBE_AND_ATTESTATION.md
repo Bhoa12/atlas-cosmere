@@ -59,7 +59,7 @@ The private source files were available in the Library and were inspected locall
 
 ## Validation
 
-The dedicated workflow runs the probe and attestation issuer tests plus regressions for the review kit and quorum, followed by strict TypeScript checking.
+The dedicated workflow is configured to run the probe and attestation issuer tests plus regressions for the review kit and quorum, followed by strict TypeScript checking. No workflow run or combined check status was returned for the final HEAD during this execution, so CI is not reported as passed.
 
 ## Isolation
 

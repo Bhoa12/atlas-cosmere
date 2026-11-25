@@ -546,4 +546,51 @@ describe("Hoid trusted exact-unit answer host", () => {
     expect(sink.state.cleared).toBe("progress-changed");
   });
 
+  it("blocks a prepared child if its parent is cleared before the child is presented", async () => {
+    const harness = createHostHarness();
+    const parentPrepared = await prepare(harness);
+    const parentSink = createSink();
+    expect((await harness.host.present(parentPrepared, parentSink.sink)).status).toBe("presented");
+    const parentCapability = harness.host.getFollowUpCapability(parentPrepared);
+    expect(parentCapability).not.toBeNull();
+
+    const childPrepared = await harness.host.prepareFollowUp({
+      question: "¿Puedes desarrollar esa idea?",
+    }, parentCapability);
+    expect(childPrepared.status).toBe("prepared");
+    if (childPrepared.status !== "prepared") return;
+
+    harness.host.clearSink(parentSink.sink, "context-reset");
+    const childSink = createSink();
+    expect(await harness.host.present(childPrepared.prepared, childSink.sink)).toEqual({
+      status: "blocked",
+      reason: "invalid-follow-up-capability",
+    });
+    expect(childSink.state.answer).toBeUndefined();
+  });
+
+  it("recursively retracts presented descendants when an ancestor message is cleared", async () => {
+    const harness = createHostHarness();
+    const parentPrepared = await prepare(harness);
+    const parentSink = createSink();
+    expect((await harness.host.present(parentPrepared, parentSink.sink)).status).toBe("presented");
+    const parentCapability = harness.host.getFollowUpCapability(parentPrepared);
+    expect(parentCapability).not.toBeNull();
+
+    const childPrepared = await harness.host.prepareFollowUp({
+      question: "¿Puedes desarrollar esa idea?",
+    }, parentCapability);
+    expect(childPrepared.status).toBe("prepared");
+    if (childPrepared.status !== "prepared") return;
+    const childSink = createSink();
+    expect((await harness.host.present(childPrepared.prepared, childSink.sink)).status).toBe("presented");
+    expect(harness.host.getFollowUpCapability(childPrepared.prepared)).not.toBeNull();
+
+    harness.host.clearSink(parentSink.sink, "context-reset");
+    expect(parentSink.state.answer).toBeUndefined();
+    expect(childSink.state.answer).toBeUndefined();
+    expect(childSink.state.cleared).toBe("context-reset");
+    expect(harness.host.getFollowUpCapability(childPrepared.prepared)).toBeNull();
+  });
+
 });

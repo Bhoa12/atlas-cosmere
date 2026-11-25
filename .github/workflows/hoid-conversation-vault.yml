@@ -1,0 +1,39 @@
+name: Hoid encrypted conversation vault
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run298"
+    paths:
+      - "src/hoid/conversationVault.ts"
+      - "src/hoid/conversationVault.test.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN298_CONVERSATION_VAULT.md"
+      - ".github/workflows/hoid-conversation-vault.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationVault.ts"
+      - "src/hoid/conversationVault.test.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN298_CONVERSATION_VAULT.md"
+      - ".github/workflows/hoid-conversation-vault.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-vault:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test vault and bootstrap regressions
+        run: npx vitest run src/hoid/conversationVault.test.ts src/hoid/trustedApplicationBootstrap.test.ts src/hoid/trustedConversationComposition.test.ts src/hoid/trustedConversationScreenPort.test.ts src/hoid/trustedConversationGatewayV3.test.ts src/hoid/trustedExactUnitAnswerHost.test.ts
+      - name: Type-check vault and bootstrap contracts
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck src/hoid/conversationVault.ts src/hoid/conversationVault.test.ts src/hoid/trustedApplicationBootstrap.ts src/hoid/trustedApplicationBootstrap.test.ts

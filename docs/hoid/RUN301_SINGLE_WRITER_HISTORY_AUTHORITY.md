@@ -17,6 +17,9 @@ Two adapters implement the same narrow authority contract:
 - `createHoidVaultConversationHistoryAuthorityBackend()` delegates to the
   existing session-bound vault history bridge. It retains the vault's
   encrypted revision and tombstone semantics.
+- The SQLite adapter validates and snapshots the exact storage key and
+  captures the store methods at construction, so later mutation of the caller's
+  key object cannot redirect an existing authority to another conversation.
 
 The SQLite v1 schema has no tombstone. Its `clear()` result is explicitly
 `unsupported`; the adapter never pretends that saving an empty transcript is

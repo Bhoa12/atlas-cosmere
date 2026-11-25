@@ -105,7 +105,9 @@ export type HoidConversationVaultResult =
         | "decryption-failed"
         | "invalid-plaintext"
         | "codec-rejected"
-        | "checkpoint-commit-failed";
+        | "checkpoint-commit-failed"
+        | "generation-fenced"
+        | "generation-fence-unavailable";
     }>;
 
 type DataRecord = Record<string, unknown>;

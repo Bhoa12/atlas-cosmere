@@ -74,6 +74,8 @@ const VAULT_BLOCKED_REASONS: readonly VaultBlockedReason[] = [
   "invalid-plaintext",
   "codec-rejected",
   "checkpoint-commit-failed",
+  "generation-fenced",
+  "generation-fence-unavailable",
 ];
 
 function exactDataRecord(value: unknown, keys: readonly string[]): Record<string, unknown> | null {

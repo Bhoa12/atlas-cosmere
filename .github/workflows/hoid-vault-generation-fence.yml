@@ -1,0 +1,54 @@
+name: Hoid Vault conversation generation fence
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run305"
+    paths:
+      - "src/hoid/conversationVault.ts"
+      - "src/hoid/conversationVaultGenerationFence.ts"
+      - "src/hoid/conversationVaultGenerationFence.test.ts"
+      - "src/hoid/conversationVaultHistoryBridge.ts"
+      - "src/hoid/conversationVaultHistoryBridge.test.ts"
+      - "docs/hoid/RUN305_VAULT_GENERATION_FENCE.md"
+      - ".github/workflows/hoid-vault-generation-fence.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationVault.ts"
+      - "src/hoid/conversationVaultGenerationFence.ts"
+      - "src/hoid/conversationVaultGenerationFence.test.ts"
+      - "src/hoid/conversationVaultHistoryBridge.ts"
+      - "src/hoid/conversationVaultHistoryBridge.test.ts"
+      - "docs/hoid/RUN305_VAULT_GENERATION_FENCE.md"
+      - ".github/workflows/hoid-vault-generation-fence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  vault-generation-fence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test Vault generation fence and regressions
+        run: >-
+          npx vitest run
+          src/hoid/conversationVaultGenerationFence.test.ts
+          src/hoid/conversationVault.test.ts
+          src/hoid/conversationVaultHistoryBridge.test.ts
+      - name: Type-check Vault generation fence and regressions
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --esModuleInterop --skipLibCheck
+          src/hoid/conversationVaultGenerationFence.ts
+          src/hoid/conversationVaultGenerationFence.test.ts
+          src/hoid/conversationVault.ts
+          src/hoid/conversationVaultHistoryBridge.ts
+          src/hoid/conversationVaultHistoryBridge.test.ts

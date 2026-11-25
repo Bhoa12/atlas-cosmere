@@ -445,18 +445,6 @@ export function validateHoidEpubWorkSegmentation(
     new Set(actualWorkIds).size !== actualWorkIds.length
   ) return invalid("work-coverage-mismatch");
 
-  const recomputedCandidateFingerprint = sha256Hex(JSON.stringify({
-    schemaVersion: 1,
-    packageVersion: probe.packageVersion,
-    navigationFormat: probe.navigationFormat,
-    packageSha256: probe.packageSha256,
-    navigationSha256: probe.navigationSha256,
-    manifestItemCount: probe.manifestItemCount,
-    spineItemCount: probe.spineItemCount,
-    entries: probe.entries,
-  }));
-  if (recomputedCandidateFingerprint !== probe.candidateFingerprint) return invalid("invalid-probe");
-
   if (
     probe.packageVersion !== manifest.packageVersion ||
     probe.navigationFormat !== manifest.navigationFormat ||

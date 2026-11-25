@@ -257,10 +257,10 @@ function normalizeVaultRestore(
       return Object.freeze({
         status: "stale",
         revision: result.revision,
-        messages: result.messages.filter(
+        messages: Object.freeze(result.messages.filter(
           (message): message is SafeHistoryMessage =>
             message.emisor === "usuario" || ("kind" in message && message.kind === "static-greeting"),
-        ),
+        )),
         savedProgressScope: result.savedProgressScope,
         droppedAssistantCount: result.droppedAssistantCount,
       });

@@ -111,7 +111,7 @@ describe("Hoid trusted application platform dependency loader", () => {
     expect(loadCompositionConfig).not.toHaveBeenCalled();
   });
 
-  it("rejects unknown platform and progress-runtime fields", () => {
+  it("rejects unknown platform and progress-runtime fields", async () => {
     const validRuntime = createProgressRuntime();
     expect(createHoidTrustedApplicationDependencyLoader(
       Object.freeze({
@@ -122,16 +122,16 @@ describe("Hoid trusted application platform dependency loader", () => {
       "hoid-screen:primary",
     )).toBeNull();
 
-    expect(createHoidTrustedApplicationDependencyLoader(
-      Object.freeze({
-        loadProgressRuntime: async () => ({
-          ...validRuntime,
-          extra: true,
-        }),
-        loadCompositionConfig: async () => config,
-      }),
+    const loadCompositionConfig = vi.fn(async () => config);
+    const loader = createHoidTrustedApplicationDependencyLoader(
+      platformPorts(async () => ({ ...validRuntime, extra: true }), loadCompositionConfig),
       "hoid-screen:primary",
-    )).not.toBeNull();
+    );
+    if (!loader) throw new Error("Dependency loader unavailable");
+    await expect(loader(new AbortController().signal)).rejects.toThrow(
+      "Hoid native progress runtime is incomplete or malformed",
+    );
+    expect(loadCompositionConfig).not.toHaveBeenCalled();
   });
 
   it("rejects accessor-backed platform ports without invoking getters", () => {

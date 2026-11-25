@@ -274,6 +274,30 @@ describe("Hoid trusted application bootstrap", () => {
     expect(observed).toEqual(["loading", "ready", "disposed"]);
   });
 
+
+  it("does not start the dependency loader when a loading observer disposes re-entrantly", async () => {
+    const load = vi.fn(async () => dependencies());
+    const bootstrap = createHoidTrustedApplicationBootstrap(load);
+    if (!bootstrap) throw new Error("Bootstrap factory unavailable");
+
+    bootstrap.subscribe(() => {
+      if (bootstrap.getSnapshot().status === "loading") bootstrap.dispose();
+    });
+    expect(await bootstrap.initialize()).toEqual({ status: "disposed" });
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it("does not return a ready snapshot when an observer disposes during publication", async () => {
+    const bootstrap = createHoidTrustedApplicationBootstrap(async () => dependencies());
+    if (!bootstrap) throw new Error("Bootstrap factory unavailable");
+
+    bootstrap.subscribe(() => {
+      if (bootstrap.getSnapshot().status === "ready") bootstrap.dispose();
+    });
+    expect(await bootstrap.initialize()).toEqual({ status: "disposed" });
+    expect(bootstrap.getSnapshot()).toEqual({ status: "disposed" });
+  });
+
   it("returns null for a missing loader or invalid clock", () => {
     expect(createHoidTrustedApplicationBootstrap(null as never)).toBeNull();
     expect(createHoidTrustedApplicationBootstrap(async () => dependencies(), "not-a-clock" as never))

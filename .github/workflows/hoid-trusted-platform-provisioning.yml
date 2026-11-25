@@ -9,6 +9,7 @@ on:
       - "src/hoid/trustedApplicationPlatform.test.ts"
       - "src/hoid/expoTrustedApplicationBootstrap.ts"
       - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/expoCursorProgressCoordinator.test.ts"
       - "src/hoid/trustedApplicationBootstrap.ts"
       - "src/hoid/trustedConversationComposition.ts"
       - "docs/hoid/RUN314_EXPO_PROGRESS_RUNTIME_BRIDGE.md"
@@ -43,6 +44,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/trustedApplicationPlatform.test.ts
+          src/hoid/expoCursorProgressCoordinator.test.ts
           src/hoid/trustedApplicationBootstrap.test.ts
           src/hoid/trustedConversationComposition.test.ts
       - name: Strict type-check core and Expo adapters
@@ -52,6 +54,7 @@ jobs:
           --esModuleInterop --skipLibCheck
           src/hoid/trustedApplicationPlatform.ts
           src/hoid/trustedApplicationPlatform.test.ts
+          src/hoid/expoCursorProgressCoordinator.test.ts
           src/hoid/expoTrustedApplicationBootstrap.ts
           src/hoid/expoCursorProgressCoordinator.ts
           src/hoid/trustedApplicationBootstrap.ts

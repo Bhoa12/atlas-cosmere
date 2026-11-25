@@ -392,23 +392,44 @@ describe("Hoid encrypted conversation history bridge", () => {
     expect(invoked).toBe(false);
   });
 
-  it("rejects extra result fields and unknown blocked reasons", async () => {
-    const malformedVault: HoidConversationVault = {
-      restore: async () => ({
+  it("rejects extra result fields, unknown statuses and blocked reasons", async () => {
+    const malformedVaults: HoidConversationVault[] = [
+      {
+        restore: async () => ({
+          status: "blocked",
+          reason: "checkpoint-unavailable",
+          fallback: snapshot(),
+        } as unknown as HoidConversationVaultResult),
+        save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+        clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      },
+      {
+        restore: async () => ({
+          status: "blocked",
+          reason: "invented-reason",
+        } as unknown as HoidConversationVaultResult),
+        save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+        clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      },
+      {
+        restore: async () => ({
+          status: "maybe-ready",
+          revision: 4,
+          snapshot: snapshot(),
+        } as unknown as HoidConversationVaultResult),
+        save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+        clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      },
+    ];
+    for (const malformedVault of malformedVaults) {
+      const bridge = createHoidConversationVaultHistoryBridge(malformedVault, SESSION);
+      expect(bridge).not.toBeNull();
+      if (!bridge) return;
+      await expect(bridge.restore(scopeA)).resolves.toEqual({
         status: "blocked",
-        reason: "checkpoint-unavailable",
-        fallback: snapshot(),
-      } as unknown as HoidConversationVaultResult),
-      save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
-      clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
-    };
-    const bridge = createHoidConversationVaultHistoryBridge(malformedVault, SESSION);
-    expect(bridge).not.toBeNull();
-    if (!bridge) return;
-    await expect(bridge.restore(scopeA)).resolves.toEqual({
-      status: "blocked",
-      reason: "invalid-vault-result",
-    });
+        reason: "invalid-vault-result",
+      });
+    }
   });
 
   it("requires save success to advance exactly one revision", async () => {

@@ -232,7 +232,12 @@ describe("Hoid fenced canonical history migration transfer", () => {
   it("rejects malformed progress-scoped snapshots", async () => {
     const sqlite = makeBackend("sqlite-history-v1", {
       revision: 1,
-      snapshot: { schemaVersion: 1, kind: "hoid-conversation-history", progressScope: SCOPE, messages: [] },
+      snapshot: {
+        schemaVersion: 1,
+        kind: "hoid-conversation-history",
+        progressScope: SCOPE,
+        messages: [{ id: "unscoped-answer", emisor: "hoid", texto: "No progress scope" }],
+      },
     });
     const vault = makeBackend("vault-history-v1");
     const transfer = makeTransfer(sqlite.port, vault.port);

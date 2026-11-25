@@ -394,6 +394,56 @@ export function buildHoidEditorialBundleReviewSigningMessage(
 }
 
 /**
+ * Validate a plan-bound reviewer context without exporting the raw progress
+ * snapshot. The trusted host must still rebuild the plan against live progress.
+ */
+export function validateHoidEditorialBundleReviewContext(
+  planInput: unknown,
+  contextInput: unknown,
+): HoidEditorialBundleReviewContext | null {
+  const planResult = validateHoidEditorialBundlePromotionPlan(planInput);
+  if (planResult.status !== "valid") return null;
+  return canonicalContext(contextInput, planResult.plan);
+}
+
+/**
+ * Build the exact offline reviewer message from a fingerprint-validated plan.
+ * This avoids exporting a user's raw reading-progress ledger. It does not
+ * prove that the plan is current; the trusted host rebuilds and rechecks it
+ * against live progress before accepting the resulting attestation.
+ */
+export function buildHoidEditorialBundleReviewSigningMessageFromPlan(
+  planInput: unknown,
+  contextInput: unknown,
+  reviewerIdInput: unknown,
+  decisionInput: unknown,
+  reviewedAtInput: unknown,
+  keyIdInput: unknown,
+): string | null {
+  const planResult = validateHoidEditorialBundlePromotionPlan(planInput);
+  if (planResult.status !== "valid") return null;
+  const context = canonicalContext(contextInput, planResult.plan);
+  if (
+    !context ||
+    typeof reviewerIdInput !== "string" ||
+    !ID_PATTERN.test(reviewerIdInput) ||
+    (decisionInput !== "approve" && decisionInput !== "reject") ||
+    !canonicalIsoTimestamp(reviewedAtInput) ||
+    typeof keyIdInput !== "string" ||
+    !ID_PATTERN.test(keyIdInput)
+  ) return null;
+
+  return signingMessage(
+    context,
+    planResult.plan,
+    reviewerIdInput,
+    decisionInput,
+    reviewedAtInput,
+    keyIdInput,
+  );
+}
+
+/**
  * Verify an independent whole-bundle editorial quorum after every individual
  * review packet has an approved receipt. Every signature binds the exact
  * review manifest, knowledge bundle, receipt set, progress snapshot and PR

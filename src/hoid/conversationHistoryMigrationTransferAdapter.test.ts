@@ -55,6 +55,7 @@ function makeBackend(
   let reads = 0;
 
   const port: HoidHistoryMigrationSnapshotPort = Object.freeze({
+    partitionId: PARTITION,
     kind,
     role,
     read: async input => {
@@ -268,4 +269,27 @@ describe("Hoid fenced canonical history migration transfer", () => {
       codec: createHoidConversationHistorySnapshotCodec(),
     })).toBeNull();
   });
+
+  it("rejects capabilities bound to a different partition", () => {
+    const sqlite = makeBackend("sqlite-history-v1");
+    const vault = makeBackend("vault-history-v1");
+    const wrongPartition = Object.freeze({
+      ...vault.port,
+      partitionId: "another-partition",
+    });
+    expect(createHoidHistoryMigrationSnapshotTransferAdapter({
+      partitionId: PARTITION,
+      sqlite: sqlite.port,
+      vault: wrongPartition,
+      codec: createHoidConversationHistorySnapshotCodec(),
+    })).toBeNull();
+  });
+
+  it("rejects a capability whose role does not match the requested direction", async () => {
+    const sqlite = makeBackend("sqlite-history-v1", { revision: 0, snapshot: null }, "target");
+    const vault = makeBackend("vault-history-v1", { revision: 0, snapshot: null }, "target");
+    const transfer = makeTransfer(sqlite.port, vault.port);
+    await expect(transfer.copy(copyInput("sqlite-history-v1", "vault-history-v1"))).rejects.toThrow();
+  });
+
 });

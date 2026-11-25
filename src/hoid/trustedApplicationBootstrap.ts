@@ -147,7 +147,7 @@ export function createHoidTrustedApplicationBootstrap(
         // Observers cannot interrupt bootstrap or change its trust decision.
       }
     }
-    return snapshot;
+    return state.snapshot;
   };
 
   const blocked = (
@@ -163,6 +163,7 @@ export function createHoidTrustedApplicationBootstrap(
     > | null = null;
 
     try {
+      if (state.disposed || controller.signal.aborted) return state.snapshot;
       const rawDependencies = await loadDependencies(controller.signal);
       if (state.disposed || controller.signal.aborted) return state.snapshot;
 

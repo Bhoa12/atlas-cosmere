@@ -59,7 +59,7 @@ The private source files were available in the Library and were inspected locall
 
 ## Validation
 
-The dedicated workflow is configured to run the probe and attestation issuer tests plus regressions for the review kit and quorum, followed by strict TypeScript checking. No workflow run or combined check status was returned for the final HEAD during this execution, so CI is not reported as passed.
+The code HEAD 94bacd6c074dfdc36344c65ac0a2addfc35ea0d3 completed all five relevant GitHub Actions workflows successfully. The dedicated EPUB probe/attestation suite passed 48/48 tests across four files, followed by strict TypeScript checking. The signed editorial promotion, edition structure, reading manifests and source coverage workflows also passed. The workflow definitions are retained for subsequent changes.
 
 ## Isolation
 

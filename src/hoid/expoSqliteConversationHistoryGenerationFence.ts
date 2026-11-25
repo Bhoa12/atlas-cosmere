@@ -634,6 +634,7 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
   };
 
   const migration: HoidHistoryMigrationSnapshotPort = Object.freeze({
+    partitionId: binding.partitionId,
     kind: "sqlite-history-v1" as const,
     role: binding.role,
     read: async input => {

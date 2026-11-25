@@ -237,7 +237,7 @@ describe("Hoid portable editorial review kit", () => {
     };
     expect(validateHoidEditorialReviewKit(changedHead)).toEqual({
       status: "invalid",
-      reason: "context-mismatch",
+      reason: "fingerprint-mismatch",
     });
   });
 
@@ -264,7 +264,7 @@ describe("Hoid portable editorial review kit", () => {
     expect(parseHoidEditorialReviewKit("{broken").status).toBe("invalid");
   });
 
-  it("blocks signing-context changes and emits the same domain-separated message as live-plan validation", () => {
+  it("binds signing-context changes and emits the same domain-separated message as live-plan validation", () => {
     expect(built.status).toBe("ready");
     if (built.status !== "ready") return;
     const fromKit = buildHoidEditorialBundleReviewSigningMessageFromPlan(
@@ -289,14 +289,16 @@ describe("Hoid portable editorial review kit", () => {
       "reviewer-key-a",
     );
     expect(fromKit).toBe(withProgress);
-    expect(buildHoidEditorialBundleReviewSigningMessageFromPlan(
+    const changedContextMessage = buildHoidEditorialBundleReviewSigningMessageFromPlan(
       built.kit.promotionPlan,
       { ...built.kit.context, headSha: "d".repeat(40) },
       "reviewer-a",
       "approve",
       REVIEWED_AT,
       "reviewer-key-a",
-    )).toBeNull();
+    );
+    expect(changedContextMessage).not.toBeNull();
+    expect(changedContextMessage).not.toBe(fromKit);
   });
 
   it("rejects accessor-backed requests without invoking getters", () => {

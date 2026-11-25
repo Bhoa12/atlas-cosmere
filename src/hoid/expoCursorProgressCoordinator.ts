@@ -1,29 +1,45 @@
 import { getExpoHoidDatabase } from "./expoHoidDatabase";
-import { createExpoSqliteHoidCursorProgressStore } from "./cursorSqliteProgressStore";
+import { createExpoSqliteHoidCursorProgressStore, type HoidCursorProgressStore } from "./cursorSqliteProgressStore";
 import { HoidCursorProgressCoordinator } from "./cursorProgressCoordinator";
 
-let coordinatorPromise: Promise<HoidCursorProgressCoordinator> | null = null;
+export type HoidExpoCursorProgressRuntime = Readonly<{
+  /** The exact SQLite store instance used to construct the reader coordinator. */
+  store: HoidCursorProgressStore;
+  /** The process-wide coordinator also used by CosmereContext. */
+  coordinator: HoidCursorProgressCoordinator;
+}>;
+
+let runtimePromise: Promise<HoidExpoCursorProgressRuntime> | null = null;
 
 /**
  * Native composition boundary for cursor-native progress.
  *
- * The coordinator and future conversation-history stores obtain the same
- * process-local SQLite handle from expoHoidDatabase.ts. The shared provider
- * coalesces concurrent opens, including React Strict Mode remounts. Web
- * remains unavailable until a separately tested transactional store exists.
+ * Atlas and Hoid must share both this store and coordinator. Opening another
+ * store/coordinator pair would create a second in-memory authority and could
+ * miss reader invalidation events even if both happened to use the same file.
+ * The shared database provider coalesces concurrent opens, including React
+ * Strict Mode remounts. Web remains unavailable until a separately tested
+ * transactional store exists.
  */
-export function createExpoHoidCursorProgressCoordinator(): Promise<HoidCursorProgressCoordinator> {
-  if (!coordinatorPromise) {
-    coordinatorPromise = getExpoHoidDatabase()
+export function getExpoHoidCursorProgressRuntime(): Promise<HoidExpoCursorProgressRuntime> {
+  if (!runtimePromise) {
+    runtimePromise = getExpoHoidDatabase()
       .then(database => {
         const store = createExpoSqliteHoidCursorProgressStore(database);
-        return new HoidCursorProgressCoordinator(store);
+        const coordinator = new HoidCursorProgressCoordinator(store);
+        return Object.freeze({ store, coordinator });
       })
       .catch(error => {
-        coordinatorPromise = null;
+        // A failed native open must be retryable on a later screen mount.
+        runtimePromise = null;
         throw error;
       });
   }
 
-  return coordinatorPromise;
+  return runtimePromise;
+}
+
+/** Compatibility entry point used by CosmereContext. */
+export async function createExpoHoidCursorProgressCoordinator(): Promise<HoidCursorProgressCoordinator> {
+  return (await getExpoHoidCursorProgressRuntime()).coordinator;
 }

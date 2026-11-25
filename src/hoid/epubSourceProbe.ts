@@ -225,16 +225,16 @@ function parseXml(value: string, mimeType: string): XmlDocument | null {
     return !parseError && document?.documentElement ? document : null;
   } catch { return null; }
 }
-function descendants(root: XmlDocument | XmlElement, name: string): Element[] {
+function descendants(root: XmlDocument | XmlElement, name: string): XmlElement[] {
   const nodes = root.getElementsByTagName("*");
-  const result: Element[] = [];
+  const result: XmlElement[] = [];
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes.item(index);
     if (node && localName(node) === name) result.push(node);
   }
   return result;
 }
-function directChild(parent: XmlElement, name: string): Element | null {
+function directChild(parent: XmlElement, name: string): XmlElement | null {
   let child = parent.firstChild;
   while (child) {
     if (child.nodeType === 1 && localName(child as XmlElement) === name) return child as XmlElement;

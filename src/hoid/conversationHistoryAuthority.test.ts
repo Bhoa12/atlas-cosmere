@@ -105,7 +105,7 @@ describe("Hoid single-writer conversation history authority", () => {
 
     await expect(authority.save(0, messages(), scopeA)).resolves.toEqual({
       status: "saved",
-      storageRevision: 1,
+      revision: 1,
     });
     expect(store.compareAndSwap).toHaveBeenCalledTimes(1);
     expect(store.compareAndSwap.mock.calls[0][1]).toBeNull();
@@ -122,7 +122,7 @@ describe("Hoid single-writer conversation history authority", () => {
     await authority.save(0, messages(), scopeA);
     await expect(authority.restore(scopeA)).resolves.toMatchObject({
       status: "ready",
-      storageRevision: 1,
+      revision: 1,
     });
     const stale = await authority.restore(scopeB);
     expect(stale.status).toBe("stale");
@@ -274,7 +274,7 @@ describe("Hoid single-writer conversation history authority", () => {
 
     await expect(authority.save(Number.MAX_SAFE_INTEGER, messages(), scopeA)).resolves.toEqual({
       status: "invalid-input",
-      reason: "invalid-authority-revision",
+      reason: "invalid-revision",
     });
     await expect(authority.clear(-1)).resolves.toEqual({
       status: "invalid-input",

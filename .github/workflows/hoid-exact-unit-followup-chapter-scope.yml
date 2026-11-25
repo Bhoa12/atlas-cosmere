@@ -1,0 +1,76 @@
+name: Hoid exact-unit follow-up chapter scope
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/chapterEvidenceScope.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/requestValidation.ts"
+      - "src/hoid/providerTimeout.ts"
+      - "src/hoid/knowledgeKinds.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN309_EXACT_UNIT_FOLLOWUP_CHAPTER_SCOPE.md"
+      - ".github/workflows/hoid-exact-unit-followup-chapter-scope.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run309"
+    paths:
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/chapterEvidenceScope.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/unitProgressCoordinator.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/requestValidation.ts"
+      - "src/hoid/providerTimeout.ts"
+      - "src/hoid/knowledgeKinds.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN309_EXACT_UNIT_FOLLOWUP_CHAPTER_SCOPE.md"
+      - ".github/workflows/hoid-exact-unit-followup-chapter-scope.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-follow-up-chapter-scope:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit chapter scope and spoiler boundaries
+        run: >-
+          npx vitest run
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/chapterEvidenceScope.test.ts
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+      - name: Strict type-check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/exactUnitEvidenceRuntime.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/chapterEvidenceScope.ts
+          src/hoid/chapterEvidenceScope.test.ts

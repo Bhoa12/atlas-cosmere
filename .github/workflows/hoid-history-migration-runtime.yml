@@ -1,0 +1,105 @@
+name: Hoid history migration runtime integration
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run308"
+    paths:
+      - "src/hoid/conversationHistoryMigrationRuntime.ts"
+      - "src/hoid/conversationHistoryMigrationRuntime.test.ts"
+      - "src/hoid/conversationHistoryMigrationTransferAdapter.ts"
+      - "src/hoid/conversationHistoryMigrationTransferAdapter.test.ts"
+      - "src/hoid/conversationHistoryMigrationRunner.ts"
+      - "src/hoid/conversationHistoryMigrationRunner.test.ts"
+      - "src/hoid/conversationHistoryAuthorityJournal.ts"
+      - "src/hoid/conversationHistoryAuthorityJournal.test.ts"
+      - "src/hoid/conversationHistoryMigrationSnapshotPort.ts"
+      - "src/hoid/conversationHistorySnapshotCodec.ts"
+      - "src/hoid/conversationHistorySnapshotCodec.test.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryHydration.test.ts"
+      - "src/hoid/conversationVaultGenerationFence.ts"
+      - "src/hoid/conversationVaultGenerationFence.test.ts"
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.ts"
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts"
+      - "docs/hoid/RUN308_MIGRATION_RUNTIME_COMPOSITION.md"
+      - ".github/workflows/hoid-history-migration-runtime.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationHistoryMigrationRuntime.ts"
+      - "src/hoid/conversationHistoryMigrationRuntime.test.ts"
+      - "src/hoid/conversationHistoryMigrationTransferAdapter.ts"
+      - "src/hoid/conversationHistoryMigrationTransferAdapter.test.ts"
+      - "src/hoid/conversationHistoryMigrationRunner.ts"
+      - "src/hoid/conversationHistoryMigrationRunner.test.ts"
+      - "src/hoid/conversationHistoryAuthorityJournal.ts"
+      - "src/hoid/conversationHistoryAuthorityJournal.test.ts"
+      - "src/hoid/conversationHistoryMigrationSnapshotPort.ts"
+      - "src/hoid/conversationHistorySnapshotCodec.ts"
+      - "src/hoid/conversationHistorySnapshotCodec.test.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryHydration.test.ts"
+      - "src/hoid/conversationVaultGenerationFence.ts"
+      - "src/hoid/conversationVaultGenerationFence.test.ts"
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.ts"
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts"
+      - "docs/hoid/RUN308_MIGRATION_RUNTIME_COMPOSITION.md"
+      - ".github/workflows/hoid-history-migration-runtime.yml"
+
+concurrency:
+  group: hoid-history-migration-runtime-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  migration-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test migration runtime and regressions
+        run: >-
+          npx vitest run
+          src/hoid/conversationHistoryMigrationRuntime.test.ts
+          src/hoid/conversationHistoryMigrationTransferAdapter.test.ts
+          src/hoid/conversationHistoryMigrationRunner.test.ts
+          src/hoid/conversationHistoryAuthorityJournal.test.ts
+          src/hoid/conversationHistorySnapshotCodec.test.ts
+          src/hoid/conversationHistoryHydration.test.ts
+          src/hoid/conversationVaultGenerationFence.test.ts
+          src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts
+      - name: Type-check migration runtime and regressions
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --esModuleInterop --skipLibCheck
+          src/hoid/conversationHistoryMigrationRuntime.ts
+          src/hoid/conversationHistoryMigrationRuntime.test.ts
+          src/hoid/conversationHistoryMigrationTransferAdapter.ts
+          src/hoid/conversationHistoryMigrationTransferAdapter.test.ts
+          src/hoid/conversationHistoryMigrationRunner.ts
+          src/hoid/conversationHistoryMigrationRunner.test.ts
+          src/hoid/conversationHistoryAuthorityJournal.ts
+          src/hoid/conversationHistoryAuthorityJournal.test.ts
+          src/hoid/conversationHistoryMigrationSnapshotPort.ts
+          src/hoid/conversationHistorySnapshotCodec.ts
+          src/hoid/conversationHistorySnapshotCodec.test.ts
+          src/hoid/conversationHistoryHydration.ts
+          src/hoid/conversationHistoryHydration.test.ts
+          src/hoid/conversationHistoryPolicy.ts
+          src/hoid/conversationVault.ts
+          src/hoid/conversationVaultGenerationFence.ts
+          src/hoid/conversationVaultGenerationFence.test.ts
+          src/hoid/expoSqliteConversationHistoryGenerationFence.ts
+          src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts
+          src/hoid/expoSqliteConversationHistoryStore.ts
+          src/hoid/conversationHistoryStorePort.ts
+          src/hoid/sqliteProgressStore.ts
+          src/hoid/sha256.ts

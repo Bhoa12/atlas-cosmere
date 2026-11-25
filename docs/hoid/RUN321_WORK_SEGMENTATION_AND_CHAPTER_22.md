@@ -102,6 +102,10 @@ The summary is an original editorial paraphrase, not a transcript or a set of co
 - Approved production summaries: 0.
 - Production registry: empty.
 
+## Next ingestion targets
+
+The metadata-only ingestion planner now identifies chapter 12 of El Imperio Final and chapter 23 of El Camino de los Reyes as the next missing chapter documents for those two partially inspected works. The current Library inventory contains no cosmere.epub, so El Imperio Final chapter 12 remains a structural candidate only. The next actionable target from a currently available source is El Camino de los Reyes chapter 23.
+
 ## Privacy and production boundary
 
 - No EPUB or XHTML body was committed.

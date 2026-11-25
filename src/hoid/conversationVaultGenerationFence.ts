@@ -189,7 +189,7 @@ function canonicalStore(value: unknown): HoidVaultGenerationFenceStorePort | nul
       const transaction = canonicalTransaction(raw);
       if (!transaction) throw new Error("Invalid Vault generation fence transaction");
       return task(transaction);
-    }),
+    }) as Promise<T>,
   });
 }
 

@@ -125,7 +125,7 @@ describe("Hoid single-writer conversation history authority", () => {
 
   it("pins the SQLite partition key when the adapter is created", async () => {
     const store = makeSqliteStore();
-    const mutableKey = {
+    const mutableKey: { principalId: string; conversationId: string } = {
       principalId: key.principalId,
       conversationId: key.conversationId,
     };

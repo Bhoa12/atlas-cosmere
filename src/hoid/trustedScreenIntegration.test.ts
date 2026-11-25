@@ -10,6 +10,7 @@ describe("Hoid screen trusted presentation wiring", () => {
     const screen = readFileSync(screenPath, "utf8");
     expect(screen).toContain("if (!trustedConversationPort)");
     expect(screen).toContain("trustedConversationPort.send({");
+    expect(screen).toContain("trustedConversationPort?.resetContext");
     expect(screen).toContain("result.presentation.text");
     expect(screen).not.toContain("conversationGateway.answer(");
     expect(screen).not.toContain("trustedAnswerPort.present(");

@@ -59,7 +59,7 @@ export interface HoidTrustedScreenAnswerPort {
 }
 
 export type HoidTrustedAnswerBlockReason =
-  | "invalid-host" | "invalid-prepared-answer" | "trust-source-unavailable"
+  | "invalid-host" | "context-reset" | "invalid-prepared-answer" | "trust-source-unavailable"
   | "trust-checkpoint-unavailable" | "trust-checkpoint-invalid" | "registry-invalid"
   | "registry-stale" | "registry-rollback" | "registry-equivocation"
   | "trust-checkpoint-conflict" | "signature-invalid" | "claim-bundle-changed"

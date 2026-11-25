@@ -298,6 +298,22 @@ describe("Hoid trusted conversation screen port", () => {
     });
     expect(followUp.status).toBe("ready");
 
+    port.resetContext();
+    const resetFollowUp = await port.send({
+      question: "¿Y ella?",
+      intent: "explain",
+      depth: "brief",
+    });
+    expect(resetFollowUp).toEqual({
+      status: "needs-clarification",
+      reason: "missing-follow-up-context",
+    });
+
+    expect((await port.send({
+      question: "¿Quién es Entidad Alfa?",
+      intent: "explain",
+      depth: "brief",
+    })).status).toBe("ready");
     progressStore.value = snapshot(2, 2);
     await coordinator.refresh();
     const staleFollowUp = await port.send({

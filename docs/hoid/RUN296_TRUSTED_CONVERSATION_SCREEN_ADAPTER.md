@@ -14,6 +14,7 @@ Conectar la composición conversacional v3 con una frontera de UI explícita. La
 - El resumen transversal se construye a partir de las citas ya validadas y solo contiene títulos, capítulos y segmentos.
 - HoidScreen utiliza el puerto v3 para todas las preguntas narrativas. El gateway local anterior queda limitado a la lectura del progreso.
 - El contexto de seguimiento permanece en la sesión v3 y se invalida cuando cambia el progreso.
+- La pantalla expone un reset explícito que aborta turnos activos y limpia la memoria v3 al iniciar un tema, cambiar el ámbito o abrir recomendaciones.
 - La pantalla dispone su sesión al desmontarse.
 - App sigue inyectando \`null\` para ambos puertos. La narrativa de producción no se activa sin bootstrap, registro de revisores, paquetes firmados y composición real.
 

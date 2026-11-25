@@ -181,7 +181,7 @@ export function projectHoidAnswerForDisplay(
 }
 
 
-const EXACT_WORK_ORDER = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
+const EXACT_WORK_ORDER = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index] as const));
 const EXACT_WORK_TITLES = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title] as const));
 const EXACT_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
 const EXACT_SHA_PATTERN = /^[a-f0-9]{64}$/u;

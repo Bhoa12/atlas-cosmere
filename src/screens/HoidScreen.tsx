@@ -249,6 +249,7 @@ export const HoidScreen: React.FC<{
 
   useEffect(() => {
     conversationTurnSession.invalidate();
+    trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     setCargandoRecomendaciones(false);
     setCanCancelAnswer(false);
@@ -290,6 +291,7 @@ export const HoidScreen: React.FC<{
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     conversationTurnSession.invalidate();
+    trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
     setMensajes([{
@@ -604,6 +606,7 @@ export const HoidScreen: React.FC<{
     if (!ticket) return;
 
     conversationTurnSession.invalidate();
+    trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
     conversationContextRef.current = null;

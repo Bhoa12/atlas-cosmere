@@ -54,6 +54,7 @@ export type HoidTrustedConversationScreenPort = Readonly<{
     input: HoidConversationTurnInputV3,
     options?: HoidExactRuntimeCallOptions,
   ): Promise<HoidTrustedConversationScreenResult>;
+  resetContext(): void;
   dispose(): void;
 }>;
 
@@ -278,7 +279,8 @@ export function createHoidTrustedConversationScreenPort(
   const created = exactRecord(creation, ["status", "session"]);
   if (!created || created.status !== "created") return null;
   const sendSession = resolveMethod(created.session, "send");
-  if (!sendSession) {
+  const resetSessionContext = resolveMethod(created.session, "resetContext");
+  if (!sendSession || !resetSessionContext) {
     try { closeSession(sessionIdInput); } catch { /* best-effort cleanup */ }
     return null;
   }
@@ -362,6 +364,13 @@ export function createHoidTrustedConversationScreenPort(
         progressFingerprint: delivery.permit.progressFingerprint,
         context,
       });
+    },
+    resetContext(): void {
+      if (disposed) return;
+      generation += 1;
+      deliveries.clear();
+      invalidDeliveries.clear();
+      try { resetSessionContext(); } catch { /* session remains fail-closed */ }
     },
     dispose(): void {
       if (disposed) return;

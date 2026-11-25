@@ -1,5 +1,7 @@
 import {
   createExpoSqliteHoidConversationHistoryStore,
+  type HoidConversationPayloadProtectionContext,
+  type HoidConversationPayloadProtector,
 } from "./expoSqliteConversationHistoryStore";
 import {
   HOID_CONVERSATION_STORAGE_RECORD_KIND,
@@ -137,6 +139,21 @@ function validCounter(value: unknown): value is number {
     Number.isSafeInteger(value) &&
     value >= 0 &&
     value <= MAX_COUNTER;
+}
+
+function canonicalProtector(value: unknown): HoidConversationPayloadProtector | null {
+  const record = exactDataRecord(value, ["seal", "open"]);
+  if (!record || typeof record.seal !== "function" || typeof record.open !== "function") {
+    return null;
+  }
+  const seal = record.seal as HoidConversationPayloadProtector["seal"];
+  const open = record.open as HoidConversationPayloadProtector["open"];
+  return Object.freeze({
+    seal: (plaintext: string, context: HoidConversationPayloadProtectionContext) =>
+      seal.call(value, plaintext, context),
+    open: (ciphertext: string, context: HoidConversationPayloadProtectionContext) =>
+      open.call(value, ciphertext, context),
+  });
 }
 
 function canonicalBinding(value: unknown): FenceBinding | null {
@@ -313,8 +330,10 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
   bindingInput: unknown,
 ): HoidExpoSqliteHoidConversationHistoryFencedAdapter | null {
   const binding = canonicalBinding(bindingInput);
+  const protector = canonicalProtector(protectorInput);
   if (
     !binding ||
+    !protector ||
     !database ||
     typeof database.withExclusiveTransactionAsync !== "function" ||
     typeof database.getFirstAsync !== "function" ||
@@ -456,7 +475,7 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
   try {
     store = createExpoSqliteHoidConversationHistoryStore(
       guardedDatabase,
-      protectorInput,
+      protector,
     );
   } catch {
     return null;
@@ -620,7 +639,7 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
         try {
           const migrationStore = createExpoSqliteHoidConversationHistoryStore(
             transactionDatabase,
-            protectorInput,
+            protector,
           );
           result = await task(migrationStore);
         } catch {

@@ -5,7 +5,12 @@ import { getHoidReadingManifest } from "./readingManifest";
 import {
   projectHoidAnswerForDisplay,
   projectHoidCrossBookEvidenceForDisplay,
+  projectHoidExactUnitAnswerForDisplay,
+  summarizeHoidExactUnitCrossBookDisplay,
 } from "./answerDisplayProjection";
+import { createHoidChapterReference } from "./chapterReference";
+import { composeHoidNarrative } from "./narrativeComposition";
+import type { HoidExactEvidenceAnswer, HoidExactEvidenceCitation } from "./exactUnitEvidenceRuntime";
 
 const elantrisManifest = getHoidReadingManifest("elantris");
 if (elantrisManifest.status !== "ready") throw new Error("Elantris manifest fixture unavailable");
@@ -253,4 +258,135 @@ describe("Hoid answer display projection", () => {
       workCount: 3,
     })).toBeNull();
   });
+
+function exactReference(bookId: string, chapterNumber: number, unitId?: string) {
+  const result = createHoidChapterReference(bookId, {
+    chapterNumber,
+    ...(unitId ? { unitId } : {}),
+  });
+  if (result.status !== "ready") throw new Error("Exact chapter reference fixture unavailable");
+  return result.reference;
+}
+
+function exactCitation(
+  evidenceId: string,
+  bookId: string,
+  chapterNumber: number,
+  unitId?: string,
+): HoidExactEvidenceCitation {
+  const source = exactReference(bookId, chapterNumber, unitId);
+  return Object.freeze({
+    evidenceId,
+    source,
+    firstSafeAppearance: source,
+    unlock: source,
+  });
+}
+
+function exactAnswer(
+  citations: readonly HoidExactEvidenceCitation[],
+  layout: "plain" | "grouped" = "plain",
+): HoidExactEvidenceAnswer {
+  const claimId = "claim.exact-display";
+  const evidenceIds = Object.freeze(citations.map(item => item.evidenceId));
+  const segments = Object.freeze([Object.freeze({
+    claimId,
+    text: "Afirmación editorial sintética para la proyección.",
+    evidenceIds,
+    sources: citations,
+  })]);
+  const composition = composeHoidNarrative({
+    segments: Object.freeze([Object.freeze({
+      claimId,
+      text: segments[0].text,
+      evidenceIds,
+    })]),
+  }, layout);
+  if (composition.status !== "ready") throw new Error("Exact-unit narrative fixture unavailable");
+  return Object.freeze({
+    text: composition.text,
+    claimIds: Object.freeze([claimId]),
+    evidenceIds,
+    entityIds: Object.freeze([]),
+    sources: citations,
+    segments,
+    layout,
+  });
+}
+
+describe("Hoid exact-unit answer display projection", () => {
+  it("projects exact edition references without exposing internal IDs or fingerprints", () => {
+    const answer = exactAnswer([exactCitation("evidence.exact-one", "elantris", 4)]);
+    const display = projectHoidExactUnitAnswerForDisplay(answer);
+    expect(display).not.toBeNull();
+    expect(display?.citations[0]).toEqual({
+      sourceBookId: "elantris",
+      title: "Elantris",
+      chapter: 4,
+      chapterOrdinal: 4,
+      chapterLabelAmbiguous: false,
+    });
+    expect(JSON.stringify(display)).not.toContain("evidence.exact-one");
+    expect(JSON.stringify(display)).not.toContain("identityFingerprint");
+    expect(JSON.stringify(display)).not.toContain("unitId");
+    expect(JSON.stringify(display)).not.toContain("locatorId");
+  });
+
+  it("uses exact unit identity to disambiguate repeated chapter labels", () => {
+    const manifest = getHoidReadingManifest("sawt");
+    expect(manifest.status).toBe("ready");
+    if (manifest.status !== "ready") return;
+    const duplicates = manifest.manifest.units.filter(unit => unit.chapterNumber === 12);
+    expect(duplicates).toHaveLength(2);
+    const citations = duplicates.map((unit, index) =>
+      exactCitation("evidence.exact-" + String(index + 1), "sawt", 12, unit.unitId),
+    );
+    const display = projectHoidExactUnitAnswerForDisplay(exactAnswer(citations));
+    expect(display?.citations.map(citation => citation.chapterOrdinal)).toEqual(
+      duplicates.map(unit => unit.ordinal),
+    );
+    expect(display?.citations.every(citation => citation.chapterLabelAmbiguous)).toBe(true);
+    expect(JSON.stringify(display)).not.toContain("unitId");
+    expect(JSON.stringify(display)).not.toContain("identityFingerprint");
+  });
+
+  it("builds a cross-work display matrix only from validated exact citations", () => {
+    const answer = exactAnswer([
+      exactCitation("evidence.exact-elantris", "elantris", 4),
+      exactCitation("evidence.exact-warbreaker", "warbreaker", 2),
+    ]);
+    const display = projectHoidExactUnitAnswerForDisplay(answer);
+    expect(display).not.toBeNull();
+    const summary = summarizeHoidExactUnitCrossBookDisplay(display!);
+    expect(summary).toEqual({
+      workCount: 2,
+      works: [
+        { sourceBookId: "warbreaker", title: "El aliento de los dioses", chapters: [2] },
+        { sourceBookId: "elantris", title: "Elantris", chapters: [4] },
+      ],
+      segments: [{
+        claimId: "claim.exact-display",
+        works: [
+          { sourceBookId: "warbreaker", title: "El aliento de los dioses", chapters: [2] },
+          { sourceBookId: "elantris", title: "Elantris", chapters: [4] },
+        ],
+      }],
+    });
+    expect(JSON.stringify(summary)).not.toContain("evidence.exact");
+    expect(JSON.stringify(summary)).not.toContain("identityFingerprint");
+  });
+
+  it("rejects altered narrative text and evidence/source mismatches", () => {
+    const answer = exactAnswer([exactCitation("evidence.exact-one", "elantris", 4)]);
+    expect(projectHoidExactUnitAnswerForDisplay(Object.freeze({
+      ...answer,
+      text: "Texto no respaldado.",
+    }))).toBeNull();
+    expect(projectHoidExactUnitAnswerForDisplay(Object.freeze({
+      ...answer,
+      evidenceIds: Object.freeze(["evidence.other"]),
+    }))).toBeNull();
+  });
+});
+
 });

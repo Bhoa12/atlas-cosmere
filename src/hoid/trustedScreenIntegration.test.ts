@@ -6,10 +6,13 @@ const screenPath = fileURLToPath(new URL("../screens/HoidScreen.tsx", import.met
 const appPath = fileURLToPath(new URL("../../App.tsx", import.meta.url));
 
 describe("Hoid screen trusted presentation wiring", () => {
-  it("requires the trusted answer port before dispatching narrative questions", () => {
+  it("requires the trusted exact-unit v3 port before dispatching narrative questions", () => {
     const screen = readFileSync(screenPath, "utf8");
-    expect(screen).toContain("if (!trustedAnswerPort)");
-    expect(screen).toContain("trustedAnswerPort.present(result.answer, result.depth)");
+    expect(screen).toContain("if (!trustedConversationPort)");
+    expect(screen).toContain("trustedConversationPort.send({");
+    expect(screen).toContain("result.presentation.text");
+    expect(screen).not.toContain("conversationGateway.answer(");
+    expect(screen).not.toContain("trustedAnswerPort.present(");
     expect(screen).not.toContain("presentHoidExplanation(");
   });
 
@@ -27,7 +30,8 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).toContain("topicRecommendationBinding.trustPort === trustedAnswerPort");
     expect(screen).toContain("setTopicRecommendations(topicDisplayItems)");
     expect(screen).toContain("topicRecommendationBindingRef.current = null;");
-    expect(screen).toContain("liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort");
+    expect(screen).toContain("liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort");
+    expect(screen).toContain("trustedConversationPort?.dispose");
     expect(screen).not.toContain("setTopicRecommendationTrustPort(");
     expect(screen).not.toContain("const [topicRecommendationTrustPort");
     expect(screen).not.toContain("const [topicRecommendationRevision");
@@ -37,6 +41,6 @@ describe("Hoid screen trusted presentation wiring", () => {
 
   it("does not inject a synthetic or unprovisioned production presenter from App", () => {
     const app = readFileSync(appPath, "utf8");
-    expect(app).toContain("<HoidScreen trustedAnswerPort={null} />");
+    expect(app).toContain("<HoidScreen trustedAnswerPort={null} trustedConversationPort={null} />");
   });
 });

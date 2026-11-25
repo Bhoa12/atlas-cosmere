@@ -127,7 +127,7 @@ const MainNavigator = () => {
         )}
 
         {tab === 'tools' && <ToolsScreen />}
-        {tab === 'hoid' && <HoidScreen trustedAnswerPort={null} />}
+        {tab === 'hoid' && <HoidScreen trustedAnswerPort={null} trustedConversationPort={null} />}
         {tab === 'quiz' && <QuizzesScreen />}
         {tab === 'comunidad' && <CommunityScreen />}
         {tab === 'perfil' && <ProfileScreen />}

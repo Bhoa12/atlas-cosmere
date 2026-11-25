@@ -1,0 +1,56 @@
+name: Hoid trusted conversation screen adapter
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run296"
+    paths:
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/hoid/trustedConversationScreenPort.ts"
+      - "src/hoid/trustedConversationScreenPort.test.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "src/hoid/trustedConversationComposition.test.ts"
+      - "src/hoid/trustedConversationGatewayV3.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/exactUnitProviderAdapter.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "App.tsx"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "docs/hoid/RUN296_TRUSTED_CONVERSATION_SCREEN_ADAPTER.md"
+      - ".github/workflows/hoid-trusted-conversation-screen-adapter.yml"
+  pull_request:
+    paths:
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/trustedConversationScreenPort.ts"
+      - "src/hoid/trustedConversationScreenPort.test.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "src/hoid/trustedConversationComposition.test.ts"
+      - "src/hoid/trustedConversationGatewayV3.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/exactUnitProviderAdapter.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "App.tsx"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "docs/hoid/RUN296_TRUSTED_CONVERSATION_SCREEN_ADAPTER.md"
+      - ".github/workflows/hoid-trusted-conversation-screen-adapter.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-conversation-screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test trusted screen adapter and regressions
+        run: npx vitest run src/hoid/trustedConversationScreenPort.test.ts src/hoid/answerDisplayProjection.test.ts src/hoid/trustedConversationComposition.test.ts src/hoid/trustedConversationGatewayV3.test.ts src/hoid/trustedExactUnitAnswerHost.test.ts src/hoid/trustedScreenIntegration.test.ts
+      - name: Type-check HoidScreen integration
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --jsx react --esModuleInterop --skipLibCheck src/screens/HoidScreen.tsx src/hoid/trustedConversationScreenPort.ts

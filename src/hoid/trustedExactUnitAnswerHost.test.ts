@@ -174,9 +174,13 @@ function createHostHarness() {
     },
   };
   const selectionRequests: unknown[] = [];
+  let onSelect: (() => void) | null = null;
   const selector = {
     async selectClaims(request: { requestFingerprint: string; candidates: readonly { id: string }[] }) {
       selectionRequests.push(request);
+      const callback = onSelect;
+      onSelect = null;
+      callback?.();
       return Object.freeze({
         schemaVersion: 2, requestFingerprint: request.requestFingerprint,
         claimIds: Object.freeze(request.candidates.slice(0, 1).map(candidate => candidate.id)),
@@ -198,6 +202,7 @@ function createHostHarness() {
     },
     packageSource,
     selectionRequests,
+    emitDuringSelection(callback: () => void) { onSelect = callback; },
   };
 }
 function createSink() {
@@ -510,6 +515,28 @@ describe("Hoid trusted exact-unit answer host", () => {
 
     const result = await harness.host.prepareFollowUp({ question: "¿Puedes aclararlo?" }, capability);
     expect(result).toEqual({ status: "blocked", reason: "progress-changed" });
+    expect(harness.host.getFollowUpCapability(prepared)).toBeNull();
+    expect(sink.state.answer).toBeUndefined();
+    expect(sink.state.cleared).toBe("progress-changed");
+  });
+
+  it("discards an in-flight follow-up if progress invalidates its parent presentation", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const sink = createSink();
+    expect((await harness.host.present(prepared, sink.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(prepared);
+    expect(capability).not.toBeNull();
+
+    harness.emitDuringSelection(() => harness.progressInvalidation.emit());
+    const result = await harness.host.prepareFollowUp({
+      question: "¿Puedes ampliar la explicación?",
+    }, capability);
+
+    expect(result).toEqual({
+      status: "blocked",
+      reason: "invalid-follow-up-capability",
+    });
     expect(harness.host.getFollowUpCapability(prepared)).toBeNull();
     expect(sink.state.answer).toBeUndefined();
     expect(sink.state.cleared).toBe("progress-changed");

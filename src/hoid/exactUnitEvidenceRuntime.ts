@@ -738,7 +738,7 @@ export class HoidExactUnitEvidenceRuntime {
       ) return unavailable("progress-changed");
 
       const outcome = await invokeWithProviderDeadline(
-        signal => this.selector!.selectClaims(selectionRequest, { signal }),
+        signal => this.selector!.selectClaims(selectionRequest, Object.freeze({ signal })),
         this.providerTimeoutMs,
         controller.signal,
       );

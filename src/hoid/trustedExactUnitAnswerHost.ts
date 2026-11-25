@@ -619,7 +619,7 @@ export class HoidTrustedExactUnitAnswerHost {
     if (capabilityInput === null || typeof capabilityInput !== "object" || Array.isArray(capabilityInput)) {
       return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }
-    const capability = capability;
+    const capability = capabilityInput as object;
     if (!this.followUpSidecars.has(capability)) {
       return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }

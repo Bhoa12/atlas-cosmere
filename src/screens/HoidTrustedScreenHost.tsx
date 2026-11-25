@@ -12,10 +12,10 @@ import { projectHoidTrustedApplicationScreen } from "../hoid/trustedApplicationS
 
 export type HoidTrustedScreenHostProps = Readonly<{
   /**
-   * A bootstrap created by the native application composition root.
-   * Null means native trust dependencies have not been provisioned.
+   * Creates a fresh bootstrap for this mounted screen session.
+   * The host owns and disposes the returned instance on unmount.
    */
-  bootstrap: HoidTrustedApplicationBootstrap | null;
+  createBootstrap: (() => HoidTrustedApplicationBootstrap | null) | null;
 }>;
 
 function statusMessage(
@@ -41,37 +41,52 @@ function statusMessage(
           return "La inicialización segura ha fallado. Puedes reintentar la validación.";
       }
     case "disposed":
-      return "La sesión segura de Hoid se ha cerrado. Es necesario crear un nuevo bootstrap desde el host de aplicación.";
+      return "La sesión segura de Hoid se ha cerrado. Vuelve a abrir la pantalla para crear una sesión nueva.";
     case "ready":
       return null;
   }
 }
 
 export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
-  bootstrap,
+  createBootstrap,
 }) => {
-  // The application root owns the bootstrap lifetime. This screen only
-  // observes it; navigating away must not dispose a process-wide session.
+  const [bootstrap, setBootstrap] = useState<HoidTrustedApplicationBootstrap | null>(null);
   const [, setRevision] = useState(0);
 
   useEffect(() => {
-    if (!bootstrap) return;
-
     let active = true;
-    const unsubscribe = bootstrap.subscribe(() => {
+    let ownedBootstrap: HoidTrustedApplicationBootstrap | null = null;
+
+    try {
+      ownedBootstrap = createBootstrap?.() ?? null;
+    } catch {
+      ownedBootstrap = null;
+    }
+    setBootstrap(ownedBootstrap);
+
+    if (!ownedBootstrap) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const unsubscribe = ownedBootstrap.subscribe(() => {
       if (active) setRevision(current => current + 1);
     });
 
-    if (bootstrap.getSnapshot().status === "idle") {
-      void bootstrap.initialize();
+    if (ownedBootstrap.getSnapshot().status === "idle") {
+      void ownedBootstrap.initialize();
     }
     setRevision(current => current + 1);
 
     return () => {
       active = false;
       unsubscribe();
+      // HoidScreen disposes its screen port when it unmounts. The host owns
+      // the matching bootstrap and closes its remaining resources as well.
+      ownedBootstrap?.dispose();
     };
-  }, [bootstrap]);
+  }, [createBootstrap]);
 
   const projection = projectHoidTrustedApplicationScreen(
     bootstrap?.getSnapshot() ?? null,

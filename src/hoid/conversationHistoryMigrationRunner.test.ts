@@ -133,14 +133,14 @@ function makeParticipants() {
 }
 
 function makeTransfer() {
-  const copy = vi.fn(async () => ({
+  const copy = vi.fn(async (): Promise<unknown> => ({
     schemaVersion: 1,
     sourceRevision: 7,
     targetRevision: 1,
     sourceDigest: DIGEST,
     targetDigest: DIGEST,
   }));
-  const verify = vi.fn(async () => ({
+  const verify = vi.fn(async (): Promise<unknown> => ({
     schemaVersion: 1,
     targetRevision: 1,
     targetDigest: DIGEST,

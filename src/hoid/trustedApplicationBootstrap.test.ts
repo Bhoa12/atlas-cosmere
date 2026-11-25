@@ -189,6 +189,87 @@ describe("Hoid trusted application bootstrap", () => {
     bootstrap.dispose();
   });
 
+  it("allows an explicit retry after a blocked bootstrap and coalesces retry callers", async () => {
+    let attempts = 0;
+    const load = vi.fn(async () => {
+      attempts += 1;
+      return attempts === 1 ? null : dependencies();
+    });
+    const bootstrap = createHoidTrustedApplicationBootstrap(load);
+    if (!bootstrap) throw new Error("Bootstrap factory unavailable");
+
+    const first = await bootstrap.initialize();
+    expect(first).toEqual({ status: "blocked", reason: "invalid-dependencies" });
+    expect(await bootstrap.initialize()).toBe(first);
+    expect(load).toHaveBeenCalledTimes(1);
+
+    const retry = bootstrap.retry();
+    expect(bootstrap.getSnapshot()).toEqual({ status: "loading" });
+    const joinedRetry = bootstrap.retry();
+    expect(joinedRetry).toBe(retry);
+
+    const second = await retry;
+    expect(second.status).toBe("ready");
+    expect(load).toHaveBeenCalledTimes(2);
+    bootstrap.dispose();
+  });
+
+  it("can retry a transient durable-progress failure without weakening fail-closed behavior", async () => {
+    let attempts = 0;
+    const unavailable: HoidCursorStoreLoadResult = Object.freeze({
+      status: "unavailable",
+      reason: "storage-error",
+    });
+    const load = vi.fn(async () => {
+      attempts += 1;
+      return attempts === 1 ? dependencies({}, unavailable) : dependencies();
+    });
+    const bootstrap = createHoidTrustedApplicationBootstrap(load);
+    if (!bootstrap) throw new Error("Bootstrap factory unavailable");
+
+    expect(await bootstrap.initialize()).toEqual({
+      status: "blocked",
+      reason: "progress-unavailable",
+    });
+    expect(await bootstrap.retry()).toMatchObject({ status: "ready" });
+    expect(load).toHaveBeenCalledTimes(2);
+    bootstrap.dispose();
+  });
+
+  it("joins an in-flight initialization when retry is requested during loading", async () => {
+    let resolveDependencies!: (value: unknown) => void;
+    const pending = new Promise<unknown>(resolve => {
+      resolveDependencies = resolve;
+    });
+    const load = vi.fn(() => pending);
+    const bootstrap = createHoidTrustedApplicationBootstrap(load);
+    if (!bootstrap) throw new Error("Bootstrap factory unavailable");
+
+    const initialization = bootstrap.initialize();
+    expect(bootstrap.getSnapshot()).toEqual({ status: "loading" });
+    expect(bootstrap.retry()).toBe(initialization);
+    resolveDependencies(dependencies());
+
+    expect((await initialization).status).toBe("ready");
+    expect(load).toHaveBeenCalledTimes(1);
+    bootstrap.dispose();
+  });
+
+  it("does not recreate ready resources and cannot retry after disposal", async () => {
+    const load = vi.fn(async () => dependencies());
+    const bootstrap = createHoidTrustedApplicationBootstrap(load);
+    if (!bootstrap) throw new Error("Bootstrap factory unavailable");
+
+    const ready = await bootstrap.initialize();
+    expect(ready.status).toBe("ready");
+    expect(await bootstrap.retry()).toBe(ready);
+    expect(load).toHaveBeenCalledTimes(1);
+
+    bootstrap.dispose();
+    const disposed = bootstrap.getSnapshot();
+    expect(await bootstrap.retry()).toBe(disposed);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
   it("aborts dependency loading and never publishes a late result after disposal", async () => {
     let resolveDependencies!: (value: unknown) => void;
     const signalState: { value: AbortSignal | null } = { value: null };

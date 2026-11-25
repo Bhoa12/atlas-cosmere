@@ -184,7 +184,7 @@ function exactDataRecord(
   }
 }
 
-/** Reject accessors, sparse arrays, cycles, custom prototypes and non-JSON values without invoking user code. */
+/** Reject accessors, sparse arrays, cycles, custom prototypes and non-JSON values without invoking property getters. */
 function isPlainJsonData(
   value: unknown,
   depth = 0,

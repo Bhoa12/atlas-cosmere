@@ -23,10 +23,13 @@ The kit contains:
 - a deterministic spoiler-scope table for every packet/evidence item;
 - the source-catalogue fingerprint.
 
-The packet content is original editorial material (summaries, atomic
-statements, entity dossiers and relationship statements). The kit does not
-include EPUB bytes, XHTML, extracted source passages, chapter titles, private
-file paths or raw source documents.
+The packet content consists of the existing editorial draft fields
+(summaries, atomic statements, entity dossiers and relationship statements).
+The export schema has no EPUB-byte, XHTML, chapter-body or source-excerpt
+payload field and includes no private file paths or raw source documents.
+Human reviewers must still reject any draft prose that is not original; the
+originality checklist remains mandatory and the kit does not infer originality
+from a summary's presence.
 
 ## Progress privacy and spoiler boundaries
 

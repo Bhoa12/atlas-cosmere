@@ -174,8 +174,40 @@ describe("Hoid portable editorial review kit", () => {
     expect(json).not.toContain("progressSnapshot");
     expect(json).not.toContain('"positions"');
     expect(built.kit.spoilerScope.length).toBeGreaterThan(0);
-    expect(built.kit.spoilerScope.every(item => item.unlock.chapter >= item.source.chapter)).toBe(true);
+    expect(built.kit.spoilerScope.every(item =>
+      item.unlock.bookId !== item.source.bookId || item.unlock.chapter >= item.source.chapter,
+    )).toBe(true);
     expect(built.kit.spoilerScope.every(item => /^[a-f0-9]{64}$/.test(item.source.documentSha256))).toBe(true);
+  });
+
+  it("changes the promotion and signing fingerprints when reading progress advances", () => {
+    expect(built.status).toBe("ready");
+    if (built.status !== "ready") return;
+    const advanced = buildHoidEditorialReviewKit({
+      ...buildInput(),
+      progressSnapshot: progressSnapshot(18),
+    });
+    expect(advanced.status).toBe("ready");
+    if (advanced.status !== "ready") return;
+    expect(advanced.kit.promotionPlan.fingerprint).not.toBe(built.kit.promotionPlan.fingerprint);
+    const previousMessage = buildHoidEditorialBundleReviewSigningMessageFromPlan(
+      built.kit.promotionPlan, built.kit.context, "reviewer-a", "approve", REVIEWED_AT, "reviewer-key-a",
+    );
+    const advancedMessage = buildHoidEditorialBundleReviewSigningMessageFromPlan(
+      advanced.kit.promotionPlan, advanced.kit.context, "reviewer-a", "approve", REVIEWED_AT, "reviewer-key-a",
+    );
+    expect(advancedMessage).not.toBe(previousMessage);
+  });
+
+  it("blocks export until every individual review receipt is complete", () => {
+    const incompleteReceipts = {
+      ...receipts,
+      summaries: [],
+    };
+    expect(buildHoidEditorialReviewKit({
+      ...buildInput(),
+      receipts: incompleteReceipts,
+    })).toMatchObject({ status: "blocked", reason: "receipts-not-complete" });
   });
 
   it("revalidates the complete packet inventory, receipts, plan and reviewer context", () => {

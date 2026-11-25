@@ -243,7 +243,7 @@ describe("Hoid single-writer conversation history authority", () => {
     expect(calls).toEqual([0]);
     firstWrite.resolve(Object.freeze({ status: "saved", revision: 1 }));
     await expect(first).resolves.toEqual({ status: "saved", revision: 1 });
-    await expect(second).resolves.toEqual({ status: "conflict", revision: 1 });
+    await expect(second).resolves.toEqual({ status: "conflict" });
     expect(calls).toEqual([0, 0]);
 
     authority.dispose();
@@ -278,7 +278,7 @@ describe("Hoid single-writer conversation history authority", () => {
     });
     await expect(authority.clear(-1)).resolves.toEqual({
       status: "invalid-input",
-      reason: "invalid-authority-revision",
+      reason: "invalid-revision",
     });
     expect(save).not.toHaveBeenCalled();
     authority.dispose();

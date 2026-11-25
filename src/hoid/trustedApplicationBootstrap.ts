@@ -39,6 +39,8 @@ export type HoidTrustedApplicationBootstrap = Readonly<{
   getSnapshot(): HoidTrustedApplicationBootstrapSnapshot;
   subscribe(listener: () => void): () => void;
   initialize(): Promise<HoidTrustedApplicationBootstrapSnapshot>;
+  /** Explicitly retries a blocked bootstrap; never starts a second concurrent attempt. */
+  retry(): Promise<HoidTrustedApplicationBootstrapSnapshot>;
   dispose(): void;
 }>;
 
@@ -219,7 +221,8 @@ export function createHoidTrustedApplicationBootstrap(
     }
   };
 
-  const api: HoidTrustedApplicationBootstrap = {
+  let api: HoidTrustedApplicationBootstrap;
+  api = {
     getSnapshot(): HoidTrustedApplicationBootstrapSnapshot {
       return state.snapshot;
     },
@@ -255,6 +258,21 @@ export function createHoidTrustedApplicationBootstrap(
       return pending;
     },
 
+    retry(): Promise<HoidTrustedApplicationBootstrapSnapshot> {
+      if (state.disposed) return Promise.resolve(state.snapshot);
+
+      // A retry requested while loading joins the active attempt. A ready
+      // bootstrap owns live resources and must not be initialized twice.
+      if (state.snapshot.status === "loading" || state.controller !== null) {
+        return state.initialization ?? Promise.resolve(state.snapshot);
+      }
+      if (state.snapshot.status === "ready") return Promise.resolve(state.snapshot);
+
+      // Only an explicit caller action clears the settled blocked attempt.
+      // initialize() then installs the new promise before notifying observers.
+      state.initialization = null;
+      return api.initialize();
+    },
     dispose(): void {
       if (state.disposed) return;
       state.disposed = true;

@@ -1,0 +1,47 @@
+name: Hoid trusted application bootstrap
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run297"
+    paths:
+      - "src/hoid/trustedApplicationBootstrap.ts"
+      - "src/hoid/trustedApplicationBootstrap.test.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "src/hoid/trustedConversationScreenPort.ts"
+      - "src/hoid/trustedConversationGatewayV3.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/cursorBackedUnitProgressStore.ts"
+      - "docs/hoid/RUN297_TRUSTED_APPLICATION_BOOTSTRAP.md"
+      - ".github/workflows/hoid-trusted-application-bootstrap.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedApplicationBootstrap.ts"
+      - "src/hoid/trustedApplicationBootstrap.test.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "src/hoid/trustedConversationScreenPort.ts"
+      - "src/hoid/trustedConversationGatewayV3.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/cursorBackedUnitProgressStore.ts"
+      - "docs/hoid/RUN297_TRUSTED_APPLICATION_BOOTSTRAP.md"
+      - ".github/workflows/hoid-trusted-application-bootstrap.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-application-bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test bootstrap and trusted conversation regressions
+        run: npx vitest run src/hoid/trustedApplicationBootstrap.test.ts src/hoid/trustedConversationComposition.test.ts src/hoid/trustedConversationScreenPort.test.ts src/hoid/trustedConversationGatewayV3.test.ts src/hoid/trustedExactUnitAnswerHost.test.ts
+      - name: Type-check bootstrap and screen adapter
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck src/hoid/trustedApplicationBootstrap.ts src/hoid/trustedApplicationBootstrap.test.ts src/hoid/trustedConversationScreenPort.ts

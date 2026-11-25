@@ -26,7 +26,7 @@ export type HoidEpubProbeEntry = Readonly<{
 }>;
 export type HoidEpubStructureProbe = Readonly<{
   schemaVersion: 1; kind: "hoid-epub-structure-candidate"; scope: "metadata-only";
-  packageVersion: string; navigationFormat: "epub3-nav" | "epub2-ncx";
+  workSegmentation: "not-inferred"; packageVersion: string; navigationFormat: "epub3-nav" | "epub2-ncx";
   packageSha256: string; navigationSha256: string; candidateFingerprint: string;
   manifestItemCount: number; spineItemCount: number; navigationEntryCount: number;
   numberedTocEntryCount: number; unnumberedTocEntryCount: number;

@@ -162,14 +162,20 @@ function canonicalSnapshot(value: unknown): HoidConversationHistorySnapshot | nu
   if (
     !envelope ||
     envelope.schemaVersion !== 1 ||
-    envelope.kind !== "hoid-conversation-history" ||
-    !isHoidConversationProgressScope(envelope.progressScope)
+    envelope.kind !== "hoid-conversation-history"
   ) return null;
 
+  const rawScope = exactDataRecord(envelope.progressScope, ["revision", "fingerprint"]);
+  if (
+    !rawScope ||
+    typeof rawScope.revision !== "number" ||
+    typeof rawScope.fingerprint !== "string"
+  ) return null;
   const scope = Object.freeze({
-    revision: (envelope.progressScope as HoidConversationProgressScope).revision,
-    fingerprint: (envelope.progressScope as HoidConversationProgressScope).fingerprint,
+    revision: rawScope.revision,
+    fingerprint: rawScope.fingerprint,
   });
+  if (!isHoidConversationProgressScope(scope)) return null;
   const hydrated = hydrateHoidConversationHistorySnapshot(value, scope);
   if (hydrated.status !== "ready") return null;
 
@@ -211,16 +217,16 @@ export function createHoidConversationHistorySnapshotCodec(): HoidConversationHi
   };
 
   const decode = (plaintext: Uint8Array): unknown | null => {
-    if (
-      !(plaintext instanceof Uint8Array) ||
-      plaintext.length < 1 ||
-      plaintext.length > HOID_HISTORY_SNAPSHOT_CODEC_MAX_BYTES
-    ) return null;
-
-    const json = decodeUtf8(new Uint8Array(plaintext));
-    if (json === null) return null;
-
     try {
+      if (
+        !(plaintext instanceof Uint8Array) ||
+        plaintext.length < 1 ||
+        plaintext.length > HOID_HISTORY_SNAPSHOT_CODEC_MAX_BYTES
+      ) return null;
+
+      const json = decodeUtf8(new Uint8Array(plaintext));
+      if (json === null) return null;
+
       const parsed: unknown = JSON.parse(json);
       const canonical = canonicalJson(parsed);
       if (!canonical || canonical.json !== json) return null;

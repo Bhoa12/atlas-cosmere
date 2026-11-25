@@ -436,4 +436,156 @@ describe("Hoid exact-unit evidence runtime v2", () => {
     })));
   });
 
+
+  it("restricts exact-unit follow-ups to prior cited chapter identities without sending them to the selector", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    let providerRequest: HoidExactClaimSelectionRequest | undefined;
+    const { runtime } = createRuntime(store, selectorFor(async request => {
+      providerRequest = request;
+      return {
+        schemaVersion: request.schemaVersion,
+        requestFingerprint: request.requestFingerprint,
+        claimIds: ["claim.alpha"],
+      };
+    }));
+
+    const result = await runtime.answer({
+      question: "Explícame el concepto con más detalle.",
+      intent: "explain",
+      depth: "detailed",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [reference("twok", 2)],
+    });
+
+    expect(result.status).toBe("ready");
+    expect(providerRequest).toBeDefined();
+    expect(providerRequest!.candidates.map(candidate => candidate.id)).toEqual(["claim.alpha"]);
+    expect(Object.keys(providerRequest!)).not.toContain("chapterScope");
+    expect(JSON.stringify(providerRequest)).not.toContain("unitId");
+    expect(JSON.stringify(providerRequest)).not.toContain("identityFingerprint");
+    expect(JSON.stringify(providerRequest)).not.toContain("locatorId");
+  });
+
+  it("does not widen a chapter-scoped follow-up when no claim source matches the cited chapter", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+
+    expect(await runtime.answer({
+      question: "Continúa la explicación.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [reference("twok", 3)],
+    })).toEqual({ status: "unavailable", reason: "no-authorized-claims" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale chapter fingerprints before invoking the selector", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+    const stale = Object.freeze({
+      ...reference("twok", 2),
+      identityFingerprint: "0".repeat(64),
+    });
+
+    expect(await runtime.answer({
+      question: "Continúa.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [stale],
+    })).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects chapter references outside the declared book scope", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+
+    expect(await runtime.answer({
+      question: "Continúa.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [reference("edgedancer", 2)],
+    })).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("requires at least one exact chapter anchor for every work in a cross-work scope", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([
+      { bookId: "twok", chapterNumber: 4 },
+      { bookId: "warbreaker", chapterNumber: 4 },
+    ]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+
+    expect(await runtime.answer({
+      question: "Compara el contexto.",
+      intent: "explain",
+      bookScope: { mode: "cross-work", bookIds: ["twok", "warbreaker"] },
+      chapterScope: [reference("twok", 2)],
+    })).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("does not let a cited-chapter scope bypass the independent unlock threshold", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 2 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+
+    expect(await runtime.answer({
+      question: "Explícame el concepto.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: [reference("twok", 2)],
+    })).toEqual({ status: "unavailable", reason: "no-authorized-claims" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("rejects sparse chapter-scope arrays", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const { runtime } = createRuntime(store, selectorFor(selector));
+    const sparse = new Array(1);
+
+    expect(await runtime.answer({
+      question: "Continúa.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+      chapterScope: sparse,
+    })).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(selector).not.toHaveBeenCalled();
+  });
 });

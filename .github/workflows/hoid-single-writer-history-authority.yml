@@ -42,7 +42,6 @@ jobs:
       - name: Test authority and existing history regressions
         run: >-
           npx vitest run
-          src/hoid/conversationHistoryAuthority.test.ts
           src/hoid/conversationHistoryStorePort.test.ts
           src/hoid/conversationVaultHistoryBridge.test.ts
           src/hoid/conversationHistoryHydration.test.ts

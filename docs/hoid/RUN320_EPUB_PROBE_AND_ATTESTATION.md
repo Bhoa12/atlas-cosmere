@@ -73,14 +73,14 @@ The dedicated workflow runs the probe and attestation issuer tests plus regressi
 
 The private source files were present in the Library and inspected locally at the ZIP/container/OPF/navigation layer only. The following navigation-document SHA-256 values exactly match the existing edition metadata already checked into the repository:
 
-| Source edition | EPUB package | Navigation | TOC entries | Explicit numeric labels | Navigation SHA-256 |
-|---|---|---|---:|---:|---|
-| cosmere.epub | EPUB 3 | EPUB 3 nav | 986 | 735 | 85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee |
-| Roshar five-book omnibus | EPUB 3 | EPUB 3 nav | 702 | 552 | 08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025 |
-| Danzante del Filo | EPUB 2 | NCX | 25 | 20 | 5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517 |
-| Esquirla del amanecer | EPUB 2 | NCX | 24 | 19 | 8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075 |
+| Source edition | Bytes | EPUB package | Navigation | TOC entries | Numeric labels | OPF SHA-256 | Navigation SHA-256 |
+|---|---:|---|---|---:|---:|---|---|
+| cosmere.epub | 291,827,353 | EPUB 3 | EPUB 3 nav | 986 | 735 | f55b6e832108e10888a285c2ac948c62e1f907b73bcbd86ff33b1a7198d98f23 | 85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee |
+| Roshar five-book omnibus | 97,318,466 | EPUB 3 | EPUB 3 nav | 702 | 552 | 6eae99f8feccc93a57685108f0f8a8d6af68b7f1858eee63efcf710839cb7477 | 08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025 |
+| Danzante del Filo | 2,176,643 | EPUB 2 | NCX | 25 | 20 | 27452125a1850a21260c5a48bd17fe6a836424b18be21f6816e0c0e5df3dcf21 | 5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517 |
+| Esquirla del amanecer | 2,062,244 | EPUB 2 | NCX | 24 | 19 | 865caecac999c564db74170ee4936c1c88eb8b7154001f5b6012ba7341e70960 | 8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075 |
 
-The exact package-metadata SHA-256 values were also recorded during the local inspection, but no archive, OPF, navigation XML, title, href, XHTML or chapter text was copied into the repository.
+The OPF and navigation hashes are metadata fingerprints only. No archive, OPF, navigation XML, title, href, XHTML or chapter text was copied into the repository.
 
 The five-book omnibus and cosmere.epub contain multiple works. Repeated numeric labels across the entire TOC are therefore expected and cannot be treated as duplicate chapter numbers within one work. The probe deliberately reports edition-wide repeated labels and sets workSegmentation to not-inferred. A later reviewed mapping must segment each work before it can create book-specific reading cursors.
 

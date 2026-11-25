@@ -1,0 +1,60 @@
+name: Hoid EPUB structure probe and reviewer attestation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/epubSourceProbe.ts"
+      - "src/hoid/epubSourceProbe.test.ts"
+      - "src/hoid/editorialReviewAttestationIssuer.ts"
+      - "src/hoid/editorialReviewAttestationIssuer.test.ts"
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/editorialReviewKit.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN320_EPUB_PROBE_AND_ATTESTATION.md"
+      - ".github/workflows/hoid-epub-source-probe-attestation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/epubSourceProbe.ts"
+      - "src/hoid/epubSourceProbe.test.ts"
+      - "src/hoid/editorialReviewAttestationIssuer.ts"
+      - "src/hoid/editorialReviewAttestationIssuer.test.ts"
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/editorialReviewKit.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN320_EPUB_PROBE_AND_ATTESTATION.md"
+      - ".github/workflows/hoid-epub-source-probe-attestation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  epub-probe-attestation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test EPUB probe, attestation issuer and editorial regressions
+        run: >-
+          npx vitest run
+          src/hoid/epubSourceProbe.test.ts
+          src/hoid/editorialReviewAttestationIssuer.test.ts
+          src/hoid/editorialReviewKit.test.ts
+          src/hoid/editorialReviewBundleQuorum.test.ts
+      - name: Type-check source probe and attestation issuer
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node --skipLibCheck
+          src/hoid/epubSourceProbe.ts
+          src/hoid/editorialReviewAttestationIssuer.ts

@@ -12,6 +12,10 @@ on:
       - "src/hoid/trustedHostPromotionAuthority.test.ts"
       - "src/hoid/editorialReviewBundleQuorum.ts"
       - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "src/hoid/editorialReviewAttestationIssuer.ts"
+      - "src/hoid/editorialReviewAttestationIssuer.test.ts"
+      - "src/hoid/epubSourceProbe.ts"
+      - "src/hoid/epubSourceProbe.test.ts"
       - "src/hoid/trustedHostBootstrap.ts"
       - "docs/hoid/RUN318_TRUSTED_HOST_QUORUM_GATE.md"
       - "src/hoid/editorialBundlePromotionAuthority.ts"
@@ -66,6 +70,8 @@ jobs:
           src/hoid/signedEditorialBundlePromotionAuthority.test.ts
           src/hoid/trustedHostPromotionAuthority.test.ts
           src/hoid/editorialReviewBundleQuorum.test.ts
+          src/hoid/editorialReviewAttestationIssuer.test.ts
+          src/hoid/epubSourceProbe.test.ts
           src/hoid/editorialReviewSignatures.test.ts
           src/hoid/editorialBundlePromotionAuthority.test.ts
           src/hoid/editorialReviewBundle.test.ts
@@ -77,6 +83,8 @@ jobs:
           src/hoid/signedEditorialBundlePromotionAuthority.ts
           src/hoid/trustedHostPromotionAuthority.ts
           src/hoid/editorialReviewBundleQuorum.ts
+          src/hoid/editorialReviewAttestationIssuer.ts
+          src/hoid/epubSourceProbe.ts
           src/hoid/trustedHostBootstrap.ts
           src/hoid/editorialReviewSignatures.ts
           src/hoid/editorialBundlePromotionAuthority.ts

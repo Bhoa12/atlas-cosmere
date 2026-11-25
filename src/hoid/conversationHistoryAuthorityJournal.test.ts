@@ -140,6 +140,28 @@ describe("Hoid durable authority journal protocol", () => {
     })).resolves.toEqual({ status: "blocked", reason: "invalid-input" });
   });
 
+  it("accepts revision zero for an empty source and target partition", async () => {
+    const { coordinator } = makeCoordinator();
+    await coordinator.initialize("sqlite-history-v1");
+    await beginCopying(coordinator);
+    await expect(coordinator.recordCopy({
+      operationId: "migration-001",
+      sourceRevision: 0,
+      targetRevision: 0,
+      sourceDigest: DIGEST,
+      targetDigest: DIGEST,
+    })).resolves.toMatchObject({
+      status: "saved",
+      record: {
+        migration: {
+          phase: "copied",
+          sourceRevision: 0,
+          targetRevision: 0,
+        },
+      },
+    });
+  });
+
   it("refuses to verify a copy whose target digest differs", async () => {
     const { coordinator } = makeCoordinator();
     await coordinator.initialize("sqlite-history-v1");

@@ -11,6 +11,7 @@ on:
       - "src/hoid/trustedApplicationBootstrap.ts"
       - "src/hoid/trustedApplicationScreenProjection.ts"
       - "src/hoid/trustedApplicationScreenProjection.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
       - "src/hoid/trustedConversationScreenPort.ts"
       - "docs/hoid/RUN313_TRUSTED_APPLICATION_SCREEN_HOST.md"
       - ".github/workflows/hoid-trusted-application-screen-host.yml"
@@ -22,6 +23,7 @@ on:
       - "src/hoid/trustedApplicationBootstrap.ts"
       - "src/hoid/trustedApplicationScreenProjection.ts"
       - "src/hoid/trustedApplicationScreenProjection.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
       - "src/hoid/trustedConversationScreenPort.ts"
       - "docs/hoid/RUN313_TRUSTED_APPLICATION_SCREEN_HOST.md"
       - ".github/workflows/hoid-trusted-application-screen-host.yml"
@@ -42,12 +44,13 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Test screen projection and bootstrap regressions
+      - name: Test screen projection and trusted integration regressions
         run: >-
           npx vitest run
           src/hoid/trustedApplicationScreenProjection.test.ts
           src/hoid/trustedApplicationBootstrap.test.ts
           src/hoid/trustedConversationScreenPort.test.ts
+          src/hoid/trustedScreenIntegration.test.ts
       - name: Strict type-check screen host
         run: >-
           npx tsc --noEmit --strict --target ES2020

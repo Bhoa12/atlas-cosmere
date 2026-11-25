@@ -16,8 +16,10 @@ persistencia que todavía no estén provisionadas.
   cuando el bootstrap está `ready`.
 - La pantalla conserva la comprobación de marca de
   `isHoidTrustedConversationScreenPort()`; la proyección no concede autoridad.
-- El host de pantalla no es propietario del bootstrap y no lo destruye al
-  desmontarse. El composition root de aplicación debe controlar esa vida útil.
+- El host recibe una fábrica, crea un bootstrap nuevo por montaje y lo destruye
+  al desmontarse. Esto coincide con el contrato actual de `HoidScreen`, que
+  destruye el puerto de conversación al abandonar la pestaña. No se reutiliza
+  un puerto ya dispuesto al volver a abrir Hoid.
 - La pantalla recibe `trustedAnswerPort={null}`: las recomendaciones que
   requieren un presenter editorial independiente permanecen bloqueadas.
 
@@ -25,11 +27,11 @@ persistencia que todavía no estén provisionadas.
 
 | Estado del bootstrap | Comportamiento |
 | --- | --- |
-| Sin bootstrap | Aviso de dependencias no provisionadas; ambos puertos de respuesta permanecen cerrados |
+| Sin fábrica | Aviso de dependencias no provisionadas; ambos puertos de respuesta permanecen cerrados |
 | `idle` / `loading` | Aviso de validación; no se entrega ningún puerto |
 | `blocked` | Motivo neutral y reintento explícito; no hay fallback de proveedor |
 | `ready` | Se entrega únicamente el puerto de conversación creado por el bootstrap |
-| `disposed` | Estado terminal; hace falta un nuevo bootstrap del host |
+| `disposed` | Estado terminal de esa instancia; un nuevo montaje debe crear otro bootstrap |
 
 El bootstrap sigue validando el progreso durable y la composición antes de
 publicar `ready`. Cada turno conserva las comprobaciones de autoridad editorial,
@@ -38,10 +40,9 @@ narrativo.
 
 ## Integración de la aplicación
 
-`App.tsx` utiliza ahora `HoidTrustedScreenHost`. En esta revisión se pasa
-explícitamente `bootstrap={null}` porque todavía no existe un composition root
-nativo que pueda proporcionar de forma verificable todos los contratos de
-confianza.
+`App.tsx` utiliza ahora `HoidTrustedScreenHost`. Se pasa explícitamente
+`createBootstrap={null}` porque todavía no existe un composition root nativo
+que pueda proporcionar de forma verificable todos los contratos de confianza.
 
 Esto hace visible el estado real y mantiene bloqueadas las respuestas
 narrativas. No es una activación de producción ni una implementación ficticia
@@ -54,6 +55,8 @@ del transporte.
 - Preservación del motivo de bloqueo.
 - El puerto solo aparece en la proyección `ready`.
 - Regresión del bootstrap y del adaptador de pantalla.
+- La integración estática comprueba que la fábrica crea y dispone una sesión
+  por montaje, y que App no inyecta capacidades ficticias.
 - TypeScript estricto para el host y `HoidScreen`.
 
 ## Privacidad y bibliografía

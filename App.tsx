@@ -127,7 +127,7 @@ const MainNavigator = () => {
         )}
 
         {tab === 'tools' && <ToolsScreen />}
-        {tab === 'hoid' && <HoidTrustedScreenHost bootstrap={null} />}
+        {tab === 'hoid' && <HoidTrustedScreenHost createBootstrap={null} />}
         {tab === 'quiz' && <QuizzesScreen />}
         {tab === 'comunidad' && <CommunityScreen />}
         {tab === 'perfil' && <ProfileScreen />}

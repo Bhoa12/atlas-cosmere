@@ -9,6 +9,7 @@ import type { HoidHistoryBackendKind } from "./conversationHistoryAuthorityJourn
  * across the complete storage operation.
  */
 export type HoidHistoryMigrationSnapshotPort = Readonly<{
+  partitionId: string;
   kind: HoidHistoryBackendKind;
   role: "source" | "target";
   read: (input: Readonly<{

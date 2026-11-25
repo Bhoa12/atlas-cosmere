@@ -48,6 +48,8 @@ jobs:
           src/hoid/readingAwareRecommendations.test.ts
           src/hoid/evidenceRuntime.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
+          src/hoid/epubSourceProbe.test.ts
+          src/hoid/editorialReviewAttestationIssuer.test.ts
       - name: Type-check source coverage boundaries
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module commonjs
@@ -69,3 +71,5 @@ jobs:
           src/hoid/conversationGateway.ts
           src/hoid/evidenceRuntime.ts
           src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/epubSourceProbe.ts
+          src/hoid/editorialReviewAttestationIssuer.ts

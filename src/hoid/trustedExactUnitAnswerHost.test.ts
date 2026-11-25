@@ -444,7 +444,7 @@ describe("Hoid trusted exact-unit answer host", () => {
       intent: "explain",
       depth: "brief",
     }, capability);
-    expect(followUp.status).toBe("prepared");
+    if (followUp.status !== "prepared") throw new Error("Follow-up blocked: " + JSON.stringify(followUp));
     const providerRequest = harness.selectionRequests[harness.selectionRequests.length - 1] as Record<string, unknown>;
     expect(providerRequest).toHaveProperty("conversationContext");
     expect(providerRequest).not.toHaveProperty("chapterScope");

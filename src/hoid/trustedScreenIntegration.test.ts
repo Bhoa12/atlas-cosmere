@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const screenPath = fileURLToPath(new URL("../screens/HoidScreen.tsx", import.meta.url));
+const hostPath = fileURLToPath(new URL("../screens/HoidTrustedScreenHost.tsx", import.meta.url));
 const appPath = fileURLToPath(new URL("../../App.tsx", import.meta.url));
 
 describe("Hoid screen trusted presentation wiring", () => {
@@ -40,8 +41,18 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).not.toContain("const topicRecommendationsTrustReady = false");
   });
 
-  it("does not inject a synthetic or unprovisioned production presenter from App", () => {
+  it("routes App through a screen-scoped bootstrap owner without inventing trust dependencies", () => {
     const app = readFileSync(appPath, "utf8");
-    expect(app).toContain("<HoidScreen trustedAnswerPort={null} trustedConversationPort={null} />");
+    const host = readFileSync(hostPath, "utf8");
+    expect(app).toContain("import { HoidTrustedScreenHost } from './src/screens/HoidTrustedScreenHost';");
+    expect(app).toContain("<HoidTrustedScreenHost createBootstrap={null} />");
+    expect(app).not.toContain("<HoidScreen ");
+
+    // A mounted Hoid screen owns a fresh bootstrap. This matches HoidScreen's
+    // existing disposal of the port it receives when the tab unmounts.
+    expect(host).toContain("createBootstrap?.()");
+    expect(host).toContain("ownedBootstrap?.dispose()");
+    expect(host).toContain("trustedAnswerPort={null}");
+    expect(host).toContain("trustedConversationPort={screenPort}");
   });
 });

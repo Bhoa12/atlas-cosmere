@@ -1,0 +1,62 @@
+name: Hoid trusted application screen host
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "App.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/trustedApplicationBootstrap.ts"
+      - "src/hoid/trustedApplicationScreenProjection.ts"
+      - "src/hoid/trustedApplicationScreenProjection.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/hoid/trustedConversationScreenPort.ts"
+      - "docs/hoid/RUN313_TRUSTED_APPLICATION_SCREEN_HOST.md"
+      - ".github/workflows/hoid-trusted-application-screen-host.yml"
+  pull_request:
+    paths:
+      - "App.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/trustedApplicationBootstrap.ts"
+      - "src/hoid/trustedApplicationScreenProjection.ts"
+      - "src/hoid/trustedApplicationScreenProjection.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/hoid/trustedConversationScreenPort.ts"
+      - "docs/hoid/RUN313_TRUSTED_APPLICATION_SCREEN_HOST.md"
+      - ".github/workflows/hoid-trusted-application-screen-host.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-application-screen-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test screen projection and trusted integration regressions
+        run: >-
+          npx vitest run
+          src/hoid/trustedApplicationScreenProjection.test.ts
+          src/hoid/trustedApplicationBootstrap.test.ts
+          src/hoid/trustedConversationScreenPort.test.ts
+          src/hoid/trustedScreenIntegration.test.ts
+      - name: Strict type-check screen host
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node
+          --jsx react-native --esModuleInterop --skipLibCheck
+          src/screens/HoidTrustedScreenHost.tsx
+          src/screens/HoidScreen.tsx
+          src/hoid/trustedApplicationBootstrap.ts
+          src/hoid/trustedApplicationScreenProjection.ts

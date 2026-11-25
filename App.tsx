@@ -5,7 +5,7 @@ import { CosmereProvider, useCosmere } from './src/context/CosmereContext';
 import { SISTEMAS_COSMERE_COMPLETO, Libro } from './src/data/cosmereUniverse';
 import { InvestitureWheel } from './src/components/InvestitureWheel';
 import { ToolsScreen } from './src/screens/ToolsScreen';
-import { HoidScreen } from './src/screens/HoidScreen';
+import { HoidTrustedScreenHost } from './src/screens/HoidTrustedScreenHost';
 import { QuizzesScreen } from './src/screens/QuizzesScreen';
 import { CommunityScreen } from './src/screens/CommunityScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -127,7 +127,7 @@ const MainNavigator = () => {
         )}
 
         {tab === 'tools' && <ToolsScreen />}
-        {tab === 'hoid' && <HoidScreen trustedAnswerPort={null} trustedConversationPort={null} />}
+        {tab === 'hoid' && <HoidTrustedScreenHost createBootstrap={null} />}
         {tab === 'quiz' && <QuizzesScreen />}
         {tab === 'comunidad' && <CommunityScreen />}
         {tab === 'perfil' && <ProfileScreen />}

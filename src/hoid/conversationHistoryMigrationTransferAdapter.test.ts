@@ -46,6 +46,7 @@ function makeBackend(
     revision: 0,
     snapshot: null,
   },
+  role: "source" | "target" = kind === "sqlite-history-v1" ? "source" : "target",
 ) {
   let revision = initial.revision;
   let current = initial.snapshot;
@@ -55,6 +56,7 @@ function makeBackend(
 
   const port: HoidHistoryMigrationSnapshotPort = Object.freeze({
     kind,
+    role,
     read: async input => {
       if (input.operationId !== OPERATION || input.generation !== GENERATION) {
         return Object.freeze({ status: "blocked", reason: "wrong-generation" });
@@ -156,8 +158,8 @@ describe("Hoid fenced canonical history migration transfer", () => {
 
   it("supports the reverse Vault to SQLite direction", async () => {
     const original = snapshot("Explicación original");
-    const sqlite = makeBackend("sqlite-history-v1");
-    const vault = makeBackend("vault-history-v1", { revision: 4, snapshot: original });
+    const sqlite = makeBackend("sqlite-history-v1", { revision: 0, snapshot: null }, "target");
+    const vault = makeBackend("vault-history-v1", { revision: 4, snapshot: original }, "source");
     const transfer = makeTransfer(sqlite.port, vault.port);
 
     const copied = await transfer.copy(copyInput("vault-history-v1", "sqlite-history-v1"));
@@ -204,8 +206,8 @@ describe("Hoid fenced canonical history migration transfer", () => {
   });
 
   it("fails closed instead of pretending SQLite v1 can tombstone a non-empty target", async () => {
-    const sqliteTarget = makeBackend("sqlite-history-v1", { revision: 2, snapshot: snapshot() });
-    const vaultSource = makeBackend("vault-history-v1");
+    const sqliteTarget = makeBackend("sqlite-history-v1", { revision: 2, snapshot: snapshot() }, "target");
+    const vaultSource = makeBackend("vault-history-v1", { revision: 0, snapshot: null }, "source");
     const transfer = makeTransfer(sqliteTarget.port, vaultSource.port);
 
     await expect(transfer.copy(copyInput("vault-history-v1", "sqlite-history-v1"))).rejects.toThrow();

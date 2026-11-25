@@ -167,8 +167,8 @@ function validCounter(value: unknown): value is number {
     value <= MAX_COUNTER;
 }
 
-function validPositiveRevision(value: unknown): value is number {
-  return validCounter(value) && value >= 1;
+function validRevision(value: unknown): value is number {
+  return validCounter(value);
 }
 
 function validBackend(value: unknown): value is HoidHistoryBackendKind {
@@ -205,8 +205,8 @@ function canonicalMigration(
     !validCounter(record.generation) ||
     typeof record.sourceFenced !== "boolean" ||
     typeof record.targetFenced !== "boolean" ||
-    !(record.sourceRevision === null || validPositiveRevision(record.sourceRevision)) ||
-    !(record.targetRevision === null || validPositiveRevision(record.targetRevision)) ||
+    !(record.sourceRevision === null || validRevision(record.sourceRevision)) ||
+    !(record.targetRevision === null || validRevision(record.targetRevision)) ||
     !(record.sourceDigest === null || (typeof record.sourceDigest === "string" && SHA256_HEX.test(record.sourceDigest))) ||
     !(record.targetDigest === null || (typeof record.targetDigest === "string" && SHA256_HEX.test(record.targetDigest)))
   ) return null;
@@ -537,8 +537,8 @@ export function createHoidHistoryAuthorityJournalCoordinator(
     if (
       !migration ||
       migration.operationId !== input.operationId ||
-      !validPositiveRevision(input.sourceRevision) ||
-      !validPositiveRevision(input.targetRevision) ||
+      !validRevision(input.sourceRevision) ||
+      !validRevision(input.targetRevision) ||
       typeof input.sourceDigest !== "string" ||
       !SHA256_HEX.test(input.sourceDigest) ||
       typeof input.targetDigest !== "string" ||

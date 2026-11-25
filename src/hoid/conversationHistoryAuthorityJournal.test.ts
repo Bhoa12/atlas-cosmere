@@ -120,13 +120,13 @@ describe("Hoid durable authority journal protocol", () => {
     });
   });
 
-  it("requires positive revisions and SHA-256 digests for copied snapshots", async () => {
+  it("accepts revision zero for an empty snapshot and validates SHA-256 digests", async () => {
     const { coordinator } = makeCoordinator();
     await coordinator.initialize("sqlite-history-v1");
     await beginCopying(coordinator);
     await expect(coordinator.recordCopy({
       operationId: "migration-001",
-      sourceRevision: 0,
+      sourceRevision: -1,
       targetRevision: 1,
       sourceDigest: DIGEST,
       targetDigest: DIGEST,

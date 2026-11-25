@@ -400,6 +400,7 @@ export function createHoidConversationVaultGenerationFencedAdapter(
   });
 
   const migration: HoidHistoryMigrationSnapshotPort = Object.freeze({
+    partitionId: binding.partitionId,
     kind: "vault-history-v1" as const,
     role: binding.role,
     read: async input => {

@@ -1,13 +1,19 @@
 import {
   createExpoSqliteHoidConversationHistoryStore,
+  type HoidConversationPayloadProtectionContext,
+  type HoidConversationPayloadProtector,
 } from "./expoSqliteConversationHistoryStore";
-import type {
-  HoidConversationHistoryStorePort,
-  HoidConversationStorageKey,
+import {
+  HOID_CONVERSATION_STORAGE_RECORD_KIND,
+  HOID_CONVERSATION_STORAGE_SCHEMA_VERSION,
+  type HoidConversationHistoryStorePort,
+  type HoidConversationStorageKey,
+  type HoidConversationStorageRecord,
 } from "./conversationHistoryStorePort";
 import type {
   HoidHistoryFencingParticipantPort,
 } from "./conversationHistoryAuthorityJournal";
+import type { HoidHistoryMigrationSnapshotPort } from "./conversationHistoryMigrationSnapshotPort";
 import type {
   HoidSqliteBindValue,
   HoidSqliteDatabasePort,
@@ -46,6 +52,7 @@ type FenceBinding = Readonly<{
 export type HoidExpoSqliteHoidConversationHistoryFencedAdapter = Readonly<{
   store: HoidConversationHistoryStorePort;
   participant: HoidHistoryFencingParticipantPort;
+  migration: HoidHistoryMigrationSnapshotPort;
 }>;
 
 const CREATE_FENCE_TABLE_SQL = [
@@ -132,6 +139,21 @@ function validCounter(value: unknown): value is number {
     Number.isSafeInteger(value) &&
     value >= 0 &&
     value <= MAX_COUNTER;
+}
+
+function canonicalProtector(value: unknown): HoidConversationPayloadProtector | null {
+  const record = exactDataRecord(value, ["seal", "open"]);
+  if (!record || typeof record.seal !== "function" || typeof record.open !== "function") {
+    return null;
+  }
+  const seal = record.seal as HoidConversationPayloadProtector["seal"];
+  const open = record.open as HoidConversationPayloadProtector["open"];
+  return Object.freeze({
+    seal: (plaintext: string, context: HoidConversationPayloadProtectionContext) =>
+      seal.call(value, plaintext, context),
+    open: (ciphertext: string, context: HoidConversationPayloadProtectionContext) =>
+      open.call(value, ciphertext, context),
+  });
 }
 
 function canonicalBinding(value: unknown): FenceBinding | null {
@@ -308,8 +330,10 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
   bindingInput: unknown,
 ): HoidExpoSqliteHoidConversationHistoryFencedAdapter | null {
   const binding = canonicalBinding(bindingInput);
+  const protector = canonicalProtector(protectorInput);
   if (
     !binding ||
+    !protector ||
     !database ||
     typeof database.withExclusiveTransactionAsync !== "function" ||
     typeof database.getFirstAsync !== "function" ||
@@ -451,7 +475,7 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
   try {
     store = createExpoSqliteHoidConversationHistoryStore(
       guardedDatabase,
-      protectorInput,
+      protector,
     );
   } catch {
     return null;
@@ -557,5 +581,219 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
     },
   });
 
-  return Object.freeze({ store, participant });
+  const withMigrationGate = async (
+    operationIdInput: unknown,
+    generationInput: unknown,
+    write: boolean,
+    task: (migrationStore: HoidConversationHistoryStorePort) => Promise<unknown>,
+  ): Promise<unknown> => {
+    if (
+      typeof operationIdInput !== "string" ||
+      !OPAQUE_ID.test(operationIdInput) ||
+      !validCounter(generationInput) ||
+      generationInput !== binding.initialGeneration + 1 ||
+      (write && binding.role !== "target")
+    ) return Object.freeze({ status: "blocked", reason: "generation-fenced" });
+
+    try {
+      await ensureInitialized();
+      let result: unknown = Object.freeze({
+        status: "blocked",
+        reason: "generation-fence-unavailable",
+      });
+      await database.withExclusiveTransactionAsync(async transaction => {
+        const rawFence = await transaction.getFirstAsync<unknown>(
+          SELECT_FENCE_SQL,
+          binding.partitionId,
+        );
+        const row = canonicalFenceRow(rawFence);
+        if (
+          !row ||
+          !rowMatchesBinding(row, binding) ||
+          row.generation !== generationInput ||
+          row.state !== "fenced" ||
+          row.operation_id !== operationIdInput
+        ) {
+          result = Object.freeze({ status: "blocked", reason: "generation-fenced" });
+          return;
+        }
+
+        const transactionDatabase: HoidSqliteDatabasePort = Object.freeze({
+          execAsync: (source: string) => transaction.execAsync(source),
+          runAsync: (
+            source: string,
+            ...params: HoidSqliteBindValue[]
+          ) => transaction.runAsync(source, ...params),
+          getFirstAsync: <T>(
+            source: string,
+            ...params: HoidSqliteBindValue[]
+          ) => transaction.getFirstAsync<T>(source, ...params),
+          withExclusiveTransactionAsync: async (
+            nestedTask: (nested: HoidSqliteTransactionPort) => Promise<void>,
+          ) => {
+            // Reuse the already-held native transaction; never open a nested one.
+            await nestedTask(transaction);
+          },
+        });
+
+        try {
+          const migrationStore = createExpoSqliteHoidConversationHistoryStore(
+            transactionDatabase,
+            protector,
+          );
+          result = await task(migrationStore);
+        } catch {
+          result = Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+        }
+      });
+      return result;
+    } catch {
+      return Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+    }
+  };
+
+  const migration: HoidHistoryMigrationSnapshotPort = Object.freeze({
+    partitionId: binding.partitionId,
+    kind: "sqlite-history-v1" as const,
+    role: binding.role,
+    read: async input => {
+      const canonical = exactDataRecord(input, ["operationId", "generation"]);
+      if (
+        !canonical ||
+        typeof canonical.operationId !== "string" ||
+        !OPAQUE_ID.test(canonical.operationId) ||
+        !validCounter(canonical.generation)
+      ) return Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+
+      return withMigrationGate(
+        canonical.operationId,
+        canonical.generation,
+        false,
+        async migrationStore => {
+          const raw = await migrationStore.read(binding.storageKey);
+          if (raw === null) return Object.freeze({ status: "empty", revision: 0 });
+          const record = exactDataRecord(raw, [
+            "schemaVersion",
+            "kind",
+            "principalId",
+            "conversationId",
+            "storageRevision",
+            "snapshot",
+          ]);
+          if (
+            !record ||
+            record.schemaVersion !== HOID_CONVERSATION_STORAGE_SCHEMA_VERSION ||
+            record.kind !== HOID_CONVERSATION_STORAGE_RECORD_KIND ||
+            record.principalId !== binding.storageKey.principalId ||
+            record.conversationId !== binding.storageKey.conversationId ||
+            !validCounter(record.storageRevision) ||
+            record.storageRevision < 1
+          ) return Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+          return Object.freeze({
+            status: "ready",
+            revision: record.storageRevision,
+            snapshot: record.snapshot,
+          });
+        },
+      );
+    },
+    replace: async input => {
+      const canonical = exactDataRecord(input, [
+        "operationId",
+        "generation",
+        "expectedRevision",
+        "snapshot",
+      ]);
+      if (
+        !canonical ||
+        typeof canonical.operationId !== "string" ||
+        !OPAQUE_ID.test(canonical.operationId) ||
+        !validCounter(canonical.generation) ||
+        !validCounter(canonical.expectedRevision) ||
+        canonical.expectedRevision >= MAX_COUNTER
+      ) return Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+
+      return withMigrationGate(
+        canonical.operationId,
+        canonical.generation,
+        true,
+        async migrationStore => {
+          const nextRevision = (canonical.expectedRevision as number) + 1;
+          const nextRecord = Object.freeze({
+            schemaVersion: HOID_CONVERSATION_STORAGE_SCHEMA_VERSION,
+            kind: HOID_CONVERSATION_STORAGE_RECORD_KIND,
+            principalId: binding.storageKey.principalId,
+            conversationId: binding.storageKey.conversationId,
+            storageRevision: nextRevision,
+            snapshot: canonical.snapshot,
+          }) as HoidConversationStorageRecord;
+          const outcome = await migrationStore.compareAndSwap(
+            binding.storageKey,
+            canonical.expectedRevision as number === 0
+              ? null
+              : canonical.expectedRevision as number,
+            nextRecord,
+          );
+          return outcome === "saved"
+            ? Object.freeze({ status: "saved", revision: nextRevision })
+            : outcome === "conflict"
+              ? Object.freeze({ status: "conflict", revision: null })
+              : Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+        },
+      );
+    },
+    clear: async input => {
+      const canonical = exactDataRecord(input, [
+        "operationId",
+        "generation",
+        "expectedRevision",
+      ]);
+      if (
+        !canonical ||
+        typeof canonical.operationId !== "string" ||
+        !OPAQUE_ID.test(canonical.operationId) ||
+        !validCounter(canonical.generation) ||
+        !validCounter(canonical.expectedRevision) ||
+        canonical.expectedRevision >= MAX_COUNTER
+      ) return Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+
+      return withMigrationGate(
+        canonical.operationId,
+        canonical.generation,
+        true,
+        async migrationStore => {
+          const raw = await migrationStore.read(binding.storageKey);
+          if (raw === null) {
+            return canonical.expectedRevision === 0
+              ? Object.freeze({ status: "cleared", revision: 0 })
+              : Object.freeze({ status: "conflict", revision: 0 });
+          }
+          const record = exactDataRecord(raw, [
+            "schemaVersion",
+            "kind",
+            "principalId",
+            "conversationId",
+            "storageRevision",
+            "snapshot",
+          ]);
+          if (
+            !record ||
+            record.schemaVersion !== HOID_CONVERSATION_STORAGE_SCHEMA_VERSION ||
+            record.kind !== HOID_CONVERSATION_STORAGE_RECORD_KIND ||
+            record.principalId !== binding.storageKey.principalId ||
+            record.conversationId !== binding.storageKey.conversationId ||
+            !validCounter(record.storageRevision) ||
+            record.storageRevision < 1
+          ) return Object.freeze({ status: "blocked", reason: "generation-fence-unavailable" });
+          if (record.storageRevision !== canonical.expectedRevision) {
+            return Object.freeze({ status: "conflict", revision: record.storageRevision });
+          }
+          // SQLite v1 has no tombstone/delete contract; never fake a clear.
+          return Object.freeze({ status: "blocked", reason: "sqlite-tombstone-unsupported" });
+        },
+      );
+    },
+  });
+
+  return Object.freeze({ store, participant, migration });
 }

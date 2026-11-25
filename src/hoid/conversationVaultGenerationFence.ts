@@ -1,5 +1,6 @@
 import type { HoidConversationVault, HoidConversationVaultResult } from "./conversationVault";
 import type { HoidHistoryFencingParticipantPort } from "./conversationHistoryAuthorityJournal";
+import type { HoidHistoryMigrationSnapshotPort } from "./conversationHistoryMigrationSnapshotPort";
 
 const MAX_COUNTER = Number.MAX_SAFE_INTEGER - 1;
 const OPAQUE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
@@ -60,6 +61,7 @@ type FenceBinding = Readonly<{
 export type HoidConversationVaultGenerationFencedAdapter = Readonly<{
   vault: HoidConversationVault;
   participant: HoidHistoryFencingParticipantPort;
+  migration: HoidHistoryMigrationSnapshotPort;
 }>;
 
 type DataRecord = Record<string, unknown>;
@@ -260,6 +262,35 @@ function validActivateInput(value: unknown, binding: FenceBinding) {
   });
 }
 
+function validMigrationInput(
+  value: unknown,
+  binding: FenceBinding,
+  keys: readonly string[],
+): DataRecord | null {
+  const record = exactDataRecord(value, keys);
+  if (
+    !record ||
+    typeof record.operationId !== "string" ||
+    !OPAQUE_ID.test(record.operationId) ||
+    !validCounter(record.generation) ||
+    record.generation !== binding.initialGeneration + 1
+  ) return null;
+  return record;
+}
+
+function migrationRowMatches(
+  row: HoidVaultGenerationFenceRecord | null,
+  binding: FenceBinding,
+  operationId: string,
+  generation: number,
+): boolean {
+  return row !== null &&
+    rowMatchesBinding(row, binding) &&
+    row.state === "fenced" &&
+    row.operationId === operationId &&
+    row.generation === generation;
+}
+
 /**
  * Wrap one Vault session. The host must discard the unfenced Vault reference.
  * Normal operations, fence() and activate() all use the same exclusive gate.
@@ -368,5 +399,102 @@ export function createHoidConversationVaultGenerationFencedAdapter(
     },
   });
 
-  return Object.freeze({ vault: fencedVault, participant });
+  const migration: HoidHistoryMigrationSnapshotPort = Object.freeze({
+    partitionId: binding.partitionId,
+    kind: "vault-history-v1" as const,
+    role: binding.role,
+    read: async input => {
+      const canonical = validMigrationInput(input, binding, ["operationId", "generation"]);
+      if (!canonical) return blocked("generation-fence-unavailable");
+      try {
+        return await store.withExclusive(binding.partitionId, async transaction => {
+          const row = await ensureRow(transaction, binding);
+          if (!migrationRowMatches(
+            row,
+            binding,
+            canonical.operationId as string,
+            canonical.generation as number,
+          )) return blocked("generation-fenced");
+          try {
+            return await vault.restore(binding.sessionId);
+          } catch {
+            return blocked("blob-store-unavailable");
+          }
+        });
+      } catch {
+        return blocked("generation-fence-unavailable");
+      }
+    },
+    replace: async input => {
+      if (binding.role !== "target") return blocked("generation-fenced");
+      const canonical = validMigrationInput(
+        input,
+        binding,
+        ["operationId", "generation", "expectedRevision", "snapshot"],
+      );
+      if (
+        !canonical ||
+        !validCounter(canonical.expectedRevision) ||
+        (canonical.expectedRevision as number) >= MAX_COUNTER
+      ) return blocked("generation-fence-unavailable");
+      try {
+        return await store.withExclusive(binding.partitionId, async transaction => {
+          const row = await ensureRow(transaction, binding);
+          if (!migrationRowMatches(
+            row,
+            binding,
+            canonical.operationId as string,
+            canonical.generation as number,
+          )) return blocked("generation-fenced");
+          try {
+            return await vault.save(
+              binding.sessionId,
+              canonical.expectedRevision as number,
+              canonical.snapshot,
+            );
+          } catch {
+            return blocked("blob-store-unavailable");
+          }
+        });
+      } catch {
+        return blocked("generation-fence-unavailable");
+      }
+    },
+    clear: async input => {
+      if (binding.role !== "target") return blocked("generation-fenced");
+      const canonical = validMigrationInput(
+        input,
+        binding,
+        ["operationId", "generation", "expectedRevision"],
+      );
+      if (
+        !canonical ||
+        !validCounter(canonical.expectedRevision) ||
+        (canonical.expectedRevision as number) >= MAX_COUNTER
+      ) return blocked("generation-fence-unavailable");
+      try {
+        return await store.withExclusive(binding.partitionId, async transaction => {
+          const row = await ensureRow(transaction, binding);
+          if (!migrationRowMatches(
+            row,
+            binding,
+            canonical.operationId as string,
+            canonical.generation as number,
+          )) return blocked("generation-fenced");
+          try {
+            return await vault.clear(
+              binding.sessionId,
+              canonical.expectedRevision as number,
+            );
+          } catch {
+            return blocked("blob-store-unavailable");
+          }
+        });
+      } catch {
+        return blocked("generation-fence-unavailable");
+      }
+    },
+  });
+
+  return Object.freeze({ vault: fencedVault, participant, migration });
 }

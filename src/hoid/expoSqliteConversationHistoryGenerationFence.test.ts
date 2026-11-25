@@ -475,4 +475,50 @@ describe("Expo SQLite conversation history generation fence", () => {
     )).resolves.toEqual({ status: "conflict" });
     expect(database.history.get(historyKey(KEY_A))?.storage_revision ?? 0).toBe(before);
   });
+
+  it("exposes a transaction-bound migration snapshot capability while fenced", async () => {
+    const sourceDatabase = new MemoryDatabase();
+    const source = makeAdapter(sourceDatabase);
+    await expect(saved(source)).resolves.toMatchObject({ status: "saved", storageRevision: 1 });
+    const operationId = "migration-307-sqlite-01";
+
+    await expect(source.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "blocked" });
+    await expect(source.participant.fence({
+      partitionId: PARTITION,
+      expectedGeneration: 0,
+      nextGeneration: 1,
+      operationId,
+    })).resolves.toBe("fenced");
+    await expect(source.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "ready", revision: 1, snapshot: snapshot() });
+    await expect(source.migration.replace({
+      operationId, generation: 1, expectedRevision: 1, snapshot: snapshot(),
+    })).resolves.toMatchObject({ status: "blocked" });
+
+    const targetDatabase = new MemoryDatabase();
+    const target = makeAdapter(targetDatabase, "target", 0);
+    await expect(target.participant.fence({
+      partitionId: PARTITION,
+      expectedGeneration: 0,
+      nextGeneration: 1,
+      operationId,
+    })).resolves.toBe("fenced");
+    await expect(target.migration.replace({
+      operationId, generation: 1, expectedRevision: 0, snapshot: snapshot(),
+    })).resolves.toMatchObject({ status: "saved", revision: 1 });
+    await expect(target.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "ready", revision: 1 });
+    await expect(target.migration.clear({
+      operationId, generation: 1, expectedRevision: 1,
+    })).resolves.toMatchObject({ status: "blocked", reason: "sqlite-tombstone-unsupported" });
+    await expect(target.participant.activate({
+      partitionId: PARTITION, generation: 1, operationId,
+    })).resolves.toBe("activated");
+    await expect(target.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "blocked" });
+    await expect(loadHoidConversationHistory(target.store, KEY_A, SCOPE))
+      .resolves.toMatchObject({ status: "ready", storageRevision: 1 });
+  });
+
 });

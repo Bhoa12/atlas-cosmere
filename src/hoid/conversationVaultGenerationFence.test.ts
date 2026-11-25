@@ -380,4 +380,55 @@ describe("Hoid Vault generation fence", () => {
       status: "blocked", reason: "blob-store-unavailable",
     });
   });
+
+  it("exposes migration-only reads and target writes only for the fenced operation", async () => {
+    const sourceMemory = new MemoryFenceStore();
+    const sourceFixture = makeVault();
+    const source = adapter(sourceFixture.vault, sourceMemory.port);
+    await expect(source.vault.save(SESSION, 0, { messages: ["source"] }))
+      .resolves.toMatchObject({ status: "saved", revision: 1 });
+    const operationId = "migration-307-vault-01";
+
+    await expect(source.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "blocked" });
+    await expect(source.participant.fence({
+      partitionId: PARTITION,
+      expectedGeneration: 0,
+      nextGeneration: 1,
+      operationId,
+    })).resolves.toBe("fenced");
+    await expect(source.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "ready", revision: 1 });
+    await expect(source.migration.replace({
+      operationId, generation: 1, expectedRevision: 1, snapshot: { messages: ["forbidden"] },
+    })).resolves.toMatchObject({ status: "blocked" });
+
+    const targetMemory = new MemoryFenceStore();
+    const targetFixture = makeVault();
+    const target = adapter(targetFixture.vault, targetMemory.port, "target", 0);
+    await expect(target.participant.fence({
+      partitionId: PARTITION,
+      expectedGeneration: 0,
+      nextGeneration: 1,
+      operationId,
+    })).resolves.toBe("fenced");
+    await expect(target.migration.replace({
+      operationId, generation: 1, expectedRevision: 0, snapshot: { messages: ["copied"] },
+    })).resolves.toMatchObject({ status: "saved", revision: 1 });
+    await expect(target.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "ready", revision: 1, snapshot: { messages: ["copied"] } });
+    await expect(target.migration.clear({
+      operationId, generation: 1, expectedRevision: 1,
+    })).resolves.toMatchObject({ status: "cleared", revision: 2 });
+    await expect(target.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "empty", revision: 2 });
+    await expect(target.participant.activate({
+      partitionId: PARTITION, generation: 1, operationId,
+    })).resolves.toBe("activated");
+    await expect(target.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "blocked" });
+    await expect(target.vault.restore(SESSION))
+      .resolves.toMatchObject({ status: "empty", revision: 2 });
+  });
+
 });

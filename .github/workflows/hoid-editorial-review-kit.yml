@@ -1,0 +1,106 @@
+name: Hoid editorial review kit
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/editorialReviewKit.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialKnowledgeBundle.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/sourceCatalogManifest.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN319_EDITORIAL_REVIEW_KIT.md"
+      - ".github/workflows/hoid-editorial-review-kit.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/editorialReviewKit.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialKnowledgeBundle.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/editionStructure.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/sourceCatalogManifest.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN319_EDITORIAL_REVIEW_KIT.md"
+      - ".github/workflows/hoid-editorial-review-kit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  editorial-review-kit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test portable review kit and quorum regressions
+        run: >-
+          npx vitest run
+          src/hoid/editorialReviewKit.test.ts
+          src/hoid/editorialReviewBundleQuorum.test.ts
+          src/hoid/editorialReviewBundle.test.ts
+          src/hoid/editorialKnowledgeBundle.test.ts
+      - name: Type-check portable review kit and provenance boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node --skipLibCheck
+          src/hoid/editorialReviewKit.ts
+          src/hoid/editorialReviewBundleQuorum.ts
+          src/hoid/editorialBundlePromotionAuthority.ts
+          src/hoid/editorialReviewBundle.ts
+          src/hoid/editorialKnowledgeBundle.ts
+          src/hoid/editorialClaimReviewPackets.ts
+          src/hoid/editorialReviewPackets.ts
+          src/hoid/editorialEntityDrafts.ts
+          src/hoid/editorialRelationshipDrafts.ts
+          src/hoid/editorialClaimDrafts.ts
+          src/hoid/editorialDrafts.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingBoundary.ts
+          src/hoid/progressLedger.ts
+          src/hoid/sqliteProgressStore.ts
+          src/hoid/evidenceScope.ts
+          src/hoid/editionProgressValidation.ts
+          src/hoid/readingValidation.ts
+          src/hoid/readingManifest.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/sourceCatalogManifest.ts
+          src/hoid/bibliography.ts
+          src/hoid/catalog.ts
+          src/hoid/catalogValidation.ts
+          src/hoid/types.ts
+          src/hoid/sha256.ts

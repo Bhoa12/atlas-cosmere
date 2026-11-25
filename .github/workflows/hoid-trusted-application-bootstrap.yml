@@ -3,7 +3,7 @@ name: Hoid trusted application bootstrap
 on:
   push:
     branches:
-      - "feat/hoid-ia-core-run297"
+      - "feat/hoid-ia-core-run*"
     paths:
       - "src/hoid/trustedApplicationBootstrap.ts"
       - "src/hoid/trustedApplicationBootstrap.test.ts"

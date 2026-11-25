@@ -1,0 +1,60 @@
+name: Hoid trusted platform provisioning bridge
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedApplicationPlatform.ts"
+      - "src/hoid/trustedApplicationPlatform.test.ts"
+      - "src/hoid/expoTrustedApplicationBootstrap.ts"
+      - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/expoCursorProgressCoordinator.test.ts"
+      - "src/hoid/trustedApplicationBootstrap.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "docs/hoid/RUN314_EXPO_PROGRESS_RUNTIME_BRIDGE.md"
+      - ".github/workflows/hoid-trusted-platform-provisioning.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedApplicationPlatform.ts"
+      - "src/hoid/trustedApplicationPlatform.test.ts"
+      - "src/hoid/expoTrustedApplicationBootstrap.ts"
+      - "src/hoid/expoCursorProgressCoordinator.ts"
+      - "src/hoid/trustedApplicationBootstrap.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "docs/hoid/RUN314_EXPO_PROGRESS_RUNTIME_BRIDGE.md"
+      - ".github/workflows/hoid-trusted-platform-provisioning.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-platform-provisioning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test platform provisioning boundary
+        run: >-
+          npx vitest run
+          src/hoid/trustedApplicationPlatform.test.ts
+          src/hoid/expoCursorProgressCoordinator.test.ts
+          src/hoid/trustedApplicationBootstrap.test.ts
+          src/hoid/trustedConversationComposition.test.ts
+      - name: Strict type-check core and Expo adapters
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node
+          --esModuleInterop --skipLibCheck
+          src/hoid/trustedApplicationPlatform.ts
+          src/hoid/trustedApplicationPlatform.test.ts
+          src/hoid/expoCursorProgressCoordinator.test.ts
+          src/hoid/expoTrustedApplicationBootstrap.ts
+          src/hoid/expoCursorProgressCoordinator.ts
+          src/hoid/trustedApplicationBootstrap.ts

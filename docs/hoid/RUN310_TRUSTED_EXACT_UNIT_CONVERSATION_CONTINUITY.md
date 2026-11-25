@@ -37,7 +37,9 @@ The chapter scope is applied locally before candidate selection. It is not a pro
 
 ## Invalidation and failure behavior
 
-The capability is revoked when its owning presentation is cleared, disposed, evicted, or invalidated by progress, trust-checkpoint or signed-bundle changes. An in-flight follow-up rechecks that the same capability still exists after asynchronous trust loading, progress verification and provider selection. If the parent presentation is invalidated during provider work, the follow-up result is discarded.
+The capability is revoked when its owning presentation is cleared, disposed, evicted, or invalidated by progress, trust-checkpoint or signed-bundle changes. A prepared child remains bound to its parent until it is presented; if the parent is cleared before then, child presentation is rejected. Once a child is presented, the active-presentation graph records that parent relationship. Clearing an ancestor recursively retracts descendants and revokes their capabilities.
+
+An in-flight follow-up rechecks that the same capability still exists after asynchronous trust loading, progress verification and provider selection. If the parent presentation is invalidated during provider work, the follow-up result is discarded. The same lineage check is repeated during the child's own presentation, closing the gap between preparation and handoff.
 
 The host fails closed for invalid capabilities, stale progress, changed bundles, stale edition manifests, invalid references, provider failures and malformed requests. A failed follow-up never broadens its chapter scope as a fallback.
 
@@ -52,7 +54,9 @@ The host test suite covers:
 - rejection of caller-supplied chapter and entity scopes;
 - revocation when the owning message is cleared;
 - revocation after a durable progress change without a notification;
-- discarding a follow-up invalidated while provider selection is in flight.
+- discarding a follow-up invalidated while provider selection is in flight;
+- rejecting a prepared child after its parent is cleared;
+- recursively retracting already-presented descendants when an ancestor is reset.
 
 ## Limits
 

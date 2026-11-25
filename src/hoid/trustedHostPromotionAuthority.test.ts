@@ -69,6 +69,7 @@ function input(overrides: Partial<HoidTrustedHostPromotionInput> = {}): HoidTrus
   return {
     bootstrapPort: { readPinnedConfiguration: async () => bootstrap() },
     expectedRepositoryFullName: REPOSITORY,
+    bundleReviewAttestations: Object.freeze([]),
     plan: null,
     context: null,
     request: { repositoryFullName: REPOSITORY },
@@ -138,19 +139,12 @@ describe("Hoid trusted host promotion composition", () => {
     }));
     expect(result).toMatchObject({
       status: "blocked",
-      reason: "signed-editorial-promotion-blocked",
-      promotion: {
-        status: "blocked",
-        reason: "editorial-promotion-blocked",
-        authorization: { status: "blocked", reason: "invalid-plan" },
-        minimumRevisionPersisted: true,
-        promotionAllowed: false,
-        productionWritePerformed: false,
-      },
+      reason: "bundle-review-quorum-blocked",
+      quorumFailure: { status: "invalid", promotionAllowed: false, productionWritePerformed: false },
       promotionAllowed: false,
       productionWritePerformed: false,
     });
-    expect(store.value).toBe(2);
+    expect(store.value).toBe(1);
     expect(sourceControlPort.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
     expect(progressPort.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
   });

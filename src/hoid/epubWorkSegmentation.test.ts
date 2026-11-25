@@ -243,6 +243,7 @@ describe("Hoid explicit EPUB work segmentation", () => {
       Object.defineProperty(hostile, key, {
         value: (probe as unknown as Record<string, unknown>)[key],
         enumerable: true,
+        configurable: true,
       });
     }
     Object.defineProperty(hostile, "navigationSha256", {

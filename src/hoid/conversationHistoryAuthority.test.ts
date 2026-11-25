@@ -101,7 +101,7 @@ describe("Hoid single-writer conversation history authority", () => {
   it("adapts SQLite create-only revision zero to its null CAS revision", async () => {
     const store = makeSqliteStore();
     const backend = createHoidSqliteConversationHistoryAuthorityBackend(store.port, key);
-    const authority = makeAuthority(backend);
+    const authority = makeAuthority(backend, "sqlite-create-only");
 
     await expect(authority.save(0, messages(), scopeA)).resolves.toEqual({
       status: "saved",
@@ -117,7 +117,7 @@ describe("Hoid single-writer conversation history authority", () => {
   it("restores SQLite history through the selected backend and filters stale assistant prose", async () => {
     const store = makeSqliteStore();
     const backend = createHoidSqliteConversationHistoryAuthorityBackend(store.port, key);
-    const authority = makeAuthority(backend);
+    const authority = makeAuthority(backend, "sqlite-stale-progress");
 
     await authority.save(0, messages(), scopeA);
     await expect(authority.restore(scopeA)).resolves.toMatchObject({
@@ -142,6 +142,7 @@ describe("Hoid single-writer conversation history authority", () => {
     const store = makeSqliteStore();
     const authority = makeAuthority(
       createHoidSqliteConversationHistoryAuthorityBackend(store.port, key),
+      "sqlite-clear-unsupported",
     );
 
     await expect(authority.clear(0)).resolves.toEqual({
@@ -201,14 +202,20 @@ describe("Hoid single-writer conversation history authority", () => {
 
   it("allows only one live authority for an opaque partition in this runtime", async () => {
     const backend = createHoidSqliteConversationHistoryAuthorityBackend(makeSqliteStore().port, key);
-    const first = makeAuthority(backend);
-    expect(createHoidConversationHistoryAuthority({ authorityId, backend })).toBeNull();
+    const first = makeAuthority(backend, "exclusive-partition");
+    expect(createHoidConversationHistoryAuthority({
+      authorityId: "exclusive-partition",
+      backend,
+    })).toBeNull();
 
     first.dispose();
     await Promise.resolve();
     await Promise.resolve();
 
-    const second = createHoidConversationHistoryAuthority({ authorityId, backend });
+    const second = createHoidConversationHistoryAuthority({
+      authorityId: "exclusive-partition",
+      backend,
+    });
     expect(second).not.toBeNull();
     second?.dispose();
   });

@@ -175,6 +175,7 @@ function createHostHarness() {
   };
   const selectionRequests: unknown[] = [];
   let onSelect: (() => void) | null = null;
+  let selectionBarrier: Readonly<{ started: () => void; wait: Promise<void> }> | null = null;
   const selector = {
     async selectClaims(request: {
       schemaVersion: 2 | 3;
@@ -182,6 +183,12 @@ function createHostHarness() {
       candidates: readonly { id: string }[];
     }) {
       selectionRequests.push(request);
+      const barrier = selectionBarrier;
+      selectionBarrier = null;
+      if (barrier) {
+        barrier.started();
+        await barrier.wait;
+      }
       const callback = onSelect;
       onSelect = null;
       callback?.();
@@ -207,6 +214,14 @@ function createHostHarness() {
     packageSource,
     selectionRequests,
     emitDuringSelection(callback: () => void) { onSelect = callback; },
+    holdNextSelection() {
+      let markStarted: () => void = () => {};
+      let release: () => void = () => {};
+      const started = new Promise<void>(resolve => { markStarted = resolve; });
+      const wait = new Promise<void>(resolve => { release = resolve; });
+      selectionBarrier = Object.freeze({ started: markStarted, wait });
+      return Object.freeze({ started, release: () => release() });
+    },
   };
 }
 function createSink() {
@@ -461,6 +476,44 @@ describe("Hoid trusted exact-unit answer host", () => {
     const nextCapability = harness.host.getFollowUpCapability(followUp.prepared);
     expect(nextCapability).not.toBeNull();
     expect(nextCapability).not.toBe(capability);
+  });
+
+  it("allows only one in-flight provider selection per follow-up capability", async () => {
+    const harness = createHostHarness();
+    const parentPrepared = await prepare(harness);
+    const parentSink = createSink();
+    expect((await harness.host.present(parentPrepared, parentSink.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(parentPrepared);
+    expect(capability).not.toBeNull();
+
+    const barrier = harness.holdNextSelection();
+    const firstPromise = harness.host.prepareFollowUp({
+      question: "¿Puedes ampliar la explicación?",
+    }, capability);
+    await barrier.started;
+
+    const selectionsAfterFirstStarted = harness.selectionRequests.length;
+    const concurrent = await harness.host.prepareFollowUp({
+      question: "¿Puedes comparar esa explicación?",
+      intent: "context",
+    }, capability);
+    expect(concurrent).toEqual({
+      status: "blocked",
+      reason: "follow-up-in-progress",
+    });
+    expect(harness.selectionRequests).toHaveLength(selectionsAfterFirstStarted);
+
+    barrier.release();
+    const first = await firstPromise;
+    expect(first.status).toBe("prepared");
+
+    // The lock is single-flight, not single-use: a later sequential request
+    // may branch from the still-active parent presentation.
+    const sequential = await harness.host.prepareFollowUp({
+      question: "¿Puedes resumirlo?",
+      intent: "explain",
+    }, capability);
+    expect(sequential.status).toBe("prepared");
   });
 
   it("rejects caller-supplied chapter or entity scopes instead of accepting arbitrary context", async () => {

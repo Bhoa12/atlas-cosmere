@@ -21,6 +21,10 @@ import {
 } from "./editorialReviewSignatures";
 import { buildHoidEditorialBundlePromotionPlan } from "./editorialBundlePromotionAuthority";
 import {
+  buildHoidEditorialBundleReviewSigningMessage,
+  type HoidEditorialBundleReviewAttestation,
+} from "./editorialReviewBundleQuorum";
+import {
   authorizeHoidSignedEditorialBundlePromotion,
   buildHoidEditorialReviewPacketSigningMessage,
   type HoidEditorialBundleSignatureBatch,
@@ -434,11 +438,55 @@ function buildRealCryptoFixture() {
     receiptsFingerprint: fixture.plan.receiptsFingerprint,
     signatures: Object.freeze(signatures),
   });
+  const bundleReviewContext = Object.freeze({
+    schemaVersion: 1 as const,
+    repositoryFullName: request.repositoryFullName,
+    pullRequestNumber: request.pullRequestNumber,
+    baseRef: request.expectedBaseRef,
+    baseSha: request.expectedBaseSha,
+    headRef: request.expectedHeadRef,
+    headSha: request.expectedHeadSha,
+    promotionManifestPath: request.promotionManifestPath,
+    promotionPlanFingerprint: fixture.plan.fingerprint,
+    reviewBundleFingerprint: fixture.plan.reviewBundleFingerprint,
+  });
+  const bundleReviewAttestations: readonly HoidEditorialBundleReviewAttestation[] = Object.freeze(
+    (["code-owner", "second-reviewer"] as const).map(reviewerId => {
+      const keyId = reviewerId === "code-owner" ? "code-owner-key" : "second-reviewer-key";
+      const seed = seeds[reviewerId];
+      if (!seed) throw new Error("Real-crypto bundle reviewer seed missing");
+      const message = buildHoidEditorialBundleReviewSigningMessage(
+        fixture.plan,
+        fixture.context.reviewManifest,
+        fixture.context.knowledgeManifest,
+        fixture.context.source,
+        fixture.receipts,
+        initialProgress,
+        bundleReviewContext,
+        reviewerId,
+        "approve",
+        REVIEWED_AT,
+        keyId,
+      );
+      if (message === null) throw new Error("Real-crypto bundle review signing message unavailable");
+      return Object.freeze({
+        schemaVersion: 1 as const,
+        reviewBundleFingerprint: fixture.plan.reviewBundleFingerprint,
+        promotionPlanFingerprint: fixture.plan.fingerprint,
+        reviewerId,
+        decision: "approve" as const,
+        reviewedAt: REVIEWED_AT,
+        keyId,
+        signatureHex: hexFromBytes(ed25519.sign(new TextEncoder().encode(message), seed)),
+      });
+    }),
+  );
   return Object.freeze({
     ...fixture,
     rootKey,
     registry,
     signatureBatch,
+    bundleReviewAttestations,
     verifier: createHoidNobleEd25519VerificationPort(),
   });
 }
@@ -638,6 +686,7 @@ describe("Hoid signed editorial bundle promotion", () => {
       context: fixture.context,
       request,
       signatureBatch: fixture.signatureBatch,
+      bundleReviewAttestations: fixture.bundleReviewAttestations,
       trustRegistry: fixture.registry,
       verifier: fixture.verifier,
       now: NOW,
@@ -650,6 +699,13 @@ describe("Hoid signed editorial bundle promotion", () => {
     });
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
+      bundleReviewQuorum: {
+        status: "verified",
+        verifiedReviewerCount: 2,
+        reviewerIds: ["code-owner", "second-reviewer"],
+        promotionAllowed: false,
+        productionWritePerformed: false,
+      },
       configuredMinimumRegistryRevision: 1,
       persistedMinimumRegistryRevision: 3,
       authorization: {
@@ -693,6 +749,7 @@ describe("Hoid signed editorial bundle promotion", () => {
       context: fixture.context,
       request,
       signatureBatch: Object.freeze({ ...fixture.signatureBatch, signatures: Object.freeze(signatures) }),
+      bundleReviewAttestations: fixture.bundleReviewAttestations,
       trustRegistry: fixture.registry,
       verifier: fixture.verifier,
       now: NOW,
@@ -720,6 +777,47 @@ describe("Hoid signed editorial bundle promotion", () => {
       productionWritePerformed: false,
     });
     expect(host.revisionStore.value).toBe(3);
+    expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
+    expect(progress.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("blocks before revision persistence and GitHub when a bundle-quorum signature is changed", async () => {
+    const fixture = buildRealCryptoFixture();
+    const attestations = [...fixture.bundleReviewAttestations];
+    attestations[0] = Object.freeze({ ...attestations[0], signatureHex: "0".repeat(128) });
+    const source = sourceControlPort();
+    const progress = progressPort();
+    const host = createRealHostPorts(fixture.rootKey);
+    const result = await authorizeHoidTrustedHostSignedEditorialBundlePromotion({
+      plan: fixture.plan,
+      context: fixture.context,
+      request,
+      signatureBatch: fixture.signatureBatch,
+      bundleReviewAttestations: Object.freeze(attestations),
+      trustRegistry: fixture.registry,
+      verifier: fixture.verifier,
+      now: NOW,
+      revisionStore: host.revisionStore,
+      progressSnapshot: initialProgress,
+      sourceControlPort: source,
+      progressPort: progress,
+      bootstrapPort: host.bootstrapPort,
+      expectedRepositoryFullName: REPOSITORY,
+    });
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "bundle-review-quorum-blocked",
+      quorumFailure: {
+        status: "invalid",
+        reason: "trust-verification-failed",
+        trustReason: "signature-invalid",
+        promotionAllowed: false,
+        productionWritePerformed: false,
+      },
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(host.revisionStore.value).toBe(1);
     expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
     expect(progress.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
   });

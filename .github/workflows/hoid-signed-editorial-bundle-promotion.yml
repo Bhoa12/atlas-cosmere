@@ -8,6 +8,12 @@ on:
       - "src/hoid/editorialReviewSignatures.ts"
       - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
       - "src/hoid/signedEditorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/trustedHostPromotionAuthority.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "src/hoid/trustedHostBootstrap.ts"
+      - "docs/hoid/RUN318_TRUSTED_HOST_QUORUM_GATE.md"
       - "src/hoid/editorialBundlePromotionAuthority.ts"
       - "src/hoid/editorialBundlePromotionAuthority.test.ts"
       - "src/hoid/editorialReviewBundle.ts"
@@ -22,6 +28,12 @@ on:
       - "src/hoid/editorialReviewSignatures.ts"
       - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
       - "src/hoid/signedEditorialBundlePromotionAuthority.test.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/trustedHostPromotionAuthority.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "src/hoid/trustedHostBootstrap.ts"
+      - "docs/hoid/RUN318_TRUSTED_HOST_QUORUM_GATE.md"
       - "src/hoid/editorialBundlePromotionAuthority.ts"
       - "src/hoid/editorialBundlePromotionAuthority.test.ts"
       - "src/hoid/editorialReviewBundle.ts"
@@ -52,6 +64,8 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/signedEditorialBundlePromotionAuthority.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
+          src/hoid/editorialReviewBundleQuorum.test.ts
           src/hoid/editorialReviewSignatures.test.ts
           src/hoid/editorialBundlePromotionAuthority.test.ts
           src/hoid/editorialReviewBundle.test.ts
@@ -61,6 +75,9 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/signedEditorialBundlePromotionAuthority.ts
+          src/hoid/trustedHostPromotionAuthority.ts
+          src/hoid/editorialReviewBundleQuorum.ts
+          src/hoid/trustedHostBootstrap.ts
           src/hoid/editorialReviewSignatures.ts
           src/hoid/editorialBundlePromotionAuthority.ts
           src/hoid/editorialReviewBundle.ts

@@ -469,7 +469,7 @@ describe("Expo SQLite conversation history generation fence", () => {
     await expect(saveHoidConversationHistory(
       adapter.store,
       KEY_A,
-      before,
+      before === 0 ? null : before,
       snapshot(),
       SCOPE,
     )).resolves.toEqual({ status: "conflict" });

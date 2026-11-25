@@ -161,8 +161,8 @@ export function createHoidTrustedApplicationDependencyLoader(
     !SESSION_ID_PATTERN.test(sessionIdInput)
   ) return null;
 
-  const loadProgressRuntime = captureFunction(ports.loadProgressRuntime, ports);
-  const loadCompositionConfig = captureFunction(ports.loadCompositionConfig, ports);
+  const loadProgressRuntime = captureFunction(ports.loadProgressRuntime, platformPortsInput);
+  const loadCompositionConfig = captureFunction(ports.loadCompositionConfig, platformPortsInput);
   if (!loadProgressRuntime || !loadCompositionConfig) return null;
 
   return async (signal: AbortSignal): Promise<HoidTrustedApplicationDependencies> => {

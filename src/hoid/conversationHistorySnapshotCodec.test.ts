@@ -110,13 +110,19 @@ describe("Hoid canonical conversation history snapshot codec", () => {
 
   it("rejects citations and rich message extensions rather than silently dropping them", () => {
     const codec = createHoidConversationHistorySnapshotCodec();
-    const invalid = snapshot([{
+    const valid = snapshot([{
       id: "answer-1",
       emisor: "hoid",
       texto: "Respuesta ligada al progreso",
       progressScope: scopeA,
-      citations: [{ url: "https://example.invalid" }],
     }]);
+    const invalid = {
+      ...valid,
+      messages: [{
+        ...valid.messages[0],
+        citations: [{ url: "https://example.invalid" }],
+      }],
+    };
     expect(codec.encode(invalid)).toBeNull();
   });
 

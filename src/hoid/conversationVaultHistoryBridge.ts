@@ -96,8 +96,18 @@ export function createHoidConversationVaultHistoryBridge(
       return Object.freeze({ status: "blocked", reason: "invalid-history-snapshot" });
     }
 
+    if (hydrated.status === "ready") {
+      return Object.freeze({
+        status: "ready",
+        revision: restored.revision,
+        messages: hydrated.messages,
+        savedProgressScope: hydrated.savedProgressScope,
+        droppedAssistantCount: 0,
+      });
+    }
+
     return Object.freeze({
-      status: hydrated.status,
+      status: "stale",
       revision: restored.revision,
       messages: hydrated.messages,
       savedProgressScope: hydrated.savedProgressScope,

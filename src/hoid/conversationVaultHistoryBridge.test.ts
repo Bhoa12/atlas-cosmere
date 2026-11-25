@@ -116,21 +116,27 @@ describe("Hoid encrypted conversation history bridge", () => {
 
   it("rejects citation and provider fields on individual messages", () => {
     const codec = createHoidConversationVaultHistoryCodec();
-    const source = snapshot([
-      userMessage(),
-      {
-        ...assistantMessage(),
-        citations: [{ evidenceId: "not-persistable" }],
-      },
-    ]);
-    expect(codec.encode(source)).toBeNull();
-    expect(codec.encode(snapshot([
-      userMessage(),
-      {
-        ...assistantMessage(),
-        providerPayload: { raw: "not-persistable" },
-      },
-    ]))).toBeNull();
+    const base = snapshot([userMessage()]);
+    expect(codec.encode({
+      ...base,
+      messages: [
+        userMessage(),
+        {
+          ...assistantMessage(),
+          citations: [{ evidenceId: "not-persistable" }],
+        },
+      ],
+    })).toBeNull();
+    expect(codec.encode({
+      ...base,
+      messages: [
+        userMessage(),
+        {
+          ...assistantMessage(),
+          providerPayload: { raw: "not-persistable" },
+        },
+      ],
+    })).toBeNull();
   });
 
   it("rejects invalid UTF-8 and oversized byte payloads", () => {

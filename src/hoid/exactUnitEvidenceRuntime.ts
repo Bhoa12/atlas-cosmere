@@ -16,6 +16,8 @@ import {
   selectedEvidenceSatisfiesHoidBookScope,
   type HoidAnswerBookScope,
 } from "./answerScope";
+import { canonicalizeHoidChapterEvidenceScope } from "./chapterEvidenceScope";
+import type { HoidChapterReference } from "./chapterReference";
 import {
   isHoidExplanationDepth,
   resolveHoidExplanationDepthBudget,
@@ -148,6 +150,8 @@ type CanonicalRequest = Readonly<{
   depth: HoidExplanationDepth;
   entityIds?: readonly string[];
   bookScope?: HoidAnswerBookScope;
+  /** Exact prior-answer chapters; local retrieval constraint only, never provider egress. */
+  chapterScope?: readonly HoidChapterReference[];
   conversationContext?: HoidExactConversationSelectionContext;
 }>;
 
@@ -166,7 +170,7 @@ const MAX_CANDIDATES = 32;
 const MAX_SELECTED_CLAIMS = 12;
 const MAX_TIMEOUT_MS = 60_000;
 const DEFAULT_TIMEOUT_MS = 10_000;
-const REQUEST_KEYS = new Set(["question", "intent", "depth", "entityIds", "bookScope", "conversationContext"]);
+const REQUEST_KEYS = new Set(["question", "intent", "depth", "entityIds", "bookScope", "chapterScope", "conversationContext"]);
 const PACKAGE_KEYS = new Set(["claim", "evidence", "policies"]);
 const EVIDENCE_KEYS = new Set(["id", "aliases", "kind", "provenance", "summary"]);
 const RESPONSE_KEYS = new Set(["schemaVersion", "requestFingerprint", "claimIds"]);
@@ -374,6 +378,14 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
     if (!parsed) return null;
     bookScope = parsed;
   }
+  let chapterScope: readonly HoidChapterReference[] | undefined;
+  if (Object.prototype.hasOwnProperty.call(record, "chapterScope")) {
+    if (!bookScope) return null;
+    const parsed = canonicalizeHoidChapterEvidenceScope(record.chapterScope, bookScope);
+    if (!parsed) return null;
+    chapterScope = parsed;
+  }
+
   let conversationContext: HoidExactConversationSelectionContext | undefined;
   if (Object.prototype.hasOwnProperty.call(record, "conversationContext")) {
     const parsed = canonicalConversationContext(record.conversationContext);
@@ -391,6 +403,7 @@ function canonicalRequest(value: unknown): CanonicalRequest | null {
     depth,
     ...(entityIds ? { entityIds } : {}),
     ...(bookScope ? { bookScope } : {}),
+    ...(chapterScope ? { chapterScope } : {}),
     ...(conversationContext ? { conversationContext } : {}),
   });
 }
@@ -508,6 +521,17 @@ function policyBookIds(policy: HoidExactUnitEvidencePolicy): readonly string[] {
     policy.firstSafeAppearance.bookId,
     policy.unlock.bookId,
   ])].sort());
+}
+
+function sameChapterIdentity(
+  left: HoidChapterReference,
+  right: HoidChapterReference,
+): boolean {
+  return left.bookId === right.bookId &&
+    left.unitId === right.unitId &&
+    left.ordinal === right.ordinal &&
+    left.chapterNumber === right.chapterNumber &&
+    left.identityFingerprint === right.identityFingerprint;
 }
 
 function unavailable(
@@ -641,6 +665,14 @@ export class HoidExactUnitEvidenceRuntime {
 
       const allBookIds = [...new Set(item.policies.flatMap(policy => policyBookIds(policy)))].sort();
       if (!claimEvidenceMatchesHoidBookScope(allBookIds, request.bookScope)) continue;
+
+      // A follow-up may narrow retrieval to chapters cited by the prior answer.
+      // Every evidence source for the claim must be inside that exact scope;
+      // first-appearance and unlock references remain independent authorization
+      // prerequisites and are still checked below.
+      if (request.chapterScope && !item.policies.every(policy =>
+        request.chapterScope!.some(reference => sameChapterIdentity(policy.source, reference))
+      )) continue;
 
       const authorized = item.policies.every(policy =>
         authorizeHoidExactUnitEvidence(initial.snapshot, policy).status === "authorized"

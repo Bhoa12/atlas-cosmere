@@ -263,8 +263,9 @@ describe("Hoid history migration runtime integration", () => {
       vault.inspect().snapshot,
       Object.freeze({ revision: 42, fingerprint: "d".repeat(64) }),
     );
-    expect(rehydrated.status).toBe("ready");
-    if (rehydrated.status === "ready") {
+    expect(rehydrated.status).toBe("stale");
+    if (rehydrated.status === "stale") {
+      expect(rehydrated.droppedAssistantCount).toBe(1);
       expect(rehydrated.messages.some(message => message.texto === "Respuesta vinculada al capítulo actual"))
         .toBe(false);
       expect(rehydrated.messages.some(message => message.texto === "¿Qué significa esta escena?"))

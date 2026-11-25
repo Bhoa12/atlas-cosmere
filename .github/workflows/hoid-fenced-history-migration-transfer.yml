@@ -44,6 +44,10 @@ on:
       - "docs/hoid/RUN307_FENCED_MIGRATION_TRANSFER.md"
       - ".github/workflows/hoid-fenced-history-migration-transfer.yml"
 
+concurrency:
+  group: hoid-fenced-history-transfer-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

@@ -614,6 +614,9 @@ export class HoidTrustedExactUnitAnswerHost {
     }
 
     const trusted = await this.loadTrustedRuntime(this.config.selector);
+    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
     if (trusted.status !== "ready") {
       this.clearPresentation(sidecar.presentationToken, trusted.reason);
       return Object.freeze({ status: "blocked", reason: trusted.reason });
@@ -639,6 +642,9 @@ export class HoidTrustedExactUnitAnswerHost {
     }
 
     const priorProgress = await sidecar.runtime.verifyForPresentation(sidecar.receipt);
+    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
     if (priorProgress.status !== "ready") {
       const reason = mapPresentationFailure(priorProgress);
       this.clearPresentation(sidecar.presentationToken, reason);
@@ -660,6 +666,9 @@ export class HoidTrustedExactUnitAnswerHost {
       chapterScope,
       conversationContext: context,
     }, options);
+    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
     if (result.status !== "ready") {
       const reason: HoidTrustedAnswerBlockReason =
         result.reason === "progress-unavailable" ? "progress-unavailable" :

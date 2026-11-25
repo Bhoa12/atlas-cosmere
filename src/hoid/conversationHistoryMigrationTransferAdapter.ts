@@ -62,9 +62,10 @@ function validBackend(value: unknown): value is HoidHistoryBackendKind {
 }
 
 function canonicalSnapshotPort(value: unknown): HoidHistoryMigrationSnapshotPort | null {
-  const record = exactDataRecord(value, ["kind", "role", "read", "replace", "clear"]);
+  const record = exactDataRecord(value, ["partitionId", "kind", "role", "read", "replace", "clear"]);
   if (
     !record ||
+    !validId(record.partitionId) ||
     !validBackend(record.kind) ||
     (record.role !== "source" && record.role !== "target") ||
     typeof record.read !== "function" ||
@@ -76,6 +77,7 @@ function canonicalSnapshotPort(value: unknown): HoidHistoryMigrationSnapshotPort
   const replace = record.replace as HoidHistoryMigrationSnapshotPort["replace"];
   const clear = record.clear as HoidHistoryMigrationSnapshotPort["clear"];
   return Object.freeze({
+    partitionId: record.partitionId,
     kind: record.kind,
     role: record.role,
     read: input => read.call(value, input),
@@ -286,7 +288,9 @@ export function createHoidHistoryMigrationSnapshotTransferAdapter(
     !vault ||
     !codec ||
     sqlite.kind !== "sqlite-history-v1" ||
-    vault.kind !== "vault-history-v1"
+    vault.kind !== "vault-history-v1" ||
+    sqlite.partitionId !== config.partitionId ||
+    vault.partitionId !== config.partitionId
   ) return null;
 
   const backendFor = (kind: HoidHistoryBackendKind) =>

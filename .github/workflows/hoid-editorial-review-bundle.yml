@@ -33,7 +33,6 @@ on:
       - "docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md"
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - ".github/workflows/hoid-editorial-review-bundle.yml"
-      - ".github/workflows/hoid-editorial-bundle-review-quorum.yml"
   pull_request:
     paths:
       - "src/hoid/editorialClaimReviewPackets.ts"
@@ -64,7 +63,6 @@ on:
       - "docs/hoid/ROSHAR_CHAPTER_NINE_INGESTION.md"
       - "docs/hoid/EDITORIAL_DRAFT_PIPELINE.md"
       - ".github/workflows/hoid-editorial-review-bundle.yml"
-      - ".github/workflows/hoid-editorial-bundle-review-quorum.yml"
 
 permissions:
   contents: read
@@ -94,6 +92,7 @@ jobs:
           src/hoid/editorialClaimDrafts.test.ts
           src/hoid/editorialDrafts.test.ts
           src/hoid/promotionReviewAuthority.test.ts
+          src/hoid/signedEditorialBundlePromotionAuthority.test.ts
           src/hoid/verifiedChapterDocuments.test.ts
           src/hoid/cosmereNavigationAudit.test.ts
           src/hoid/evidenceScope.test.ts

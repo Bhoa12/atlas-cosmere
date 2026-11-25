@@ -83,6 +83,11 @@ function captureDataMethod(value: unknown, name: string): DataMethod | null {
   }
 }
 
+function captureFunction(value: unknown, receiver: unknown): DataMethod | null {
+  if (typeof value !== "function") return null;
+  return (...args: unknown[]) => value.apply(receiver, args);
+}
+
 function abortIfRequested(signal: AbortSignal): void {
   if (!signal || signal.aborted !== true) return;
   const error = new Error("Hoid platform dependency loading was aborted");
@@ -156,8 +161,8 @@ export function createHoidTrustedApplicationDependencyLoader(
     !SESSION_ID_PATTERN.test(sessionIdInput)
   ) return null;
 
-  const loadProgressRuntime = captureDataMethod(ports.loadProgressRuntime, "call");
-  const loadCompositionConfig = captureDataMethod(ports.loadCompositionConfig, "call");
+  const loadProgressRuntime = captureFunction(ports.loadProgressRuntime, ports);
+  const loadCompositionConfig = captureFunction(ports.loadCompositionConfig, ports);
   if (!loadProgressRuntime || !loadCompositionConfig) return null;
 
   return async (signal: AbortSignal): Promise<HoidTrustedApplicationDependencies> => {

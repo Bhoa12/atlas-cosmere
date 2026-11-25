@@ -1,0 +1,54 @@
+name: Hoid single-writer conversation history authority
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run301"
+    paths:
+      - "src/hoid/conversationHistoryAuthority.ts"
+      - "src/hoid/conversationHistoryAuthority.test.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationVaultHistoryBridge.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "docs/hoid/RUN301_SINGLE_WRITER_HISTORY_AUTHORITY.md"
+      - ".github/workflows/hoid-single-writer-history-authority.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationHistoryAuthority.ts"
+      - "src/hoid/conversationHistoryAuthority.test.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationVaultHistoryBridge.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "docs/hoid/RUN301_SINGLE_WRITER_HISTORY_AUTHORITY.md"
+      - ".github/workflows/hoid-single-writer-history-authority.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  single-writer-history-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test authority and existing history regressions
+        run: >-
+          npx vitest run
+          src/hoid/conversationHistoryStorePort.test.ts
+          src/hoid/conversationVaultHistoryBridge.test.ts
+          src/hoid/conversationHistoryHydration.test.ts
+          src/hoid/conversationVault.test.ts
+      - name: Type-check authority and adapters
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --esModuleInterop --skipLibCheck
+          src/hoid/conversationHistoryAuthority.ts
+          src/hoid/conversationHistoryAuthority.test.ts

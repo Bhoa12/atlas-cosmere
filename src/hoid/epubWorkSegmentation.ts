@@ -400,7 +400,7 @@ function chapterNumbersMatch(
     .filter(([, count]) => count > 1)
     .map(([number]) => number)
     .sort((a, b) => a - b);
-  if (!sameNumbers(actualDuplicates, expectedDuplicates)) return false;
+  if (!sameValues(actualDuplicates, expectedDuplicates)) return false;
   for (let number = 1; number <= chapterCount; number += 1) {
     const expectedCount = expectedDuplicates.includes(number) ? 2 : 1;
     if (counts.get(number) !== expectedCount) return false;

@@ -71,7 +71,7 @@ export type HoidTrustedAnswerBlockReason =
   | "trust-checkpoint-conflict" | "signature-invalid" | "claim-bundle-changed"
   | "progress-unavailable" | "progress-changed" | "evidence-locked"
   | "answer-unavailable" | "presentation-sink-failed"
-  | "invalid-follow-up-capability" | "follow-up-context-stale";
+  | "invalid-follow-up-capability" | "follow-up-context-stale" | "follow-up-in-progress";
 
 export type HoidPreparedExactUnitAnswer = Readonly<{
   kind: "hoid-prepared-exact-unit-answer";
@@ -371,6 +371,8 @@ export class HoidTrustedExactUnitAnswerHost {
   private readonly activePresentations = new Map<object, ActivePresentation>();
   private readonly followUpSidecars = new WeakMap<object, FollowUpSidecar>();
   private readonly followUpByPrepared = new WeakMap<object, HoidTrustedFollowUpCapability>();
+  /** Prevent concurrent provider work from racing on the same presentation capability. */
+  private readonly followUpInFlight = new WeakSet<object>();
   private constructor(private readonly config: HostConfig) {}
 
   private clearPresentation(token: object, reason: HoidTrustedAnswerBlockReason): void {
@@ -617,7 +619,30 @@ export class HoidTrustedExactUnitAnswerHost {
     if (capabilityInput === null || typeof capabilityInput !== "object" || Array.isArray(capabilityInput)) {
       return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }
-    const sidecar = this.followUpSidecars.get(capabilityInput as object);
+    const capability = capability;
+    if (!this.followUpSidecars.has(capability)) {
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
+    if (this.followUpInFlight.has(capability)) {
+      return Object.freeze({ status: "blocked", reason: "follow-up-in-progress" });
+    }
+
+    // JavaScript executes this guard and insertion synchronously, before the
+    // first await. Concurrent calls cannot both start provider work.
+    this.followUpInFlight.add(capability);
+    try {
+      return await this.prepareFollowUpWithCapability(requestInput, capability, options);
+    } finally {
+      this.followUpInFlight.delete(capability);
+    }
+  }
+
+  private async prepareFollowUpWithCapability(
+    requestInput: unknown,
+    capability: object,
+    options: HoidExactRuntimeCallOptions,
+  ): Promise<HoidTrustedAnswerPrepareResult> {
+    const sidecar = this.followUpSidecars.get(capability);
     if (!sidecar) return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
 
     const request = canonicalFollowUpRequest(requestInput);
@@ -626,7 +651,7 @@ export class HoidTrustedExactUnitAnswerHost {
     }
 
     const trusted = await this.loadTrustedRuntime(this.config.selector);
-    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+    if (this.followUpSidecars.get(capability) !== sidecar) {
       return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }
     if (trusted.status !== "ready") {
@@ -659,7 +684,7 @@ export class HoidTrustedExactUnitAnswerHost {
       this.clearPresentation(sidecar.presentationToken, reason);
       return Object.freeze({ status: "blocked", reason });
     }
-    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+    if (this.followUpSidecars.get(capability) !== sidecar) {
       return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }
     if (priorProgress.progressRevision !== sidecar.receipt.progressRevision ||
@@ -678,7 +703,7 @@ export class HoidTrustedExactUnitAnswerHost {
       chapterScope,
       conversationContext: context,
     }, options);
-    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+    if (this.followUpSidecars.get(capability) !== sidecar) {
       return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }
     if (result.status !== "ready") {
@@ -705,7 +730,7 @@ export class HoidTrustedExactUnitAnswerHost {
       receipt,
       contextFingerprint: trusted.value.contextFingerprint,
       packageFingerprint: trusted.value.packageFingerprint,
-      parentFollowUpCapability: capabilityInput as object,
+      parentFollowUpCapability: capability,
     }));
     return Object.freeze({ status: "prepared", prepared });
   }

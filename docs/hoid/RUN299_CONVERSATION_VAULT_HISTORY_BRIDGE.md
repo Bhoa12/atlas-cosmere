@@ -60,3 +60,18 @@ This is a persistence integration boundary, not a production native security
 claim. Android Keystore, iOS Keychain, a vetted native AES-GCM implementation,
 and a rollback-resistant checkpoint still must be supplied and independently
 validated before enabling durable conversation storage in the app.
+
+## Relationship to the existing SQLite history store
+
+The repository already has a provider-neutral `HoidConversationHistoryStorePort`
+and an Expo SQLite adapter. This Run 299 bridge does not replace that adapter,
+wire a second writer into the app, or dual-write conversation history. It is an
+optional vault composition boundary that reuses the same canonical history
+schema and hydration policy.
+
+Before production activation, the application must choose one authoritative
+history backend and define a migration/rollback plan. The SQLite store and this
+vault must not independently write the same conversation partition. If the
+vault is selected, the existing rows must be migrated under an explicit
+revision and key-retention policy, and the vault's independent native
+checkpoint must be available before restore is enabled.

@@ -6,7 +6,6 @@ import {
 } from "./conversationHistoryPolicy";
 import {
   createHoidConversationHistorySnapshot,
-  type HoidPersistableConversationMessage,
 } from "./conversationHistoryHydration";
 import {
   createHoidConversationVaultHistoryBridge,

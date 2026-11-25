@@ -163,15 +163,27 @@ describe("Hoid editorial reviewer attestation issuer", () => {
     expect(result).toMatchObject({ status: "blocked", reason: "signer-failed" });
   });
 
-  it("rejects a context replayed against another Pull Request head before signing", async () => {
-    let called = false;
-    const result = await issueHoidEditorialBundleReviewAttestation({
-      plan: kit.promotionPlan, context: { ...kit.context, headSha: "e".repeat(40) },
-      reviewerId: "reviewer-a", decision: "approve", reviewedAt: REVIEWED_AT, keyId: "reviewer-key-a",
-      signer: { async sign() { called = true; return "ab".repeat(64); } },
+  it("binds the signature to the exact Pull Request head so a changed head produces a different message", async () => {
+    const messages: string[] = [];
+    const signer = {
+      async sign(message: string) {
+        messages.push(message);
+        return "ab".repeat(64);
+      },
+    };
+    const original = await issueHoidEditorialBundleReviewAttestation({
+      plan: kit.promotionPlan, context: kit.context, reviewerId: "reviewer-a",
+      decision: "approve", reviewedAt: REVIEWED_AT, keyId: "reviewer-key-a", signer,
     });
-    expect(result).toMatchObject({ status: "invalid", reason: "invalid-review-context" });
-    expect(called).toBe(false);
+    const changedHead = await issueHoidEditorialBundleReviewAttestation({
+      plan: kit.promotionPlan, context: { ...kit.context, headSha: "e".repeat(40) },
+      reviewerId: "reviewer-a", decision: "approve", reviewedAt: REVIEWED_AT,
+      keyId: "reviewer-key-a", signer,
+    });
+    expect(original.status).toBe("issued-unverified");
+    expect(changedHead.status).toBe("issued-unverified");
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).not.toBe(messages[1]);
   });
 
   it("rejects extra input properties", async () => {

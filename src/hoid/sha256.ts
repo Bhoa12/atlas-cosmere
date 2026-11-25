@@ -1,8 +1,9 @@
 /**
- * Small dependency-free SHA-256 implementation for deterministic editorial
- * integrity checks in React Native and Node test environments.
+ * Small dependency-free SHA-256 implementation for deterministic integrity
+ * fingerprints in React Native and Node test environments.
  *
- * This hashes original editorial summaries only; it never stores source text.
+ * Callers provide only the payload they intend to fingerprint. This utility
+ * does not read, retain or export EPUB, XHTML or other source-file contents.
  */
 function utf8Bytes(value: string): Uint8Array {
   const bytes: number[] = [];

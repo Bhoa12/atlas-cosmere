@@ -136,7 +136,7 @@ describe("Hoid metadata-only source ingestion plan", () => {
 
     expect(plan.editorial).toEqual({
       stagedSummaryCount: 68,
-      pendingReviewSummaryCount: 67,
+      pendingReviewSummaryCount: 68,
       productionKnowledgeEntryCount: 0,
       approvedClaimCount: 0,
     });

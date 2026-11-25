@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createHoidConversationHistorySnapshot,
+  hydrateHoidConversationHistorySnapshot,
 } from "./conversationHistoryHydration";
 import {
   HOID_STATIC_GREETING_ID,
@@ -290,6 +291,29 @@ describe("Hoid fenced canonical history migration transfer", () => {
     const vault = makeBackend("vault-history-v1", { revision: 0, snapshot: null }, "target");
     const transfer = makeTransfer(sqlite.port, vault.port);
     await expect(transfer.copy(copyInput("sqlite-history-v1", "vault-history-v1"))).rejects.toThrow();
+  });
+
+
+  it("keeps migrated Hoid prose subject to the live progress spoiler filter", async () => {
+    const sqlite = makeBackend("sqlite-history-v1", { revision: 3, snapshot: snapshot() });
+    const vault = makeBackend("vault-history-v1");
+    const transfer = makeTransfer(sqlite.port, vault.port);
+
+    await transfer.copy(copyInput("sqlite-history-v1", "vault-history-v1"));
+    const hydrated = hydrateHoidConversationHistorySnapshot(
+      vault.inspect().snapshot,
+      { revision: 42, fingerprint: "d".repeat(64) },
+    );
+    expect(hydrated).toMatchObject({
+      status: "stale",
+      droppedAssistantCount: 1,
+    });
+    if (hydrated.status === "stale") {
+      expect(hydrated.messages.map(message => message.id)).toEqual([
+        HOID_STATIC_GREETING_ID,
+        "user-1",
+      ]);
+    }
   });
 
 });

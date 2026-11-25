@@ -43,6 +43,8 @@ The provider never receives:
 
 The chapter scope is applied locally before candidate selection. It is not a provider-controlled authorization decision.
 
+The runtime invokes the selector with a frozen, per-call envelope `Object.freeze({ signal })`. The provider adapter requires that exact immutable invocation shape and a genuine `AbortSignal`; a mutable context is rejected before transport dispatch.
+
 ## Invalidation and failure behavior
 
 The capability is revoked when its owning presentation is cleared, disposed, evicted, or invalidated by progress, trust-checkpoint or signed-bundle changes. A prepared child remains bound to its parent until it is presented; if the parent is cleared before then, child presentation is rejected. Once a child is presented, the active-presentation graph records that parent relationship. Clearing an ancestor recursively retracts descendants and revokes their capabilities.

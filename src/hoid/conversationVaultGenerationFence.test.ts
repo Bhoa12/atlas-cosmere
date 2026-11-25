@@ -417,13 +417,18 @@ describe("Hoid Vault generation fence", () => {
     })).resolves.toMatchObject({ status: "saved", revision: 1 });
     await expect(target.migration.read({ operationId, generation: 1 }))
       .resolves.toMatchObject({ status: "ready", revision: 1, snapshot: { messages: ["copied"] } });
+    await expect(target.migration.clear({
+      operationId, generation: 1, expectedRevision: 1,
+    })).resolves.toMatchObject({ status: "cleared", revision: 2 });
+    await expect(target.migration.read({ operationId, generation: 1 }))
+      .resolves.toMatchObject({ status: "empty", revision: 2 });
     await expect(target.participant.activate({
       partitionId: PARTITION, generation: 1, operationId,
     })).resolves.toBe("activated");
     await expect(target.migration.read({ operationId, generation: 1 }))
       .resolves.toMatchObject({ status: "blocked" });
     await expect(target.vault.restore(SESSION))
-      .resolves.toMatchObject({ status: "ready", revision: 1 });
+      .resolves.toMatchObject({ status: "empty", revision: 2 });
   });
 
 });

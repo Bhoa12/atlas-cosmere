@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  emptyHoidCursorProgressSnapshot,
-  type HoidCursorProgressSnapshot,
-} from "./cursorProgressLedger";
+import { emptyHoidCursorProgressSnapshot } from "./cursorProgressLedger";
 import type {
   HoidCursorProgressStore,
   HoidCursorStoreLoadResult,
@@ -193,24 +190,24 @@ describe("Hoid trusted application bootstrap", () => {
   });
 
   it("aborts dependency loading and never publishes a late result after disposal", async () => {
-    let resolveDependencies: ((value: unknown) => void) | null = null;
-    let receivedSignal: AbortSignal | null = null;
+    let resolveDependencies!: (value: unknown) => void;
+    const signalState: { value: AbortSignal | null } = { value: null };
     const pending = new Promise<unknown>(resolve => {
       resolveDependencies = resolve;
     });
     const bootstrap = createHoidTrustedApplicationBootstrap(signal => {
-      receivedSignal = signal;
+      signalState.value = signal;
       return pending;
     });
     if (!bootstrap) throw new Error("Bootstrap factory unavailable");
 
     const initialization = bootstrap.initialize();
     await Promise.resolve();
-    expect(receivedSignal).not.toBeNull();
+    expect(signalState.value).not.toBeNull();
 
     bootstrap.dispose();
-    expect(receivedSignal?.aborted).toBe(true);
-    resolveDependencies?.(dependencies());
+    expect(signalState.value?.aborted).toBe(true);
+    resolveDependencies(dependencies());
 
     expect(await initialization).toEqual({ status: "disposed" });
     expect(bootstrap.getSnapshot()).toEqual({ status: "disposed" });
@@ -245,8 +242,10 @@ describe("Hoid trusted application bootstrap", () => {
     });
     expect(response.status).toBe("blocked");
     expect(deps.compositionConfig).toBeDefined();
-    expect((deps.compositionConfig as { transport: ReturnType<typeof vi.fn> }).transport)
-      .not.toHaveBeenCalled();
+    const transport = (deps.compositionConfig as {
+      transport: (...args: unknown[]) => unknown;
+    }).transport;
+    expect(transport).not.toHaveBeenCalled();
 
     bootstrap.dispose();
     const afterDispose = await result.screenPort.send({

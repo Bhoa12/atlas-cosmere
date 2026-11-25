@@ -182,6 +182,7 @@ function buildBundleQuorumInput(
     progressRevision === null || progressRevision < 0
   ) return null;
 
+  const expectedRepository = ownDataValue(input, "expectedRepositoryFullName");
   const request = ownDataRecord(ownDataValue(input, "request"), REQUEST_KEYS);
   const context = ownDataRecord(ownDataValue(input, "context"), CONTEXT_KEYS);
   const attestations = ownDataValue(input, "bundleReviewAttestations");
@@ -191,7 +192,7 @@ function buildBundleQuorumInput(
     request.schemaVersion !== 2 ||
     typeof request.repositoryFullName !== "string" ||
     !REPOSITORY_PATTERN.test(request.repositoryFullName) ||
-    request.repositoryFullName !== input.expectedRepositoryFullName ||
+    request.repositoryFullName !== expectedRepository ||
     typeof request.pullRequestNumber !== "number" ||
     !Number.isSafeInteger(request.pullRequestNumber) ||
     request.pullRequestNumber < 1 ||

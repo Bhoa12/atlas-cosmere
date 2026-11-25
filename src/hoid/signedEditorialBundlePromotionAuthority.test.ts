@@ -699,6 +699,13 @@ describe("Hoid signed editorial bundle promotion", () => {
     });
     expect(result).toMatchObject({
       status: "ready-for-maintainer-commit",
+      bundleReviewQuorum: {
+        status: "verified",
+        verifiedReviewerCount: 2,
+        reviewerIds: ["code-owner", "second-reviewer"],
+        promotionAllowed: false,
+        productionWritePerformed: false,
+      },
       configuredMinimumRegistryRevision: 1,
       persistedMinimumRegistryRevision: 3,
       authorization: {
@@ -770,6 +777,47 @@ describe("Hoid signed editorial bundle promotion", () => {
       productionWritePerformed: false,
     });
     expect(host.revisionStore.value).toBe(3);
+    expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
+    expect(progress.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("blocks before revision persistence and GitHub when a bundle-quorum signature is changed", async () => {
+    const fixture = buildRealCryptoFixture();
+    const attestations = [...fixture.bundleReviewAttestations];
+    attestations[0] = Object.freeze({ ...attestations[0], signatureHex: "0".repeat(128) });
+    const source = sourceControlPort();
+    const progress = progressPort();
+    const host = createRealHostPorts(fixture.rootKey);
+    const result = await authorizeHoidTrustedHostSignedEditorialBundlePromotion({
+      plan: fixture.plan,
+      context: fixture.context,
+      request,
+      signatureBatch: fixture.signatureBatch,
+      bundleReviewAttestations: Object.freeze(attestations),
+      trustRegistry: fixture.registry,
+      verifier: fixture.verifier,
+      now: NOW,
+      revisionStore: host.revisionStore,
+      progressSnapshot: initialProgress,
+      sourceControlPort: source,
+      progressPort: progress,
+      bootstrapPort: host.bootstrapPort,
+      expectedRepositoryFullName: REPOSITORY,
+    });
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "bundle-review-quorum-blocked",
+      quorumFailure: {
+        status: "invalid",
+        reason: "trust-verification-failed",
+        trustReason: "signature-invalid",
+        promotionAllowed: false,
+        productionWritePerformed: false,
+      },
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(host.revisionStore.value).toBe(1);
     expect(source.fetchProtectedReviewSnapshot).not.toHaveBeenCalled();
     expect(progress.readAuthoritativeProgressSnapshot).not.toHaveBeenCalled();
   });

@@ -9,8 +9,8 @@ the exact promotion plan also has a verified two-reviewer bundle quorum.
 
 The lower-level packet-signature verifier remains a reusable primitive. The
 application-facing composition is
-\`authorizeHoidTrustedHostSignedEditorialBundlePromotion()\`; it now requires
-\`bundleReviewAttestations\` and verifies them before invoking the
+`authorizeHoidTrustedHostSignedEditorialBundlePromotion()`; it now requires
+`bundleReviewAttestations` and verifies them before invoking the
 revision-bound signed-promotion authority.
 
 ## Required order
@@ -50,7 +50,7 @@ pipeline; a caller cannot supply a separate quorum target.
 
 The verified quorum is an additional editorial authorization, not a source
 inspection and not a deployment authorization. Every result retains
-\`promotionAllowed: false\` and \`productionWritePerformed: false\`. The
+`promotionAllowed: false` and `productionWritePerformed: false`. The
 pipeline never writes the production editorial registry and never merges a
 Pull Request.
 

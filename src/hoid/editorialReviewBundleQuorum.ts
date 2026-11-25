@@ -1,7 +1,8 @@
 import {
-  validateHoidEditorialKnowledgeBundleManifest,
-  type HoidEditorialKnowledgeBundleManifest,
-} from "./editorialKnowledgeBundle";
+  buildHoidEditorialBundlePromotionPlan,
+  validateHoidEditorialBundlePromotionPlan,
+  type HoidEditorialBundlePromotionPlan,
+} from "./editorialBundlePromotionAuthority";
 import {
   verifyHoidReviewerBoundPayloadSignatures,
   type HoidApprovedClaimReviewSignatureContext,
@@ -25,7 +26,8 @@ const CONTEXT_KEYS = Object.freeze([
 ] as const);
 const ATTESTATION_KEYS = Object.freeze([
   "schemaVersion",
-  "bundleFingerprint",
+  "reviewBundleFingerprint",
+  "promotionPlanFingerprint",
   "reviewerId",
   "decision",
   "reviewedAt",
@@ -33,8 +35,12 @@ const ATTESTATION_KEYS = Object.freeze([
   "signatureHex",
 ] as const);
 const INPUT_KEYS = Object.freeze([
-  "manifest",
+  "plan",
+  "reviewManifest",
+  "knowledgeManifest",
   "sourceInput",
+  "receipts",
+  "progressSnapshot",
   "context",
   "attestations",
   "registry",
@@ -57,7 +63,8 @@ export type HoidEditorialBundleReviewDecision = "approve" | "reject";
 
 export type HoidEditorialBundleReviewAttestation = Readonly<{
   schemaVersion: 1;
-  bundleFingerprint: string;
+  reviewBundleFingerprint: string;
+  promotionPlanFingerprint: string;
   reviewerId: string;
   decision: HoidEditorialBundleReviewDecision;
   reviewedAt: string;
@@ -70,8 +77,9 @@ export type HoidEditorialBundleReviewContext = HoidApprovedClaimReviewSignatureC
 export type HoidEditorialBundleReviewQuorumResult =
   | Readonly<{
       status: "verified";
-      bundleFingerprint: string;
-      registryRevision: number;
+      reviewBundleFingerprint: string;
+      promotionPlanFingerprint: string;
+      progressRevision: number;
       verifiedReviewerCount: number;
       reviewerIds: readonly string[];
       promotionAllowed: false;
@@ -79,8 +87,9 @@ export type HoidEditorialBundleReviewQuorumResult =
     }>
   | Readonly<{
       status: "rejected";
-      bundleFingerprint: string;
-      registryRevision: number;
+      reviewBundleFingerprint: string;
+      promotionPlanFingerprint: string;
+      progressRevision: number;
       verifiedReviewerCount: number;
       reviewerIds: readonly string[];
       promotionAllowed: false;
@@ -88,8 +97,8 @@ export type HoidEditorialBundleReviewQuorumResult =
     }>
   | Readonly<{
       status: "blocked";
-      reason: "bundle-blocked";
-      bundleFingerprint: string;
+      reason: "promotion-plan-blocked";
+      planReason: string;
       promotionAllowed: false;
       productionWritePerformed: false;
     }>
@@ -97,9 +106,10 @@ export type HoidEditorialBundleReviewQuorumResult =
       status: "invalid";
       reason:
         | "invalid-input"
-        | "invalid-bundle"
+        | "invalid-plan"
+        | "plan-content-mismatch"
         | "invalid-context"
-        | "context-bundle-mismatch"
+        | "context-plan-mismatch"
         | "invalid-attestations"
         | "trust-verification-failed";
       trustReason?: string;
@@ -174,7 +184,7 @@ function canonicalIsoTimestamp(value: unknown): value is string {
 
 function canonicalContext(
   value: unknown,
-  expectedBundleFingerprint: string,
+  expectedPlan: HoidEditorialBundlePromotionPlan,
 ): CanonicalContext | null {
   const raw = exactDataRecord(value, CONTEXT_KEYS);
   if (
@@ -197,9 +207,8 @@ function canonicalContext(
     raw.baseSha === raw.headSha ||
     typeof raw.promotionManifestPath !== "string" ||
     !PATH_PATTERN.test(raw.promotionManifestPath) ||
-    typeof raw.promotionPlanFingerprint !== "string" ||
-    !SHA_PATTERN.test(raw.promotionPlanFingerprint) ||
-    raw.reviewBundleFingerprint !== expectedBundleFingerprint
+    raw.promotionPlanFingerprint !== expectedPlan.fingerprint ||
+    raw.reviewBundleFingerprint !== expectedPlan.reviewBundleFingerprint
   ) return null;
 
   return Object.freeze({
@@ -211,14 +220,14 @@ function canonicalContext(
     headRef: raw.headRef,
     headSha: raw.headSha,
     promotionManifestPath: raw.promotionManifestPath,
-    promotionPlanFingerprint: raw.promotionPlanFingerprint,
-    reviewBundleFingerprint: expectedBundleFingerprint,
+    promotionPlanFingerprint: expectedPlan.fingerprint,
+    reviewBundleFingerprint: expectedPlan.reviewBundleFingerprint,
   });
 }
 
 function canonicalAttestations(
   value: unknown,
-  expectedBundleFingerprint: string,
+  expectedPlan: HoidEditorialBundlePromotionPlan,
 ): readonly CanonicalAttestation[] | null {
   const rawItems = denseValues(value, MAXIMUM_REVIEWERS);
   if (!rawItems || rawItems.length < MINIMUM_REVIEWERS) return null;
@@ -233,7 +242,8 @@ function canonicalAttestations(
     if (
       !raw ||
       raw.schemaVersion !== 1 ||
-      raw.bundleFingerprint !== expectedBundleFingerprint ||
+      raw.reviewBundleFingerprint !== expectedPlan.reviewBundleFingerprint ||
+      raw.promotionPlanFingerprint !== expectedPlan.fingerprint ||
       typeof raw.reviewerId !== "string" ||
       !ID_PATTERN.test(raw.reviewerId) ||
       (raw.decision !== "approve" && raw.decision !== "reject") ||
@@ -252,7 +262,8 @@ function canonicalAttestations(
     previousReviewerId = raw.reviewerId;
     result.push(Object.freeze({
       schemaVersion: 1,
-      bundleFingerprint: expectedBundleFingerprint,
+      reviewBundleFingerprint: expectedPlan.reviewBundleFingerprint,
+      promotionPlanFingerprint: expectedPlan.fingerprint,
       reviewerId: raw.reviewerId,
       decision: raw.decision,
       reviewedAt: raw.reviewedAt,
@@ -264,27 +275,46 @@ function canonicalAttestations(
   return Object.freeze(result);
 }
 
-function validatedReviewBundle(
-  manifestInput: unknown,
+type PlanValidation =
+  | Readonly<{ status: "ready"; plan: HoidEditorialBundlePromotionPlan }>
+  | Readonly<{ status: "blocked"; reason: string }>
+  | Readonly<{ status: "invalid"; reason: "invalid-plan" | "plan-content-mismatch" }>;
+
+function validatedPlan(
+  planInput: unknown,
+  reviewManifestInput: unknown,
+  knowledgeManifestInput: unknown,
   sourceInput: unknown,
-): Readonly<{
-  status: "ready-for-review";
-  manifest: HoidEditorialKnowledgeBundleManifest;
-}> | Readonly<{
-  status: "blocked";
-  manifest: HoidEditorialKnowledgeBundleManifest;
-}> | null {
-  const validation = validateHoidEditorialKnowledgeBundleManifest(manifestInput, sourceInput);
-  if (validation.status !== "valid") return null;
-  return Object.freeze({
-    status: validation.bundleStatus,
-    manifest: validation.manifest,
-  });
+  receiptsInput: unknown,
+  progressSnapshotInput: unknown,
+): PlanValidation {
+  const supplied = validateHoidEditorialBundlePromotionPlan(planInput);
+  if (supplied.status !== "valid") return Object.freeze({ status: "invalid", reason: "invalid-plan" });
+
+  const rebuilt = buildHoidEditorialBundlePromotionPlan(
+    reviewManifestInput,
+    knowledgeManifestInput,
+    sourceInput,
+    receiptsInput,
+    progressSnapshotInput,
+  );
+  if (rebuilt.status === "blocked") {
+    return Object.freeze({ status: "blocked", reason: rebuilt.reason });
+  }
+  if (rebuilt.status !== "ready-for-protected-review") {
+    return Object.freeze({ status: "invalid", reason: "plan-content-mismatch" });
+  }
+  if (
+    supplied.plan.fingerprint !== rebuilt.plan.fingerprint ||
+    JSON.stringify(supplied.plan) !== JSON.stringify(rebuilt.plan)
+  ) return Object.freeze({ status: "invalid", reason: "plan-content-mismatch" });
+
+  return Object.freeze({ status: "ready", plan: rebuilt.plan });
 }
 
 function signingMessage(
   context: CanonicalContext,
-  bundleFingerprint: string,
+  plan: HoidEditorialBundlePromotionPlan,
   reviewerId: string,
   decision: HoidEditorialBundleReviewDecision,
   reviewedAt: string,
@@ -299,8 +329,12 @@ function signingMessage(
     context.headRef,
     context.headSha,
     context.promotionManifestPath,
-    context.promotionPlanFingerprint,
-    bundleFingerprint,
+    plan.fingerprint,
+    plan.reviewBundleFingerprint,
+    plan.knowledgeBundleFingerprint,
+    plan.receiptsFingerprint,
+    plan.progressRevision,
+    plan.progressFingerprint,
     reviewerId,
     decision,
     reviewedAt,
@@ -311,22 +345,34 @@ function signingMessage(
 /**
  * Build the exact domain-separated message an offline reviewer signs.
  *
- * The source drafts are revalidated against the metadata-only bundle first.
- * No draft prose or EPUB content is included in the message; only the verified
- * bundle fingerprint and the exact repository/PR/promotion context are bound.
+ * The review manifest, knowledge manifest, complete receipt set and progress
+ * snapshot are rebuilt into the supplied promotion plan before signing. The
+ * message contains only plan fingerprints and review metadata, never draft
+ * prose or source passages.
  */
 export function buildHoidEditorialBundleReviewSigningMessage(
-  manifestInput: unknown,
+  planInput: unknown,
+  reviewManifestInput: unknown,
+  knowledgeManifestInput: unknown,
   sourceInput: unknown,
+  receiptsInput: unknown,
+  progressSnapshotInput: unknown,
   contextInput: unknown,
   reviewerIdInput: unknown,
   decisionInput: unknown,
   reviewedAtInput: unknown,
   keyIdInput: unknown,
 ): string | null {
-  const bundle = validatedReviewBundle(manifestInput, sourceInput);
-  if (!bundle || bundle.status !== "ready-for-review") return null;
-  const context = canonicalContext(contextInput, bundle.manifest.fingerprint);
+  const planResult = validatedPlan(
+    planInput,
+    reviewManifestInput,
+    knowledgeManifestInput,
+    sourceInput,
+    receiptsInput,
+    progressSnapshotInput,
+  );
+  if (planResult.status !== "ready") return null;
+  const context = canonicalContext(contextInput, planResult.plan);
   if (
     !context ||
     typeof reviewerIdInput !== "string" ||
@@ -339,7 +385,7 @@ export function buildHoidEditorialBundleReviewSigningMessage(
 
   return signingMessage(
     context,
-    bundle.manifest.fingerprint,
+    planResult.plan,
     reviewerIdInput,
     decisionInput,
     reviewedAtInput,
@@ -348,13 +394,14 @@ export function buildHoidEditorialBundleReviewSigningMessage(
 }
 
 /**
- * Verify a two-person (or stronger) editorial quorum over the complete bundle.
+ * Verify an independent whole-bundle editorial quorum after every individual
+ * review packet has an approved receipt. Every signature binds the exact
+ * review manifest, knowledge bundle, receipt set, progress snapshot and PR
+ * head. This supplements (and does not replace) per-packet review receipts
+ * and protected GitHub review.
  *
- * Every signature binds the same metadata-only bundle fingerprint, exact PR
- * base/head, promotion plan, reviewer identity and decision. Reviewer keys are
- * authenticated by the existing root-signed registry. Duplicate reviewer IDs
- * and duplicate key IDs are rejected. A verified quorum is still not a
- * production promotion: this function never writes production knowledge.
+ * A verified quorum is still not a production promotion: this function never
+ * writes the production editorial registry.
  */
 export async function verifyHoidEditorialKnowledgeBundleReviewQuorum(
   input: unknown,
@@ -369,32 +416,40 @@ export async function verifyHoidEditorialKnowledgeBundleReviewQuorum(
     });
   }
 
-  const bundle = validatedReviewBundle(raw.manifest, raw.sourceInput);
-  if (!bundle) {
+  const planResult = validatedPlan(
+    raw.plan,
+    raw.reviewManifest,
+    raw.knowledgeManifest,
+    raw.sourceInput,
+    raw.receipts,
+    raw.progressSnapshot,
+  );
+  if (planResult.status === "invalid") {
     return Object.freeze({
       status: "invalid",
-      reason: "invalid-bundle",
+      reason: planResult.reason,
       promotionAllowed: false,
       productionWritePerformed: false,
     });
   }
-  if (bundle.status !== "ready-for-review") {
+  if (planResult.status === "blocked") {
     return Object.freeze({
       status: "blocked",
-      reason: "bundle-blocked",
-      bundleFingerprint: bundle.manifest.fingerprint,
+      reason: "promotion-plan-blocked",
+      planReason: planResult.reason,
       promotionAllowed: false,
       productionWritePerformed: false,
     });
   }
 
-  const context = canonicalContext(raw.context, bundle.manifest.fingerprint);
+  const plan = planResult.plan;
+  const context = canonicalContext(raw.context, plan);
   if (!context) {
     const suppliedContext = exactDataRecord(raw.context, CONTEXT_KEYS);
-    const reason = suppliedContext &&
-      suppliedContext.reviewBundleFingerprint !== bundle.manifest.fingerprint
-      ? "context-bundle-mismatch"
-      : "invalid-context";
+    const reason = suppliedContext && (
+      suppliedContext.promotionPlanFingerprint !== plan.fingerprint ||
+      suppliedContext.reviewBundleFingerprint !== plan.reviewBundleFingerprint
+    ) ? "context-plan-mismatch" : "invalid-context";
     return Object.freeze({
       status: "invalid",
       reason,
@@ -403,7 +458,7 @@ export async function verifyHoidEditorialKnowledgeBundleReviewQuorum(
     });
   }
 
-  const attestations = canonicalAttestations(raw.attestations, bundle.manifest.fingerprint);
+  const attestations = canonicalAttestations(raw.attestations, plan);
   if (!attestations) {
     return Object.freeze({
       status: "invalid",
@@ -435,7 +490,7 @@ export async function verifyHoidEditorialKnowledgeBundleReviewQuorum(
     keyId: attestation.keyId,
     message: signingMessage(
       context,
-      bundle.manifest.fingerprint,
+      plan,
       attestation.reviewerId,
       attestation.decision,
       attestation.reviewedAt,
@@ -464,8 +519,9 @@ export async function verifyHoidEditorialKnowledgeBundleReviewQuorum(
 
   const reviewerIds = Object.freeze(attestations.map(item => item.reviewerId));
   const common = {
-    bundleFingerprint: bundle.manifest.fingerprint,
-    registryRevision: verification.registryRevision,
+    reviewBundleFingerprint: plan.reviewBundleFingerprint,
+    promotionPlanFingerprint: plan.fingerprint,
+    progressRevision: plan.progressRevision,
     verifiedReviewerCount: verification.verifiedCount,
     reviewerIds,
     promotionAllowed: false as const,

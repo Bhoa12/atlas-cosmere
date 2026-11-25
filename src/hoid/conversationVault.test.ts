@@ -30,12 +30,21 @@ function fixture(options: Readonly<{ checkpointCommit?: boolean }> = {}) {
       return true;
     },
   };
-  const seal = vi.fn(async () => ({
-    nonce: "A".repeat(16),
-    ciphertext: "AQID",
-    tag: "B".repeat(22),
-  }));
-  const open = vi.fn(async () => new Uint8Array([1, 2, 3]));
+  const sealedPayloads = new Map<string, Uint8Array>();
+  let sealSequence = 0;
+  const seal = vi.fn(async (input: Readonly<{ plaintext: Uint8Array }>) => {
+    const ciphertext = "c" + (++sealSequence).toString(36);
+    sealedPayloads.set(ciphertext, new Uint8Array(input.plaintext));
+    return {
+      nonce: "A".repeat(16),
+      ciphertext,
+      tag: "B".repeat(22),
+    };
+  });
+  const open = vi.fn(async (input: Readonly<{ ciphertext: string }>) => {
+    const stored = sealedPayloads.get(input.ciphertext);
+    return stored ? new Uint8Array(stored) : new Uint8Array();
+  });
   const vault = createHoidConversationVault({
     keys: {
       getActiveKey: async () => ({

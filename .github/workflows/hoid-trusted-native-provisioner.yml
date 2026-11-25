@@ -1,0 +1,67 @@
+name: Hoid trusted native provisioner
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedNativeProvisioner.ts"
+      - "src/hoid/trustedNativeProvisioner.test.ts"
+      - "src/hoid/conversationSecurityAttestation.ts"
+      - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/conversationProviderTrustRegistry.ts"
+      - "src/hoid/conversationProviderTrustRegistry.testFixtures.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "docs/hoid/RUN315_TRUSTED_NATIVE_PROVISIONER.md"
+      - ".github/workflows/hoid-trusted-native-provisioner.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedNativeProvisioner.ts"
+      - "src/hoid/trustedNativeProvisioner.test.ts"
+      - "src/hoid/conversationSecurityAttestation.ts"
+      - "src/hoid/conversationSecurityReadiness.ts"
+      - "src/hoid/conversationProviderTrustRegistry.ts"
+      - "src/hoid/conversationProviderTrustRegistry.testFixtures.ts"
+      - "src/hoid/nobleEd25519VerificationAdapter.ts"
+      - "src/hoid/trustedConversationComposition.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "docs/hoid/RUN315_TRUSTED_NATIVE_PROVISIONER.md"
+      - ".github/workflows/hoid-trusted-native-provisioner.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-native-provisioner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test native provisioning gate and trust regressions
+        run: >-
+          npx vitest run
+          src/hoid/trustedNativeProvisioner.test.ts
+          src/hoid/conversationSecurityAttestation.test.ts
+          src/hoid/conversationProviderTrustRegistry.test.ts
+      - name: Strict type-check native provisioning boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node
+          --esModuleInterop --skipLibCheck
+          src/hoid/trustedNativeProvisioner.ts
+          src/hoid/trustedNativeProvisioner.test.ts
+          src/hoid/conversationSecurityAttestation.ts
+          src/hoid/conversationSecurityReadiness.ts
+          src/hoid/conversationProviderTrustRegistry.ts
+          src/hoid/conversationProviderTrustRegistry.testFixtures.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/trustedConversationComposition.ts
+          src/hoid/trustedExactUnitAnswerHost.ts

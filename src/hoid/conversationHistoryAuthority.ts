@@ -287,7 +287,7 @@ export function createHoidConversationHistoryAuthority(
   };
 
   const restore = (scope: unknown): Promise<HoidConversationHistoryAuthorityRestoreResult> =>
-    enqueue(
+    enqueue<HoidConversationHistoryAuthorityRestoreResult>(
       () => restoreMethod.call(selection.backend, scope),
       blocked("authority-disposed"),
       blocked("backend-failed"),
@@ -304,7 +304,7 @@ export function createHoidConversationHistoryAuthority(
         reason: "invalid-authority-revision",
       }));
     }
-    return enqueue(
+    return enqueue<HoidConversationHistoryAuthoritySaveResult>(
       () => saveMethod.call(selection.backend, expectedRevision, messages, scope),
       blocked("authority-disposed"),
       blocked("backend-failed"),
@@ -320,7 +320,7 @@ export function createHoidConversationHistoryAuthority(
         reason: "invalid-authority-revision",
       }));
     }
-    return enqueue(
+    return enqueue<HoidConversationHistoryAuthorityClearResult>(
       () => clearMethod.call(selection.backend, expectedRevision),
       blocked("authority-disposed"),
       blocked("backend-failed"),

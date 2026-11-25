@@ -863,7 +863,14 @@ export class HoidTrustedExactUnitAnswerHost {
 
       // Mint only after the sink has accepted the answer and all synchronous
       // invalidation callbacks have completed. The capability carries no data.
-      const sidecar = createFollowUpSidecar(pending, permit, currentTrust.value, presentationToken);
+      let sidecar: FollowUpSidecar | null = null;
+      try {
+        sidecar = createFollowUpSidecar(pending, permit, currentTrust.value, presentationToken);
+      } catch {
+        // A continuation is optional. Failure to derive its private scope must
+        // never retract or block the already-authorized answer itself.
+        sidecar = null;
+      }
       if (sidecar) {
         const capability: HoidTrustedFollowUpCapability = Object.freeze({
           kind: "hoid-trusted-follow-up-capability",

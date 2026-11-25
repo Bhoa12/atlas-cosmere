@@ -72,7 +72,7 @@ is claimed as inspected by this run.
 
 ## Validation
 
-The dedicated workflow runs:
+The existing signed-editorial-promotion workflow is extended to run:
 - whole-bundle quorum tests;
 - trusted-host composition tests;
 - real-Ed25519 host promotion dry-run tests;

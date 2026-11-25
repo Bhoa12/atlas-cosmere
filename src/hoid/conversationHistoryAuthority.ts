@@ -20,6 +20,7 @@ import type { HoidConversationProgressScope } from "./conversationHistoryPolicy"
 
 const AUTHORITY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 const MAX_EXPECTED_REVISION = Number.MAX_SAFE_INTEGER - 1;
+const OPAQUE_STORAGE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 
 const trustedBackends = new WeakSet<object>();
 const activeAuthorityIds = new Set<string>();
@@ -310,13 +311,42 @@ function normalizeVaultClear(
  * is explicitly unsupported rather than simulated by an empty conversation.
  */
 export function createHoidSqliteConversationHistoryAuthorityBackend(
-  store: HoidConversationHistoryStorePort,
-  key: HoidConversationStorageKey,
-): HoidConversationHistoryAuthorityBackendPort {
+  storeInput: unknown,
+  keyInput: unknown,
+): HoidConversationHistoryAuthorityBackendPort | null {
+  const storeRecord = exactDataRecord(storeInput, ["read", "compareAndSwap"]);
+  const keyRecord = exactDataRecord(keyInput, ["principalId", "conversationId"]);
+  if (
+    !storeRecord ||
+    !keyRecord ||
+    typeof storeRecord.read !== "function" ||
+    typeof storeRecord.compareAndSwap !== "function" ||
+    typeof keyRecord.principalId !== "string" ||
+    typeof keyRecord.conversationId !== "string" ||
+    !OPAQUE_STORAGE_KEY_PATTERN.test(keyRecord.principalId) ||
+    !OPAQUE_STORAGE_KEY_PATTERN.test(keyRecord.conversationId)
+  ) return null;
+
+  const readMethod = storeRecord.read as HoidConversationHistoryStorePort["read"];
+  const compareAndSwapMethod =
+    storeRecord.compareAndSwap as HoidConversationHistoryStorePort["compareAndSwap"];
+  const capturedStore: HoidConversationHistoryStorePort = Object.freeze({
+    read: (key: HoidConversationStorageKey) => readMethod.call(storeInput, key),
+    compareAndSwap: (
+      key: HoidConversationStorageKey,
+      expectedRevision: number | null,
+      nextRecord: Parameters<HoidConversationHistoryStorePort["compareAndSwap"]>[2],
+    ) => compareAndSwapMethod.call(storeInput, key, expectedRevision, nextRecord),
+  });
+  const capturedKey: HoidConversationStorageKey = Object.freeze({
+    principalId: keyRecord.principalId,
+    conversationId: keyRecord.conversationId,
+  });
+
   const backend: HoidConversationHistoryAuthorityBackendPort = Object.freeze({
     kind: "sqlite-history-v1",
     restore: async (scope: unknown) =>
-      normalizeSqliteRestore(await loadHoidConversationHistory(store, key, scope)),
+      normalizeSqliteRestore(await loadHoidConversationHistory(capturedStore, capturedKey, scope)),
     save: async (
       expectedRevision: number,
       messages: unknown,
@@ -330,8 +360,8 @@ export function createHoidSqliteConversationHistoryAuthorityBackend(
         return Object.freeze({ status: "invalid-input", reason: "invalid-history" });
       }
       const result = await saveHoidConversationHistory(
-        store,
-        key,
+        capturedStore,
+        capturedKey,
         expectedRevision === 0 ? null : expectedRevision,
         created.snapshot,
         scope,
@@ -345,7 +375,6 @@ export function createHoidSqliteConversationHistoryAuthorityBackend(
   });
   return rememberBackend(backend);
 }
-
 /** Adapts the session-bound encrypted vault bridge without adding a fallback. */
 export function createHoidVaultConversationHistoryAuthorityBackend(
   bridgeInput: unknown,

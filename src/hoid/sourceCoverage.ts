@@ -1,4 +1,5 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import { HOID_SOURCE_CATALOG_MANIFEST } from "./sourceCatalogManifest";
 import type { HoidEditionProgressPolicy } from "./editionStructure";
 import { getHoidEditionProgressPolicy } from "./editionStructure";
 import { getHoidReadingManifest } from "./readingManifest";
@@ -91,6 +92,9 @@ export type HoidSourceCoverageReport = Readonly<{
     totalWorks: number;
     cosmereWorks: number;
     rosharWorks: number;
+    fingerprint: string;
+    accessStatus: "not-asserted";
+    sourceContentIncluded: false;
   }>;
   navigation: Readonly<{
     worksWithVerifiedLocators: number;
@@ -293,6 +297,9 @@ export function getHoidSourceCoverageReport(): HoidSourceCoverageReport {
       totalWorks: works.length,
       cosmereWorks: cosmereWorks.length,
       rosharWorks: rosharWorks.length,
+      fingerprint: HOID_SOURCE_CATALOG_MANIFEST.fingerprint,
+      accessStatus: HOID_SOURCE_CATALOG_MANIFEST.accessStatus,
+      sourceContentIncluded: HOID_SOURCE_CATALOG_MANIFEST.sourceContentIncluded,
     }),
     navigation: Object.freeze({
       worksWithVerifiedLocators: worksWithVerifiedLocators.length,

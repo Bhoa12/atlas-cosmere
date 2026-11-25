@@ -1,4 +1,7 @@
-import { createHoidConversationHistorySnapshot } from "./conversationHistoryHydration";
+import {
+  createHoidConversationHistorySnapshot,
+  type HoidPersistableConversationMessage,
+} from "./conversationHistoryHydration";
 import {
   loadHoidConversationHistory,
   saveHoidConversationHistory,
@@ -13,6 +16,7 @@ import {
   type HoidConversationVaultHistoryRestoreResult,
   type HoidConversationVaultHistorySaveResult,
 } from "./conversationVaultHistoryBridge";
+import type { HoidConversationProgressScope } from "./conversationHistoryPolicy";
 
 const AUTHORITY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 const MAX_EXPECTED_REVISION = Number.MAX_SAFE_INTEGER - 1;
@@ -20,59 +24,79 @@ const MAX_EXPECTED_REVISION = Number.MAX_SAFE_INTEGER - 1;
 const trustedBackends = new WeakSet<object>();
 const activeAuthorityIds = new Set<string>();
 
+type SafeHistoryMessage =
+  | Extract<HoidPersistableConversationMessage, { emisor: "usuario" }>
+  | Extract<HoidPersistableConversationMessage, { kind: "static-greeting" }>;
+
 export type HoidConversationHistoryAuthorityKind =
   | "sqlite-history-v1"
   | "vault-history-v1";
 
-export type HoidConversationHistoryAuthorityBlocked = Readonly<{
-  status: "blocked";
-  reason: "authority-disposed" | "backend-failed";
-}>;
-
-export type HoidConversationHistoryAuthorityInvalidRevision = Readonly<{
-  status: "invalid-input";
-  reason: "invalid-authority-revision";
-}>;
+export type HoidConversationHistoryAuthorityBlocked =
+  | Readonly<{
+      status: "blocked";
+      reason:
+        | "authority-disposed"
+        | "backend-failed"
+        | "backend-unavailable"
+        | "invalid-record"
+        | "invalid-backend-input"
+        | "stale-progress";
+    }>
+  | Readonly<{
+      status: "blocked";
+      reason: "vault-blocked";
+      detail: string;
+    }>;
 
 export type HoidConversationHistoryAuthorityRestoreResult =
-  | HoidConversationHistoryLoadResult
-  | HoidConversationVaultHistoryRestoreResult
+  | Readonly<{ status: "empty"; revision: number }>
+  | Readonly<{
+      status: "ready";
+      revision: number;
+      messages: readonly HoidPersistableConversationMessage[];
+      savedProgressScope: HoidConversationProgressScope;
+    }>
+  | Readonly<{
+      status: "stale";
+      revision: number;
+      messages: readonly SafeHistoryMessage[];
+      savedProgressScope: HoidConversationProgressScope;
+      droppedAssistantCount: number;
+    }>
   | HoidConversationHistoryAuthorityBlocked;
 
 export type HoidConversationHistoryAuthoritySaveResult =
-  | HoidConversationHistorySaveResult
-  | HoidConversationVaultHistorySaveResult
-  | HoidConversationHistoryAuthorityInvalidRevision
+  | Readonly<{ status: "saved"; revision: number }>
+  | Readonly<{ status: "conflict" }>
+  | Readonly<{ status: "invalid-input"; reason: "invalid-revision" | "invalid-history" }>
   | HoidConversationHistoryAuthorityBlocked;
 
 export type HoidConversationHistoryAuthorityClearResult =
-  | HoidConversationVaultHistoryClearResult
+  | Readonly<{ status: "cleared"; revision: number }>
+  | Readonly<{ status: "conflict" }>
   | Readonly<{ status: "unsupported"; reason: "backend-does-not-support-tombstone" }>
-  | HoidConversationHistoryAuthorityInvalidRevision
+  | Readonly<{ status: "invalid-input"; reason: "invalid-revision" }>
   | HoidConversationHistoryAuthorityBlocked;
 
 /**
- * A backend port is deliberately singular: one authority instance receives
- * exactly one selected backend, never a list of fallbacks or dual writers.
+ * Backend adapters expose one normalized result contract. The selected backend
+ * kind remains metadata; callers do not need to branch on SQLite/vault result
+ * field names or error unions.
  */
 export type HoidConversationHistoryAuthorityBackendPort = Readonly<{
   kind: HoidConversationHistoryAuthorityKind;
   restore: (
     currentProgressScope: unknown,
-  ) => Promise<
-    HoidConversationHistoryLoadResult | HoidConversationVaultHistoryRestoreResult
-  >;
+  ) => Promise<HoidConversationHistoryAuthorityRestoreResult>;
   save: (
     expectedRevision: number,
     messages: unknown,
     currentProgressScope: unknown,
-  ) => Promise<HoidConversationHistorySaveResult | HoidConversationVaultHistorySaveResult>;
+  ) => Promise<HoidConversationHistoryAuthoritySaveResult>;
   clear: (
     expectedRevision: number,
-  ) => Promise<
-    HoidConversationVaultHistoryClearResult |
-    Readonly<{ status: "unsupported"; reason: "backend-does-not-support-tombstone" }>
-  >;
+  ) => Promise<HoidConversationHistoryAuthorityClearResult>;
 }>;
 
 export type HoidConversationHistoryAuthority = Readonly<{
@@ -129,6 +153,16 @@ function validExpectedRevision(value: unknown): value is number {
   );
 }
 
+function blocked(
+  reason: Exclude<HoidConversationHistoryAuthorityBlocked, { reason: "vault-blocked" }>["reason"],
+): HoidConversationHistoryAuthorityBlocked {
+  return Object.freeze({ status: "blocked", reason });
+}
+
+function blockedByVault(detail: string): HoidConversationHistoryAuthorityBlocked {
+  return Object.freeze({ status: "blocked", reason: "vault-blocked", detail });
+}
+
 function rememberBackend(
   value: HoidConversationHistoryAuthorityBackendPort,
 ): HoidConversationHistoryAuthorityBackendPort {
@@ -156,6 +190,119 @@ function canonicalVaultBridge(value: unknown): HoidConversationVaultHistoryBridg
   });
 }
 
+function normalizeSqliteRestore(
+  result: HoidConversationHistoryLoadResult,
+): HoidConversationHistoryAuthorityRestoreResult {
+  switch (result.status) {
+    case "not-found":
+      return Object.freeze({ status: "empty", revision: 0 });
+    case "ready":
+      return Object.freeze({
+        status: "ready",
+        revision: result.storageRevision,
+        messages: result.messages,
+        savedProgressScope: result.savedProgressScope,
+      });
+    case "stale":
+      return Object.freeze({
+        status: "stale",
+        revision: result.storageRevision,
+        messages: result.messages,
+        savedProgressScope: result.savedProgressScope,
+        droppedAssistantCount: result.droppedAssistantCount,
+      });
+    case "invalid-input":
+      return blocked("invalid-backend-input");
+    case "invalid-record":
+      return blocked("invalid-record");
+    case "unavailable":
+      return blocked("backend-unavailable");
+  }
+}
+
+function normalizeSqliteSave(
+  result: HoidConversationHistorySaveResult,
+): HoidConversationHistoryAuthoritySaveResult {
+  switch (result.status) {
+    case "saved":
+      return Object.freeze({ status: "saved", revision: result.storageRevision });
+    case "conflict":
+      return Object.freeze({ status: "conflict" });
+    case "invalid-snapshot":
+      return Object.freeze({ status: "invalid-input", reason: "invalid-history" });
+    case "stale-progress":
+      return blocked("stale-progress");
+    case "invalid-input":
+      return blocked("invalid-backend-input");
+    case "unavailable":
+      return blocked("backend-unavailable");
+  }
+}
+
+function normalizeVaultRestore(
+  result: HoidConversationVaultHistoryRestoreResult,
+): HoidConversationHistoryAuthorityRestoreResult {
+  switch (result.status) {
+    case "empty":
+      return Object.freeze({ status: "empty", revision: result.revision });
+    case "ready":
+      return Object.freeze({
+        status: "ready",
+        revision: result.revision,
+        messages: result.messages,
+        savedProgressScope: result.savedProgressScope,
+      });
+    case "stale":
+      return Object.freeze({
+        status: "stale",
+        revision: result.revision,
+        messages: result.messages.filter(
+          (message): message is SafeHistoryMessage =>
+            message.emisor === "usuario" || message.kind === "static-greeting",
+        ),
+        savedProgressScope: result.savedProgressScope,
+        droppedAssistantCount: result.droppedAssistantCount,
+      });
+    case "blocked":
+      return result.reason === "invalid-history-snapshot" ||
+        result.reason === "invalid-vault-result"
+        ? blocked("invalid-record")
+        : blockedByVault(result.reason);
+  }
+}
+
+function normalizeVaultSave(
+  result: HoidConversationVaultHistorySaveResult,
+): HoidConversationHistoryAuthoritySaveResult {
+  switch (result.status) {
+    case "saved":
+      return Object.freeze({ status: "saved", revision: result.revision });
+    case "conflict":
+      return Object.freeze({ status: "conflict" });
+    case "invalid-input":
+      return Object.freeze({ status: "invalid-input", reason: "invalid-revision" });
+    case "invalid-history":
+      return Object.freeze({ status: "invalid-input", reason: "invalid-history" });
+    case "blocked":
+      return blockedByVault(result.reason);
+  }
+}
+
+function normalizeVaultClear(
+  result: HoidConversationVaultHistoryClearResult,
+): HoidConversationHistoryAuthorityClearResult {
+  switch (result.status) {
+    case "cleared":
+      return Object.freeze({ status: "cleared", revision: result.revision });
+    case "conflict":
+      return Object.freeze({ status: "conflict" });
+    case "invalid-input":
+      return Object.freeze({ status: "invalid-input", reason: "invalid-revision" });
+    case "blocked":
+      return blockedByVault(result.reason);
+  }
+}
+
 /**
  * Adapts the existing encrypted SQLite history store to the common authority
  * contract. Revision 0 means create-only; positive revisions map directly to
@@ -168,29 +315,28 @@ export function createHoidSqliteConversationHistoryAuthorityBackend(
 ): HoidConversationHistoryAuthorityBackendPort {
   const backend: HoidConversationHistoryAuthorityBackendPort = Object.freeze({
     kind: "sqlite-history-v1",
-    restore: (scope: unknown) => loadHoidConversationHistory(store, key, scope),
+    restore: async (scope: unknown) =>
+      normalizeSqliteRestore(await loadHoidConversationHistory(store, key, scope)),
     save: async (
       expectedRevision: number,
       messages: unknown,
       scope: unknown,
-    ): Promise<HoidConversationHistorySaveResult> => {
+    ): Promise<HoidConversationHistoryAuthoritySaveResult> => {
       if (!validExpectedRevision(expectedRevision)) {
-        return Object.freeze({
-          status: "invalid-input",
-          reason: "invalid-storage-revision",
-        });
+        return Object.freeze({ status: "invalid-input", reason: "invalid-revision" });
       }
       const created = createHoidConversationHistorySnapshot(messages, scope);
       if (created.status !== "ready") {
-        return Object.freeze({ status: "invalid-snapshot" });
+        return Object.freeze({ status: "invalid-input", reason: "invalid-history" });
       }
-      return saveHoidConversationHistory(
+      const result = await saveHoidConversationHistory(
         store,
         key,
         expectedRevision === 0 ? null : expectedRevision,
         created.snapshot,
         scope,
       );
+      return normalizeSqliteSave(result);
     },
     clear: async () => Object.freeze({
       status: "unsupported",
@@ -209,10 +355,10 @@ export function createHoidVaultConversationHistoryAuthorityBackend(
 
   const backend: HoidConversationHistoryAuthorityBackendPort = Object.freeze({
     kind: "vault-history-v1",
-    restore: (scope: unknown) => bridge.restore(scope),
-    save: (revision: number, messages: unknown, scope: unknown) =>
-      bridge.save(revision, messages, scope),
-    clear: (revision: number) => bridge.clear(revision),
+    restore: async (scope: unknown) => normalizeVaultRestore(await bridge.restore(scope)),
+    save: async (revision: number, messages: unknown, scope: unknown) =>
+      normalizeVaultSave(await bridge.save(revision, messages, scope)),
+    clear: async (revision: number) => normalizeVaultClear(await bridge.clear(revision)),
   });
   return rememberBackend(backend);
 }
@@ -265,9 +411,6 @@ export function createHoidConversationHistoryAuthority(
   let released = false;
   let tail: Promise<void> = Promise.resolve();
 
-  const blocked = (reason: "authority-disposed" | "backend-failed") =>
-    Object.freeze({ status: "blocked" as const, reason });
-
   const enqueue = <T>(
     operation: () => Promise<T>,
     disposedResult: T,
@@ -301,7 +444,7 @@ export function createHoidConversationHistoryAuthority(
     if (!validExpectedRevision(expectedRevision)) {
       return Promise.resolve(Object.freeze({
         status: "invalid-input",
-        reason: "invalid-authority-revision",
+        reason: "invalid-revision",
       }));
     }
     return enqueue<HoidConversationHistoryAuthoritySaveResult>(
@@ -317,7 +460,7 @@ export function createHoidConversationHistoryAuthority(
     if (!validExpectedRevision(expectedRevision)) {
       return Promise.resolve(Object.freeze({
         status: "invalid-input",
-        reason: "invalid-authority-revision",
+        reason: "invalid-revision",
       }));
     }
     return enqueue<HoidConversationHistoryAuthorityClearResult>(

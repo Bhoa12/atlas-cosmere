@@ -64,6 +64,12 @@ describe("Hoid encrypted conversation vault", () => {
     await expect(vault.restore(SESSION)).resolves.toEqual({ status: "empty", revision: 0 });
   });
 
+  it("accepts an explicit zero checkpoint only when no envelope exists", async () => {
+    const { vault, revisions } = fixture();
+    revisions.set(SESSION, 0);
+    await expect(vault.restore(SESSION)).resolves.toEqual({ status: "empty", revision: 0 });
+  });
+
   it("encrypts before persistence and advances the checkpoint after the blob commit", async () => {
     const { vault, blobs, revisions, seal } = fixture();
     const result = await vault.save(SESSION, 0, Object.freeze({ messages: ["hello"] }));

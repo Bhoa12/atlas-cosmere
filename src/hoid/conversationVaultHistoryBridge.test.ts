@@ -339,6 +339,136 @@ describe("Hoid encrypted conversation history bridge", () => {
     });
   });
 
+  it("accepts a tombstone empty state with its positive durable revision", async () => {
+    const tombstoneVault: HoidConversationVault = {
+      restore: async () => Object.freeze({ status: "empty", revision: 5 }),
+      save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(tombstoneVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.restore(scopeA)).resolves.toEqual({ status: "empty", revision: 5 });
+  });
+
+  it("rejects malformed restore revisions before any assistant message can escape", async () => {
+    const malformedVault: HoidConversationVault = {
+      restore: async () => ({
+        status: "ready",
+        revision: -1,
+        snapshot: snapshot(),
+      } as unknown as HoidConversationVaultResult),
+      save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(malformedVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.restore(scopeA)).resolves.toEqual({
+      status: "blocked",
+      reason: "invalid-vault-result",
+    });
+  });
+
+  it("rejects accessor-backed vault result fields without invoking getters", async () => {
+    let invoked = false;
+    const hostileResult = Object.defineProperties({}, {
+      status: { enumerable: true, value: "ready" },
+      revision: { enumerable: true, value: 4 },
+      snapshot: { enumerable: true, get: () => { invoked = true; return snapshot(); } },
+    });
+    const hostileVault: HoidConversationVault = {
+      restore: async () => hostileResult as unknown as HoidConversationVaultResult,
+      save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(hostileVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.restore(scopeA)).resolves.toEqual({
+      status: "blocked",
+      reason: "invalid-vault-result",
+    });
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects extra result fields and unknown blocked reasons", async () => {
+    const malformedVault: HoidConversationVault = {
+      restore: async () => ({
+        status: "blocked",
+        reason: "checkpoint-unavailable",
+        fallback: snapshot(),
+      } as unknown as HoidConversationVaultResult),
+      save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      clear: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(malformedVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.restore(scopeA)).resolves.toEqual({
+      status: "blocked",
+      reason: "invalid-vault-result",
+    });
+  });
+
+  it("requires save success to advance exactly one revision", async () => {
+    const malformedVault: HoidConversationVault = {
+      restore: async () => Object.freeze({ status: "empty", revision: 0 }),
+      save: async () => Object.freeze({ status: "saved", revision: 7 }),
+      clear: async () => Object.freeze({ status: "cleared", revision: 1 }),
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(malformedVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.save(0, [userMessage()], scopeA)).resolves.toEqual({
+      status: "blocked",
+      reason: "invalid-vault-result",
+    });
+  });
+
+  it("rejects invalid save revisions before calling the vault", async () => {
+    const fixture = fakeVault();
+    const bridge = createHoidConversationVaultHistoryBridge(fixture.vault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.save(-1, [userMessage()], scopeA)).resolves.toEqual({
+      status: "invalid-input",
+      reason: "invalid-revision",
+    });
+    await expect(bridge.save(1.5, [userMessage()], scopeA)).resolves.toEqual({
+      status: "invalid-input",
+      reason: "invalid-revision",
+    });
+    expect(fixture.save).not.toHaveBeenCalled();
+  });
+
+  it("requires clear success to advance exactly one revision", async () => {
+    const malformedVault: HoidConversationVault = {
+      restore: async () => Object.freeze({ status: "empty", revision: 0 }),
+      save: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+      clear: async () => Object.freeze({ status: "cleared", revision: 9 }),
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(malformedVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.clear(0)).resolves.toEqual({
+      status: "blocked",
+      reason: "invalid-vault-result",
+    });
+  });
+
+  it("rejects invalid clear revisions before calling the vault", async () => {
+    const fixture = fakeVault();
+    const bridge = createHoidConversationVaultHistoryBridge(fixture.vault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+    await expect(bridge.clear(Number.MAX_SAFE_INTEGER)).resolves.toEqual({
+      status: "invalid-input",
+      reason: "invalid-revision",
+    });
+    expect(fixture.clear).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed session identifiers at construction", () => {
     const fixture = fakeVault();
     expect(createHoidConversationVaultHistoryBridge(fixture.vault, "../other-session")).toBeNull();

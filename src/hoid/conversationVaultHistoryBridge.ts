@@ -58,12 +58,121 @@ type VaultBlockedReason = Extract<
   { status: "blocked" }
 >["reason"];
 
+const MAX_EXPECTED_REVISION = Number.MAX_SAFE_INTEGER - 1;
+
+const VAULT_BLOCKED_REASONS: readonly VaultBlockedReason[] = [
+  "invalid-session",
+  "invalid-revision",
+  "checkpoint-unavailable",
+  "blob-store-unavailable",
+  "checkpoint-envelope-mismatch",
+  "invalid-envelope",
+  "aad-mismatch",
+  "key-unavailable",
+  "encryption-failed",
+  "decryption-failed",
+  "invalid-plaintext",
+  "codec-rejected",
+  "checkpoint-commit-failed",
+];
+
+function exactDataRecord(value: unknown, keys: readonly string[]): Record<string, unknown> | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const ownKeys = Reflect.ownKeys(value);
+    if (
+      ownKeys.length !== keys.length ||
+      ownKeys.some(key => typeof key !== "string" || !keys.includes(key))
+    ) return null;
+    const record = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      record[key] = descriptor.value;
+    }
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+function validRevision(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function validExpectedRevision(value: unknown): value is number {
+  return validRevision(value) && value <= MAX_EXPECTED_REVISION;
+}
+
+/** Runtime validation for values crossing the vault adapter boundary. */
+function canonicalVaultResult(value: unknown): HoidConversationVaultResult | null {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const statusDescriptor = Object.getOwnPropertyDescriptor(value, "status");
+    if (
+      !statusDescriptor ||
+      !Object.prototype.hasOwnProperty.call(statusDescriptor, "value") ||
+      statusDescriptor.enumerable !== true
+    ) return null;
+
+    switch (statusDescriptor.value) {
+      case "empty": {
+        const record = exactDataRecord(value, ["status", "revision"]);
+        if (!record || !validRevision(record.revision)) return null;
+        return Object.freeze({ status: "empty", revision: record.revision });
+      }
+      case "ready": {
+        const record = exactDataRecord(value, ["status", "revision", "snapshot"]);
+        if (!record || !validRevision(record.revision) || record.revision < 1) return null;
+        return Object.freeze({ status: "ready", revision: record.revision, snapshot: record.snapshot });
+      }
+      case "saved":
+      case "cleared": {
+        const record = exactDataRecord(value, ["status", "revision"]);
+        if (!record || !validRevision(record.revision) || record.revision < 1) return null;
+        return Object.freeze({ status: statusDescriptor.value, revision: record.revision });
+      }
+      case "conflict": {
+        const record = exactDataRecord(value, ["status", "revision"]);
+        if (!record || !(record.revision === null || validRevision(record.revision))) return null;
+        return Object.freeze({ status: "conflict", revision: record.revision });
+      }
+      case "blocked": {
+        const record = exactDataRecord(value, ["status", "reason"]);
+        if (
+          !record ||
+          typeof record.reason !== "string" ||
+          !VAULT_BLOCKED_REASONS.includes(record.reason as VaultBlockedReason)
+        ) return null;
+        return Object.freeze({ status: "blocked", reason: record.reason as VaultBlockedReason });
+      }
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
 export type HoidConversationVaultHistorySaveResult =
   | Readonly<{
       status: "invalid-history";
       reason: "invalid-progress" | "invalid-messages";
     }>
-  | Extract<HoidConversationVaultResult, { status: "saved" | "conflict" | "blocked" }>;
+  | Readonly<{ status: "invalid-input"; reason: "invalid-revision" }>
+  | Extract<HoidConversationVaultResult, { status: "saved" | "conflict" }>
+  | Readonly<{ status: "blocked"; reason: VaultBlockedReason | "invalid-vault-result" }>;
+
+export type HoidConversationVaultHistoryClearResult =
+  | Readonly<{ status: "invalid-input"; reason: "invalid-revision" }>
+  | Extract<HoidConversationVaultResult, { status: "cleared" | "conflict" }>
+  | Readonly<{ status: "blocked"; reason: VaultBlockedReason | "invalid-vault-result" }>;
 
 export type HoidConversationVaultHistoryRestoreResult =
   | Extract<HoidConversationVaultResult, { status: "empty" }>
@@ -83,7 +192,7 @@ export type HoidConversationVaultHistoryRestoreResult =
     }>
   | Readonly<{
       status: "blocked";
-      reason: VaultBlockedReason | "invalid-history-snapshot";
+      reason: VaultBlockedReason | "invalid-history-snapshot" | "invalid-vault-result";
     }>;
 
 export type HoidConversationVaultHistoryBridge = Readonly<{
@@ -93,7 +202,7 @@ export type HoidConversationVaultHistoryBridge = Readonly<{
     progressScope: unknown,
   ): Promise<HoidConversationVaultHistorySaveResult>;
   restore(currentProgressScope: unknown): Promise<HoidConversationVaultHistoryRestoreResult>;
-  clear(expectedRevision: number): ReturnType<HoidConversationVault["clear"]>;
+  clear(expectedRevision: number): Promise<HoidConversationVaultHistoryClearResult>;
 }>;
 
 /**
@@ -113,36 +222,40 @@ export function createHoidConversationVaultHistoryBridge(
     messages: unknown,
     progressScope: unknown,
   ): Promise<HoidConversationVaultHistorySaveResult> => {
+    if (!validExpectedRevision(expectedRevision)) {
+      return Object.freeze({ status: "invalid-input", reason: "invalid-revision" });
+    }
     const created = createHoidConversationHistorySnapshot(messages, progressScope);
     if (created.status !== "ready") {
       return Object.freeze({ status: "invalid-history", reason: created.reason });
     }
-    let saved: HoidConversationVaultResult;
+    let rawSaved: unknown;
     try {
-      saved = await vault.save(sessionId, expectedRevision, created.snapshot);
+      rawSaved = await vault.save(sessionId, expectedRevision, created.snapshot);
     } catch {
       return Object.freeze({ status: "blocked", reason: "blob-store-unavailable" });
     }
-    if (
-      saved.status === "saved" ||
-      saved.status === "conflict" ||
-      saved.status === "blocked"
-    ) return saved;
-    return Object.freeze({ status: "blocked", reason: "codec-rejected" });
+    const saved = canonicalVaultResult(rawSaved);
+    if (!saved) return Object.freeze({ status: "blocked", reason: "invalid-vault-result" });
+    if (saved.status === "blocked" || saved.status === "conflict") return saved;
+    if (saved.status === "saved" && saved.revision === expectedRevision + 1) return saved;
+    return Object.freeze({ status: "blocked", reason: "invalid-vault-result" });
   };
 
   const restore = async (
     currentProgressScope: unknown,
   ): Promise<HoidConversationVaultHistoryRestoreResult> => {
-    let restored: HoidConversationVaultResult;
+    let rawRestored: unknown;
     try {
-      restored = await vault.restore(sessionId);
+      rawRestored = await vault.restore(sessionId);
     } catch {
       return Object.freeze({ status: "blocked", reason: "blob-store-unavailable" });
     }
+    const restored = canonicalVaultResult(rawRestored);
+    if (!restored) return Object.freeze({ status: "blocked", reason: "invalid-vault-result" });
     if (restored.status === "empty" || restored.status === "blocked") return restored;
     if (restored.status !== "ready") {
-      return Object.freeze({ status: "blocked", reason: "invalid-history-snapshot" });
+      return Object.freeze({ status: "blocked", reason: "invalid-vault-result" });
     }
 
     const hydrated = hydrateHoidConversationHistorySnapshot(
@@ -172,15 +285,24 @@ export function createHoidConversationVaultHistoryBridge(
     });
   };
 
-  return Object.freeze({
-    save,
-    restore,
-    clear: async (expectedRevision: number) => {
-      try {
-        return await vault.clear(sessionId, expectedRevision);
-      } catch {
-        return Object.freeze({ status: "blocked", reason: "blob-store-unavailable" });
-      }
-    },
-  });
+  const clear = async (
+    expectedRevision: number,
+  ): Promise<HoidConversationVaultHistoryClearResult> => {
+    if (!validExpectedRevision(expectedRevision)) {
+      return Object.freeze({ status: "invalid-input", reason: "invalid-revision" });
+    }
+    let rawCleared: unknown;
+    try {
+      rawCleared = await vault.clear(sessionId, expectedRevision);
+    } catch {
+      return Object.freeze({ status: "blocked", reason: "blob-store-unavailable" });
+    }
+    const cleared = canonicalVaultResult(rawCleared);
+    if (!cleared) return Object.freeze({ status: "blocked", reason: "invalid-vault-result" });
+    if (cleared.status === "blocked" || cleared.status === "conflict") return cleared;
+    if (cleared.status === "cleared" && cleared.revision === expectedRevision + 1) return cleared;
+    return Object.freeze({ status: "blocked", reason: "invalid-vault-result" });
+  };
+
+  return Object.freeze({ save, restore, clear });
 }

@@ -1,0 +1,55 @@
+name: Hoid SQLite conversation generation fence
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run304"
+    paths:
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.ts"
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts"
+      - "src/hoid/expoSqliteConversationHistoryStore.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationHistoryMigrationRunner.ts"
+      - "docs/hoid/RUN304_SQLITE_GENERATION_FENCE.md"
+      - ".github/workflows/hoid-sqlite-generation-fence.yml"
+  pull_request:
+    paths:
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.ts"
+      - "src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts"
+      - "src/hoid/expoSqliteConversationHistoryStore.ts"
+      - "src/hoid/conversationHistoryStorePort.ts"
+      - "src/hoid/conversationHistoryMigrationRunner.ts"
+      - "docs/hoid/RUN304_SQLITE_GENERATION_FENCE.md"
+      - ".github/workflows/hoid-sqlite-generation-fence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-generation-fence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test generation fence and regressions
+        run: >-
+          npx vitest run
+          src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts
+          src/hoid/expoSqliteConversationHistoryStore.test.ts
+          src/hoid/conversationHistoryMigrationRunner.test.ts
+      - name: Type-check generation fence and regressions
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --esModuleInterop --skipLibCheck
+          src/hoid/expoSqliteConversationHistoryGenerationFence.ts
+          src/hoid/expoSqliteConversationHistoryGenerationFence.test.ts
+          src/hoid/expoSqliteConversationHistoryStore.ts
+          src/hoid/expoSqliteConversationHistoryStore.test.ts
+          src/hoid/conversationHistoryMigrationRunner.ts
+          src/hoid/conversationHistoryMigrationRunner.test.ts

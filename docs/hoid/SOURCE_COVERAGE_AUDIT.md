@@ -14,16 +14,16 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 |---|---:|---|
 | Bibliography entries | 24 | Work identity and source group are catalogued |
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
-| Verified numbered-chapter locators | 1,106 | Relative navigation hrefs are bound to an edition and navigation digest |
+| Verified numbered-chapter locators | 1,110 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 71 | Exact XHTML document bytes were inspected and fingerprinted |
+| Individually inspected chapter documents | 72 | Exact XHTML document bytes were inspected and fingerprinted |
 | Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
-| Original staged chapter summaries | 67 | Original editorial summaries exist in staging |
-| Summaries pending review | 67 | None of those summaries is approved for production |
+| Original staged chapter summaries | 68 | Original editorial summaries exist in staging |
+| Summaries pending review | 68 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
 | Approved production claims | 0 | No claim can currently be served as verified narrative knowledge |
 
-The 1,106 locators comprise 653 Cosmere locators and 453 Roshar locators. A locator verifies a navigation target only. It does not prove that the corresponding chapter body has been inspected.
+The 1,110 locators comprise 653 Cosmere locators and 457 Roshar locators. The Roshar total includes four additional edition-bound locators for duplicate-number chapters in Viento y Verdad; the per-work progress table reports only its safe numeric prefix. A locator verifies a navigation target only. It does not prove that the corresponding chapter body has been inspected.
 
 ## Per-work inventory
 
@@ -55,11 +55,11 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 | Work ID | Work | Locators | Inspected bodies | Staged summaries | Progress limitation |
 |---|---|---:|---:|---:|---|
-| `twok` | El Camino de los Reyes | 75 | 21 | 20 | Numeric chapters |
+| `twok` | El Camino de los Reyes | 75 | 22 | 21 | Numeric chapters |
 | `wor` | Palabras radiantes | 89 | 0 | 0 | Numeric chapters |
 | `ob` | Juramentada | 122 | 0 | 0 | Numeric chapters |
 | `row` | El Ritmo de la Guerra | 117 | 0 | 0 | Numeric chapters |
-| `sawt` | Viento y Verdad | 11 | 0 | 0 | Only the safe numeric prefix through chapter 11 is locator-backed; chapter numbers 12 and 14 are ambiguous |
+| `sawt` | Viento y Verdad | 15 | 0 | 0 | Four distinct locators preserve duplicate labels 12 and 14; numeric progress remains capped at chapter 11 |
 | `edgedancer` | Danzante del Filo | 20 | 20 | 19 | Numeric chapters |
 | `dawnshard` | Esquirla del amanecer | 19 | 19 | 18 | Numeric chapters |
 
@@ -69,7 +69,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 2. **Edition structure is not navigation coverage.** Chapter counts are derived from the recorded edition structure and exclude unmodelled front/back matter and special sections.
 3. **Navigation locator is not body inspection.** A TOC href plus navigation digest proves only that the target is represented in the inspected navigation document.
 4. **Body inspection is sparse and exact.** A chapter counts as inspected only when its exact XHTML bytes have an edition-bound locator and an allowlisted SHA-256 digest.
-5. **Staging is not approval.** All 67 summaries remain `pending-review`. The 85-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
+5. **Staging is not approval.** All 68 summaries remain `pending-review`. The 85-record editorial bundle being `ready-for-review` means its cross-references are structurally complete, not that any record has been approved.
 6. **Production remains empty.** The knowledge registry, approved-claim registry and topic-assignment activation receipt remain empty/null.
 7. **Ambiguity remains blocked.** Elantris, Viento y Verdad, Arena blanca and Arcanum ilimitado retain their conservative progress policies. This report does not infer missing locators or section boundaries.
 8. **No cross-book unlock.** A verified chapter or cursor in one work never authorizes evidence from another work.
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,106 locators, 71 inspected documents, 67 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,110 locators, 72 inspected documents, 68 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -300,3 +300,14 @@ The current inventory is **71 individually inspected chapter documents and 67 st
 Run 232's final-head CI exposed two stale assertions shared by eight dependent workflows: the chapter-document test still expected El Camino de los Reyes chapter 21 to be absent, and the navigation audit still expected only 20 inspected Roshar documents. This run updates those expectations, adds positive digest assertions for both newly recorded documents, and preserves negative assertions for TFE chapter 12 and Roshar chapter 22.
 
 No EPUB bytes, XHTML body, extracted passage, image, reading progress, spoiler authorization, production claim or activation receipt was committed or changed.
+
+
+## Run 321 — explicit Roshar segmentation and chapter 22
+
+The three unique Roshar EPUBs were re-opened from the current Library inventory. The five-book omnibus now has explicit TOC/spine ranges for the five novel work IDs; the two standalone novellas each map all of their navigation entries to their own work ID. The map is bound to exact package, navigation, candidate and catalogue fingerprints. Global front/back matter remains unassigned, and Viento y Verdad keeps its duplicate chapter-12 and chapter-14 locators separate.
+
+One additional XHTML chapter document was inspected in memory: El Camino de los Reyes, chapter 22. Its raw document digest is registered in the sparse allowlist, and one original Spanish summary was staged with the completed-through unlock watermark at chapter 22 (the summary is withheld until the reader has completed chapter 22). The summary remains pending review; no production knowledge was added.
+
+Current Run 321 counts are 72 individually inspected chapter documents and 68 original summaries pending review. The 24-work bibliography is unchanged. The current Library listing returned only the three unique Roshar EPUBs (each with a duplicate copy); cosmere.epub was not present in this run's listing, so no new Cosmere segmentation or chapter evidence was created. Run 320's earlier inspection remains historical and was not treated as a current source read.
+
+See RUN321_WORK_SEGMENTATION_AND_CHAPTER_22.md for exact edition fingerprints, work ranges, the chapter locator and the privacy boundary.

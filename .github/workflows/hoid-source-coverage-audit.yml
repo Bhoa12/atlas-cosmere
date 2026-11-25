@@ -49,6 +49,7 @@ jobs:
           src/hoid/evidenceRuntime.test.ts
           src/hoid/cursorEvidenceRuntime.test.ts
           src/hoid/epubSourceProbe.test.ts
+          src/hoid/epubWorkSegmentation.test.ts
           src/hoid/editorialReviewAttestationIssuer.test.ts
       - name: Type-check source coverage boundaries
         run: >-
@@ -72,4 +73,5 @@ jobs:
           src/hoid/evidenceRuntime.ts
           src/hoid/cursorEvidenceRuntime.ts
           src/hoid/epubSourceProbe.ts
+          src/hoid/epubWorkSegmentation.ts
           src/hoid/editorialReviewAttestationIssuer.ts

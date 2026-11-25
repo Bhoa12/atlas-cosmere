@@ -73,7 +73,7 @@ describe("cosmere.epub navigation audit", () => {
       expect(getVerifiedChapterDocumentCount(bookId)).toBe(bookId === "tfe" ? 11 : 0);
     }
     expect(getVerifiedChapterDocumentCount("tfe")).toBe(11);
-    expect(getVerifiedChapterDocumentCount("twok")).toBe(21);
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(22);
     expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(20);
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(19);
     for (const bookId of ["wor", "ob", "row", "sawt"]) {

@@ -1,0 +1,78 @@
+name: Hoid work segmentation and chapter evidence
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/epubWorkSegmentation.ts"
+      - "src/hoid/epubWorkSegmentation.test.ts"
+      - "src/hoid/epubSourceProbe.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterDocuments.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialDrafts.test.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "docs/hoid/RUN321_WORK_SEGMENTATION_AND_CHAPTER_22.md"
+      - ".github/workflows/hoid-work-segmentation-chapter-evidence.yml"
+  pull_request:
+    paths:
+      - "src/hoid/epubWorkSegmentation.ts"
+      - "src/hoid/epubWorkSegmentation.test.ts"
+      - "src/hoid/epubSourceProbe.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterDocuments.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialDrafts.test.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "docs/hoid/RUN321_WORK_SEGMENTATION_AND_CHAPTER_22.md"
+      - ".github/workflows/hoid-work-segmentation-chapter-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  work-segmentation-and-chapter-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test segmentation, chapter evidence and editorial staging
+        run: >-
+          npx vitest run
+          src/hoid/epubWorkSegmentation.test.ts
+          src/hoid/epubSourceProbe.test.ts
+          src/hoid/verifiedChapterDocuments.test.ts
+          src/hoid/editorialDrafts.test.ts
+          src/hoid/sourceCoverage.test.ts
+          src/hoid/editorialKnowledgeBundle.test.ts
+          src/hoid/editorialReviewBundle.test.ts
+          src/hoid/editorialReviewPackets.test.ts
+          src/hoid/editorialReviewBundleQuorum.test.ts
+      - name: Type-check the segmentation and evidence boundary
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node --skipLibCheck
+          src/hoid/epubWorkSegmentation.ts
+          src/hoid/epubSourceProbe.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/editionStructure.ts
+          src/hoid/sourceCatalogManifest.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts
+          src/hoid/editorialDrafts.ts
+          src/hoid/knowledgeKinds.ts
+          src/hoid/catalog.ts
+          src/hoid/readingManifest.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/evidenceScope.ts
+          src/hoid/editionProgressValidation.ts
+          src/hoid/readingValidation.ts
+          src/hoid/types.ts

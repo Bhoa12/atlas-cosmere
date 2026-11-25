@@ -14,7 +14,7 @@ type VerifiedChapterDocumentSource = Readonly<{
  * No chapter text, title or extracted passage is stored.
  * Earlier runs added the initial sparse allowlist. Run 229 added four chapter
  * fingerprints; Run 230 added El Camino de los Reyes chapter 19 and Danzante
- * del Filo chapter 20; Run 231 added El Camino de los Reyes chapter 20; Run 232 added chapter 21.
+ * del Filo chapter 20; Run 231 added El Camino de los Reyes chapter 20; Run 232 added chapter 21; Run 321 added El Camino de los Reyes chapter 22.
  */
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
@@ -42,6 +42,7 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       19: "075a2440369deb756c3aab32e76596eb85c1c1e4e45c2255a8edf5447a1a9867",
       20: "54d359607c877ed3312095477855b1d824dab6e4f699d9a9f76979254b76f81d",
       21: "08954cd89c6ec48a8de4e6114338593cf65279acc5c17afd79627c1e827c761b",
+      22: "f584be238d9ac09a0d1426e61e8f29c7b0d7221b09b692533d2a2ca503f4c148",
     }),
   }),
   edgedancer: Object.freeze({

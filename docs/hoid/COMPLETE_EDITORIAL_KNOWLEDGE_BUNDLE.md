@@ -176,3 +176,10 @@ The new edition-bound chapter-document SHA-256 values are:
 - Esquirla del amanecer, chapter 18: `6025dc6682d083d272e1cc1899c978c2e99fa722b1a5dcb76aa634703342546b`.
 
 The current staging manifest now contains 62 original summaries, one atomic claim, 14 identity dossiers and three relationship records: 80 editorial records across 62 individually inspected source documents. The three new summaries remain pending review. Their source watermark is N and the earliest eligible reader cursor is N+1. No production claim, activation receipt or production knowledge entry was created.
+
+
+## Run 321 — current staging snapshot
+
+The current editorial staging set contains **86 records across 68 source documents**: 68 original summaries, one atomic claim, 14 identity dossiers and three relationship records. The Run 321 chapter-22 summary for El Camino de los Reyes is included as a source-bound draft; its source digest and edition locator are verified, but its review status remains pending.
+
+All 68 summaries remain outside the production registry. The bundle is structurally ready for independent review only; it is not approved, does not carry a production activation receipt and does not authorize a narrative response. The broader source audit records 72 individually inspected chapter documents, four of which do not currently have a staged summary. No EPUB or XHTML body was committed.

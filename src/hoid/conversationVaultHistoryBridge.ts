@@ -2,8 +2,8 @@ import {
   createHoidConversationHistorySnapshot,
   hydrateHoidConversationHistorySnapshot,
   type HoidPersistableConversationMessage,
-  type HoidConversationProgressScope,
 } from "./conversationHistoryHydration";
+import type { HoidConversationProgressScope } from "./conversationHistoryPolicy";
 import type { HoidConversationVault, HoidConversationVaultResult } from "./conversationVault";
 
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,95}$/u;

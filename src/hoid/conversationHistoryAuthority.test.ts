@@ -83,6 +83,15 @@ function makeVaultBridge(overrides: Partial<HoidConversationVaultHistoryBridge> 
   return bridge;
 }
 
+function makeSqliteBackend(
+  store: HoidConversationHistoryStorePort,
+  storageKey: HoidConversationStorageKey,
+) {
+  const backend = createHoidSqliteConversationHistoryAuthorityBackend(store, storageKey);
+  if (!backend) throw new Error("SQLite backend fixture could not be created");
+  return backend;
+}
+
 function makeAuthority(backend: HoidConversationHistoryAuthorityBackendPort, id = authorityId) {
   const authority = createHoidConversationHistoryAuthority({ authorityId: id, backend });
   if (!authority) throw new Error("Authority fixture could not be created");
@@ -100,7 +109,7 @@ function deferred<T>() {
 describe("Hoid single-writer conversation history authority", () => {
   it("adapts SQLite create-only revision zero to its null CAS revision", async () => {
     const store = makeSqliteStore();
-    const backend = createHoidSqliteConversationHistoryAuthorityBackend(store.port, key);
+    const backend = makeSqliteBackend(store.port, key);
     const authority = makeAuthority(backend, "sqlite-create-only");
 
     await expect(authority.save(0, messages(), scopeA)).resolves.toEqual({
@@ -114,9 +123,25 @@ describe("Hoid single-writer conversation history authority", () => {
     authority.dispose();
   });
 
+  it("pins the SQLite partition key when the adapter is created", async () => {
+    const store = makeSqliteStore();
+    const mutableKey = {
+      principalId: key.principalId,
+      conversationId: key.conversationId,
+    };
+    const backend = createHoidSqliteConversationHistoryAuthorityBackend(store.port, mutableKey);
+    if (!backend) throw new Error("SQLite backend fixture could not be created");
+    mutableKey.conversationId = "conversation-02";
+    const authority = makeAuthority(backend, "sqlite-pinned-partition");
+
+    await authority.save(0, messages(), scopeA);
+    expect(store.compareAndSwap.mock.calls[0][0]).toEqual(key);
+    authority.dispose();
+  });
+
   it("restores SQLite history through the selected backend and filters stale assistant prose", async () => {
     const store = makeSqliteStore();
-    const backend = createHoidSqliteConversationHistoryAuthorityBackend(store.port, key);
+    const backend = makeSqliteBackend(store.port, key);
     const authority = makeAuthority(backend, "sqlite-stale-progress");
 
     await authority.save(0, messages(), scopeA);
@@ -141,7 +166,7 @@ describe("Hoid single-writer conversation history authority", () => {
   it("does not simulate SQLite deletion when its schema has no tombstone", async () => {
     const store = makeSqliteStore();
     const authority = makeAuthority(
-      createHoidSqliteConversationHistoryAuthorityBackend(store.port, key),
+      makeSqliteBackend(store.port, key),
       "sqlite-clear-unsupported",
     );
 
@@ -172,7 +197,7 @@ describe("Hoid single-writer conversation history authority", () => {
 
   it("rejects a composition that attempts to supply a second backend", () => {
     const store = makeSqliteStore();
-    const backend = createHoidSqliteConversationHistoryAuthorityBackend(store.port, key);
+    const backend = makeSqliteBackend(store.port, key);
     expect(createHoidConversationHistoryAuthority({
       authorityId,
       backend,
@@ -201,7 +226,7 @@ describe("Hoid single-writer conversation history authority", () => {
   });
 
   it("allows only one live authority for an opaque partition in this runtime", async () => {
-    const backend = createHoidSqliteConversationHistoryAuthorityBackend(makeSqliteStore().port, key);
+    const backend = makeSqliteBackend(makeSqliteStore().port, key);
     const first = makeAuthority(backend, "exclusive-partition");
     expect(createHoidConversationHistoryAuthority({
       authorityId: "exclusive-partition",
@@ -314,7 +339,7 @@ describe("Hoid single-writer conversation history authority", () => {
   });
 
   it("rejects malformed and personally identifying authority identifiers", () => {
-    const backend = createHoidSqliteConversationHistoryAuthorityBackend(makeSqliteStore().port, key);
+    const backend = makeSqliteBackend(makeSqliteStore().port, key);
     expect(createHoidConversationHistoryAuthority({ authorityId: "", backend })).toBeNull();
     expect(createHoidConversationHistoryAuthority({ authorityId: "name@example.com", backend })).toBeNull();
     expect(createHoidConversationHistoryAuthority({ authorityId: "../conversation", backend })).toBeNull();

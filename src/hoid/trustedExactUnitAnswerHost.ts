@@ -642,13 +642,13 @@ export class HoidTrustedExactUnitAnswerHost {
     }
 
     const priorProgress = await sidecar.runtime.verifyForPresentation(sidecar.receipt);
-    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
-      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
-    }
     if (priorProgress.status !== "ready") {
       const reason = mapPresentationFailure(priorProgress);
       this.clearPresentation(sidecar.presentationToken, reason);
       return Object.freeze({ status: "blocked", reason });
+    }
+    if (this.followUpSidecars.get(capabilityInput as object) !== sidecar) {
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
     }
     if (priorProgress.progressRevision !== sidecar.receipt.progressRevision ||
       priorProgress.progressFingerprint !== sidecar.receipt.progressFingerprint) {

@@ -269,9 +269,9 @@ describe("Hoid trusted application bootstrap", () => {
 
     await bootstrap.initialize();
     expect(observed).toEqual(["loading", "ready"]);
+    unsubscribe();
     bootstrap.dispose();
     expect(observed).toEqual(["loading", "ready", "disposed"]);
-    unsubscribe();
   });
 
 

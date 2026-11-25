@@ -1691,6 +1691,30 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-022.dalinar-sadeas-information-highprince",
+    kind: "event",
+    aliases: Object.freeze(["nombramiento de Sadeas como alto príncipe de información"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 22 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 22,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-044.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 22 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "f584be238d9ac09a0d1426e61e8f29c7b0d7221b09b692533d2a2ca503f4c148",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "a44a3e6fd6533b40f0662fe18f4b305d6c1c2e39688cacaa1ecf933e59b6dfd7" }),
+    summary: "Dalinar y Adolin revisan la investigación de la cincha dañada, pero las opiniones de los talabarteros no permiten concluir si hubo sabotaje. Durante el banquete, Sagaz advierte a Dalinar de que se extienden rumores sobre su propuesta de abandonar el Pacto de la Venganza. Dalinar explica a Adolin que no piensa retirarse: quiere sustituir las escaramuzas aisladas por una operación coordinada, reuniendo los ejércitos de los altos príncipes para atacar a los parshendi con una fuerza común. Navani regresa a los campamentos con noticias sobre los escudos vedens capaces de resistir hojas esquirladas y con la intención de vigilar la situación política de Elhokar. Al final, el rey encarga a Sadeas investigar el supuesto atentado de la cacería. La decisión aparta a Dalinar de la pesquisa y concede a Sadeas una posición de gran influencia.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]);
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

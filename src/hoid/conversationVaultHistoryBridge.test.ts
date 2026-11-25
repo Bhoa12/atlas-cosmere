@@ -285,6 +285,60 @@ describe("Hoid encrypted conversation history bridge", () => {
     expect(fixture.clear).toHaveBeenCalledWith(SESSION, 4);
   });
 
+  it("captures only plain data-method vault ports without invoking accessors", () => {
+    const fixture = fakeVault();
+    let invoked = false;
+    const hostile = Object.create(null);
+    Object.defineProperties(hostile, {
+      restore: { enumerable: true, get: () => { invoked = true; return fixture.vault.restore; } },
+      save: { enumerable: true, value: fixture.vault.save },
+      clear: { enumerable: true, value: fixture.vault.clear },
+    });
+    expect(createHoidConversationVaultHistoryBridge(hostile, SESSION)).toBeNull();
+    expect(invoked).toBe(false);
+  });
+
+  it("captures method identities at construction instead of following later mutation", async () => {
+    const fixture = fakeVault(snapshot(), 4);
+    const bridge = createHoidConversationVaultHistoryBridge(fixture.vault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+
+    Object.defineProperty(fixture.vault, "restore", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: async () => Object.freeze({ status: "blocked", reason: "checkpoint-unavailable" }),
+    });
+    const result = await bridge.restore(scopeA);
+    expect(result.status).toBe("ready");
+    expect(fixture.restore).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps unexpected vault adapter exceptions to blocked results", async () => {
+    const throwingVault: HoidConversationVault = {
+      restore: async () => { throw new Error("restore failure"); },
+      save: async () => { throw new Error("save failure"); },
+      clear: async () => { throw new Error("clear failure"); },
+    };
+    const bridge = createHoidConversationVaultHistoryBridge(throwingVault, SESSION);
+    expect(bridge).not.toBeNull();
+    if (!bridge) return;
+
+    await expect(bridge.restore(scopeA)).resolves.toEqual({
+      status: "blocked",
+      reason: "blob-store-unavailable",
+    });
+    await expect(bridge.save(0, [userMessage()], scopeA)).resolves.toEqual({
+      status: "blocked",
+      reason: "blob-store-unavailable",
+    });
+    await expect(bridge.clear(0)).resolves.toEqual({
+      status: "blocked",
+      reason: "blob-store-unavailable",
+    });
+  });
+
   it("rejects malformed session identifiers at construction", () => {
     const fixture = fakeVault();
     expect(createHoidConversationVaultHistoryBridge(fixture.vault, "../other-session")).toBeNull();

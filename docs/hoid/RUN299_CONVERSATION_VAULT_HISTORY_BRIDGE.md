@@ -75,3 +75,8 @@ vault must not independently write the same conversation partition. If the
 vault is selected, the existing rows must be migrated under an explicit
 revision and key-retention policy, and the vault's independent native
 checkpoint must be available before restore is enabled.
+
+The bridge captures plain data-method vault ports at construction, rejects
+accessor-backed or extended port objects without invoking getters, and maps
+unexpected adapter exceptions to a blocked result. It does not follow later
+mutation of the caller's vault object.

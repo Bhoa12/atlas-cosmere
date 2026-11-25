@@ -23,6 +23,13 @@ The SQLite v1 schema has no tombstone. Its `clear()` result is explicitly
 secure deletion. The vault backend can clear through its existing tombstone
 operation.
 
+Both adapters expose the same normalized result vocabulary: `empty`, `ready`,
+`stale` or `blocked` for restore; `saved`, `conflict`, `invalid-input` or
+`blocked` for writes; and `cleared`, `conflict`, `unsupported`,
+`invalid-input` or `blocked` for deletion. Revisions use one field named
+`revision`, so callers do not need to branch on SQLite's
+`storageRevision` or Vault-specific error unions.
+
 ## Single-writer composition
 
 `createHoidConversationHistoryAuthority()` accepts one exact selection

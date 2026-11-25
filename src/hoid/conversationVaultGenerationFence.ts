@@ -401,6 +401,7 @@ export function createHoidConversationVaultGenerationFencedAdapter(
 
   const migration: HoidHistoryMigrationSnapshotPort = Object.freeze({
     kind: "vault-history-v1" as const,
+    role: binding.role,
     read: async input => {
       const canonical = validMigrationInput(input, binding, ["operationId", "generation"]);
       if (!canonical) return blocked("generation-fence-unavailable");

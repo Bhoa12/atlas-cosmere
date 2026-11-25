@@ -1,5 +1,5 @@
 import { inflateSync, strFromU8, strToU8 } from "fflate";
-import { DOMParser } from "@xmldom/xmldom";
+import { DOMParser, type Document as XmlDocument, type Element as XmlElement } from "@xmldom/xmldom";
 import { sha256 } from "@noble/hashes/sha256";
 
 const CRC32_TABLE = (() => {
@@ -79,7 +79,7 @@ function toHex(bytes: Uint8Array): string {
   return output;
 }
 function digest(bytes: Uint8Array): string { return toHex(sha256(bytes)); }
-function localName(element: Element): string {
+function localName(element: XmlElement): string {
   return element.localName || element.nodeName.split(":").pop() || element.nodeName;
 }
 function decodeZipName(bytes: Uint8Array, utf8: boolean): string | null {
@@ -214,7 +214,7 @@ function decodeMetadata(bytes: Uint8Array): string | null {
     return value.includes("\u0000") ? null : value;
   } catch { return null; }
 }
-function parseXml(value: string, mimeType: string): Document | null {
+function parseXml(value: string, mimeType: string): XmlDocument | null {
   if (/<!DOCTYPE|<!ENTITY/iu.test(value)) return null;
   let parseError = false;
   try {
@@ -225,7 +225,7 @@ function parseXml(value: string, mimeType: string): Document | null {
     return !parseError && document?.documentElement ? document : null;
   } catch { return null; }
 }
-function descendants(root: Document | Element, name: string): Element[] {
+function descendants(root: XmlDocument | XmlElement, name: string): Element[] {
   const nodes = root.getElementsByTagName("*");
   const result: Element[] = [];
   for (let index = 0; index < nodes.length; index += 1) {
@@ -234,10 +234,10 @@ function descendants(root: Document | Element, name: string): Element[] {
   }
   return result;
 }
-function directChild(parent: Element, name: string): Element | null {
+function directChild(parent: XmlElement, name: string): Element | null {
   let child = parent.firstChild;
   while (child) {
-    if (child.nodeType === 1 && localName(child as Element) === name) return child as Element;
+    if (child.nodeType === 1 && localName(child as XmlElement) === name) return child as XmlElement;
     child = child.nextSibling;
   }
   return null;
@@ -272,7 +272,7 @@ function parseChapterNumber(label: string): number | null {
   const value = Number(match[1]);
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
-function parseEpub3Navigation(document: Document): readonly NavigationLink[] | null {
+function parseEpub3Navigation(document: XmlDocument): readonly NavigationLink[] | null {
   const toc = descendants(document, "nav").find(nav => {
     const type = nav.getAttribute("epub:type") || nav.getAttributeNS(EPUB_NS, "type") || "";
     return type.split(/\s+/u).includes("toc");
@@ -283,7 +283,7 @@ function parseEpub3Navigation(document: Document): readonly NavigationLink[] | n
   })).filter(link => link.href.length > 0);
   return links.length ? Object.freeze(links) : null;
 }
-function parseEpub2Navigation(document: Document): readonly NavigationLink[] | null {
+function parseEpub2Navigation(document: XmlDocument): readonly NavigationLink[] | null {
   const links: NavigationLink[] = [];
   for (const point of descendants(document, "navPoint")) {
     const label = directChild(point, "navLabel");

@@ -10,6 +10,7 @@ import type { HoidHistoryBackendKind } from "./conversationHistoryAuthorityJourn
  */
 export type HoidHistoryMigrationSnapshotPort = Readonly<{
   kind: HoidHistoryBackendKind;
+  role: "source" | "target";
   read: (input: Readonly<{
     operationId: string;
     generation: number;

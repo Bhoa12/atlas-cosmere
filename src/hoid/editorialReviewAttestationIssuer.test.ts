@@ -67,7 +67,6 @@ function buildFixture() {
     }))),
   });
   const context = Object.freeze({
-    schemaVersion: 1,
     repositoryFullName: "Bhoa12/atlas-cosmere",
     pullRequestNumber: 320,
     baseRef: "feat/hoid-ia-core-run319",

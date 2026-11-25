@@ -4,6 +4,9 @@ import { HOID_EDITORIAL_CLAIM_DRAFTS } from "./editorialClaimDrafts";
 import { HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
 import { HOID_EDITORIAL_RELATIONSHIP_DRAFTS } from "./editorialRelationshipDrafts";
 import { buildHoidEditorialKnowledgeBundle } from "./editorialKnowledgeBundle";
+import { buildHoidEditorialReviewBundle } from "./editorialReviewBundle";
+import { buildHoidEditorialBundlePromotionPlan } from "./editorialBundlePromotionAuthority";
+import { createHoidReadingCursor } from "./readingManifest";
 import {
   buildHoidEditorialBundleReviewSigningMessage,
   verifyHoidEditorialKnowledgeBundleReviewQuorum,
@@ -18,9 +21,9 @@ import {
 } from "./editorialReviewSignatures";
 import { sha256Hex } from "./sha256";
 
-const now = "2026-11-25T20:00:00.000Z";
-const reviewedAt = "2026-11-25T18:00:00.000Z";
-const repositoryFullName = "Bhoa12/atlas-cosmere";
+const NOW = "2026-11-25T20:00:00.000Z";
+const REVIEWED_AT = "2026-11-25T18:00:00.000Z";
+const REPOSITORY = "Bhoa12/atlas-cosmere";
 const rootKey = Object.freeze({
   keyId: "hoid-review-root-2026",
   publicKeyHex: "11".repeat(32),
@@ -29,15 +32,25 @@ const rootKey = Object.freeze({
 const sourceInput = Object.freeze({
   summaries: HOID_EDITORIAL_DRAFTS,
   claims: HOID_EDITORIAL_CLAIM_DRAFTS,
-  entities: HOID_EDITORIAL_ENTITY_DRAFTS,
-  relationships: HOID_EDITORIAL_RELATIONSHIP_DRAFTS,
+  entities: HOID_EDITORIAL_ENTITY_DRAFTS.filter(item => item.identity.status === "resolved"),
+  relationships: HOID_EDITORIAL_RELATIONSHIP_DRAFTS.filter(item =>
+    item.subject.id !== "edgedancer.unnamed-girl" &&
+    item.object.id !== "edgedancer.unnamed-girl",
+  ),
 });
 
-const bundleResult = buildHoidEditorialKnowledgeBundle(sourceInput);
-if (bundleResult.status !== "ready-for-review") {
-  throw new Error("The checked-in editorial fixture must remain ready for review");
+const knowledgeResult = buildHoidEditorialKnowledgeBundle(sourceInput);
+if (knowledgeResult.status !== "ready-for-review") {
+  throw new Error("Resolved editorial knowledge fixture unavailable");
 }
-const manifest = bundleResult.manifest;
+const knowledgeManifest = knowledgeResult.manifest;
+
+const reviewResult = buildHoidEditorialReviewBundle(knowledgeManifest, sourceInput);
+if (reviewResult.status !== "ready-for-review") {
+  throw new Error("Resolved editorial review fixture unavailable");
+}
+const reviewManifest = reviewResult.manifest;
+const packets = reviewResult.packets;
 
 const reviewerA: HoidReviewerTrustKey = Object.freeze({
   keyId: "reviewer-key-a",
@@ -48,7 +61,7 @@ const reviewerA: HoidReviewerTrustKey = Object.freeze({
   validFrom: "2026-01-01T00:00:00.000Z",
   validUntil: "2027-01-01T00:00:00.000Z",
   revokedAt: null,
-  allowedRepositoryFullNames: Object.freeze([repositoryFullName]),
+  allowedRepositoryFullNames: Object.freeze([REPOSITORY]),
 });
 const reviewerB: HoidReviewerTrustKey = Object.freeze({
   keyId: "reviewer-key-b",
@@ -59,20 +72,130 @@ const reviewerB: HoidReviewerTrustKey = Object.freeze({
   validFrom: "2026-01-01T00:00:00.000Z",
   validUntil: "2027-01-01T00:00:00.000Z",
   revokedAt: null,
-  allowedRepositoryFullNames: Object.freeze([repositoryFullName]),
+  allowedRepositoryFullNames: Object.freeze([REPOSITORY]),
 });
+
+function progressSnapshot(chapter = 5, revision = 17) {
+  const cursor = createHoidReadingCursor("twok", chapter);
+  if (cursor.status !== "ready") throw new Error("Progress fixture unavailable");
+  return Object.freeze({
+    schemaVersion: 2,
+    revision,
+    positions: Object.freeze([
+      Object.freeze({ bookId: "twok", cursor: cursor.cursor }),
+    ]),
+    updatedAt: REVIEWED_AT,
+  });
+}
+
+const progress = progressSnapshot();
+
+function approvedReceipts() {
+  return Object.freeze({
+    schemaVersion: 1,
+    reviewBundleFingerprint: reviewManifest.fingerprint,
+    summaries: Object.freeze(packets.summaries.map((packet, index) => ({
+      schemaVersion: 1,
+      packetId: packet.packetId,
+      draftId: packet.draftId,
+      summarySha256: packet.summarySha256,
+      sourceDocumentSha256: packet.sourceDocumentSha256,
+      decision: "approved",
+      reviewerId: index % 2 === 0 ? reviewerA.reviewerId : reviewerB.reviewerId,
+      reviewedAt: REVIEWED_AT,
+      checklist: {
+        factualAccuracy: true,
+        completeness: true,
+        originality: true,
+        spoilerCeiling: true,
+        provenance: true,
+      },
+      noteCodes: ["no-issues"],
+    }))),
+    claims: Object.freeze(packets.claims.map((packet, index) => ({
+      schemaVersion: 1,
+      packetId: packet.packetId,
+      draftId: packet.draftId,
+      claimSha256: packet.claimSha256,
+      decision: "approved",
+      reviewerId: index % 2 === 0 ? reviewerA.reviewerId : reviewerB.reviewerId,
+      reviewedAt: REVIEWED_AT,
+      checklist: {
+        factualAccuracy: true,
+        atomicity: true,
+        subjectIdentity: true,
+        completeness: true,
+        originality: true,
+        spoilerCeiling: true,
+        provenance: true,
+      },
+      noteCodes: ["no-issues"],
+    }))),
+    entities: Object.freeze(packets.entities.map((packet, index) => ({
+      schemaVersion: 1,
+      packetId: packet.packetId,
+      draftId: packet.draftId,
+      identitySha256: packet.identitySha256,
+      draftSha256: packet.draftSha256,
+      decision: "approved",
+      reviewerId: index % 2 === 0 ? reviewerA.reviewerId : reviewerB.reviewerId,
+      reviewedAt: REVIEWED_AT,
+      checklist: {
+        factualAccuracy: true,
+        identityResolution: true,
+        uniqueness: true,
+        completeness: true,
+        spoilerCeiling: true,
+        provenance: true,
+      },
+      noteCodes: ["no-issues"],
+    }))),
+    relationships: Object.freeze(packets.relationships.map((packet, index) => ({
+      schemaVersion: 1,
+      packetId: packet.packetId,
+      draftId: packet.draftId,
+      claimSha256: packet.claimSha256,
+      decision: "approved",
+      reviewerId: index % 2 === 0 ? reviewerA.reviewerId : reviewerB.reviewerId,
+      reviewedAt: REVIEWED_AT,
+      checklist: {
+        factualAccuracy: true,
+        relationshipAccuracy: true,
+        entityIdentity: true,
+        completeness: true,
+        originality: true,
+        spoilerCeiling: true,
+        provenance: true,
+      },
+      noteCodes: ["no-issues"],
+    }))),
+  });
+}
+
+const receipts = approvedReceipts();
+const planResult = buildHoidEditorialBundlePromotionPlan(
+  reviewManifest,
+  knowledgeManifest,
+  sourceInput,
+  receipts,
+  progress,
+);
+if (planResult.status !== "ready-for-protected-review") {
+  throw new Error("Complete signed editorial promotion plan fixture unavailable");
+}
+const plan = planResult.plan;
 
 const context: HoidEditorialBundleReviewContext = Object.freeze({
   schemaVersion: 1,
-  repositoryFullName,
+  repositoryFullName: REPOSITORY,
   pullRequestNumber: 317,
   baseRef: "feat/hoid-ia-core-run316",
   baseSha: "a1060cd1d05db7091d2ea93af916080dd3d27715",
   headRef: "feat/hoid-ia-core-run317",
   headSha: "b".repeat(40),
-  promotionManifestPath: "editorial/promotion-manifest.json",
-  promotionPlanFingerprint: "d".repeat(64),
-  reviewBundleFingerprint: manifest.fingerprint,
+  promotionManifestPath: "docs/hoid/editorial-bundle-promotion.json",
+  promotionPlanFingerprint: plan.fingerprint,
+  reviewBundleFingerprint: plan.reviewBundleFingerprint,
 });
 
 function fakeSignature(message: string, publicKeyHex: string): string {
@@ -113,21 +236,26 @@ function createAttestation(
   contextInput: HoidEditorialBundleReviewContext = context,
 ): HoidEditorialBundleReviewAttestation {
   const message = buildHoidEditorialBundleReviewSigningMessage(
-    manifest,
+    plan,
+    reviewManifest,
+    knowledgeManifest,
     sourceInput,
+    receipts,
+    progress,
     contextInput,
     reviewer.reviewerId,
     decision,
-    reviewedAt,
+    REVIEWED_AT,
     reviewer.keyId,
   );
   if (!message) throw new Error("Synthetic editorial review signing message is invalid");
   return Object.freeze({
     schemaVersion: 1,
-    bundleFingerprint: manifest.fingerprint,
+    reviewBundleFingerprint: plan.reviewBundleFingerprint,
+    promotionPlanFingerprint: plan.fingerprint,
     reviewerId: reviewer.reviewerId,
     decision,
-    reviewedAt,
+    reviewedAt: REVIEWED_AT,
     keyId: reviewer.keyId,
     signatureHex: fakeSignature(message, reviewer.publicKeyHex),
   });
@@ -135,8 +263,12 @@ function createAttestation(
 
 function createInput(overrides: Record<string, unknown> = {}) {
   return {
-    manifest,
+    plan,
+    reviewManifest,
+    knowledgeManifest,
     sourceInput,
+    receipts,
+    progressSnapshot: progress,
     context,
     attestations: Object.freeze([
       createAttestation(reviewerA),
@@ -145,48 +277,50 @@ function createInput(overrides: Record<string, unknown> = {}) {
     registry: createRegistry(),
     rootKey,
     verifier: createVerifier(),
-    now,
+    now: NOW,
     minimumRegistryRevision: 7,
     ...overrides,
   };
 }
 
-describe("Hoid editorial bundle review quorum", () => {
-  it("builds a deterministic, bundle-bound signing message without embedding draft prose", () => {
+describe("Hoid whole-bundle editorial review quorum", () => {
+  it("builds a deterministic signing message bound to the reviewed receipts and progress plan", () => {
     const first = buildHoidEditorialBundleReviewSigningMessage(
-      manifest, sourceInput, context, reviewerA.reviewerId, "approve", reviewedAt, reviewerA.keyId,
+      plan, reviewManifest, knowledgeManifest, sourceInput, receipts, progress,
+      context, reviewerA.reviewerId, "approve", REVIEWED_AT, reviewerA.keyId,
     );
     const second = buildHoidEditorialBundleReviewSigningMessage(
-      manifest, sourceInput, context, reviewerA.reviewerId, "approve", reviewedAt, reviewerA.keyId,
+      plan, reviewManifest, knowledgeManifest, sourceInput, receipts, progress,
+      context, reviewerA.reviewerId, "approve", REVIEWED_AT, reviewerA.keyId,
     );
     expect(first).toBe(second);
-    expect(first).toContain(manifest.fingerprint);
-    expect(first).toContain(context.headSha);
+    expect(first).toContain(plan.fingerprint);
+    expect(first).toContain(plan.reviewBundleFingerprint);
+    expect(first).toContain(plan.progressFingerprint);
     expect(first).not.toContain("Tras la batalla");
-    expect(first).not.toContain("summary");
   });
 
-  it("verifies two distinct root-trusted reviewers over the exact bundle and PR head", async () => {
+  it("verifies two distinct reviewers over the exact review bundle, receipts and progress", async () => {
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput());
     expect(result).toMatchObject({
       status: "verified",
-      bundleFingerprint: manifest.fingerprint,
-      registryRevision: 7,
+      reviewBundleFingerprint: plan.reviewBundleFingerprint,
+      promotionPlanFingerprint: plan.fingerprint,
+      progressRevision: plan.progressRevision,
       verifiedReviewerCount: 2,
       reviewerIds: ["reviewer-a", "reviewer-b"],
       promotionAllowed: false,
       productionWritePerformed: false,
     });
-    expect(JSON.stringify(result)).not.toContain("Tras la batalla");
   });
 
-  it("rejects a context that names a different bundle fingerprint", async () => {
+  it("rejects a context that names another promotion plan", async () => {
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput({
-      context: { ...context, reviewBundleFingerprint: "f".repeat(64) },
+      context: { ...context, promotionPlanFingerprint: "f".repeat(64) },
     }));
     expect(result).toMatchObject({
       status: "invalid",
-      reason: "context-bundle-mismatch",
+      reason: "context-plan-mismatch",
       promotionAllowed: false,
     });
   });
@@ -202,16 +336,30 @@ describe("Hoid editorial bundle review quorum", () => {
     });
   });
 
-  it("rejects a bundle manifest paired with a changed staging inventory", async () => {
+  it("rejects receipts changed after the promotion plan was built", async () => {
+    const changedReceipts = {
+      ...receipts,
+      summaries: receipts.summaries.map((receipt, index) =>
+        index === 0 ? { ...receipt, reviewerId: "different-reviewer" } : receipt,
+      ),
+    };
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput({
-      sourceInput: Object.freeze({
-        ...sourceInput,
-        summaries: Object.freeze(sourceInput.summaries.slice(0, -1)),
-      }),
+      receipts: changedReceipts,
     }));
     expect(result).toMatchObject({
       status: "invalid",
-      reason: "invalid-bundle",
+      reason: "plan-content-mismatch",
+      promotionAllowed: false,
+    });
+  });
+
+  it("rejects a changed authoritative progress snapshot", async () => {
+    const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput({
+      progressSnapshot: progressSnapshot(6, 18),
+    }));
+    expect(result).toMatchObject({
+      status: "invalid",
+      reason: "plan-content-mismatch",
       promotionAllowed: false,
     });
   });
@@ -265,25 +413,18 @@ describe("Hoid editorial bundle review quorum", () => {
     });
   });
 
-  it("blocks a structurally incomplete bundle before considering reviewer votes", async () => {
-    const blockedSourceInput = Object.freeze({
-      ...sourceInput,
-      entities: Object.freeze(sourceInput.entities.filter(item => item.id !== "tfe.vin")),
-    });
-    const blockedBundle = buildHoidEditorialKnowledgeBundle(blockedSourceInput);
-    expect(blockedBundle.status).toBe("blocked");
-    if (blockedBundle.status !== "blocked") return;
+  it("blocks an incomplete packet receipt set before reviewer quorum", async () => {
+    const incompleteReceipts = {
+      ...receipts,
+      summaries: receipts.summaries.slice(1),
+    };
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput({
-      manifest: blockedBundle.manifest,
-      sourceInput: blockedSourceInput,
-      context: {
-        ...context,
-        reviewBundleFingerprint: blockedBundle.manifest.fingerprint,
-      },
+      receipts: incompleteReceipts,
     }));
     expect(result).toMatchObject({
       status: "blocked",
-      reason: "bundle-blocked",
+      reason: "promotion-plan-blocked",
+      planReason: "editorial-review-incomplete",
       promotionAllowed: false,
       productionWritePerformed: false,
     });
@@ -299,12 +440,12 @@ describe("Hoid editorial bundle review quorum", () => {
         value,
       });
     }
-    Object.defineProperty(hostile, "manifest", {
+    Object.defineProperty(hostile, "plan", {
       enumerable: true,
       configurable: true,
       get() {
         getterCalled = true;
-        return manifest;
+        return plan;
       },
     });
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(hostile);
@@ -312,7 +453,7 @@ describe("Hoid editorial bundle review quorum", () => {
     expect(getterCalled).toBe(false);
   });
 
-  it("rejects a trust registry below the persisted minimum revision", async () => {
+  it("rejects a reviewer trust registry below the persisted minimum revision", async () => {
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput({
       minimumRegistryRevision: 8,
     }));

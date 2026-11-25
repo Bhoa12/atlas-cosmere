@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import "./conversationHistoryAuthority.test";
+// Keep the single-writer authority regression in the existing PR-triggered bridge workflow.
 import {
   HOID_STATIC_GREETING_ID,
   HOID_STATIC_GREETING_KIND,

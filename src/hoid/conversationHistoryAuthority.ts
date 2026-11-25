@@ -258,7 +258,7 @@ function normalizeVaultRestore(
         revision: result.revision,
         messages: result.messages.filter(
           (message): message is SafeHistoryMessage =>
-            message.emisor === "usuario" || message.kind === "static-greeting",
+            message.emisor === "usuario" || ("kind" in message && message.kind === "static-greeting"),
         ),
         savedProgressScope: result.savedProgressScope,
         droppedAssistantCount: result.droppedAssistantCount,

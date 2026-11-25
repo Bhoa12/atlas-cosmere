@@ -204,13 +204,13 @@ describe("Hoid fenced canonical history migration transfer", () => {
   });
 
   it("fails closed instead of pretending SQLite v1 can tombstone a non-empty target", async () => {
-    const sqliteSource = makeBackend("sqlite-history-v1");
     const sqliteTarget = makeBackend("sqlite-history-v1", { revision: 2, snapshot: snapshot() });
-    const vault = makeBackend("vault-history-v1");
-    const transfer = makeTransfer(sqliteSource.port, vault.port);
+    const vaultSource = makeBackend("vault-history-v1");
+    const transfer = makeTransfer(sqliteTarget.port, vaultSource.port);
 
-    const reverse = makeTransfer(sqliteTarget.port, vault.port);
-    await expect(reverse.copy(copyInput("sqlite-history-v1", "vault-history-v1"))).rejects.toThrow();
+    await expect(transfer.copy(copyInput("vault-history-v1", "sqlite-history-v1"))).rejects.toThrow();
+    expect(sqliteTarget.inspect().snapshot).not.toBeNull();
+    expect(sqliteTarget.inspect().writes).toBe(0);
   });
 
   it("detects target mutation between copy and verification", async () => {

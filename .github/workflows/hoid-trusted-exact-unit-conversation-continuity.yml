@@ -1,0 +1,82 @@
+name: Hoid trusted exact-unit conversation continuity
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/chapterEvidenceScope.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "docs/hoid/RUN310_TRUSTED_EXACT_UNIT_CONVERSATION_CONTINUITY.md"
+      - ".github/workflows/hoid-trusted-exact-unit-conversation-continuity.yml"
+  pull_request:
+    paths:
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/chapterEvidenceScope.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "docs/hoid/RUN310_TRUSTED_EXACT_UNIT_CONVERSATION_CONTINUITY.md"
+      - ".github/workflows/hoid-trusted-exact-unit-conversation-continuity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-conversation-continuity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test trusted presentation-bound follow-ups
+        run: >-
+          npx vitest run
+          src/hoid/trustedExactUnitAnswerHost.test.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/chapterEvidenceScope.test.ts
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+      - name: Strict type-check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/trustedExactUnitAnswerHost.ts
+          src/hoid/trustedExactUnitAnswerHost.test.ts
+          src/hoid/exactUnitEvidenceRuntime.ts
+          src/hoid/chapterEvidenceScope.ts
+          src/hoid/chapterReference.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/readingManifest.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/answerScope.ts
+          src/hoid/unitEvidenceAuthorizationV2.ts
+          src/hoid/unitProgressCoordinator.ts
+          src/hoid/unitProgressLedger.ts
+          src/hoid/unitProgressCursor.ts
+          src/hoid/explanationDepth.ts
+          src/hoid/requestValidation.ts
+          src/hoid/providerTimeout.ts
+          src/hoid/editorialReviewSignatures.ts
+          src/hoid/exactUnitClaimSignatures.ts
+          src/hoid/exactUnitClaimIntegrity.ts
+          src/hoid/nobleEd25519VerificationAdapter.ts
+          src/hoid/knowledgeKinds.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts

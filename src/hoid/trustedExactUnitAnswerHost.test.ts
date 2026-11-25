@@ -173,10 +173,20 @@ function createHostHarness() {
       return () => packageListeners.delete(listener);
     },
   };
+  const selectionRequests: unknown[] = [];
+  let onSelect: (() => void) | null = null;
   const selector = {
-    async selectClaims(request: { requestFingerprint: string; candidates: readonly { id: string }[] }) {
+    async selectClaims(request: {
+      schemaVersion: 2 | 3;
+      requestFingerprint: string;
+      candidates: readonly { id: string }[];
+    }) {
+      selectionRequests.push(request);
+      const callback = onSelect;
+      onSelect = null;
+      callback?.();
       return Object.freeze({
-        schemaVersion: 2, requestFingerprint: request.requestFingerprint,
+        schemaVersion: request.schemaVersion, requestFingerprint: request.requestFingerprint,
         claimIds: Object.freeze(request.candidates.slice(0, 1).map(candidate => candidate.id)),
       });
     },
@@ -195,6 +205,8 @@ function createHostHarness() {
       for (const listener of packageListeners) listener();
     },
     packageSource,
+    selectionRequests,
+    emitDuringSelection(callback: () => void) { onSelect = callback; },
   };
 }
 function createSink() {
@@ -416,6 +428,169 @@ describe("Hoid trusted exact-unit answer host", () => {
     expect(second.state.answer?.text).toBe(core.text);
     harness.host.clear();
     expect(second.state.answer).toBeUndefined();
+  });
+
+  it("mints an opaque continuation only after presentation and carries chapter scope privately", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    expect(harness.host.getFollowUpCapability(prepared)).toBeNull();
+
+    const first = createSink();
+    expect((await harness.host.present(prepared, first.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(prepared);
+    expect(capability).not.toBeNull();
+    expect(JSON.stringify(capability)).not.toContain("twok");
+    expect(JSON.stringify(capability)).not.toContain("identityFingerprint");
+    expect(JSON.stringify(capability)).not.toContain("chapterScope");
+
+    const followUp = await harness.host.prepareFollowUp({
+      question: "¿Puedes ampliar la explicación?",
+      intent: "explain",
+      depth: "brief",
+    }, capability);
+    if (followUp.status !== "prepared") throw new Error("Follow-up blocked: " + JSON.stringify(followUp));
+    const providerRequest = harness.selectionRequests[harness.selectionRequests.length - 1] as Record<string, unknown>;
+    expect(providerRequest).toHaveProperty("conversationContext");
+    expect(providerRequest).not.toHaveProperty("chapterScope");
+    expect(JSON.stringify(providerRequest)).not.toContain("identityFingerprint");
+    expect(JSON.stringify(providerRequest)).not.toContain("locatorId");
+
+    if (followUp.status !== "prepared") throw new Error("Expected follow-up preparation");
+    const second = createSink();
+    expect((await harness.host.present(followUp.prepared, second.sink)).status).toBe("presented");
+    const nextCapability = harness.host.getFollowUpCapability(followUp.prepared);
+    expect(nextCapability).not.toBeNull();
+    expect(nextCapability).not.toBe(capability);
+  });
+
+  it("rejects caller-supplied chapter or entity scopes instead of accepting arbitrary context", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const sink = createSink();
+    expect((await harness.host.present(prepared, sink.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(prepared);
+    expect(capability).not.toBeNull();
+
+    const result = await harness.host.prepareFollowUp({
+      question: "¿Y esto cómo funciona?",
+      chapterScope: [reference("twok", 4)],
+      entityIds: ["caller.supplied"],
+    }, capability);
+    expect(result).toEqual({
+      status: "blocked",
+      reason: "answer-unavailable",
+      runtimeReason: "invalid-request",
+    });
+  });
+
+  it("revokes the continuation capability when its presented message is cleared", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const sink = createSink();
+    expect((await harness.host.present(prepared, sink.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(prepared);
+    expect(capability).not.toBeNull();
+
+    harness.host.clearSink(sink.sink, "context-reset");
+    expect(harness.host.getFollowUpCapability(prepared)).toBeNull();
+    expect(sink.state.answer).toBeUndefined();
+    expect(await harness.host.prepareFollowUp({ question: "¿Puedes aclararlo?" }, capability)).toEqual({
+      status: "blocked",
+      reason: "invalid-follow-up-capability",
+    });
+  });
+
+  it("revokes the continuation when durable progress changes without a notification", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const sink = createSink();
+    expect((await harness.host.present(prepared, sink.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(prepared);
+    expect(capability).not.toBeNull();
+
+    const regressed = createHoidUnitProgressCursor("twok", { chapterNumber: 3 });
+    if (regressed.status !== "ready") throw new Error("Synthetic progress cursor unavailable");
+    harness.progressStore.value = Object.freeze({
+      schemaVersion: 3,
+      revision: 2,
+      positions: Object.freeze([Object.freeze({ bookId: "twok", cursor: regressed.cursor })]),
+      updatedAt: now,
+    });
+
+    const result = await harness.host.prepareFollowUp({ question: "¿Puedes aclararlo?" }, capability);
+    expect(result).toEqual({ status: "blocked", reason: "progress-changed" });
+    expect(harness.host.getFollowUpCapability(prepared)).toBeNull();
+    expect(sink.state.answer).toBeUndefined();
+    expect(sink.state.cleared).toBe("progress-changed");
+  });
+
+  it("discards an in-flight follow-up if progress invalidates its parent presentation", async () => {
+    const harness = createHostHarness();
+    const prepared = await prepare(harness);
+    const sink = createSink();
+    expect((await harness.host.present(prepared, sink.sink)).status).toBe("presented");
+    const capability = harness.host.getFollowUpCapability(prepared);
+    expect(capability).not.toBeNull();
+
+    harness.emitDuringSelection(() => harness.progressInvalidation.emit());
+    const result = await harness.host.prepareFollowUp({
+      question: "¿Puedes ampliar la explicación?",
+    }, capability);
+
+    expect(result).toEqual({
+      status: "blocked",
+      reason: "invalid-follow-up-capability",
+    });
+    expect(harness.host.getFollowUpCapability(prepared)).toBeNull();
+    expect(sink.state.answer).toBeUndefined();
+    expect(sink.state.cleared).toBe("progress-changed");
+  });
+
+  it("blocks a prepared child if its parent is cleared before the child is presented", async () => {
+    const harness = createHostHarness();
+    const parentPrepared = await prepare(harness);
+    const parentSink = createSink();
+    expect((await harness.host.present(parentPrepared, parentSink.sink)).status).toBe("presented");
+    const parentCapability = harness.host.getFollowUpCapability(parentPrepared);
+    expect(parentCapability).not.toBeNull();
+
+    const childPrepared = await harness.host.prepareFollowUp({
+      question: "¿Puedes desarrollar esa idea?",
+    }, parentCapability);
+    expect(childPrepared.status).toBe("prepared");
+    if (childPrepared.status !== "prepared") return;
+
+    harness.host.clearSink(parentSink.sink, "context-reset");
+    const childSink = createSink();
+    expect(await harness.host.present(childPrepared.prepared, childSink.sink)).toEqual({
+      status: "blocked",
+      reason: "invalid-follow-up-capability",
+    });
+    expect(childSink.state.answer).toBeUndefined();
+  });
+
+  it("recursively retracts presented descendants when an ancestor message is cleared", async () => {
+    const harness = createHostHarness();
+    const parentPrepared = await prepare(harness);
+    const parentSink = createSink();
+    expect((await harness.host.present(parentPrepared, parentSink.sink)).status).toBe("presented");
+    const parentCapability = harness.host.getFollowUpCapability(parentPrepared);
+    expect(parentCapability).not.toBeNull();
+
+    const childPrepared = await harness.host.prepareFollowUp({
+      question: "¿Puedes desarrollar esa idea?",
+    }, parentCapability);
+    expect(childPrepared.status).toBe("prepared");
+    if (childPrepared.status !== "prepared") return;
+    const childSink = createSink();
+    expect((await harness.host.present(childPrepared.prepared, childSink.sink)).status).toBe("presented");
+    expect(harness.host.getFollowUpCapability(childPrepared.prepared)).not.toBeNull();
+
+    harness.host.clearSink(parentSink.sink, "context-reset");
+    expect(parentSink.state.answer).toBeUndefined();
+    expect(childSink.state.answer).toBeUndefined();
+    expect(childSink.state.cleared).toBe("context-reset");
+    expect(harness.host.getFollowUpCapability(childPrepared.prepared)).toBeNull();
   });
 
 });

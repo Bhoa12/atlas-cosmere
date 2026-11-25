@@ -255,6 +255,7 @@ describe("Hoid trusted conversation screen port", () => {
       depth: "brief",
     });
 
+    if (result.status !== "ready") throw new Error("Screen turn blocked: " + JSON.stringify(result));
     expect(result.status).toBe("ready");
     if (result.status === "ready") {
       expect(result.presentation.text).toBe(core.text);
@@ -296,6 +297,7 @@ describe("Hoid trusted conversation screen port", () => {
       intent: "explain",
       depth: "brief",
     });
+    if (followUp.status !== "ready") throw new Error("Follow-up turn blocked: " + JSON.stringify(followUp));
     expect(followUp.status).toBe("ready");
 
     port.resetContext();

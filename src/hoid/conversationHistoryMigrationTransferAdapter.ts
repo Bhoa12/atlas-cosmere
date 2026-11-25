@@ -62,10 +62,11 @@ function validBackend(value: unknown): value is HoidHistoryBackendKind {
 }
 
 function canonicalSnapshotPort(value: unknown): HoidHistoryMigrationSnapshotPort | null {
-  const record = exactDataRecord(value, ["kind", "read", "replace", "clear"]);
+  const record = exactDataRecord(value, ["kind", "role", "read", "replace", "clear"]);
   if (
     !record ||
     !validBackend(record.kind) ||
+    (record.role !== "source" && record.role !== "target") ||
     typeof record.read !== "function" ||
     typeof record.replace !== "function" ||
     typeof record.clear !== "function"
@@ -76,6 +77,7 @@ function canonicalSnapshotPort(value: unknown): HoidHistoryMigrationSnapshotPort
   const clear = record.clear as HoidHistoryMigrationSnapshotPort["clear"];
   return Object.freeze({
     kind: record.kind,
+    role: record.role,
     read: input => read.call(value, input),
     replace: input => replace.call(value, input),
     clear: input => clear.call(value, input),
@@ -327,6 +329,9 @@ export function createHoidHistoryMigrationSnapshotTransferAdapter(
 
     const sourceBackend = backendFor(operation.sourceBackend);
     const targetBackend = backendFor(operation.targetBackend);
+    if (sourceBackend.role !== "source" || targetBackend.role !== "target") {
+      throw new Error("Migration capabilities are bound to the wrong roles");
+    }
     const source = await readSnapshot(sourceBackend, operation.operationId, operation.generation);
     let target = await readSnapshot(targetBackend, operation.operationId, operation.generation);
 
@@ -374,13 +379,18 @@ export function createHoidHistoryMigrationSnapshotTransferAdapter(
     if (!inputRecord || inputRecord.partitionId !== config.partitionId) {
       throw new Error("Invalid migration verification request");
     }
+    const sourceBackend = backendFor(inputRecord.sourceBackend);
+    const targetBackend = backendFor(inputRecord.targetBackend);
+    if (sourceBackend.role !== "source" || targetBackend.role !== "target") {
+      throw new Error("Migration capabilities are bound to the wrong roles");
+    }
     const source = await readSnapshot(
-      backendFor(inputRecord.sourceBackend),
+      sourceBackend,
       inputRecord.operationId,
       inputRecord.generation,
     );
     const target = await readSnapshot(
-      backendFor(inputRecord.targetBackend),
+      targetBackend,
       inputRecord.operationId,
       inputRecord.generation,
     );

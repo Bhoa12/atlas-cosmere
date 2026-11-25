@@ -79,7 +79,13 @@ export function createHoidConversationVaultHistoryBridge(
     if (created.status !== "ready") {
       return Object.freeze({ status: "invalid-history", reason: created.reason });
     }
-    return vault.save(sessionId, expectedRevision, created.snapshot);
+    const saved = await vault.save(sessionId, expectedRevision, created.snapshot);
+    if (
+      saved.status === "saved" ||
+      saved.status === "conflict" ||
+      saved.status === "blocked"
+    ) return saved;
+    return Object.freeze({ status: "blocked", reason: "codec-rejected" });
   };
 
   const restore = async (
@@ -87,6 +93,9 @@ export function createHoidConversationVaultHistoryBridge(
   ): Promise<HoidConversationVaultHistoryRestoreResult> => {
     const restored = await vault.restore(sessionId);
     if (restored.status === "empty" || restored.status === "blocked") return restored;
+    if (restored.status !== "ready") {
+      return Object.freeze({ status: "blocked", reason: "invalid-history-snapshot" });
+    }
 
     const hydrated = hydrateHoidConversationHistorySnapshot(
       restored.snapshot,

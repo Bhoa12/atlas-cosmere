@@ -1,7 +1,4 @@
-import {
-  createHoidConversationHistorySnapshot,
-  type HoidPersistableConversationMessage,
-} from "./conversationHistoryHydration";
+import { createHoidConversationHistorySnapshot } from "./conversationHistoryHydration";
 import {
   loadHoidConversationHistory,
   saveHoidConversationHistory,
@@ -16,7 +13,6 @@ import {
   type HoidConversationVaultHistoryRestoreResult,
   type HoidConversationVaultHistorySaveResult,
 } from "./conversationVaultHistoryBridge";
-import type { HoidConversationProgressScope } from "./conversationHistoryPolicy";
 
 const AUTHORITY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 const MAX_EXPECTED_REVISION = Number.MAX_SAFE_INTEGER - 1;
@@ -53,7 +49,7 @@ export type HoidConversationHistoryAuthorityClearResult =
   | HoidConversationVaultHistoryClearResult
   | Readonly<{ status: "unsupported"; reason: "backend-does-not-support-tombstone" }>
   | HoidConversationHistoryAuthorityInvalidRevision
-  | HoidConversationHistoryAuthorityBlocked>;
+  | HoidConversationHistoryAuthorityBlocked;
 
 /**
  * A backend port is deliberately singular: one authority instance receives

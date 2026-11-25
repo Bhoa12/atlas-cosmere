@@ -58,8 +58,16 @@ The factory returns the existing `HoidConversationVaultCodec` contract plus
 or the migration runner in this run. No provider, native key store, AEAD
 implementation, blob store or checkpoint is selected.
 
-## Validation
+## Validation on the final HEAD
 
-The dedicated workflow runs the codec and history hydration tests, then strict
-TypeScript checking over the codec and its dependencies. CI results must be
-checked against the final branch HEAD.
+- Codec suite: 16/16 tests passed.
+- History hydration regression suite: 19/19 tests passed.
+- Combined dedicated workflow: 35/35 tests passed.
+- Strict TypeScript check: passed.
+- Source coverage audit: passed.
+- Edition structure and strict-runtime checks: passed.
+
+GitHub Actions runs:
+- [Canonical history codec](https://github.com/Bhoa12/atlas-cosmere/actions/runs/45593732660)
+- [Source coverage audit](https://github.com/Bhoa12/atlas-cosmere/actions/runs/45593732762)
+- [Edition structure](https://github.com/Bhoa12/atlas-cosmere/actions/runs/45593732664)

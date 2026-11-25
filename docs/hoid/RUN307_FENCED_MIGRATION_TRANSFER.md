@@ -12,8 +12,10 @@ migration runner, but this run does not enable a production migration.
 Both generation-fenced adapters now return a `migration` capability in
 addition to the normal store and fencing participant.
 
-The capability is bound to the adapter's partition and accepts an operation ID
-and generation on every call:
+The capability exposes its opaque partition ID and immutable source/target role,
+is bound to that partition, and accepts an operation ID and generation on every
+call. The transfer factory rejects a port from another partition or a source /
+target role mismatch:
 
 - `read` is allowed only while that exact operation owns the fenced generation.
 - `replace` and `clear` are additionally restricted to the target role.

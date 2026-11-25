@@ -202,7 +202,7 @@ function mappingPayload(manifest: RawManifest): string {
   ]);
 }
 
-const MANIFESTS: readonly HoidEpubWorkSegmentationManifest[] = Object.freeze(
+export const HOID_EPUB_WORK_SEGMENTATION_MANIFESTS: readonly HoidEpubWorkSegmentationManifest[] = Object.freeze(
   RAW_MANIFESTS.map(manifest => Object.freeze({
     ...manifest,
     mappingFingerprint: sha256Hex(mappingPayload(manifest)),
@@ -375,7 +375,7 @@ function invalid(
   });
 }
 
-function sameNumbers(left: readonly number[], right: readonly number[]): boolean {
+function sameValues<T>(left: readonly T[], right: readonly T[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
@@ -413,7 +413,7 @@ export function getHoidEpubWorkSegmentationManifest(
   editionId: unknown,
 ): HoidEpubWorkSegmentationManifest | null {
   if (typeof editionId !== "string" || !editionId.trim()) return null;
-  return MANIFESTS.find(manifest => manifest.editionId === editionId) ?? null;
+  return HOID_EPUB_WORK_SEGMENTATION_MANIFESTS.find(manifest => manifest.editionId === editionId) ?? null;
 }
 
 /**
@@ -439,12 +439,23 @@ export function validateHoidEpubWorkSegmentation(
   if (!edition || edition.sourceGroup !== manifest.sourceGroup) return invalid("work-coverage-mismatch");
   const expectedWorkIds = edition.works.flatMap(work => [...work.workIds]).sort();
   const actualWorkIds = manifest.segments.map(segment => segment.workId).sort();
-  if (!sameNumbers([], [])) return invalid("invalid-probe");
   if (
     expectedWorkIds.length !== actualWorkIds.length ||
     expectedWorkIds.some((workId, index) => workId !== actualWorkIds[index]) ||
     new Set(actualWorkIds).size !== actualWorkIds.length
   ) return invalid("work-coverage-mismatch");
+
+  const recomputedCandidateFingerprint = sha256Hex(JSON.stringify({
+    schemaVersion: 1,
+    packageVersion: probe.packageVersion,
+    navigationFormat: probe.navigationFormat,
+    packageSha256: probe.packageSha256,
+    navigationSha256: probe.navigationSha256,
+    manifestItemCount: probe.manifestItemCount,
+    spineItemCount: probe.spineItemCount,
+    entries: probe.entries,
+  }));
+  if (recomputedCandidateFingerprint !== probe.candidateFingerprint) return invalid("invalid-probe");
 
   if (
     probe.packageVersion !== manifest.packageVersion ||
@@ -486,7 +497,7 @@ export function validateHoidEpubWorkSegmentation(
     .filter(([, count]) => count > 1)
     .map(([number]) => number)
     .sort((a, b) => a - b);
-  if (!sameNumbers(repeatedNumbers, probe.repeatedNumberedLabelsAcrossEdition)) return invalid("invalid-probe");
+  if (!sameValues(repeatedNumbers, probe.repeatedNumberedLabelsAcrossEdition)) return invalid("invalid-probe");
 
   const assignedOrdinals = new Set<number>();
   const assignments: HoidSegmentedNavigationEntry[] = [];

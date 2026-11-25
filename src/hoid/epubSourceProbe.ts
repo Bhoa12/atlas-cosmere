@@ -336,7 +336,7 @@ export function probeHoidEpubStructure(input: unknown): HoidEpubStructureProbeRe
   if (!packageDocument) return invalid("invalid-package-xml");
 
   const packageElement = packageDocument.documentElement;
-  if (localName(packageElement) !== "package") return invalid("invalid-package-xml");
+  if (!packageElement || localName(packageElement) !== "package") return invalid("invalid-package-xml");
   const packageVersion = packageElement.getAttribute("version") || "";
   if (packageVersion !== "2.0" && packageVersion !== "3.0") return invalid("invalid-package-manifest");
 

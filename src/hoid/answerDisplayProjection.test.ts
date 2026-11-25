@@ -339,7 +339,7 @@ describe("Hoid exact-unit answer display projection", () => {
     const duplicates = manifest.manifest.units.filter(unit => unit.chapterNumber === 12);
     expect(duplicates).toHaveLength(2);
     const citations = duplicates.map((unit, index) =>
-      exactCitation("evidence.exact-" + String(index + 1), "sawt", 12, unit.unitId),
+      exactCitation("evidence.exact-" + String(index + 1), "sawt", 12, unit.id),
     );
     const display = projectHoidExactUnitAnswerForDisplay(exactAnswer(citations));
     expect(display?.citations.map(citation => citation.chapterOrdinal)).toEqual(

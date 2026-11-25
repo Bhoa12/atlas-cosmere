@@ -176,13 +176,17 @@ function createHostHarness() {
   const selectionRequests: unknown[] = [];
   let onSelect: (() => void) | null = null;
   const selector = {
-    async selectClaims(request: { requestFingerprint: string; candidates: readonly { id: string }[] }) {
+    async selectClaims(request: {
+      schemaVersion: 2 | 3;
+      requestFingerprint: string;
+      candidates: readonly { id: string }[];
+    }) {
       selectionRequests.push(request);
       const callback = onSelect;
       onSelect = null;
       callback?.();
       return Object.freeze({
-        schemaVersion: 2, requestFingerprint: request.requestFingerprint,
+        schemaVersion: request.schemaVersion, requestFingerprint: request.requestFingerprint,
         claimIds: Object.freeze(request.candidates.slice(0, 1).map(candidate => candidate.id)),
       });
     },

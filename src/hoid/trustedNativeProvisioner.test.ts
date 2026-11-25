@@ -21,7 +21,7 @@ const APP_IDENTIFIER = HOID_TEST_TRUST_ROOT_PIN.appIdentifier;
 const APP_BUILD_ID = "2026.11.25.1";
 const NOW = "2026-11-25T17:00:30.000Z";
 const CHALLENGE = "ab".repeat(32);
-const PROVIDER_SEED = bytesFromHex("4ccd089b28ff96da9db6c346ec114e0f8b8a319f35aba624da8cf6ed4fb8a6fb");
+const PROVIDER_SEED = bytesFromHex("4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb");
 const PROVIDER_PUBLIC_KEY = hexFromBytes(ed25519.getPublicKey(PROVIDER_SEED));
 
 type MutableRecord = Record<string, unknown>;
@@ -413,6 +413,39 @@ describe("Hoid trusted native composition provisioner", () => {
     if (!test.provisioner) throw new Error("Provisioner unavailable");
     await expect(test.provisioner.expoProvisioner.loadCompositionConfig(controller.signal))
       .rejects.toMatchObject({ reason: "aborted" });
+  });
+
+
+  it("rejects a composition config that substitutes the trusted clock", async () => {
+    const test = harness({
+      configOverrides: { clock: Object.freeze({ nowIso: () => NOW }) },
+    });
+    if (!test.provisioner) throw new Error("Provisioner unavailable");
+    await expect(test.provisioner.expoProvisioner.loadCompositionConfig(
+      new AbortController().signal,
+    )).rejects.toMatchObject({ reason: "invalid-composition-config" });
+  });
+
+  it("rejects a composition config that substitutes the review context", async () => {
+    const replacementContext = Object.freeze({
+      ...reviewContext(),
+      reviewBundleFingerprint: "e".repeat(64),
+    });
+    const test = harness({ configOverrides: { context: replacementContext } });
+    if (!test.provisioner) throw new Error("Provisioner unavailable");
+    await expect(test.provisioner.expoProvisioner.loadCompositionConfig(
+      new AbortController().signal,
+    )).rejects.toMatchObject({ reason: "invalid-composition-config" });
+  });
+
+  it("rejects an attestation bound to another application identifier", async () => {
+    const test = harness({
+      attestationOverrides: { appIdentifier: "com.other.application" },
+    });
+    if (!test.provisioner) throw new Error("Provisioner unavailable");
+    const result = await test.provisioner.preflight(new AbortController().signal);
+    expect(result.status).toBe("blocked");
+    if (result.status === "blocked") expect(result.verification?.reason).toBe("application-mismatch");
   });
 
   it("requires the native trust root application identifier to match the build", () => {

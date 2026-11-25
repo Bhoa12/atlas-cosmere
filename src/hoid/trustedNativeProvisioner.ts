@@ -4,9 +4,7 @@ import {
 } from "./conversationProviderTrustRegistry";
 import {
   verifyHoidNativeConversationSecurityProvider,
-  type HoidNativeSecurityAttestationPort,
   type HoidNativeSecurityAttestationVerification,
-  type HoidNativeSecurityChallengePort,
 } from "./conversationSecurityAttestation";
 import { createHoidNobleEd25519VerificationPort } from "./nobleEd25519VerificationAdapter";
 import type {
@@ -276,10 +274,13 @@ function canonicalCompositionConfig(
     typeof record.transport !== "function" ||
     record.packageSource === null ||
     typeof record.packageSource !== "object" ||
+    Array.isArray(record.packageSource) ||
     record.registrySource === null ||
     typeof record.registrySource !== "object" ||
+    Array.isArray(record.registrySource) ||
     record.checkpointStore === null ||
     typeof record.checkpointStore !== "object" ||
+    Array.isArray(record.checkpointStore) ||
     record.clock !== bindings.clock ||
     record.rootKey !== bindings.rootKey ||
     record.context !== bindings.context ||

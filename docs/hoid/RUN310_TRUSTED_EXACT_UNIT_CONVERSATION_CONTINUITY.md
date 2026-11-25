@@ -1,4 +1,4 @@
-# Run 310 — trusted exact-unit conversation continuity
+# Run 310/311 — trusted exact-unit conversation continuity and single-flight follow-ups
 
 ## Purpose
 
@@ -14,6 +14,14 @@ Bind a follow-up to the exact answer that the trusted host actually presented. A
 6. The host revalidates the capability, signed bundle, registry revision, edition-bound chapter references and prior progress receipt before invoking the current trusted runtime.
 
 A follow-up answer can itself be presented and receive a new capability. The new capability is minted from that newly presented answer, not copied from caller state.
+
+## Concurrent follow-up attempts
+
+The host applies a process-local single-flight guard to each opaque capability. The guard is acquired synchronously before the first asynchronous operation, so two callers cannot both launch provider selection from the same presentation at once. A concurrent attempt receives `follow-up-in-progress` and does not create provider work.
+
+The guard is released in `finally` on success, validation failure, provider failure or cancellation. It is deliberately not a single-use token: after one attempt finishes, a later sequential follow-up may still branch from the same active parent presentation. Presenting a child creates its own capability and lineage. Revocation of the parent still invalidates in-flight work and every descendant.
+
+This is a per-host concurrency control, not a cross-process lock. The capability itself remains process-local and is never serialized.
 
 ## Chapter scope derivation
 
@@ -34,6 +42,8 @@ The provider never receives:
 - the opaque continuation capability or its private sidecar.
 
 The chapter scope is applied locally before candidate selection. It is not a provider-controlled authorization decision.
+
+The runtime invokes the selector with a frozen, per-call envelope `Object.freeze({ signal })`. The provider adapter requires that exact immutable invocation shape and a genuine `AbortSignal`; a mutable context is rejected before transport dispatch.
 
 ## Invalidation and failure behavior
 
@@ -56,7 +66,8 @@ The host test suite covers:
 - revocation after a durable progress change without a notification;
 - discarding a follow-up invalidated while provider selection is in flight;
 - rejecting a prepared child after its parent is cleared;
-- recursively retracting already-presented descendants when an ancestor is reset.
+- recursively retracting already-presented descendants when an ancestor is reset;
+- blocking a second concurrent provider selection from the same capability while permitting a later sequential follow-up.
 
 ## Limits
 

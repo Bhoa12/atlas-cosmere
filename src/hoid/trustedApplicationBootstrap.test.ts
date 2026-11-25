@@ -269,9 +269,11 @@ describe("Hoid trusted application bootstrap", () => {
 
     await bootstrap.initialize();
     expect(observed).toEqual(["loading", "ready"]);
-    unsubscribe();
+    // Disposal is itself a published state transition; unsubscribe only after
+    // asserting that active observers receive it.
     bootstrap.dispose();
     expect(observed).toEqual(["loading", "ready", "disposed"]);
+    unsubscribe();
   });
 
 

@@ -3,7 +3,7 @@ name: Hoid trusted conversation screen adapter
 on:
   push:
     branches:
-      - "feat/hoid-ia-core-run296"
+      - "feat/hoid-ia-core-run*"
     paths:
       - "src/hoid/answerDisplayProjection.ts"
       - "src/hoid/answerDisplayProjection.test.ts"
@@ -22,6 +22,7 @@ on:
   pull_request:
     paths:
       - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
       - "src/hoid/trustedConversationScreenPort.ts"
       - "src/hoid/trustedConversationScreenPort.test.ts"
       - "src/hoid/trustedConversationComposition.ts"

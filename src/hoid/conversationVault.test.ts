@@ -55,7 +55,7 @@ function fixture(options: Readonly<{ checkpointCommit?: boolean }> = {}) {
     },
     clock: { nowIso: () => NOW },
   });
-  return { vault, blobs, revisions, seal, open };
+  return { vault, blobs, revisions, blobStore, checkpoint, seal, open };
 }
 
 describe("Hoid encrypted conversation vault", () => {
@@ -142,13 +142,13 @@ describe("Hoid encrypted conversation vault", () => {
   });
 
   it("rejects malformed session identifiers and missing historical keys", async () => {
-    const { vault } = fixture();
+    const { vault, blobStore, checkpoint } = fixture();
     await expect(vault.restore("../other-session")).resolves.toEqual({
       status: "blocked",
       reason: "invalid-session",
     });
     await vault.save(SESSION, 0, { messages: ["hello"] });
-    // A new vault instance can restore the same stores but cannot resolve the old key.
+    // A new vault instance shares the durable stores but cannot resolve the old key.
     const missingKeyVault = createHoidConversationVault({
       keys: {
         getActiveKey: async () => null,
@@ -158,17 +158,14 @@ describe("Hoid encrypted conversation vault", () => {
         seal: async () => null,
         open: async () => new Uint8Array([1]),
       },
-      blobs: {
-        read: async id => (await vault.restore(id)).status === "blocked" ? null : null,
-        compareAndSwap: async () => false,
-      },
-      checkpoint: {
-        readRevision: async () => null,
-        compareAndSwap: async () => false,
-      },
+      blobs: blobStore,
+      checkpoint,
       codec: { encode: () => new Uint8Array([1]), decode: () => null },
       clock: { nowIso: () => NOW },
     });
-    expect(await missingKeyVault.restore(SESSION)).toMatchObject({ status: "empty" });
+    expect(await missingKeyVault.restore(SESSION)).toEqual({
+      status: "blocked",
+      reason: "key-unavailable",
+    });
   });
 });

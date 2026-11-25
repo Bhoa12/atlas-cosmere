@@ -11,6 +11,7 @@ import {
 } from "./exactUnitClaimSignatures";
 import {
   type HoidExactClaimSelector,
+  type HoidExactConversationSelectionContext,
   type HoidExactEvidenceAnswer,
   type HoidExactEvidenceRuntimeResult,
   type HoidExactPresentationReceipt,
@@ -20,6 +21,11 @@ import {
 } from "./exactUnitEvidenceRuntime";
 import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
 import { sha256Hex } from "./sha256";
+import { canonicalizeHoidAnswerBookScope, type HoidAnswerBookScope } from "./answerScope";
+import { canonicalizeHoidChapterEvidenceScope } from "./chapterEvidenceScope";
+import { validateHoidChapterReference, type HoidChapterReference } from "./chapterReference";
+import { isHoidExplanationDepth, type HoidExplanationDepth } from "./explanationDepth";
+import { validHoidQuestion } from "./requestValidation";
 
 export type HoidReviewerTrustCheckpoint = Readonly<{
   revision: number;
@@ -64,12 +70,17 @@ export type HoidTrustedAnswerBlockReason =
   | "registry-stale" | "registry-rollback" | "registry-equivocation"
   | "trust-checkpoint-conflict" | "signature-invalid" | "claim-bundle-changed"
   | "progress-unavailable" | "progress-changed" | "evidence-locked"
-  | "answer-unavailable" | "presentation-sink-failed";
+  | "answer-unavailable" | "presentation-sink-failed"
+  | "invalid-follow-up-capability" | "follow-up-context-stale";
 
 export type HoidPreparedExactUnitAnswer = Readonly<{
   kind: "hoid-prepared-exact-unit-answer";
   registryRevision: number;
   progressRevision: number;
+}>;
+
+export type HoidTrustedFollowUpCapability = Readonly<{
+  kind: "hoid-trusted-follow-up-capability";
 }>;
 
 export type HoidTrustedAnswerPrepareResult =
@@ -115,7 +126,28 @@ type PendingAnswer = Readonly<{
 type ActivePresentation = Readonly<{
   token: object;
   sink: HoidTrustedScreenAnswerPort;
+  prepared: HoidPreparedExactUnitAnswer;
+  followUpCapability: HoidTrustedFollowUpCapability | null;
   unsubscribers: readonly (() => void)[];
+}>;
+
+type FollowUpSidecar = Readonly<{
+  presentationToken: object;
+  runtime: HoidExactUnitEvidenceRuntime;
+  receipt: HoidExactPresentationReceipt;
+  registryRevision: number;
+  registryFingerprint: string;
+  contextFingerprint: string;
+  packageFingerprint: string;
+  bookScope: HoidAnswerBookScope;
+  chapterScope: readonly HoidChapterReference[];
+  conversationContext: HoidExactConversationSelectionContext;
+}>;
+
+type CanonicalFollowUpRequest = Readonly<{
+  question: string;
+  intent: "explain" | "recommend" | "context";
+  depth: HoidExplanationDepth;
 }>;
 
 const CHECKPOINT_KEYS = ["revision", "registryFingerprint"] as const;
@@ -215,6 +247,119 @@ function mapPresentationFailure(result: HoidExactPresentationVerification): Hoid
   }
 }
 
+function canonicalFollowUpRequest(value: unknown): CanonicalFollowUpRequest | null {
+  const record = exactRecord(value, ["question", "intent", "depth"], ["question"]);
+  if (!record) return null;
+  const question = validHoidQuestion(record.question);
+  const intent = record.intent === undefined ? "explain" : record.intent;
+  const depth = record.depth === undefined ? "brief" : record.depth;
+  if (!question ||
+    (intent !== "explain" && intent !== "recommend" && intent !== "context") ||
+    !isHoidExplanationDepth(depth)) return null;
+  return Object.freeze({ question, intent, depth });
+}
+
+function canonicalAnswerIds(value: unknown, minimum: number, maximum: number): readonly string[] | null {
+  try {
+    if (!Array.isArray(value) || value.length < minimum || value.length > maximum ||
+      Object.getPrototypeOf(value) !== Array.prototype) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true || typeof descriptor.value !== "string" ||
+        descriptor.value !== descriptor.value.trim() || !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u.test(descriptor.value) ||
+        seen.has(descriptor.value)) return null;
+      seen.add(descriptor.value);
+      ids.push(descriptor.value);
+    }
+    for (const key of keys) {
+      if (key === "length") continue;
+      if (typeof key !== "string" || !/^(0|[1-9][0-9]*)$/u.test(key) || Number(key) >= value.length) return null;
+    }
+    return Object.freeze(ids.sort());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mint metadata-only follow-up state from the exact citations of an answer
+ * after its trusted screen handoff. Chapter references remain in a WeakMap
+ * owned by this host; the capability itself contains no scope or source data.
+ */
+function createFollowUpSidecar(
+  pending: PendingAnswer,
+  permit: HoidTrustedPresentationPermit,
+  trusted: TrustedRuntime,
+  presentationToken: object,
+): FollowUpSidecar | null {
+  if (permit.progressRevision !== pending.receipt.progressRevision ||
+    permit.progressFingerprint !== pending.receipt.progressFingerprint) return null;
+
+  const priorClaimIds = canonicalAnswerIds(pending.answer.claimIds, 1, 12);
+  const entityIds = canonicalAnswerIds(pending.answer.entityIds, 0, 8);
+  if (!priorClaimIds || !entityIds || !Array.isArray(pending.answer.sources) ||
+    pending.answer.sources.length < 1 || pending.answer.sources.length > 256) return null;
+
+  const referencesByIdentity = new Map<string, HoidChapterReference>();
+  for (const citationInput of pending.answer.sources) {
+    const citation = exactRecord(citationInput, ["evidenceId", "source", "firstSafeAppearance", "unlock"]);
+    if (!citation || typeof citation.evidenceId !== "string") return null;
+    const source = validateHoidChapterReference(citation.source);
+    const firstSafeAppearance = validateHoidChapterReference(citation.firstSafeAppearance);
+    const unlock = validateHoidChapterReference(citation.unlock);
+    if (source.status !== "valid" || firstSafeAppearance.status !== "valid" || unlock.status !== "valid" ||
+      source.reference.labelAmbiguous || firstSafeAppearance.reference.labelAmbiguous || unlock.reference.labelAmbiguous) {
+      return null;
+    }
+    const reference = source.reference;
+    const identity = reference.bookId + "\n" + reference.unitId;
+    const previous = referencesByIdentity.get(identity);
+    if (previous && (
+      previous.ordinal !== reference.ordinal ||
+      previous.chapterNumber !== reference.chapterNumber ||
+      previous.identityFingerprint !== reference.identityFingerprint
+    )) return null;
+    referencesByIdentity.set(identity, reference);
+  }
+
+  const references = [...referencesByIdentity.values()];
+  if (references.length < 1 || references.length > 64) return null;
+  const bookIds = [...new Set(references.map(reference => reference.bookId))].sort();
+  if (bookIds.length < 1 || bookIds.length > 4) return null;
+  const bookScope = canonicalizeHoidAnswerBookScope({
+    mode: bookIds.length === 1 ? "single-work" : "cross-work",
+    bookIds,
+  });
+  if (!bookScope) return null;
+  const chapterScope = canonicalizeHoidChapterEvidenceScope(references, bookScope);
+  if (!chapterScope) return null;
+
+  const conversationContext: HoidExactConversationSelectionContext = Object.freeze({
+    schemaVersion: 1,
+    priorClaimIds,
+    entityIds,
+    bookIds: bookScope.bookIds,
+  });
+
+  return Object.freeze({
+    presentationToken,
+    runtime: pending.runtime,
+    receipt: pending.receipt,
+    registryRevision: trusted.registryRevision,
+    registryFingerprint: trusted.registryFingerprint,
+    contextFingerprint: pending.contextFingerprint,
+    packageFingerprint: pending.packageFingerprint,
+    bookScope,
+    chapterScope,
+    conversationContext,
+  });
+}
+
 /**
  * Provider-neutral host composition. The model only selects IDs from approved
  * candidates; it never receives trust state, progress, unit IDs or EPUB locators.
@@ -222,12 +367,18 @@ function mapPresentationFailure(result: HoidExactPresentationVerification): Hoid
 export class HoidTrustedExactUnitAnswerHost {
   private readonly pending = new WeakMap<object, PendingAnswer>();
   private readonly activePresentations = new Map<object, ActivePresentation>();
+  private readonly followUpSidecars = new WeakMap<object, FollowUpSidecar>();
+  private readonly followUpByPrepared = new WeakMap<object, HoidTrustedFollowUpCapability>();
   private constructor(private readonly config: HostConfig) {}
 
   private clearPresentation(token: object, reason: HoidTrustedAnswerBlockReason): void {
     const active = this.activePresentations.get(token);
     if (!active) return;
     this.activePresentations.delete(token);
+    if (active.followUpCapability) {
+      this.followUpSidecars.delete(active.followUpCapability);
+      this.followUpByPrepared.delete(active.prepared);
+    }
     for (const unsubscribe of active.unsubscribers) {
       try { unsubscribe(); } catch { /* continue clearing remaining ports */ }
     }
@@ -252,6 +403,17 @@ export class HoidTrustedExactUnitAnswerHost {
 
   dispose(): void {
     this.clearActivePresentation("invalid-host");
+  }
+
+  /**
+   * Return the opaque continuation capability for a prepared answer only after
+   * that exact answer has passed trusted presentation. A clone or forged object
+   * cannot recover the private WeakMap sidecar.
+   */
+  getFollowUpCapability(preparedInput: unknown): HoidTrustedFollowUpCapability | null {
+    if (preparedInput === null || typeof preparedInput !== "object" || Array.isArray(preparedInput)) return null;
+    const capability = this.followUpByPrepared.get(preparedInput as object);
+    return capability && this.followUpSidecars.has(capability) ? capability : null;
   }
 
   static create(configInput: unknown): HoidTrustedExactUnitAnswerHost | null {
@@ -430,6 +592,102 @@ export class HoidTrustedExactUnitAnswerHost {
     return Object.freeze({ status: "prepared", prepared });
   }
 
+  /**
+   * Prepare a follow-up from a capability minted by a successfully presented
+   * answer. Callers may supply only the new question, intent and depth; all
+   * entity, work and chapter scope is restored from the private sidecar.
+   */
+  async prepareFollowUp(
+    requestInput: unknown,
+    capabilityInput: unknown,
+    options: HoidExactRuntimeCallOptions = {},
+  ): Promise<HoidTrustedAnswerPrepareResult> {
+    if (capabilityInput === null || typeof capabilityInput !== "object" || Array.isArray(capabilityInput)) {
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
+    const sidecar = this.followUpSidecars.get(capabilityInput as object);
+    if (!sidecar) return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+
+    const request = canonicalFollowUpRequest(requestInput);
+    if (!request) {
+      return Object.freeze({ status: "blocked", reason: "answer-unavailable", runtimeReason: "invalid-request" });
+    }
+
+    const trusted = await this.loadTrustedRuntime(this.config.selector);
+    if (trusted.status !== "ready") {
+      this.clearPresentation(sidecar.presentationToken, trusted.reason);
+      return Object.freeze({ status: "blocked", reason: trusted.reason });
+    }
+    if (trusted.value.registryRevision !== sidecar.registryRevision ||
+      trusted.value.registryFingerprint !== sidecar.registryFingerprint) {
+      this.clearPresentation(sidecar.presentationToken, "trust-checkpoint-conflict");
+      return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
+    }
+    if (trusted.value.contextFingerprint !== sidecar.contextFingerprint ||
+      trusted.value.packageFingerprint !== sidecar.packageFingerprint) {
+      this.clearPresentation(sidecar.presentationToken, "claim-bundle-changed");
+      return Object.freeze({ status: "blocked", reason: "claim-bundle-changed" });
+    }
+
+    const chapterScope = canonicalizeHoidChapterEvidenceScope(sidecar.chapterScope, sidecar.bookScope);
+    if (!chapterScope || chapterScope.length !== sidecar.chapterScope.length ||
+      chapterScope.some((reference, index) =>
+        reference.identityFingerprint !== sidecar.chapterScope[index]?.identityFingerprint
+      )) {
+      this.clearPresentation(sidecar.presentationToken, "follow-up-context-stale");
+      return Object.freeze({ status: "blocked", reason: "follow-up-context-stale" });
+    }
+
+    const priorProgress = await sidecar.runtime.verifyForPresentation(sidecar.receipt);
+    if (priorProgress.status !== "ready") {
+      const reason = mapPresentationFailure(priorProgress);
+      this.clearPresentation(sidecar.presentationToken, reason);
+      return Object.freeze({ status: "blocked", reason });
+    }
+    if (priorProgress.progressRevision !== sidecar.receipt.progressRevision ||
+      priorProgress.progressFingerprint !== sidecar.receipt.progressFingerprint) {
+      this.clearPresentation(sidecar.presentationToken, "progress-changed");
+      return Object.freeze({ status: "blocked", reason: "progress-changed" });
+    }
+
+    const context = sidecar.conversationContext;
+    const result = await trusted.value.runtime.answer({
+      question: request.question,
+      intent: request.intent,
+      depth: request.depth,
+      ...(context.entityIds.length > 0 ? { entityIds: context.entityIds } : {}),
+      bookScope: sidecar.bookScope,
+      chapterScope,
+      conversationContext: context,
+    }, options);
+    if (result.status !== "ready") {
+      const reason: HoidTrustedAnswerBlockReason =
+        result.reason === "progress-unavailable" ? "progress-unavailable" :
+        result.reason === "progress-changed" ? "progress-changed" :
+        result.reason === "evidence-locked" ? "evidence-locked" : "answer-unavailable";
+      return Object.freeze({ status: "blocked", reason, runtimeReason: result.reason });
+    }
+
+    const receipt: HoidExactPresentationReceipt = Object.freeze({
+      progressRevision: result.progressRevision,
+      progressFingerprint: result.progressFingerprint,
+      evidenceIds: Object.freeze([...result.answer.evidenceIds]),
+    });
+    const prepared: HoidPreparedExactUnitAnswer = Object.freeze({
+      kind: "hoid-prepared-exact-unit-answer",
+      registryRevision: trusted.value.registryRevision,
+      progressRevision: result.progressRevision,
+    });
+    this.pending.set(prepared, Object.freeze({
+      runtime: trusted.value.runtime,
+      answer: result.answer,
+      receipt,
+      contextFingerprint: trusted.value.contextFingerprint,
+      packageFingerprint: trusted.value.packageFingerprint,
+    }));
+    return Object.freeze({ status: "prepared", prepared });
+  }
+
   cancel(prepared: HoidPreparedExactUnitAnswer): void {
     if (prepared !== null && typeof prepared === "object") this.pending.delete(prepared);
   }
@@ -573,6 +831,8 @@ export class HoidTrustedExactUnitAnswerHost {
       this.activePresentations.set(presentationToken, Object.freeze({
         token: presentationToken,
         sink,
+        prepared: preparedInput,
+        followUpCapability: null,
         unsubscribers: Object.freeze([
           unsubscribeTrust, unsubscribeProgress, unsubscribeLocalProgress, unsubscribeBundle,
         ]),
@@ -585,10 +845,26 @@ export class HoidTrustedExactUnitAnswerHost {
         this.clearPresentation(presentationToken, "presentation-sink-failed");
         return Object.freeze({ status: "blocked", reason: "presentation-sink-failed" });
       }
-      if (!this.activePresentations.has(presentationToken)) {
+      const active = this.activePresentations.get(presentationToken);
+      if (!active) {
         const reason = bundleInvalidated ? "claim-bundle-changed" :
           trustInvalidated ? "trust-checkpoint-conflict" : "progress-changed";
         return Object.freeze({ status: "blocked", reason });
+      }
+
+      // Mint only after the sink has accepted the answer and all synchronous
+      // invalidation callbacks have completed. The capability carries no data.
+      const sidecar = createFollowUpSidecar(pending, permit, currentTrust.value, presentationToken);
+      if (sidecar) {
+        const capability: HoidTrustedFollowUpCapability = Object.freeze({
+          kind: "hoid-trusted-follow-up-capability",
+        });
+        this.followUpSidecars.set(capability, sidecar);
+        this.followUpByPrepared.set(preparedInput, capability);
+        this.activePresentations.set(presentationToken, Object.freeze({
+          ...active,
+          followUpCapability: capability,
+        }));
       }
       return Object.freeze({
         status: "presented",
@@ -606,6 +882,29 @@ export class HoidTrustedExactUnitAnswerHost {
         unsubscribeBundle();
       }
     }
+  }
+
+  async answerAndPresentWithFollowUp(
+    request: unknown,
+    sink: HoidTrustedScreenAnswerPort,
+    options: HoidExactRuntimeCallOptions = {},
+  ): Promise<Readonly<{
+    status: "presented";
+    registryRevision: number;
+    progressRevision: number;
+    followUpCapability: HoidTrustedFollowUpCapability | null;
+  }> | Readonly<{ status: "blocked"; reason: HoidTrustedAnswerBlockReason }>> {
+    const prepared = await this.prepare(request, options);
+    if (prepared.status !== "prepared") {
+      try { sink.clear(prepared.reason); } catch { /* fail closed */ }
+      return Object.freeze({ status: "blocked", reason: prepared.reason });
+    }
+    const result = await this.present(prepared.prepared, sink);
+    if (result.status !== "presented") return result;
+    return Object.freeze({
+      ...result,
+      followUpCapability: this.getFollowUpCapability(prepared.prepared),
+    });
   }
 
   async answerAndPresent(

@@ -196,7 +196,7 @@ describe("Hoid trusted application platform dependency loader", () => {
     if (!loader) throw new Error("Dependency loader unavailable");
 
     const dependencies = await loader(new AbortController().signal);
-    (runtime.cursorStore as { load: typeof replacementLoad }).load = replacementLoad;
+    (runtime.cursorStore as unknown as { load: typeof replacementLoad }).load = replacementLoad;
     await dependencies.cursorStore.load();
 
     expect(originalLoad).toHaveBeenCalledTimes(1);

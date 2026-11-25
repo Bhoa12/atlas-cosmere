@@ -122,11 +122,13 @@ type PendingAnswer = Readonly<{
   receipt: HoidExactPresentationReceipt;
   contextFingerprint: string;
   packageFingerprint: string;
+  parentFollowUpCapability: object | null;
 }>;
 type ActivePresentation = Readonly<{
   token: object;
   sink: HoidTrustedScreenAnswerPort;
   prepared: HoidPreparedExactUnitAnswer;
+  parentFollowUpCapability: object | null;
   followUpCapability: HoidTrustedFollowUpCapability | null;
   unsubscribers: readonly (() => void)[];
 }>;
@@ -382,6 +384,15 @@ export class HoidTrustedExactUnitAnswerHost {
     for (const unsubscribe of active.unsubscribers) {
       try { unsubscribe(); } catch { /* continue clearing remaining ports */ }
     }
+    // A follow-up is a child of the presentation that authorized it. Clearing
+    // the parent recursively retracts descendants and revokes their capabilities.
+    if (active.followUpCapability) {
+      for (const [childToken, child] of [...this.activePresentations.entries()]) {
+        if (child.parentFollowUpCapability === active.followUpCapability) {
+          this.clearPresentation(childToken, reason);
+        }
+      }
+    }
     try { active.sink.clear(reason); } catch { /* fail closed */ }
   }
 
@@ -588,6 +599,7 @@ export class HoidTrustedExactUnitAnswerHost {
       receipt,
       contextFingerprint: trusted.value.contextFingerprint,
       packageFingerprint: trusted.value.packageFingerprint,
+      parentFollowUpCapability: null,
     }));
     return Object.freeze({ status: "prepared", prepared });
   }
@@ -693,6 +705,7 @@ export class HoidTrustedExactUnitAnswerHost {
       receipt,
       contextFingerprint: trusted.value.contextFingerprint,
       packageFingerprint: trusted.value.packageFingerprint,
+      parentFollowUpCapability: capabilityInput as object,
     }));
     return Object.freeze({ status: "prepared", prepared });
   }
@@ -720,8 +733,18 @@ export class HoidTrustedExactUnitAnswerHost {
       clear("invalid-prepared-answer");
       return Object.freeze({ status: "blocked", reason: "invalid-prepared-answer" });
     }
+    if (pending.parentFollowUpCapability &&
+      !this.followUpSidecars.has(pending.parentFollowUpCapability)) {
+      clear("invalid-follow-up-capability");
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
 
     const currentTrust = await this.loadTrustedRuntime(null);
+    if (pending.parentFollowUpCapability &&
+      !this.followUpSidecars.has(pending.parentFollowUpCapability)) {
+      clear("invalid-follow-up-capability");
+      return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+    }
     if (currentTrust.status !== "ready") {
       clear(currentTrust.reason);
       return Object.freeze({ status: "blocked", reason: currentTrust.reason });
@@ -772,6 +795,11 @@ export class HoidTrustedExactUnitAnswerHost {
       // Re-read the complete trust/bundle snapshot after subscriptions are installed.
       // This closes the publication-to-subscription race for package and registry sources.
       const recheckedTrust = await this.loadTrustedRuntime(null);
+      if (pending.parentFollowUpCapability &&
+        !this.followUpSidecars.has(pending.parentFollowUpCapability)) {
+        clear("invalid-follow-up-capability");
+        return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+      }
       if (recheckedTrust.status !== "ready") {
         clear(recheckedTrust.reason);
         return Object.freeze({ status: "blocked", reason: recheckedTrust.reason });
@@ -789,6 +817,11 @@ export class HoidTrustedExactUnitAnswerHost {
 
       // Close the gap between trust refresh and subscription installation.
       const durableCheckpoint = canonicalCheckpoint(await this.config.checkpointStore.read());
+      if (pending.parentFollowUpCapability &&
+        !this.followUpSidecars.has(pending.parentFollowUpCapability)) {
+        clear("invalid-follow-up-capability");
+        return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+      }
       if (!durableCheckpoint || !sameCheckpoint(durableCheckpoint, expectedCheckpoint)) {
         clear("trust-checkpoint-conflict");
         return Object.freeze({ status: "blocked", reason: "trust-checkpoint-conflict" });
@@ -819,6 +852,11 @@ export class HoidTrustedExactUnitAnswerHost {
         clear("progress-changed");
         return Object.freeze({ status: "blocked", reason: "progress-changed" });
       }
+      if (pending.parentFollowUpCapability &&
+        !this.followUpSidecars.has(pending.parentFollowUpCapability)) {
+        clear("invalid-follow-up-capability");
+        return Object.freeze({ status: "blocked", reason: "invalid-follow-up-capability" });
+      }
       if (progress.status !== "ready") {
         const reason = mapPresentationFailure(progress);
         clear(reason);
@@ -841,6 +879,7 @@ export class HoidTrustedExactUnitAnswerHost {
         token: presentationToken,
         sink,
         prepared: preparedInput,
+        parentFollowUpCapability: pending.parentFollowUpCapability,
         followUpCapability: null,
         unsubscribers: Object.freeze([
           unsubscribeTrust, unsubscribeProgress, unsubscribeLocalProgress, unsubscribeBundle,

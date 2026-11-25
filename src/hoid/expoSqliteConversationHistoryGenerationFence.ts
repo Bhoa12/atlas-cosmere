@@ -635,6 +635,7 @@ export function createExpoSqliteHoidConversationHistoryFencedAdapter(
 
   const migration: HoidHistoryMigrationSnapshotPort = Object.freeze({
     kind: "sqlite-history-v1" as const,
+    role: binding.role,
     read: async input => {
       const canonical = exactDataRecord(input, ["operationId", "generation"]);
       if (

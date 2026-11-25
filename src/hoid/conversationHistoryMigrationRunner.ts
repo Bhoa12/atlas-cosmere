@@ -462,6 +462,9 @@ export function createHoidHistoryMigrationRunner(
             generation: record.generation,
           });
         }
+        if (record.lastOperationId !== null && record.lastOperationId !== operationId) {
+          return blocked("wrong-operation");
+        }
         return Object.freeze({ status: "idle" });
       }
       if (migration.operationId !== operationId) return blocked("wrong-operation");

@@ -8,7 +8,6 @@ import type {
 } from "./cursorSqliteProgressStore";
 import type {
   HoidTrustedApplicationDependencies,
-  HoidTrustedApplicationDependencyLoader,
 } from "./trustedApplicationBootstrap";
 
 export type HoidTrustedApplicationProgressRuntime = Readonly<{
@@ -149,7 +148,7 @@ function canonicalProgressRuntime(value: unknown): HoidTrustedApplicationProgres
 export function createHoidTrustedApplicationDependencyLoader(
   platformPortsInput: unknown,
   sessionIdInput: unknown,
-): HoidTrustedApplicationDependencyLoader | null {
+): ((signal: AbortSignal) => Promise<HoidTrustedApplicationDependencies>) | null {
   const ports = exactDataRecord(
     platformPortsInput,
     PLATFORM_PORT_KEYS,

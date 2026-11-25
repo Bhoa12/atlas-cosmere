@@ -52,7 +52,7 @@ function makeParticipants() {
   let sourceFenced = false;
   let targetFenced = false;
 
-  const source: HoidHistoryFencingParticipantPort = Object.freeze({
+  const source = Object.freeze({
     kind: "sqlite-history-v1",
     fence: vi.fn(async (input: Readonly<{
       partitionId: string;
@@ -82,9 +82,9 @@ function makeParticipants() {
       sourceFenced = false;
       return "activated" as const;
     }),
-  });
+  }) satisfies HoidHistoryFencingParticipantPort;
 
-  const target: HoidHistoryFencingParticipantPort = Object.freeze({
+  const target = Object.freeze({
     kind: "vault-history-v1",
     fence: vi.fn(async (input: Readonly<{
       partitionId: string;
@@ -114,7 +114,7 @@ function makeParticipants() {
       targetFenced = false;
       return "activated" as const;
     }),
-  });
+  }) satisfies HoidHistoryFencingParticipantPort;
 
   return {
     source,

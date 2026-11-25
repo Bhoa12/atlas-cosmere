@@ -96,3 +96,25 @@ prove that the private EPUB bytes are mounted or that a source passage was
 consulted. Run 319 does not add chapter inspections or new narrative claims.
 The kit exports validated original editorial drafts and chapter evidence
 identifiers/digests only; it never exports source passages or EPUB bytes.
+
+
+## Private EPUB availability observed during Run 319
+
+A metadata-only inspection of the current Library found three distinct Roshar EPUB editions. Each has a second Library copy whose full-file SHA-256 matched the first byte-for-byte. The files were materialized only in the temporary analysis environment; no EPUB, XHTML or chapter text was added to this repository.
+
+| Source edition | File size | Full-file SHA-256 | Navigation SHA-256 | Structural result |
+|---|---:|---|---|---|
+| roshar-omnibus-v1 | 97,318,466 bytes | 835a3d0eee9c23f61972f299f510b15087e65ceedc6f501536e12e58e15895a5 | 08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025 | 849 spine/XHTML items; 713 TOC entries; five main novels |
+| edgedancer-epub-v1 | 2,176,643 bytes | 5dd1c73b639d34bd45fccf06e02f0bfc5cc16eb4365e095de6ac21d75177e843 | 5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517 | 30 spine/XHTML items; 25 NCX entries; 20 numbered chapters |
+| dawnshard-epub-v1 | 2,062,124 bytes | 162ca876bb85378e4c1680af8925e46cbe3da96cc72486df1ff6b0a9bb5456df | 8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075 | 31 spine/XHTML items; 24 NCX entries; 19 numbered chapters |
+
+The omnibus TOC structure agrees with the existing edition manifest:
+- twok: 75 numbered chapters;
+- wor: 89;
+- ob: 122;
+- row: 117;
+- sawt: 147 distinct numbered chapters, with repeated labels 12 and 14 represented by distinct locators.
+
+All three navigation SHA-256 values match the corresponding existing entries in editionStructure.ts. This confirms source-file identity and navigation structure, not chapter-body review or narrative fact verification. The existing sparse chapter-document allowlist remains unchanged.
+
+No file named cosmere.epub was found in the Library or conversation file surfaces queried during this run. Its 17-work bibliographic catalogue remains registered from the user's supplied inventory, but its bytes and navigation were not re-inspected here.

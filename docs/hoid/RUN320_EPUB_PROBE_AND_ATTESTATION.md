@@ -20,9 +20,9 @@ The probe reads only:
 
 It validates ZIP central-directory bounds, rejects ZIP64, multi-disk and encrypted entries, rejects traversal paths and symlinks, validates local headers and CRC32, and decompresses only bounded metadata entries. It does not decompress chapter XHTML, images, fonts or other book payloads.
 
-The output contains package/navigation digests, spine ordinals, numbered chapter labels, opaque locator IDs and duplicate-number information. It never returns chapter titles, hrefs, archive paths, XHTML, excerpts, chapter-body digests or EPUB bytes.
+The output contains package/navigation digests, spine ordinals, explicitly numbered TOC labels, opaque locator IDs and edition-wide repeated-number information. It does not infer work boundaries: repeated labels across a multi-book omnibus are not evidence of duplicate chapters within one work. It never returns chapter titles, hrefs, archive paths, XHTML, excerpts, chapter-body digests or EPUB bytes.
 
-The parser reads a TOC label only long enough to classify an explicit numeric chapter label. The label itself is discarded. Non-numeric entries remain sections and never receive numeric progress cursors.
+The parser reads a TOC label only long enough to classify an explicit numeric chapter label. The label itself is discarded. Non-numeric entries remain sections. The returned ordinal is only an ordinal within the TOC, not a book-specific progress cursor.
 
 ## Candidate is not authority
 
@@ -55,7 +55,7 @@ A signing failure blocks. A malformed signature is rejected. A signed rejection 
 
 ## Source availability
 
-This run does not assert that cosmere.epub or the private Roshar EPUBs were mounted or inspected. The probe is validated with synthetic EPUB fixtures only. No private EPUB bytes, extracted text, XHTML, chapter titles or paths are committed.
+The private source files were available in the Library and were inspected locally at the ZIP/container/OPF/navigation layer. The automated parser tests use synthetic EPUB fixtures; the local source inspection is reported separately below. No private EPUB bytes, extracted text, XHTML, chapter titles or paths are committed.
 
 ## Validation
 

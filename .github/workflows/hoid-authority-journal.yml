@@ -1,0 +1,41 @@
+name: Hoid durable authority journal protocol
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run302"
+    paths:
+      - "src/hoid/conversationHistoryAuthorityJournal.ts"
+      - "src/hoid/conversationHistoryAuthorityJournal.test.ts"
+      - "docs/hoid/RUN302_DURABLE_AUTHORITY_JOURNAL.md"
+      - ".github/workflows/hoid-authority-journal.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationHistoryAuthorityJournal.ts"
+      - "src/hoid/conversationHistoryAuthorityJournal.test.ts"
+      - "docs/hoid/RUN302_DURABLE_AUTHORITY_JOURNAL.md"
+      - ".github/workflows/hoid-authority-journal.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  authority-journal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test durable journal protocol
+        run: npx vitest run src/hoid/conversationHistoryAuthorityJournal.test.ts
+      - name: Type-check journal and tests
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module commonjs
+          --moduleResolution node --esModuleInterop --skipLibCheck
+          src/hoid/conversationHistoryAuthorityJournal.ts
+          src/hoid/conversationHistoryAuthorityJournal.test.ts

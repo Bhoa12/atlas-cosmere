@@ -1,0 +1,43 @@
+name: Hoid vault bridge result validation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run300"
+    paths:
+      - "src/hoid/conversationVaultHistoryBridge.ts"
+      - "src/hoid/conversationVaultHistoryBridge.test.ts"
+      - "src/hoid/conversationVault.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "docs/hoid/RUN300_VAULT_BRIDGE_RESULT_VALIDATION.md"
+      - ".github/workflows/hoid-conversation-vault-result-validation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/conversationVaultHistoryBridge.ts"
+      - "src/hoid/conversationVaultHistoryBridge.test.ts"
+      - "src/hoid/conversationVault.ts"
+      - "src/hoid/conversationHistoryHydration.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "docs/hoid/RUN300_VAULT_BRIDGE_RESULT_VALIDATION.md"
+      - ".github/workflows/hoid-conversation-vault-result-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  vault-bridge-result-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test vault bridge, history hydration and vault
+        run: npx vitest run src/hoid/conversationVaultHistoryBridge.test.ts src/hoid/conversationHistoryHydration.test.ts src/hoid/conversationVault.test.ts
+      - name: Type-check bridge and codec
+        run: npx tsc --noEmit --strict --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck src/hoid/conversationVaultHistoryBridge.ts src/hoid/conversationVaultHistoryBridge.test.ts src/hoid/conversationVaultHistoryCodec.ts

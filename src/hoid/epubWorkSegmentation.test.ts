@@ -229,7 +229,7 @@ describe("Hoid explicit EPUB work segmentation", () => {
   it("rejects any probe that claims chapter bodies were inspected or progress was unlocked", () => {
     const probe = buildProbe("edgedancer-epub-v1");
     const result = validateHoidEpubWorkSegmentation(
-      cloneProbe(probe, { chapterBodiesInspected: true as false }),
+      cloneProbe(probe, { chapterBodiesInspected: true as unknown as false }),
       "edgedancer-epub-v1",
     );
     expect(result).toMatchObject({ status: "unavailable", reason: "invalid-probe" });

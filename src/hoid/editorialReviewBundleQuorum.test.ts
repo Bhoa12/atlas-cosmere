@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  HOID_EDITORIAL_DRAFTS,
-} from "./editorialDrafts";
+import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { HOID_EDITORIAL_CLAIM_DRAFTS } from "./editorialClaimDrafts";
 import { HOID_EDITORIAL_ENTITY_DRAFTS } from "./editorialEntityDrafts";
 import { HOID_EDITORIAL_RELATIONSHIP_DRAFTS } from "./editorialRelationshipDrafts";
@@ -226,15 +224,10 @@ describe("Hoid editorial bundle review quorum", () => {
   });
 
   it("rejects duplicate reviewer identities even when a second key is supplied", async () => {
-    const duplicateKey: HoidReviewerTrustKey = Object.freeze({
-      ...reviewerB,
-      reviewerId: reviewerA.reviewerId,
-    });
     const duplicate = Object.freeze({
       ...createAttestation(reviewerB),
       reviewerId: reviewerA.reviewerId,
     });
-    expect(duplicateKey.keyId).not.toBe(reviewerA.keyId);
     const result = await verifyHoidEditorialKnowledgeBundleReviewQuorum(createInput({
       attestations: Object.freeze([createAttestation(reviewerA), duplicate]),
     }));
@@ -302,11 +295,13 @@ describe("Hoid editorial bundle review quorum", () => {
     for (const [key, value] of Object.entries(createInput())) {
       Object.defineProperty(hostile, key, {
         enumerable: true,
+        configurable: true,
         value,
       });
     }
     Object.defineProperty(hostile, "manifest", {
       enumerable: true,
+      configurable: true,
       get() {
         getterCalled = true;
         return manifest;

@@ -33,6 +33,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/sourceCoverage.test.ts
+          src/hoid/sourceCatalogManifest.test.ts
           src/hoid/verifiedChapterDocuments.test.ts
           src/hoid/bibliographyCoverage.test.ts
           src/hoid/editionStructure.test.ts
@@ -52,6 +53,7 @@ jobs:
           npx tsc --noEmit --strict --target ES2020 --module commonjs
           --moduleResolution node --skipLibCheck
           src/hoid/sourceCoverage.ts
+          src/hoid/sourceCatalogManifest.ts
           src/hoid/verifiedChapterDocuments.ts
           src/hoid/verifiedChapterLocators.ts
           src/hoid/readingManifest.ts

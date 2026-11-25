@@ -112,10 +112,10 @@ function canonicalCodec(value: unknown): HoidConversationHistorySnapshotCodec | 
   return Object.freeze({
     kind: "hoid-history-snapshot-codec" as const,
     schemaVersion: 1 as const,
-    encode: snapshot => encode.call(value, snapshot),
-    decode: plaintext => decode.call(value, plaintext),
-    digest: snapshot => digest.call(value, snapshot),
-    canonicalize: snapshot => canonicalize.call(value, snapshot),
+    encode: (snapshot: unknown) => encode.call(value, snapshot),
+    decode: (plaintext: Uint8Array) => decode.call(value, plaintext),
+    digest: (snapshot: unknown) => digest.call(value, snapshot),
+    canonicalize: (snapshot: unknown) => canonicalize.call(value, snapshot),
   });
 }
 

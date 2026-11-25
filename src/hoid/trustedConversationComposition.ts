@@ -159,67 +159,102 @@ export type HoidTrustedConversationCompositionResult =
  * mean that editorial trust is provisioned: every turn still revalidates the
  * signed registry, package bundle, anti-rollback checkpoint and live progress.
  */
-export class HoidTrustedConversationComposition {
-  private readonly sessions = new Map<string, HoidTrustedConversationSessionV3>();
-  private disposed = false;
+const TRUSTED_COMPOSITIONS = new WeakSet<object>();
+const COMPOSITION_CONSTRUCTION_TOKEN = Symbol("hoid-trusted-composition-construction");
+type CompositionState = {
+  host: HoidTrustedExactUnitAnswerHost;
+  gateway: HoidTrustedConversationGatewayV3;
+  sessions: Map<string, HoidTrustedConversationSessionV3>;
+  disposed: boolean;
+};
+const COMPOSITION_STATES = new WeakMap<object, CompositionState>();
 
+export class HoidTrustedConversationComposition {
   private constructor(
-    private readonly host: HoidTrustedExactUnitAnswerHost,
-    private readonly gateway: HoidTrustedConversationGatewayV3,
-  ) {}
+    host: HoidTrustedExactUnitAnswerHost,
+    gateway: HoidTrustedConversationGatewayV3,
+  ) {
+    COMPOSITION_STATES.set(this, {
+      host,
+      gateway,
+      sessions: new Map(),
+      disposed: false,
+    });
+    Object.freeze(this);
+  }
 
   /** Construct only from components already created by their trusted factories. */
   static fromTrustedComponents(
     host: HoidTrustedExactUnitAnswerHost,
     gateway: HoidTrustedConversationGatewayV3,
+    constructionToken: unknown,
   ): HoidTrustedConversationComposition {
-    return new HoidTrustedConversationComposition(host, gateway);
+    if (constructionToken !== COMPOSITION_CONSTRUCTION_TOKEN) {
+      throw new TypeError("Trusted conversation composition must be created by its factory");
+    }
+    const composition = new HoidTrustedConversationComposition(host, gateway);
+    TRUSTED_COMPOSITIONS.add(composition);
+    return composition;
   }
 
   createSession(
     sessionIdInput: unknown,
     sinkInput: unknown,
   ): HoidTrustedConversationSessionCreation {
-    if (this.disposed) return Object.freeze({ status: "disposed" });
+    const state = COMPOSITION_STATES.get(this);
+    if (!state || state.disposed) return Object.freeze({ status: "disposed" });
     if (typeof sessionIdInput !== "string" || !SESSION_ID_PATTERN.test(sessionIdInput)) {
       return Object.freeze({ status: "invalid-session" });
     }
-    if (this.sessions.has(sessionIdInput)) return Object.freeze({ status: "duplicate-session" });
+    if (state.sessions.has(sessionIdInput)) return Object.freeze({ status: "duplicate-session" });
     if (!hasCallableMethod(sinkInput, "present") || !hasCallableMethod(sinkInput, "clear")) {
       return Object.freeze({ status: "invalid-sink" });
     }
-    if (this.sessions.size >= MAX_ACTIVE_SESSIONS) return Object.freeze({ status: "session-limit" });
+    if (state.sessions.size >= MAX_ACTIVE_SESSIONS) return Object.freeze({ status: "session-limit" });
 
-    const session = this.gateway.createSession(
+    const session = state.gateway.createSession(
       sessionIdInput,
       sinkInput as HoidConversationAnswerSinkV3,
     );
     if (!session) return Object.freeze({ status: "invalid-session" });
 
-    this.sessions.set(sessionIdInput, session);
+    state.sessions.set(sessionIdInput, session);
     return Object.freeze({ status: "created", session });
   }
 
   closeSession(sessionIdInput: unknown): boolean {
-    if (typeof sessionIdInput !== "string") return false;
-    const session = this.sessions.get(sessionIdInput);
+    const state = COMPOSITION_STATES.get(this);
+    if (!state || typeof sessionIdInput !== "string") return false;
+    const session = state.sessions.get(sessionIdInput);
     if (!session) return false;
-    this.sessions.delete(sessionIdInput);
+    state.sessions.delete(sessionIdInput);
     session.dispose();
     return true;
   }
 
   get activeSessionCount(): number {
-    return this.sessions.size;
+    return COMPOSITION_STATES.get(this)?.sessions.size ?? 0;
   }
 
   dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
-    for (const session of this.sessions.values()) session.dispose();
-    this.sessions.clear();
-    this.host.dispose();
+    const state = COMPOSITION_STATES.get(this);
+    if (!state || state.disposed) return;
+    state.disposed = true;
+    for (const session of state.sessions.values()) session.dispose();
+    state.sessions.clear();
+    state.host.dispose();
   }
+}
+
+Object.freeze(HoidTrustedConversationComposition.prototype);
+Object.freeze(HoidTrustedConversationComposition);
+
+export function isHoidTrustedConversationComposition(
+  value: unknown,
+): value is HoidTrustedConversationComposition {
+  return value !== null &&
+    typeof value === "object" &&
+    TRUSTED_COMPOSITIONS.has(value as object);
 }
 
 /**
@@ -295,7 +330,7 @@ export function createHoidTrustedConversationComposition(
 
   return Object.freeze({
     status: "composed",
-    composition: HoidTrustedConversationComposition.fromTrustedComponents(host, gateway),
+    composition: HoidTrustedConversationComposition.fromTrustedComponents(host, gateway, COMPOSITION_CONSTRUCTION_TOKEN),
   });
 }
 

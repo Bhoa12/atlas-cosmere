@@ -215,7 +215,7 @@ export class HoidTrustedConversationSessionV3 {
     try { return new HoidTrustedConversationSessionV3(config); } catch { return null; }
   }
   getContextSnapshot(): HoidConversationLocalContextV3 | null { return this.memory; }
-  resetContext(): void { this.memory = null; }
+  resetContext(): void { this.invalidate("context-reset"); }
 
   private invalidate(reason: HoidTrustedAnswerBlockReason): void {
     if (this.disposed) return;

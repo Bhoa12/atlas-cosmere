@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { emptyHoidUnitProgressSnapshot, type HoidUnitProgressStore } from "./unitProgressLedger";
 import { HoidUnitProgressCoordinator } from "./unitProgressCoordinator";
-import { createHoidTrustedConversationComposition, createHoidTrustedCursorConversationComposition } from "./trustedConversationComposition";
+import {
+  createHoidTrustedConversationComposition,
+  createHoidTrustedCursorConversationComposition,
+  isHoidTrustedConversationComposition,
+} from "./trustedConversationComposition";
 import { createHoidReadingCursor } from "./readingManifest";
 import { emptyHoidCursorProgressSnapshot, type HoidCursorProgressSnapshot } from "./cursorProgressLedger";
 import type { HoidCursorProgressStore, HoidCursorStoreLoadResult } from "./cursorSqliteProgressStore";
@@ -89,6 +93,20 @@ function setup() {
 }
 
 describe("Hoid trusted conversation composition v3", () => {
+  it("brands only compositions returned by the trusted composition factory", () => {
+    const { composition } = setup();
+    expect(isHoidTrustedConversationComposition(composition)).toBe(true);
+    expect(Object.isFrozen(composition)).toBe(true);
+    expect(Object.getOwnPropertyNames(composition)).toEqual([]);
+    expect(Object.isFrozen(Object.getPrototypeOf(composition))).toBe(true);
+    expect(isHoidTrustedConversationComposition(Object.freeze({
+      createSession: () => ({ status: "invalid-session" }),
+      closeSession: () => false,
+      dispose: () => {},
+    }))).toBe(false);
+    composition.dispose();
+  });
+
   it("fails closed on a missing or malformed composition", () => {
     expect(createHoidTrustedConversationComposition(null)).toEqual({
       status: "blocked",

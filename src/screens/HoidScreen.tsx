@@ -6,8 +6,6 @@ import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } fr
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import {
-  projectHoidAnswerForDisplay,
-  projectHoidCrossBookEvidenceForDisplay,
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
   type HoidDisplaySegment,
@@ -17,9 +15,13 @@ import {
   isHoidTrustedScreenAnswerPort,
   type HoidTrustedScreenAnswerPort,
 } from '../hoid/trustedScreenAnswer';
+import {
+  isHoidTrustedConversationScreenPort,
+  type HoidTrustedConversationScreenPort,
+} from '../hoid/trustedConversationScreenPort';
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
-import { summarizeHoidPresentedCrossBookEvidence } from '../hoid/crossBookEvidence';
+
 
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
 import type { HoidConversationContext } from '../hoid/conversationContext';
@@ -41,7 +43,7 @@ import {
   toggleHoidAnswerScopeBook,
   type HoidAnswerScopeMode,
 } from '../hoid/answerScopeSelection';
-import { validateHoidPresentedAnswerScope } from '../hoid/answerScopePresentation';
+
 import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
   createHoidTopicInterestRecommendationGateway,
@@ -95,12 +97,21 @@ function formatHoidCitationLocation(
     : `${title} · capítulo ${chapter}`;
 }
 
-export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerPort | null }> = ({ trustedAnswerPort: trustedAnswerPortInput = null }) => {
+export const HoidScreen: React.FC<{
+  trustedAnswerPort?: HoidTrustedScreenAnswerPort | null;
+  trustedConversationPort?: HoidTrustedConversationScreenPort | null;
+}> = ({
+  trustedAnswerPort: trustedAnswerPortInput = null,
+  trustedConversationPort: trustedConversationPortInput = null,
+}) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
-  // Only the module-private capability issued by the signed presenter factory
-  // may enable narrative answer dispatch.
+  // The signed presenter capability gates topic recommendations; the exact-unit
+  // conversation capability independently gates narrative answer dispatch.
   const trustedAnswerPort = isHoidTrustedScreenAnswerPort(trustedAnswerPortInput)
     ? trustedAnswerPortInput
+    : null;
+  const trustedConversationPort = isHoidTrustedConversationScreenPort(trustedConversationPortInput)
+    ? trustedConversationPortInput
     : null;
   const {
     getHoidCursorProgressSnapshot,
@@ -238,6 +249,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
 
   useEffect(() => {
     conversationTurnSession.invalidate();
+    trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     setCargandoRecomendaciones(false);
     setCanCancelAnswer(false);
@@ -254,7 +266,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
-  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
@@ -264,6 +276,10 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
   }, []);
+
+  useEffect(() => () => {
+    trustedConversationPort?.dispose();
+  }, [trustedConversationPort]);
 
   // Filter immediately during render, then prune stale assistant text from state.
   useEffect(() => {
@@ -275,6 +291,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     conversationTurnSession.invalidate();
+    trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
     setMensajes([{
@@ -459,207 +476,59 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
           : answerScopeSelection.reason === 'two-to-four-works-required'
             ? 'Selecciona entre dos y cuatro obras para una comparación narrativa.'
             : 'La selección de obras no es válida. No enviaré la consulta al runtime.';
-      } else if (!conversationGateway) {
-        conversationContextRef.current = null;
-        typedConversationContextRef.current = null;
-        conversationScopeBindingRef.current = null;
-        respuesta = 'El runtime de conocimiento no está disponible. No se enviará la pregunta a un proveedor alternativo.';
-      } else if (!trustedAnswerPort) {
+      } else if (!trustedConversationPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         responseScope = requestScope;
-        respuesta = 'La presentación narrativa está desactivada porque el host todavía no ha provisionado una autoridad editorial firmada. Puedo consultar tu progreso y las recomendaciones de catálogo sin revelar contenido narrativo.';
+        respuesta = 'La presentación narrativa está desactivada porque el host todavía no ha provisionado la composición exact-unit v3 y su registro editorial firmado. Puedo consultar tu progreso y las recomendaciones de catálogo sin revelar contenido narrativo.';
       } else {
-        const priorConversationScopeBinding = conversationScopeBindingRef.current;
-        const result = await conversationGateway.answer({
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        const result = await trustedConversationPort.send({
           question: textoUsuario,
-          progress: currentProgress,
           intent: intentPlan.intent,
           depth: explanationDepth,
-          context: conversationContextRef.current ?? undefined,
-          typedContext: typedConversationContextRef.current ?? undefined,
-          ...(conversationScopeBindingRef.current
-            ? { scopeBinding: conversationScopeBindingRef.current }
-            : {}),
           ...(answerScopeSelection.status === 'ready' ? { bookScope: answerScopeSelection.scope } : {}),
         }, { signal: ticket.signal });
         if (!conversationTurnSession.isCurrent(ticket)) return;
         if (ticket.signal.aborted) { commitCancelledTurn(); return; }
-        if (result.status === 'ready' && result.answer.reason === 'request-cancelled') {
-          responseScope = null;
-          respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
-          conversationContextRef.current = null;
-          typedConversationContextRef.current = null;
-          conversationScopeBindingRef.current = null;
-        } else if (result.status === 'ready') {
+
+        if (result.status === 'ready') {
           responseScope = {
             revision: result.progressRevision,
             fingerprint: result.progressFingerprint,
           };
-          const trustedResult = await trustedAnswerPort.present(result.answer, result.depth);
-          if (!conversationTurnSession.isCurrent(ticket)) return;
-          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
-          if (trustedResult.status === 'ready') {
-            const presentation = trustedResult.presentation;
-            const scopeValidation = validateHoidPresentedAnswerScope(
-              presentation,
-              answerScopeSelection.status === 'ready' ? answerScopeSelection.scope : undefined,
-            );
-            if (scopeValidation.status !== 'ready') {
-              respuesta = 'No puedo verificar que las citas pertenezcan exactamente a las obras seleccionadas. No mostraré el contenido.';
-              conversationContextRef.current = null;
-              typedConversationContextRef.current = null;
-              conversationScopeBindingRef.current =
-                result.conversationScopeBinding === priorConversationScopeBinding
-                  ? priorConversationScopeBinding
-                  : null;
-              responseScope = requestScope;
-            } else {
-              const requiresCrossWorkCoverage =
-                (answerScopeSelection.status === 'ready' &&
-                  answerScopeSelection.scope.mode === 'cross-work') ||
-                (answerScopeSelection.status === 'unscoped' &&
-                  scopeValidation.sourceBookIds.length > 1);
-              const crossBookResult = requiresCrossWorkCoverage
-                ? summarizeHoidPresentedCrossBookEvidence(presentation)
-                : null;
-              const crossBookCoverageValid =
-                crossBookResult?.status === 'ready' &&
-                crossBookResult.summary.workCount === scopeValidation.sourceBookIds.length &&
-                crossBookResult.summary.works.every(work =>
-                  scopeValidation.sourceBookIds.includes(work.sourceBookId),
-                );
-
-              if (requiresCrossWorkCoverage && !crossBookCoverageValid) {
-                respuesta = 'No puedo verificar la procedencia por segmento y capítulo de todas las obras seleccionadas. No mostraré una comparación parcial.';
-                conversationContextRef.current = null;
-                typedConversationContextRef.current = null;
-                conversationScopeBindingRef.current =
-                  result.conversationScopeBinding === priorConversationScopeBinding
-                    ? priorConversationScopeBinding
-                    : null;
-                responseScope = requestScope;
-              } else {
-                const displayProjection = projectHoidAnswerForDisplay(presentation);
-                if (!displayProjection) {
-                  throw new Error('Invalid trusted answer display projection');
-                }
-                respuesta = displayProjection.text;
-                citas = displayProjection.citations;
-                segmentos = displayProjection.segments;
-                formato = displayProjection.layout;
-                if (
-                  crossBookResult?.status === 'ready' &&
-                  crossBookResult.summary.workCount > 1
-                ) {
-                  evidenciaTransversal =
-                    projectHoidCrossBookEvidenceForDisplay(crossBookResult.summary) ?? undefined;
-                }
-                const returnedBinding = result.conversationScopeBinding ?? null;
-                const bindingBookIds = returnedBinding?.scope.bookIds ?? [];
-                const presentedBookIds = [...scopeValidation.sourceBookIds].sort();
-                const presentedChapters = new Map<string, Set<number>>();
-                for (const citation of presentation.citations) {
-                  let chapters = presentedChapters.get(citation.sourceBookId);
-                  if (!chapters) {
-                    chapters = new Set<number>();
-                    presentedChapters.set(citation.sourceBookId, chapters);
-                  }
-                  chapters.add(citation.chapter);
-                }
-                // The legacy conversation binding stores chapter numbers only.
-                // Do not retain follow-up context when a visible label needed an ordinal disambiguator.
-                const hasAmbiguousChapterIdentity = displayProjection.citations.some(
-                  citation => citation.chapterLabelAmbiguous,
-                );
-                const bindingMatchesPresentation = !hasAmbiguousChapterIdentity && (!returnedBinding || (
-                  bindingBookIds.length === presentedBookIds.length &&
-                  bindingBookIds.every((bookId, index) => bookId === presentedBookIds[index]) &&
-                  returnedBinding.works.every(work => {
-                    const chapters = [...(presentedChapters.get(work.bookId) ?? [])]
-                      .sort((left, right) => left - right);
-                    return chapters.length === work.chapters.length &&
-                      chapters.every((chapter, index) => chapter === work.chapters[index]);
-                  })
-                ));
-                if (!bindingMatchesPresentation) {
-                  respuesta = 'La procedencia del contexto conversacional no coincide con las fuentes presentadas. No conservaré ese contexto.';
-                  citas = undefined;
-                  segmentos = undefined;
-                  formato = undefined;
-                  evidenciaTransversal = undefined;
-                  conversationContextRef.current = null;
-                  typedConversationContextRef.current = null;
-                  conversationScopeBindingRef.current =
-                    returnedBinding === priorConversationScopeBinding
-                      ? priorConversationScopeBinding
-                      : null;
-                  responseScope = requestScope;
-                } else {
-                  conversationScopeBindingRef.current = returnedBinding;
-                  conversationContextRef.current = returnedBinding
-                    ? result.conversationContext ?? null
-                    : null;
-                  typedConversationContextRef.current = returnedBinding
-                    ? result.typedConversationContext ?? null
-                    : null;
-                }
-              }
-            }
-          } else {
-            respuesta = trustedResult.text;
-            conversationContextRef.current = null;
-            typedConversationContextRef.current = null;
-            conversationScopeBindingRef.current =
-              result.conversationScopeBinding === priorConversationScopeBinding
-                ? priorConversationScopeBinding
-                : null;
-            responseScope = requestScope;
-          }
+          respuesta = result.presentation.text;
+          citas = result.presentation.citations;
+          segmentos = result.presentation.segments;
+          formato = result.presentation.layout;
+          evidenciaTransversal = result.crossBookEvidence ?? undefined;
+        } else if (result.status === 'needs-clarification') {
+          responseScope = requestScope;
+          respuesta = result.reason === 'ambiguous-entity'
+            ? 'No puedo identificar con seguridad el referente. Repite los nombres de los personajes para evitar una suposición.'
+            : 'No hay un contexto anterior vigente para resolver esa pregunta. Vuelve a mencionar los personajes.';
+        } else if (result.status === 'cancelled') {
+          responseScope = null;
+          respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
         } else {
-          conversationContextRef.current = null;
-          typedConversationContextRef.current = null;
-          if (
-            result.reason === 'progress-changed' ||
-            result.reason === 'invalid-progress' ||
-            result.reason === 'context-stale' ||
-            result.reason === 'context-scope-unavailable' ||
-            result.reason === 'cancelled'
-          ) conversationScopeBindingRef.current = null;
+          responseScope = requestScope;
           respuesta = result.reason === 'progress-changed'
             ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
-            : result.reason === 'cancelled'
-              ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
-              : result.reason === 'invalid-progress'
+            : result.reason === 'progress-unavailable'
               ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
-              : result.reason === 'context-ambiguous'
-                ? 'No puedo identificar con seguridad el referente. Repite los nombres de los personajes para evitar una suposición.'
-                : result.reason === 'context-unavailable'
-                  ? 'No hay una relación anterior inequívoca en esta conversación. Vuelve a mencionar los personajes.'
-                  : result.reason === 'context-scope-mismatch'
-                    ? 'El ámbito solicitado no coincide con el de esta conversación. Pulsa «Nuevo tema» para iniciar otra con la selección actual.'
-                    : result.reason === 'context-scope-unavailable'
-                      ? 'No puedo verificar el ámbito de la respuesta anterior. No ampliaré la conversación a otras obras.'
-                      : result.reason === 'context-stale'
-                    ? 'El progreso ha cambiado. Vuelve a mencionar los personajes para comprobar de nuevo la relación.'
-                    : result.reason === 'entity-blocked' || result.reason === 'entity-ambiguous' || result.reason === 'entity-unavailable'
-                      ? 'No hay afirmaciones editoriales verificadas y autorizadas para esta pregunta y tu progreso. Hoid no inventará una explicación.'
-                      : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
-          if (
-            result.reason === 'entity-blocked' ||
-            result.reason === 'entity-ambiguous' ||
-            result.reason === 'entity-unavailable' ||
-            result.reason === 'context-ambiguous' ||
-            result.reason === 'context-unavailable' ||
-            result.reason === 'context-stale' ||
-            result.reason === 'context-scope-unavailable' ||
-            result.reason === 'context-scope-mismatch'
-          ) responseScope = requestScope;
+              : result.reason === 'invalid-request'
+                ? 'No he podido validar la pregunta. No la enviaré a ningún proveedor.'
+                : result.reason === 'host-blocked' &&
+                    (result.hostReason === 'evidence-locked' || result.hostReason === 'trust-source-unavailable')
+                  ? 'No hay afirmaciones editoriales verificadas y autorizadas para esta pregunta y tu progreso. Hoid no inventará una explicación.'
+                  : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
         }
       }
 
-      // The gateway checks before and after its asynchronous work. This final
+      // The v3 session rechecks trust and progress before and after delivery. This final
       // comparison closes the remaining interval before React commits the text.
       const latestProgress = await progressRefreshRef.current();
       if (!conversationTurnSession.isCurrent(ticket)) return;
@@ -737,6 +606,7 @@ export const HoidScreen: React.FC<{ trustedAnswerPort?: HoidTrustedScreenAnswerP
     if (!ticket) return;
 
     conversationTurnSession.invalidate();
+    trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
     conversationContextRef.current = null;

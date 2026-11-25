@@ -14,7 +14,14 @@ describe("Hoid metadata-only source coverage", () => {
 
     expect(report.integrity).toBe("consistent");
     expect(report.scope).toBe("metadata-only");
-    expect(report.catalogue).toEqual({ totalWorks: 24, cosmereWorks: 17, rosharWorks: 7 });
+    expect(report.catalogue).toEqual({
+      totalWorks: 24,
+      cosmereWorks: 17,
+      rosharWorks: 7,
+      fingerprint: "4cc935583679307826664e2555f2df6ae55d8784b758c6aaf35afbc05e43b01b",
+      accessStatus: "not-asserted",
+      sourceContentIncluded: false,
+    });
     expect(report.works).toHaveLength(24);
   });
 

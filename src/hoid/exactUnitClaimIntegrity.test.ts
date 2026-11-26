@@ -143,9 +143,9 @@ describe("Hoid exact-unit approved-claim attestation v2", () => {
     const unverifiedPolicy: HoidExactUnitEvidencePolicy = Object.freeze({
       schemaVersion: 2,
       evidenceId: "evidence.exact-alpha",
-      source: reference("wor", 3),
-      firstSafeAppearance: reference("wor", 3),
-      unlock: reference("wor", 4),
+      source: reference("wor", 11),
+      firstSafeAppearance: reference("wor", 11),
+      unlock: reference("wor", 12),
     });
     expect(createHoidExactApprovedClaimAttestation(core, evidence, [unverifiedPolicy], reviewer))
       .toEqual({ status: "invalid", reason: "unverified-source" });

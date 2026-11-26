@@ -16,7 +16,7 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Works with a safe next chapter-body inspection candidate | 17 |
 | Continuations of already inspected works | 5 |
 | New works ready to begin | 12 |
-| Works blocked by unresolved segmentation | 5 |
+| Works blocked by unresolved segmentation or chapter ambiguity | 5 |
 | Individually inspected chapter documents | 114 |
 | Original staged summaries | 69 |
 | Summaries pending review | 69 |

@@ -209,7 +209,9 @@ export function prepareHoidRecommendationNavigationHandoff(
       return unavailable("selection-required");
     }
     if (!sameCursor(position.cursor, cursor)) return unavailable("cursor-mismatch");
-  } else if (cursor.chapterNumber !== 1) {
+  } else {
+    // Recommendation handoffs may only resume a work with a current ledger cursor.
+    // Starting a new book is a separate reader action, never a recommendation target.
     return unavailable("work-not-started");
   }
 

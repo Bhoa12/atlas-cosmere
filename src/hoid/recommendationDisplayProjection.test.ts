@@ -95,8 +95,8 @@ describe("Hoid recommendation display projections", () => {
       items: [{
         sourceId: fixture.work.id,
         title: fixture.work.title,
-        heading: "Comenzar " + fixture.work.title,
-        detail: "La obra figura en el catálogo y tiene un manifiesto de lectura verificable.",
+        heading: "Reanudar " + fixture.work.title,
+        detail: fixture.presentation.items[0].detail,
         navigation: fixture.target.locatorStatus,
       }],
     });

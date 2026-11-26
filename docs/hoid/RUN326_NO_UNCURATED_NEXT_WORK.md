@@ -30,6 +30,12 @@ The new behaviour does not infer a next work from:
 
 The Hoid panel is now labelled **RETOMAR LECTURA**. When there is no active work, it explains that no next-work recommendation is available until an explicit, editorially reviewed reading path exists. The reader can still choose a work manually in Atlas; this does not unlock narrative evidence.
 
+## Navigation handoff hardening
+
+The reader handoff now rejects every target whose work has no current progress cursor, including a structurally valid chapter-one cursor. A chapter-one manifest proves only that the unit exists in the edition; it does not prove that the work is an authorized recommendation. Starting a new work remains a separate manual reader action and must not pass through the recommendation handoff.
+
+Regression tests cover both an empty ledger and a multi-work ledger where the reader explicitly selected a different active work. In both cases, an unstarted-work target is rejected with `work-not-started`.
+
 ## Contracts and trust boundaries
 
 - `editionBoundRecommendations.ts` emits only `resume-current-work`, `selection-required`, or `no-safe-next-work`.

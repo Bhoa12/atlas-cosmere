@@ -13,6 +13,8 @@ on:
       - "src/hoid/editionBoundRecommendationPresentation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.test.ts"
       - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/readingRecommendationPlanner.ts"
       - "src/hoid/exactUnitSpoilerDependencyGate.ts"
       - "src/hoid/exactUnitEvidenceRuntime.ts"
@@ -33,6 +35,8 @@ on:
       - "src/hoid/editionBoundRecommendationPresentation.test.ts"
       - "src/hoid/editionBoundRecommendationFreshness.test.ts"
       - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.ts"
+      - "src/hoid/editionBoundRecommendationNavigation.test.ts"
       - "src/hoid/readingRecommendationPlanner.ts"
       - "src/hoid/exactUnitSpoilerDependencyGate.ts"
       - "src/hoid/exactUnitEvidenceRuntime.ts"
@@ -64,6 +68,7 @@ jobs:
           src/hoid/editionBoundRecommendationFreshness.test.ts
           src/hoid/recommendationDisplayProjection.test.ts
           src/hoid/readingRecommendationPlanner.test.ts
+          src/hoid/editionBoundRecommendationNavigation.test.ts
           src/hoid/exactUnitSpoilerDependencyGate.test.ts
           src/hoid/exactUnitEvidenceRuntime.test.ts
       - name: Strict type-check recommendation and screen contracts
@@ -82,4 +87,6 @@ jobs:
           src/hoid/editionBoundRecommendationPresentation.ts
           src/hoid/editionBoundRecommendationFreshness.ts
           src/hoid/recommendationDisplayProjection.ts
+          src/hoid/editionBoundRecommendationNavigation.ts
+          src/hoid/editionBoundRecommendationNavigation.test.ts
           src/screens/HoidScreen.tsx

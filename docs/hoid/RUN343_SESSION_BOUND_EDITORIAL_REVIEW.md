@@ -30,6 +30,8 @@ The packet contains the user-authored original summary plus source-integrity met
 
 The checklist covers factual accuracy, completeness, originality, spoiler ceiling and provenance.
 
+The Hoid EPUB panel exposes this checklist after saving a draft. It allows the reader to record either a local approval (only when all five checks pass) or a revision request. The reviewer label is visible and editable but remains explicitly unauthenticated. Both the packet and decision are held only in the current source session.
+
 A reviewer label is deliberately marked `unverified-local-label`. It is not an authenticated identity, Ed25519 signature, independent reviewer quorum or trusted approval. A local approval is reported only as `approved-awaiting-trusted-promotion`.
 
 ## Session lifecycle

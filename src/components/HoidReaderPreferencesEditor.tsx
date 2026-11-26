@@ -37,6 +37,7 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
     getDefaultHoidReaderRecommendationPreferences(),
   );
   const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -46,17 +47,21 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
     setLoaded(false);
 
     if (storeStatus === "loading") {
+      setLoading(true);
       setMessage("Conectando con las preferencias locales…");
       return () => { active = false; };
     }
     if (storeStatus !== "ready" || !store) {
+      setLoading(false);
       setMessage("Almacenamiento local no disponible. Se conservará el orden editorial original.");
       return () => { active = false; };
     }
 
+    setLoading(true);
     setMessage("Cargando preferencias guardadas…");
     void store.read().then(raw => {
       if (!active) return;
+      setLoading(false);
       const validation = validateHoidReaderRecommendationPreferences(raw);
       if (validation.status !== "valid") {
         setMessage("Las preferencias guardadas no superan la validación. No se han restablecido ni sobrescrito.");
@@ -68,6 +73,7 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
       setMessage("Preferencias guardadas localmente en este dispositivo.");
     }).catch(() => {
       if (!active) return;
+      setLoading(false);
       setMessage("No se pudieron leer las preferencias. Se conservará el orden editorial original.");
     });
 
@@ -183,13 +189,13 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
         </Text>
       </TouchableOpacity>
 
-      {(!loaded || saving) && (
+      {(loading || saving) && (
         <View style={styles.statusRow}>
           <ActivityIndicator color="#818cf8" size="small" />
           <Text style={styles.status}>{message}</Text>
         </View>
       )}
-      {loaded && !saving && message.length > 0 && (
+      {!loading && !saving && message.length > 0 && (
         <Text accessibilityLiveRegion="polite" style={styles.status}>{message}</Text>
       )}
 

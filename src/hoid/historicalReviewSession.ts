@@ -172,7 +172,10 @@ export function createHoidHistoricalReviewSessionController(
 
     invalidate,
 
-    async verifyAndBind(lease, input): Promise<HoidHistoricalReviewVerification> {
+    async verifyAndBind(
+      lease: HoidHistoricalReviewSessionLease,
+      input: ReinspectionInput,
+    ): Promise<HoidHistoricalReviewVerification> {
       if (!isCurrent(lease) || activeIdentity === null) {
         return Object.freeze({ status: "stale-session" });
       }
@@ -240,7 +243,11 @@ export function createHoidHistoricalReviewSessionController(
       return Object.freeze({ status: "ready", handoff });
     },
 
-    saveDraft(handoff, summaryInput, originalityConfirmed): HoidHistoricalReviewDraftResult {
+    saveDraft(
+      handoff: HoidHistoricalReviewHandoff,
+      summaryInput: unknown,
+      originalityConfirmed: unknown,
+    ): HoidHistoricalReviewDraftResult {
       const lease = handoffLeases.get(handoff);
       if (!lease || !isCurrent(lease)) return Object.freeze({ status: "rejected", reason: "stale-session" });
       if (originalityConfirmed !== true) {
@@ -278,13 +285,13 @@ export function createHoidHistoricalReviewSessionController(
       return Object.freeze({ status: "saved-in-memory", draft });
     },
 
-    getDraft(handoff): HoidHistoricalReviewDraft | null {
+    getDraft(handoff: HoidHistoricalReviewHandoff): HoidHistoricalReviewDraft | null {
       const lease = handoffLeases.get(handoff);
       if (!lease || !isCurrent(lease)) return null;
       return drafts.get(handoff) ?? null;
     },
 
-    discardDraft(handoff): boolean {
+    discardDraft(handoff: HoidHistoricalReviewHandoff): boolean {
       const lease = handoffLeases.get(handoff);
       if (!lease || !isCurrent(lease)) return false;
       return drafts.delete(handoff);

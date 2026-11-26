@@ -112,7 +112,7 @@ describe("Hoid session-bound historical review workspace", () => {
         ...verifiedResult.attestation,
         sourceContentIncluded: true,
       }),
-    }));
+    } as unknown as HoidHistoricalSourceReinspectionResult));
     const lease = controller.beginSession(identity());
     if (!lease) throw new Error("Test session could not be opened");
     expect(await controller.verifyAndBind(lease, inputFor())).toEqual({
@@ -161,7 +161,7 @@ describe("Hoid session-bound historical review workspace", () => {
   });
 
   it("does not let a late verification complete after a source switch", async () => {
-    let resolveVerification: ((value: HoidHistoricalSourceReinspectionResult) => void) | null = null;
+    let resolveVerification!: (value: HoidHistoricalSourceReinspectionResult) => void;
     const pending = new Promise<HoidHistoricalSourceReinspectionResult>(resolve => {
       resolveVerification = resolve;
     });
@@ -170,7 +170,6 @@ describe("Hoid session-bound historical review workspace", () => {
     if (!firstLease) throw new Error("First test session could not be opened");
     const verification = controller.verifyAndBind(firstLease, inputFor());
     controller.beginSession(identity("local-source-b"));
-    if (!resolveVerification) throw new Error("Deferred verifier was not initialized");
     resolveVerification(verifiedResult);
     expect(await verification).toEqual({ status: "stale-session" });
   });

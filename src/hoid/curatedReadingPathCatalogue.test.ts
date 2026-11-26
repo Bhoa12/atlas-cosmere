@@ -118,7 +118,7 @@ function signedRouteEvidencePackage(
   });
 }
 
-function makeCatalogue() {
+function makeCatalogue(claimId = "claim.route-rationale") {
   const through = reference("twok", 2);
   const evidence = reference("twok", 1);
   const result = buildHoidCuratedReadingPathCatalogue({
@@ -142,7 +142,7 @@ function makeCatalogue() {
           rationale: "Paso posterior de una ruta sintética, sujeto a progreso.",
           prerequisites: [{ stepId: "start-twok", through }],
           rationaleEvidence: [{
-            claimId: "claim.route-rationale",
+            claimId,
             evidenceId: "test-evidence-one",
             reference: evidence,
           }],
@@ -677,6 +677,14 @@ describe("Hoid curated reading path recommendations", () => {
       ...input,
       evidencePackages: [],
     });
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("does not let a different signed claim reuse the route's evidence ID", async () => {
+    const catalogue = makeCatalogue("claim.not-signed");
+    const result = await evaluateHoidCuratedReadingPathRecommendations(
+      evaluationInput(makeProgress({ kind: "empty" }), catalogue),
+    );
     expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
   });
 

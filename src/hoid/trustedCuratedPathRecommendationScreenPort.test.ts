@@ -124,16 +124,8 @@ describe("Hoid trusted curated-path recommendation screen port", () => {
     port.dispose();
   });
 
-  it("discards an older request when a newer presentation starts", async () => {
-    let releaseFirst!: (value: unknown) => void;
-    const firstInput = new Promise<unknown>(resolve => {
-      releaseFirst = resolve;
-    });
-    let calls = 0;
-    const loadValidationInput = vi.fn(() => {
-      calls += 1;
-      return calls === 1 ? firstInput : Promise.resolve(validationMaterial());
-    });
+  it("discards an older request before it can load route material", async () => {
+    const loadValidationInput = vi.fn(async () => validationMaterial());
     const port = createHoidTrustedCuratedPathRecommendationScreenPort(config(loadValidationInput));
     if (!port) throw new Error("Port unavailable");
 
@@ -143,8 +135,8 @@ describe("Hoid trusted curated-path recommendation screen port", () => {
       status: "withheld",
       reason: "plan-revalidation-failed",
     });
-    releaseFirst(validationMaterial());
     expect(await first).toEqual({ status: "withheld", reason: "cancelled" });
+    expect(loadValidationInput).toHaveBeenCalledTimes(1);
     port.dispose();
   });
 

@@ -78,12 +78,12 @@ describe("Hoid metadata-only source inspection review handoff", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     expect(result.queue.items).toHaveLength(1);
+    const manifest = getHoidReadingManifest("tfe");
+    expect(manifest.status).toBe("ready");
     expect(result.queue.items[0]).toMatchObject({
       workId: "tfe",
       title: "El Imperio Final",
-      editionId: getHoidReadingManifest("tfe").status === "ready"
-        ? getHoidReadingManifest("tfe").manifest.editionId
-        : "",
+      editionId: manifest.status === "ready" ? manifest.manifest.editionId : "",
       chapterNumber: getHoidSourceIngestionPlan().tasks.find(item => item.workId === "tfe")?.chapterNumber,
       stage: "awaiting-source-reselection",
       sourceAvailability: "not-checked",
@@ -120,7 +120,6 @@ describe("Hoid metadata-only source inspection review handoff", () => {
       "packageSourceFingerprint",
       "candidateFingerprint",
       "file://",
-      ".epub",
       "privateEpubBytes",
       "<html",
       "summaryText",

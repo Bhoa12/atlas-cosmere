@@ -97,12 +97,12 @@ describe("Hoid local historical editorial review packets", () => {
   it("accepts ordinary multiline summaries without accepting control characters", () => {
     const result = buildHoidHistoricalEditorialReviewPacket({
       ...DRAFT,
-      summaryText: "Resumen original del capítulo con suficiente detalle y contexto para una revisión editorial local.\\n\\nIncluye un segundo párrafo redactado con palabras propias.",
+      summaryText: "Resumen original del capítulo con suficiente detalle y contexto para una revisión editorial local.\n\nIncluye un segundo párrafo redactado con palabras propias.",
     }, EVIDENCE);
     expect(result.status).toBe("ready");
     expect(buildHoidHistoricalEditorialReviewPacket({
       ...DRAFT,
-      summaryText: SUMMARY + "\\u0001",
+      summaryText: SUMMARY + "\u0001",
     }, EVIDENCE)).toMatchObject({ status: "invalid", reason: "invalid-draft" });
   });
 

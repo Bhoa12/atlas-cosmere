@@ -184,13 +184,6 @@ function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
   return added.ledger;
 }
 
-function rowFor(ledger: HoidSourceInspectionReceiptLedger): FakeRow {
-  return {
-    schema_version: 1,
-    revision: ledger.revision,
-    payload: JSON.stringify(ledger),
-  };
-}
 
 describe("Expo SQLite Hoid source inspection receipt store", () => {
   it("initializes a durable empty metadata ledger", async () => {
@@ -255,7 +248,7 @@ describe("Expo SQLite Hoid source inspection receipt store", () => {
     const store = new ExpoSqliteHoidSourceInspectionReceiptStore(database);
 
     expect(await store.read()).toMatchObject({ invalidStoredSourceInspectionReceipts: true });
-    expect(await store.compareAndSwap(4, nextLedger(5))).toBe("unavailable");
+    expect(await store.compareAndSwap(0, nextLedger(1))).toBe("unavailable");
     expect(database.inspect()?.payload).toBe("{not-json");
   });
 

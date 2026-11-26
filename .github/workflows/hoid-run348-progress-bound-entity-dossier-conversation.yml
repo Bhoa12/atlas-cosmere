@@ -66,7 +66,7 @@ jobs:
           --moduleResolution node
           --skipLibCheck
           --esModuleInterop
-          --jsx react
+          --jsx react-native
           src/hoid/entityDossierIntent.ts
           src/hoid/entityDossierIntent.test.ts
           src/hoid/entityDossierConversation.ts

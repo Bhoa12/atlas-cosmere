@@ -29,6 +29,7 @@ import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 
 
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
+import { resolveHoidRereadRequest } from '../hoid/rereadRequest';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
 import type { HoidConversationScopeBinding } from '../hoid/conversationScopeBinding';
@@ -458,6 +459,65 @@ export const HoidScreen: React.FC<{
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
+      } else if (intentPlan.mode === 'reread-request') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        const reread = resolveHoidRereadRequest(textoUsuario, currentProgress);
+        if (reread.status === 'ready') {
+          responseScope = {
+            revision: reread.progressRevision,
+            fingerprint: reread.progressFingerprint,
+          };
+          respuesta = `Relectura disponible: ${reread.title}.\\n\\nLa obra figura como terminada en tu progreso y su manifiesto verifica el capítulo 1. Puedes iniciar la relectura desde ahí mediante selección manual en Atlas. No abriré el EPUB ni modificaré tu progreso.`;
+        } else if (reread.status === 'needs-clarification') {
+          respuesta = reread.reason === 'multiple-works-mentioned'
+            ? 'Has mencionado varias obras. Para evitar elegir por ti, dime el título exacto de una sola obra que quieras releer.'
+            : 'Dime el título exacto de una obra del catálogo que quieras releer.';
+        } else if (reread.status === 'not-completed') {
+          responseScope = {
+            revision: reread.progressRevision,
+            fingerprint: reread.progressFingerprint,
+          };
+          respuesta = reread.reason === 'in-progress'
+            ? `${reread.title} todavía figura en curso, no como terminada. Tu cursor está en el capítulo ${reread.currentChapter}; el progreso llega hasta ${reread.completedThroughChapter ?? 'ningún capítulo'}. Puedo ayudarte a continuar desde ese punto, pero no la clasificaré como relectura.`
+            : `${reread.title} no tiene un progreso de finalización registrado. No asumiré que ya la has leído ni iniciaré una relectura.`;
+        } else if (reread.status === 'blocked') {
+          respuesta = reread.reason === 'segmentation-unverified'
+            ? 'No puedo verificar la estructura del capítulo inicial de esa edición. La relectura queda bloqueada y no inventaré un destino.'
+            : 'No puedo verificar tu progreso actual. La relectura queda bloqueada para evitar una posición incorrecta.';
+        } else {
+          respuesta = 'No he podido validar la solicitud de relectura. No la enviaré a ningún proveedor.';
+        }
+      } else if (intentPlan.mode === 'curated-discovery') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        responseScope = requestScope;
+        if (!trustedCuratedPathRecommendationPort) {
+          respuesta = 'El descubrimiento de nuevas obras permanece bloqueado: falta la autoridad editorial de itinerarios firmados. No usaré el orden de la bibliografía ni un proveedor como sustituto.';
+        } else {
+          const safeProjection = await awaitHoidOperationWithSignal(
+            () => trustedCuratedPathRecommendationPort.present(ticket.signal),
+            ticket.signal,
+          );
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+          const ranked = rankHoidCuratedPathRecommendationsForReader(
+            safeProjection,
+            readerPreferences,
+          );
+          if (ranked.status === 'ready') {
+            respuesta = ranked.items.length === 0
+              ? 'No hay itinerarios editoriales aprobados que pueda recomendar con tu progreso actual.'
+              : 'Opciones de descubrimiento respaldadas por itinerarios editoriales firmados:\\n\\n'
+                + ranked.items.map(item =>
+                  `• ${item.workTitle} — ${item.pathTitle}\\n${item.whyNow}\\nLa selección es manual; no se abrirá ningún capítulo ni se modificará tu progreso.`,
+                ).join('\\n\\n');
+          } else {
+            respuesta = 'No hay una recomendación de descubrimiento que pueda mostrarse con seguridad. La validación editorial o de progreso no ha autorizado ningún resultado.';
+          }
+        }
       } else if (intentPlan.mode === 'reading-progress') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;

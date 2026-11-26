@@ -380,7 +380,7 @@ export const HoidEpubImportPanel: React.FC<{
                 ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto y sigue pendiente de revisión editorial.`
                 : `El capítulo ${result.candidate.chapterNumber} ya tenía un recibo local idéntico. No se ha duplicado ni sobrescrito.`,
             );
-          } else if (receiptResult.status === "conflict") {
+          } else if (receiptResult.status === "receipt-conflict") {
             const key = inspectionReceiptKey(
               result.candidate.workId,
               result.candidate.editionId,
@@ -389,6 +389,21 @@ export const HoidEpubImportPanel: React.FC<{
             setLocalReceiptKeys(current => current.includes(key) ? current : [...current, key]);
             setReceiptStoreStatus("ready");
             setMessage("Ya existe un recibo local distinto para este capítulo. Se conserva el anterior y no se sobrescribe.");
+          } else if (receiptResult.status === "write-conflict") {
+            try {
+              const refreshed = validateHoidSourceInspectionReceiptLedger(await store.read());
+              if (refreshed.status === "valid") {
+                setLocalReceiptKeys(refreshed.ledger.receipts.map(receipt =>
+                  inspectionReceiptKey(receipt.workId, receipt.editionId, receipt.chapterNumber),
+                ));
+                setReceiptStoreStatus("ready");
+              } else {
+                setReceiptStoreStatus("unavailable");
+              }
+            } catch {
+              setReceiptStoreStatus("unavailable");
+            }
+            setMessage("El registro local cambió durante la escritura. Se ha conservado el estado persistido; vuelve a intentar la inspección después de actualizar la lista.");
           } else {
             setReceiptStoreStatus("unavailable");
             setMessage("La inspección sigue siendo candidate-only, pero no se pudo guardar el recibo local. No se ha guardado texto ni se ha autorizado producción.");

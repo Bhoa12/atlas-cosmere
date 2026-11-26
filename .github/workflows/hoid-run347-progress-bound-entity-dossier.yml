@@ -1,0 +1,75 @@
+name: Hoid Run 347 — progress-bound entity dossier
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run347"
+    paths:
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityDossierGateway.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "docs/hoid/RUN347_PROGRESS_BOUND_ENTITY_DOSSIER.md"
+      - ".github/workflows/hoid-run347-progress-bound-entity-dossier.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityDossierGateway.test.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/evidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "docs/hoid/RUN347_PROGRESS_BOUND_ENTITY_DOSSIER.md"
+      - ".github/workflows/hoid-run347-progress-bound-entity-dossier.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  progress-bound-entity-dossier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run dossier and adjacent regression suites
+        run: >-
+          npx vitest run
+          src/hoid/entityDossierGateway.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/knowledgeGraph.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/entityDossierGateway.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/hoid/entityResolver.ts
+          src/hoid/approvedClaimIntegrity.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/catalog.ts
+          src/hoid/entityAliasRegistry.ts
+          src/hoid/evidenceScope.ts
+          src/hoid/cursorEvidenceRuntime.ts

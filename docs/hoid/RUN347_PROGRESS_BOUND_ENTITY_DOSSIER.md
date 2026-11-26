@@ -48,7 +48,7 @@ Tests use synthetic, source-digest-backed fixtures only to exercise contracts. T
 
 - At most 512 knowledge entries and 512 approved claims are validated.
 - At most 24 visible claims and 64 evidence citations are returned.
-- At most 8 entity participants may be attached to one claim.
+- At most 4 entity participants may be attached to one claim, matching the existing ID-only disclosure resolver contract.
 - Exceeding a dossier budget withholds the whole dossier rather than silently truncating dependent information.
 
 ## Validation

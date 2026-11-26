@@ -7,6 +7,8 @@ on:
     paths:
       - "src/hoid/sourceInspectionReceipts.ts"
       - "src/hoid/sourceInspectionReceipts.test.ts"
+      - "src/hoid/sourceInspectionReviewQueue.ts"
+      - "src/hoid/sourceInspectionReviewQueue.test.ts"
       - "src/hoid/sqliteSourceInspectionReceiptStore.ts"
       - "src/hoid/sqliteSourceInspectionReceiptStore.test.ts"
       - "src/hoid/expoSourceInspectionReceiptStore.ts"
@@ -19,6 +21,8 @@ on:
     paths:
       - "src/hoid/sourceInspectionReceipts.ts"
       - "src/hoid/sourceInspectionReceipts.test.ts"
+      - "src/hoid/sourceInspectionReviewQueue.ts"
+      - "src/hoid/sourceInspectionReviewQueue.test.ts"
       - "src/hoid/sqliteSourceInspectionReceiptStore.ts"
       - "src/hoid/sqliteSourceInspectionReceiptStore.test.ts"
       - "src/hoid/expoSourceInspectionReceiptStore.ts"
@@ -47,6 +51,7 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/sourceInspectionReceipts.test.ts
+          src/hoid/sourceInspectionReviewQueue.test.ts
           src/hoid/sqliteSourceInspectionReceiptStore.test.ts
           src/hoid/sourceCoverage.test.ts
       - name: Strict type-check receipt adapters and HoidScreen integration
@@ -60,6 +65,8 @@ jobs:
           --esModuleInterop
           src/hoid/sourceInspectionReceipts.ts
           src/hoid/sourceInspectionReceipts.test.ts
+          src/hoid/sourceInspectionReviewQueue.ts
+          src/hoid/sourceInspectionReviewQueue.test.ts
           src/hoid/sqliteSourceInspectionReceiptStore.ts
           src/hoid/sqliteSourceInspectionReceiptStore.test.ts
           src/hoid/expoSourceInspectionReceiptStore.ts

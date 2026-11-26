@@ -26,10 +26,11 @@ import {
 import type { HoidRecommendationReaderPort } from "../hoid/recommendationReaderPort";
 import { getHoidReadingManifest } from "../hoid/readingManifest";
 import { getExpoHoidSourceInspectionReceiptStore } from "../hoid/expoSourceInspectionReceiptStore";
+import { appendHoidSourceInspectionReceipt } from "../hoid/sourceInspectionReceipts";
 import {
-  appendHoidSourceInspectionReceipt,
-  validateHoidSourceInspectionReceiptLedger,
-} from "../hoid/sourceInspectionReceipts";
+  projectHoidSourceInspectionReviewQueue,
+  type HoidSourceInspectionReviewQueueItem,
+} from "../hoid/sourceInspectionReviewQueue";
 import {
   createHoidEpubSourceDescriptor,
   getHoidEpubImportChoices,
@@ -103,6 +104,7 @@ export const HoidEpubImportPanel: React.FC<{
   const [candidate, setCandidate] = useState<HoidEpubPackageInspectionCandidate | null>(null);
   const [chapterCandidate, setChapterCandidate] = useState<HoidPlannedChapterInspectionCandidate | null>(null);
   const [localReceiptKeys, setLocalReceiptKeys] = useState<string[]>([]);
+  const [reviewQueueItems, setReviewQueueItems] = useState<readonly HoidSourceInspectionReviewQueueItem[]>([]);
   const [receiptStoreStatus, setReceiptStoreStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -115,12 +117,41 @@ export const HoidEpubImportPanel: React.FC<{
   const leaseRef = useRef<number | null>(null);
   const progressChangeEpochRef = useRef(0);
   const readerSessionEpochRef = useRef(0);
+  const reviewQueueReadEpochRef = useRef(0);
   const readerSessionAbortRef = useRef<AbortController | null>(null);
   const markingProgressRef = useRef(false);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
   const plannedTaskAlreadyRecorded = plannedTask !== null && localReceiptKeys.includes(
     inspectionReceiptKey(plannedTask.workId, plannedTask.editionId, plannedTask.chapterNumber),
   );
+
+  const refreshLocalReviewQueue = async (isCurrent: () => boolean) => {
+    const readEpoch = reviewQueueReadEpochRef.current + 1;
+    reviewQueueReadEpochRef.current = readEpoch;
+    const isLatestRead = () =>
+      isCurrent() && reviewQueueReadEpochRef.current === readEpoch;
+    try {
+      const store = await getExpoHoidSourceInspectionReceiptStore();
+      const projection = projectHoidSourceInspectionReviewQueue(await store.read());
+      if (!isLatestRead()) return;
+      if (projection.status !== "ready") {
+        setReviewQueueItems([]);
+        setLocalReceiptKeys([]);
+        setReceiptStoreStatus("unavailable");
+        return;
+      }
+      setReviewQueueItems(projection.queue.items);
+      setLocalReceiptKeys(projection.queue.items.map(item =>
+        inspectionReceiptKey(item.workId, item.editionId, item.chapterNumber),
+      ));
+      setReceiptStoreStatus("ready");
+    } catch {
+      if (!isLatestRead()) return;
+      setReviewQueueItems([]);
+      setLocalReceiptKeys([]);
+      setReceiptStoreStatus("unavailable");
+    }
+  };
 
   const invalidateReaderSession = () => {
     readerSessionEpochRef.current += 1;
@@ -152,23 +183,7 @@ export const HoidEpubImportPanel: React.FC<{
 
   useEffect(() => {
     let active = true;
-    void (async () => {
-      try {
-        const store = await getExpoHoidSourceInspectionReceiptStore();
-        const validation = validateHoidSourceInspectionReceiptLedger(await store.read());
-        if (!active) return;
-        if (validation.status === "valid") {
-          setLocalReceiptKeys(validation.ledger.receipts.map(receipt =>
-            inspectionReceiptKey(receipt.workId, receipt.editionId, receipt.chapterNumber),
-          ));
-          setReceiptStoreStatus("ready");
-        } else {
-          setReceiptStoreStatus("unavailable");
-        }
-      } catch {
-        if (active) setReceiptStoreStatus("unavailable");
-      }
-    })();
+    void refreshLocalReviewQueue(() => active);
     return () => { active = false; };
   }, []);
 
@@ -368,41 +383,20 @@ export const HoidEpubImportPanel: React.FC<{
           );
           if (!lifecycleRef.current.isCurrent(operation)) return;
           if (receiptResult.status === "saved" || receiptResult.status === "unchanged") {
-            const key = inspectionReceiptKey(
-              result.candidate.workId,
-              result.candidate.editionId,
-              result.candidate.chapterNumber,
-            );
-            setLocalReceiptKeys(current => current.includes(key) ? current : [...current, key]);
-            setReceiptStoreStatus("ready");
+            await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
+            if (!lifecycleRef.current.isCurrent(operation)) return;
             setMessage(
               receiptResult.status === "saved"
-                ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto y sigue pendiente de revisión editorial.`
+                ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto; requiere volver a seleccionar la fuente antes de cualquier revisión editorial.`
                 : `El capítulo ${result.candidate.chapterNumber} ya tenía un recibo local idéntico. No se ha duplicado ni sobrescrito.`,
             );
           } else if (receiptResult.status === "receipt-conflict") {
-            const key = inspectionReceiptKey(
-              result.candidate.workId,
-              result.candidate.editionId,
-              result.candidate.chapterNumber,
-            );
-            setLocalReceiptKeys(current => current.includes(key) ? current : [...current, key]);
-            setReceiptStoreStatus("ready");
+            await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
+            if (!lifecycleRef.current.isCurrent(operation)) return;
             setMessage("Ya existe un recibo local distinto para este capítulo. Se conserva el anterior y no se sobrescribe.");
           } else if (receiptResult.status === "write-conflict") {
-            try {
-              const refreshed = validateHoidSourceInspectionReceiptLedger(await store.read());
-              if (refreshed.status === "valid") {
-                setLocalReceiptKeys(refreshed.ledger.receipts.map(receipt =>
-                  inspectionReceiptKey(receipt.workId, receipt.editionId, receipt.chapterNumber),
-                ));
-                setReceiptStoreStatus("ready");
-              } else {
-                setReceiptStoreStatus("unavailable");
-              }
-            } catch {
-              setReceiptStoreStatus("unavailable");
-            }
+            await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
+            if (!lifecycleRef.current.isCurrent(operation)) return;
             setMessage("El registro local cambió durante la escritura. Se ha conservado el estado persistido; vuelve a intentar la inspección después de actualizar la lista.");
           } else {
             setReceiptStoreStatus("unavailable");
@@ -591,11 +585,28 @@ export const HoidEpubImportPanel: React.FC<{
       <Text style={styles.message}>{message}</Text>
       <Text style={styles.receiptMeta}>
         {receiptStoreStatus === "ready"
-          ? `${localReceiptKeys.length} recibos locales de inspección · solo metadatos · pendientes de revisión`
+          ? `${localReceiptKeys.length} recibos locales de inspección · solo metadatos · requieren volver a seleccionar la fuente`
           : receiptStoreStatus === "loading"
             ? "Cargando el registro local de inspecciones…"
             : "Registro local de inspecciones no disponible; las inspecciones nuevas no se persistirán."}
       </Text>
+
+      {receiptStoreStatus === "ready" && reviewQueueItems.length > 0 && (
+        <View style={styles.reviewQueue}>
+          <Text style={styles.reviewQueueTitle}>CANDIDATOS QUE REQUIEREN RESELECCIÓN DE FUENTE</Text>
+          {reviewQueueItems.slice(0, 5).map(item => (
+            <View key={inspectionReceiptKey(item.workId, item.editionId, item.chapterNumber)} style={styles.reviewQueueItem}>
+              <Text style={styles.reviewQueueWork}>{item.title} · capítulo {item.chapterNumber}</Text>
+              <Text style={styles.reviewQueueMeta}>Edición {item.editionId} · inspeccionado {new Date(item.inspectedAt).toLocaleString()}</Text>
+              <Text style={styles.reviewQueueMeta}>Este recibo no conserva el capítulo. La reinspección histórica requiere un flujo adicional y aún no puede iniciarse desde aquí.</Text>
+            </View>
+          ))}
+          {reviewQueueItems.length > 5 && (
+            <Text style={styles.reviewQueueMeta}>Y {reviewQueueItems.length - 5} candidatos más.</Text>
+          )}
+          <Text style={styles.privacyNote}>Los recibos no contienen texto ni permiten aprobar resúmenes, escribir conocimiento de producción o desbloquear spoilers.</Text>
+        </View>
+      )}
 
       {pickedSource !== null && !busy && (
         <View style={styles.actions}>
@@ -804,6 +815,11 @@ const styles = StyleSheet.create({
   privacyNote: { color: "#94a3b8", fontSize: 9, lineHeight: 13, marginTop: 9 },
   receiptMeta: { color: "#94a3b8", fontSize: 9, lineHeight: 14, marginTop: 5 },
   receiptWarning: { color: "#fbbf24", fontSize: 10, lineHeight: 15, marginTop: 9 },
+  reviewQueue: { marginTop: 9, padding: 9, borderRadius: 8, backgroundColor: "#111d31", borderWidth: 1, borderColor: "#475569" },
+  reviewQueueTitle: { color: "#fbbf24", fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
+  reviewQueueItem: { paddingTop: 7, marginTop: 7, borderTopWidth: 1, borderTopColor: "#334155" },
+  reviewQueueWork: { color: "#e2e8f0", fontSize: 10, fontWeight: "800" },
+  reviewQueueMeta: { color: "#94a3b8", fontSize: 9, lineHeight: 13, marginTop: 3 },
   modalBackdrop: { flex: 1, justifyContent: "center", padding: 18, backgroundColor: "rgba(0,0,0,0.72)" },
   modal: { maxHeight: "85%", backgroundColor: "#0f172a", borderRadius: 16, borderWidth: 1, borderColor: "#334155", padding: 14 },
   modalTitle: { color: "#f8fafc", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },

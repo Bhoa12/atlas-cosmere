@@ -1,0 +1,67 @@
+name: Hoid Run 340 — metadata-only source review handoff
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/sourceInspectionReviewQueue.ts"
+      - "src/hoid/sourceInspectionReviewQueue.test.ts"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/hoid/sourceInspectionReceipts.test.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.test.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN340_SOURCE_REVIEW_HANDOFF.md"
+      - ".github/workflows/hoid-run340-source-review-handoff.yml"
+  pull_request:
+    paths:
+      - "src/hoid/sourceInspectionReviewQueue.ts"
+      - "src/hoid/sourceInspectionReviewQueue.test.ts"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/hoid/sourceInspectionReceipts.test.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.test.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN340_SOURCE_REVIEW_HANDOFF.md"
+      - ".github/workflows/hoid-run340-source-review-handoff.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-review-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test handoff projection and receipt persistence
+        run: >-
+          npx vitest run
+          src/hoid/sourceInspectionReviewQueue.test.ts
+          src/hoid/sourceInspectionReceipts.test.ts
+          src/hoid/sqliteSourceInspectionReceiptStore.test.ts
+      - name: Strict type-check Hoid source review handoff integration
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --jsx react-native
+          --esModuleInterop
+          src/hoid/sourceInspectionReviewQueue.ts
+          src/hoid/sourceInspectionReviewQueue.test.ts
+          src/hoid/sourceInspectionReceipts.ts
+          src/hoid/sqliteSourceInspectionReceiptStore.ts
+          src/hoid/expoSourceInspectionReceiptStore.ts
+          src/components/HoidEpubImportPanel.tsx
+          src/screens/HoidScreen.tsx

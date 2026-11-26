@@ -368,6 +368,22 @@ export function buildHoidAuthorizedEntityDossier(
   if (!claims) return unavailable("invalid-claims");
 
   const resolvedEntity = resolution.matches[0];
+  if (
+    !claimEvidenceMatchesHoidBookScope(
+      [resolvedEntity.entitySource.sourceBookId],
+      query.bookScope,
+    ) ||
+    !claimEvidenceMatchesHoidBookScope(
+      resolvedEntity.aliasEvidence.map(item => item.source.sourceBookId),
+      query.bookScope,
+    )
+  ) {
+    return Object.freeze({
+      status: "not-found",
+      progressRevision: progress.revision,
+      progressFingerprint: progress.fingerprint,
+    });
+  }
   const catalog = new HoidKnowledgeCatalog(knowledge);
   const safeEntries = catalog.entriesForContext(projection.reading);
   const safeEntity = safeEntries.find(entry => entry.id === resolvedEntity.id);

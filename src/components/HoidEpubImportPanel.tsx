@@ -37,6 +37,11 @@ import {
   type HoidHistoricalReviewHandoff,
   type HoidHistoricalReviewSessionLease,
 } from "../hoid/historicalReviewSession";
+import type {
+  HoidHistoricalEditorialChecklist,
+  HoidHistoricalEditorialReviewPacket,
+  HoidHistoricalEditorialReviewReceipt,
+} from "../hoid/historicalEditorialReview";
 import {
   projectHoidSourceInspectionReviewQueue,
   type HoidSourceInspectionReviewQueueItem,
@@ -67,6 +72,25 @@ function progressModeLabel(choice: HoidEpubImportChoice): string {
 function inspectionReceiptKey(workId: string, editionId: string, chapterNumber: number): string {
   return `${workId}:${editionId}:${chapterNumber}`;
 }
+
+const EMPTY_HISTORICAL_REVIEW_CHECKLIST: HoidHistoricalEditorialChecklist = Object.freeze({
+  factualAccuracy: false,
+  completeness: false,
+  originality: false,
+  spoilerCeiling: false,
+  provenance: false,
+});
+
+const HISTORICAL_REVIEW_CHECKS: readonly Readonly<{
+  key: keyof HoidHistoricalEditorialChecklist;
+  label: string;
+}>[] = Object.freeze([
+  Object.freeze({ key: "factualAccuracy", label: "Precisión factual" }),
+  Object.freeze({ key: "completeness", label: "Cobertura suficiente del capítulo" }),
+  Object.freeze({ key: "originality", label: "Redacción original, sin fragmentos copiados" }),
+  Object.freeze({ key: "spoilerCeiling", label: "No supera el capítulo indicado" }),
+  Object.freeze({ key: "provenance", label: "Procedencia y edición verificadas" }),
+]);
 
 function rejectionMessage(reason: string): string {
   if (reason === "edition-navigation-mismatch") {
@@ -117,6 +141,10 @@ export const HoidEpubImportPanel: React.FC<{
   const [reviewQueueItems, setReviewQueueItems] = useState<readonly HoidSourceInspectionReviewQueueItem[]>([]);
   const [historicalReviewHandoff, setHistoricalReviewHandoff] = useState<HoidHistoricalReviewHandoff | null>(null);
   const [historicalReviewDraft, setHistoricalReviewDraft] = useState<HoidHistoricalReviewDraft | null>(null);
+  const [historicalReviewPacket, setHistoricalReviewPacket] = useState<HoidHistoricalEditorialReviewPacket | null>(null);
+  const [historicalReviewReceipt, setHistoricalReviewReceipt] = useState<HoidHistoricalEditorialReviewReceipt | null>(null);
+  const [historicalReviewChecklist, setHistoricalReviewChecklist] = useState<HoidHistoricalEditorialChecklist>(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
+  const [historicalReviewReviewerLabel, setHistoricalReviewReviewerLabel] = useState("local-editor");
   const [historicalReviewSummary, setHistoricalReviewSummary] = useState("");
   const [historicalReviewOriginalityConfirmed, setHistoricalReviewOriginalityConfirmed] = useState(false);
   const [historicalReviewSessionGeneration, setHistoricalReviewSessionGeneration] = useState<number | null>(null);
@@ -181,6 +209,9 @@ export const HoidEpubImportPanel: React.FC<{
     try { controller?.abort(); } catch { /* The lease is invalidated regardless. */ }
     setHistoricalReviewHandoff(null);
     setHistoricalReviewDraft(null);
+    setHistoricalReviewPacket(null);
+    setHistoricalReviewReceipt(null);
+    setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
     setHistoricalReviewSummary("");
     setHistoricalReviewOriginalityConfirmed(false);
     setHistoricalReviewSessionGeneration(null);
@@ -511,6 +542,9 @@ export const HoidEpubImportPanel: React.FC<{
     setBusy(true);
     setHistoricalReviewHandoff(null);
     setHistoricalReviewDraft(null);
+    setHistoricalReviewPacket(null);
+    setHistoricalReviewReceipt(null);
+    setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
     setHistoricalReviewSummary("");
     setHistoricalReviewOriginalityConfirmed(false);
     setMessage("Volviendo a verificar el capítulo exacto contra el recibo local…");
@@ -573,7 +607,17 @@ export const HoidEpubImportPanel: React.FC<{
     );
     if (result.status === "saved-in-memory") {
       setHistoricalReviewDraft(result.draft);
-      setMessage("Borrador original mantenido únicamente en memoria. No se ha guardado en disco ni se ha enviado a ningún proveedor.");
+      const packetResult = historicalReviewControllerRef.current.buildReviewPacket(handoff);
+      if (packetResult.status === "ready") {
+        setHistoricalReviewPacket(packetResult.packet);
+        setHistoricalReviewReceipt(null);
+        setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
+        setMessage("Borrador original y paquete de revisión preparados en memoria. El paquete está pendiente de comprobación humana; no autoriza producción ni spoilers.");
+      } else {
+        setHistoricalReviewPacket(null);
+        setHistoricalReviewReceipt(null);
+        setMessage("El borrador permanece en memoria, pero no se ha podido construir un paquete editorial verificable.");
+      }
     } else if (result.reason === "originality-not-confirmed") {
       setMessage("Confirma expresamente que el resumen está redactado con tus propias palabras y no contiene fragmentos copiados.");
     } else if (result.reason === "invalid-summary") {
@@ -583,13 +627,50 @@ export const HoidEpubImportPanel: React.FC<{
     }
   };
 
+  const recordHistoricalReviewDecision = (decision: "approved" | "revision-required") => {
+    const handoff = historicalReviewHandoff;
+    const packet = historicalReviewPacket;
+    if (handoff === null || packet === null || historicalReviewReviewerLabel.trim().length === 0) return;
+    const failedChecks = HISTORICAL_REVIEW_CHECKS.filter(item => !historicalReviewChecklist[item.key]);
+    if (decision === "approved" && failedChecks.length > 0) return;
+    if (decision === "revision-required" && failedChecks.length === 0) return;
+    const noteByCheck: Readonly<Record<keyof HoidHistoricalEditorialChecklist, string>> = {
+      factualAccuracy: "factual-issue",
+      completeness: "completeness-issue",
+      originality: "originality-issue",
+      spoilerCeiling: "spoiler-scope-issue",
+      provenance: "provenance-issue",
+    };
+    const noteCodes = decision === "approved"
+      ? ["no-issues"]
+      : failedChecks.map(item => noteByCheck[item.key]);
+    const result = historicalReviewControllerRef.current.recordReviewDecision(handoff, packet, {
+      decision,
+      reviewerLabel: historicalReviewReviewerLabel.trim(),
+      reviewedAt: new Date().toISOString(),
+      checklist: historicalReviewChecklist,
+      noteCodes,
+    });
+    if (result.status === "valid") {
+      setHistoricalReviewReceipt(result.receipt);
+      setMessage(result.outcome === "approved-awaiting-trusted-promotion"
+        ? "Revisión local registrada. Sigue pendiente de promoción firmada; no habilita respuestas ni spoilers."
+        : "Revisión local registrada con correcciones pendientes. El borrador continúa fuera del conocimiento de producción.");
+    } else {
+      setMessage("La decisión local no coincide con el paquete actual o la lista de comprobación está incompleta. No se ha registrado.");
+    }
+  };
+
   const discardHistoricalReviewDraft = () => {
     const handoff = historicalReviewHandoff;
     if (handoff !== null) historicalReviewControllerRef.current.discardDraft(handoff);
     setHistoricalReviewDraft(null);
+    setHistoricalReviewPacket(null);
+    setHistoricalReviewReceipt(null);
+    setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
     setHistoricalReviewSummary("");
     setHistoricalReviewOriginalityConfirmed(false);
-    setMessage("Borrador efímero descartado de la memoria de la sesión.");
+    setMessage("Borrador y paquete efímeros descartados de la memoria de la sesión.");
   };
 
   const isOpenedChapterSessionCurrent = (chapter: OpenedChapterView): boolean =>
@@ -822,6 +903,9 @@ export const HoidEpubImportPanel: React.FC<{
               }
               setHistoricalReviewSummary(value);
               setHistoricalReviewDraft(null);
+              setHistoricalReviewPacket(null);
+              setHistoricalReviewReceipt(null);
+              setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
             }}
             placeholder="Escribe aquí un resumen original de 80 a 3.000 caracteres…"
             placeholderTextColor="#64748b"
@@ -835,6 +919,9 @@ export const HoidEpubImportPanel: React.FC<{
                 historicalReviewControllerRef.current.discardDraft(historicalReviewHandoff);
               }
               setHistoricalReviewDraft(null);
+              setHistoricalReviewPacket(null);
+              setHistoricalReviewReceipt(null);
+              setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
               setHistoricalReviewOriginalityConfirmed(value => !value);
             }}
             style={styles.reviewAttestation}
@@ -861,6 +948,70 @@ export const HoidEpubImportPanel: React.FC<{
               <TouchableOpacity accessibilityRole="button" onPress={discardHistoricalReviewDraft} style={styles.reviewDiscardButton}>
                 <Text style={styles.reviewDiscardButtonText}>Descartar borrador</Text>
               </TouchableOpacity>
+            </View>
+          )}
+          {historicalReviewPacket !== null && (
+            <View style={styles.reviewPacket}>
+              <Text style={styles.reviewPacketTitle}>PAQUETE EDITORIAL LOCAL</Text>
+              <Text style={styles.reviewPacketMeta}>
+                {historicalReviewPacket.workId} · capítulo {historicalReviewPacket.chapterNumber} · {historicalReviewPacket.editionId}
+              </Text>
+              <Text style={styles.reviewPacketMeta}>Huella del paquete: {historicalReviewPacket.packetId.slice(0, 20)}…</Text>
+              {historicalReviewReceipt === null ? (
+                <View>
+                  <Text style={styles.reviewPacketMeta}>Comprueba el resumen frente al capítulo verificado. Todas las casillas son obligatorias para aprobar.</Text>
+                  {HISTORICAL_REVIEW_CHECKS.map(item => (
+                    <TouchableOpacity
+                      key={item.key}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: historicalReviewChecklist[item.key] }}
+                      onPress={() => setHistoricalReviewChecklist(current => ({
+                        ...current,
+                        [item.key]: !current[item.key],
+                      }))}
+                      style={styles.reviewCheck}
+                    >
+                      <Text style={styles.reviewCheckText}>
+                        {historicalReviewChecklist[item.key] ? "☑" : "☐"} {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TextInput
+                    accessibilityLabel="Etiqueta local del revisor, no verificada"
+                    value={historicalReviewReviewerLabel}
+                    onChangeText={setHistoricalReviewReviewerLabel}
+                    editable={!busy}
+                    autoCapitalize="none"
+                    maxLength={128}
+                    placeholder="Etiqueta local del revisor"
+                    placeholderTextColor="#64748b"
+                    style={styles.reviewReviewerInput}
+                  />
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    disabled={busy || HISTORICAL_REVIEW_CHECKS.some(item => !historicalReviewChecklist[item.key]) || historicalReviewReviewerLabel.trim().length === 0}
+                    onPress={() => recordHistoricalReviewDecision("approved")}
+                    style={[styles.reviewDecisionButton, (busy || HISTORICAL_REVIEW_CHECKS.some(item => !historicalReviewChecklist[item.key]) || historicalReviewReviewerLabel.trim().length === 0) && styles.disabled]}
+                  >
+                    <Text style={styles.reviewDecisionButtonText}>Registrar aprobación local</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    disabled={busy || HISTORICAL_REVIEW_CHECKS.every(item => historicalReviewChecklist[item.key]) || historicalReviewReviewerLabel.trim().length === 0}
+                    onPress={() => recordHistoricalReviewDecision("revision-required")}
+                    style={[styles.reviewDecisionSecondary, (busy || HISTORICAL_REVIEW_CHECKS.every(item => historicalReviewChecklist[item.key]) || historicalReviewReviewerLabel.trim().length === 0) && styles.disabled]}
+                  >
+                    <Text style={styles.reviewDecisionSecondaryText}>Solicitar correcciones</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={styles.reviewReceiptText}>
+                  {historicalReviewReceipt.decision === "approved" ? "Aprobación local registrada" : "Correcciones solicitadas"} · {historicalReviewReceipt.trustLevel} · {historicalReviewReceipt.reviewerIdentityAuthority}
+                </Text>
+              )}
+              <Text style={styles.privacyNote}>
+                La etiqueta del revisor no está autenticada. Esta decisión no es una firma, no satisface el quorum de producción y no desbloquea spoilers.
+              </Text>
             </View>
           )}
           <Text style={styles.privacyNote}>
@@ -1094,6 +1245,17 @@ const styles = StyleSheet.create({
   reviewDraftState: { color: "#bbf7d0", fontSize: 9, lineHeight: 14, marginTop: 8 },
   reviewDiscardButton: { alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 9, backgroundColor: "#7f1d1d" },
   reviewDiscardButtonText: { color: "#fee2e2", fontSize: 9, fontWeight: "700" },
+  reviewPacket: { marginTop: 10, padding: 9, borderRadius: 9, backgroundColor: "#171d31", borderWidth: 1, borderColor: "#818cf8" },
+  reviewPacketTitle: { color: "#c7d2fe", fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
+  reviewPacketMeta: { color: "#cbd5e1", fontSize: 9, lineHeight: 14, marginTop: 5 },
+  reviewCheck: { marginTop: 5, padding: 7, borderRadius: 7, backgroundColor: "#0f172a" },
+  reviewCheckText: { color: "#e2e8f0", fontSize: 9, lineHeight: 13 },
+  reviewReviewerInput: { marginTop: 8, padding: 8, borderRadius: 7, backgroundColor: "#0b1424", borderWidth: 1, borderColor: "#475569", color: "#f8fafc", fontSize: 10 },
+  reviewDecisionButton: { alignSelf: "flex-start", marginTop: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: "#166534" },
+  reviewDecisionButtonText: { color: "#f0fdf4", fontSize: 9, fontWeight: "800" },
+  reviewDecisionSecondary: { alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: "#713f12" },
+  reviewDecisionSecondaryText: { color: "#fef3c7", fontSize: 9, fontWeight: "800" },
+  reviewReceiptText: { color: "#bbf7d0", fontSize: 9, lineHeight: 14, marginTop: 8 },
   modalBackdrop: { flex: 1, justifyContent: "center", padding: 18, backgroundColor: "rgba(0,0,0,0.72)" },
   modal: { maxHeight: "85%", backgroundColor: "#0f172a", borderRadius: 16, borderWidth: 1, borderColor: "#334155", padding: 14 },
   modalTitle: { color: "#f8fafc", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },

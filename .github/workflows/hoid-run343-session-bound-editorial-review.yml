@@ -1,0 +1,64 @@
+name: Hoid Run 343 — session-bound local editorial review
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run343"
+    paths:
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/historicalEditorialReview.test.ts"
+      - "src/hoid/historicalReviewSession.ts"
+      - "src/hoid/historicalReviewSession.test.ts"
+      - "src/hoid/historicalSourceReinspection.ts"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "docs/hoid/RUN343_SESSION_BOUND_EDITORIAL_REVIEW.md"
+      - ".github/workflows/hoid-run343-session-bound-editorial-review.yml"
+  pull_request:
+    paths:
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/historicalEditorialReview.test.ts"
+      - "src/hoid/historicalReviewSession.ts"
+      - "src/hoid/historicalReviewSession.test.ts"
+      - "src/hoid/historicalSourceReinspection.ts"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "docs/hoid/RUN343_SESSION_BOUND_EDITORIAL_REVIEW.md"
+      - ".github/workflows/hoid-run343-session-bound-editorial-review.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-editorial-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test source-bound local review contracts
+        run: >-
+          npx vitest run
+          src/hoid/historicalEditorialReview.test.ts
+          src/hoid/historicalReviewSession.test.ts
+          src/hoid/historicalSourceReinspection.test.ts
+          src/hoid/sourceInspectionReviewQueue.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --jsx react-native
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/historicalEditorialReview.ts
+          src/hoid/historicalEditorialReview.test.ts
+          src/hoid/historicalReviewSession.ts
+          src/hoid/historicalReviewSession.test.ts
+          src/components/HoidEpubImportPanel.tsx

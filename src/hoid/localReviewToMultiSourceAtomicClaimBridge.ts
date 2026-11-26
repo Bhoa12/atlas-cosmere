@@ -187,9 +187,11 @@ function reviewReceiptDigest(receipt: HoidHistoricalEditorialReviewReceipt): str
   ]));
 }
 
+type InvalidMultiSourceResult = Extract<HoidLocalMultiSourceAtomicClaimResult, { status: "invalid" }>;
+
 function invalid(
-  reason: Extract<HoidLocalMultiSourceAtomicClaimResult, { status: "invalid" }>["reason"],
-): HoidLocalMultiSourceAtomicClaimResult {
+  reason: InvalidMultiSourceResult["reason"],
+): InvalidMultiSourceResult {
   return Object.freeze({
     status: "invalid",
     reason,
@@ -205,7 +207,7 @@ type VerifiedLocalSource = Readonly<{
   receiptSha256: string;
 }>;
 
-function verifyLocalSource(input: unknown): VerifiedLocalSource | HoidLocalMultiSourceAtomicClaimResult {
+function verifyLocalSource(input: unknown): VerifiedLocalSource | InvalidMultiSourceResult {
   const raw = exactRecord(input, SOURCE_KEYS);
   if (!raw) return invalid("invalid-source-list");
 
@@ -293,9 +295,9 @@ export function buildHoidLocalReviewMultiSourceAtomicClaimCandidate(
 
   for (const rawSource of rawSources) {
     const result = verifyLocalSource(rawSource);
-    if ("status" in result && result.status === "invalid") return result;
+    if ("status" in result) return result;
 
-    const source = result as VerifiedLocalSource;
+    const source = result;
     const key = [
       source.packet.workId,
       String(source.packet.chapterNumber),

@@ -2,6 +2,16 @@ import {
   reinspectHoidHistoricalSourceChapter,
   type HoidHistoricalSourceReinspectionResult,
 } from "./historicalSourceReinspection";
+import {
+  buildHoidHistoricalEditorialReviewPacket,
+  validateHoidHistoricalEditorialReviewDecision,
+  type HoidHistoricalEditorialReviewPacket,
+  type HoidHistoricalEditorialReviewPacketBuildResult,
+  type HoidHistoricalEditorialReviewReceipt,
+  type HoidHistoricalEditorialReviewDecisionResult,
+  type HoidHistoricalReviewSourceEvidence,
+} from "./historicalEditorialReview";
+import { validateHoidSourceInspectionReceipt } from "./sourceInspectionReceipts";
 
 type ReinspectionInput = Parameters<typeof reinspectHoidHistoricalSourceChapter>[0];
 type ReinspectionOperation = (input: ReinspectionInput) => Promise<HoidHistoricalSourceReinspectionResult>;
@@ -78,6 +88,13 @@ export interface HoidHistoricalReviewSessionController {
   ): HoidHistoricalReviewDraftResult;
   getDraft(handoff: HoidHistoricalReviewHandoff): HoidHistoricalReviewDraft | null;
   discardDraft(handoff: HoidHistoricalReviewHandoff): boolean;
+  buildReviewPacket(handoff: HoidHistoricalReviewHandoff): HoidHistoricalEditorialReviewPacketBuildResult;
+  recordReviewDecision(
+    handoff: HoidHistoricalReviewHandoff,
+    packet: HoidHistoricalEditorialReviewPacket,
+    decision: unknown,
+  ): HoidHistoricalEditorialReviewDecisionResult;
+  getReviewReceipt(packet: HoidHistoricalEditorialReviewPacket): HoidHistoricalEditorialReviewReceipt | null;
 }
 
 const IDENTITY_KEYS = ["sourceId", "workId", "editionId"] as const;
@@ -131,6 +148,10 @@ export function createHoidHistoricalReviewSessionController(
   let activeIdentity: Readonly<{ sourceId: string; workId: string; editionId: string }> | null = null;
   let handoffLeases = new WeakMap<object, HoidHistoricalReviewSessionLease>();
   let drafts = new WeakMap<object, HoidHistoricalReviewDraft>();
+  let handoffEvidence = new WeakMap<object, HoidHistoricalReviewSourceEvidence>();
+  let handoffPackets = new WeakMap<object, HoidHistoricalEditorialReviewPacket>();
+  let reviewPacketLeases = new WeakMap<object, HoidHistoricalReviewSessionLease>();
+  let reviewReceipts = new WeakMap<object, HoidHistoricalEditorialReviewReceipt>();
 
   const isCurrent = (lease: unknown): lease is HoidHistoricalReviewSessionLease =>
     activeLease !== null && lease === activeLease;
@@ -141,6 +162,10 @@ export function createHoidHistoricalReviewSessionController(
     activeIdentity = null;
     handoffLeases = new WeakMap<object, HoidHistoricalReviewSessionLease>();
     drafts = new WeakMap<object, HoidHistoricalReviewDraft>();
+    handoffEvidence = new WeakMap<object, HoidHistoricalReviewSourceEvidence>();
+    handoffPackets = new WeakMap<object, HoidHistoricalEditorialReviewPacket>();
+    reviewPacketLeases = new WeakMap<object, HoidHistoricalReviewSessionLease>();
+    reviewReceipts = new WeakMap<object, HoidHistoricalEditorialReviewReceipt>();
     generation += 1;
   };
 
@@ -188,6 +213,15 @@ export function createHoidHistoricalReviewSessionController(
         source.editionId !== activeIdentity.editionId
       ) return Object.freeze({ status: "rejected", reason: "session-source-mismatch" });
 
+      const receiptValidation = validateHoidSourceInspectionReceipt(input.receipt);
+      if (receiptValidation.status !== "valid") {
+        return Object.freeze({ status: "rejected", reason: "invalid-receipt" });
+      }
+      const receipt = receiptValidation.receipt;
+      if (receipt.workId !== activeIdentity.workId || receipt.editionId !== activeIdentity.editionId) {
+        return Object.freeze({ status: "rejected", reason: "receipt-session-mismatch" });
+      }
+
       let result: HoidHistoricalSourceReinspectionResult;
       try {
         result = await reinspection(input);
@@ -217,6 +251,7 @@ export function createHoidHistoricalReviewSessionController(
         result.attestation.productionWritePerformed !== false ||
         !Number.isSafeInteger(result.attestation.chapterNumber) ||
         result.attestation.chapterNumber < 1 ||
+        result.attestation.chapterNumber !== receipt.chapterNumber ||
         result.attestation.authorizationEffect !== "none" ||
         result.attestation.editorialEffect !== "none"
       ) return Object.freeze({ status: "rejected", reason: "attestation-session-mismatch" });
@@ -240,6 +275,13 @@ export function createHoidHistoricalReviewSessionController(
         spoilerAuthorization: "none",
       });
       handoffLeases.set(handoff, lease);
+      handoffEvidence.set(handoff, Object.freeze({
+        receiptFingerprint: receipt.receiptFingerprint,
+        documentSha256: receipt.documentSha256,
+        navigationSha256: receipt.navigationSha256,
+        byteLength: receipt.byteLength,
+        inspectedAt: receipt.inspectedAt,
+      }));
       return Object.freeze({ status: "ready", handoff });
     },
 
@@ -265,6 +307,7 @@ export function createHoidHistoricalReviewSessionController(
         return Object.freeze({ status: "rejected", reason: "invalid-summary" });
       }
 
+      handoffPackets.delete(handoff);
       const draft: HoidHistoricalReviewDraft = Object.freeze({
         schemaVersion: 1,
         scope: "ephemeral-local-editorial-draft",
@@ -291,9 +334,56 @@ export function createHoidHistoricalReviewSessionController(
       return drafts.get(handoff) ?? null;
     },
 
+    buildReviewPacket(handoff: HoidHistoricalReviewHandoff): HoidHistoricalEditorialReviewPacketBuildResult {
+      const lease = handoffLeases.get(handoff);
+      const draft = drafts.get(handoff);
+      const evidence = handoffEvidence.get(handoff);
+      if (!lease || !isCurrent(lease) || !draft || !evidence) {
+        return Object.freeze({ status: "invalid", reason: "invalid-draft" });
+      }
+      const result = buildHoidHistoricalEditorialReviewPacket(draft, evidence);
+      if (result.status === "ready") {
+        handoffPackets.set(handoff, result.packet);
+        reviewPacketLeases.set(result.packet, lease);
+      }
+      return result;
+    },
+
+    recordReviewDecision(
+      handoff: HoidHistoricalReviewHandoff,
+      packet: HoidHistoricalEditorialReviewPacket,
+      decision: unknown,
+    ): HoidHistoricalEditorialReviewDecisionResult {
+      const lease = handoffLeases.get(handoff);
+      if (!lease || !isCurrent(lease) || handoffPackets.get(handoff) !== packet ||
+          reviewPacketLeases.get(packet) !== lease) {
+        return Object.freeze({
+          status: "invalid",
+          reason: "invalid-packet",
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        });
+      }
+      const result = validateHoidHistoricalEditorialReviewDecision(packet, decision);
+      if (result.status === "valid") reviewReceipts.set(packet, result.receipt);
+      return result;
+    },
+
+    getReviewReceipt(packet: HoidHistoricalEditorialReviewPacket): HoidHistoricalEditorialReviewReceipt | null {
+      const lease = reviewPacketLeases.get(packet);
+      if (!lease || !isCurrent(lease)) return null;
+      return reviewReceipts.get(packet) ?? null;
+    },
+
     discardDraft(handoff: HoidHistoricalReviewHandoff): boolean {
       const lease = handoffLeases.get(handoff);
       if (!lease || !isCurrent(lease)) return false;
+      const packet = handoffPackets.get(handoff);
+      if (packet) {
+        reviewPacketLeases.delete(packet);
+        reviewReceipts.delete(packet);
+      }
+      handoffPackets.delete(handoff);
       return drafts.delete(handoff);
     },
   });

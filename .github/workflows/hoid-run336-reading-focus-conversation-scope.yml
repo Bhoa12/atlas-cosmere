@@ -1,0 +1,71 @@
+name: Hoid Run 336 — reading-focus conversation scope
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run336"
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/readingFocus.ts"
+      - "src/hoid/readingFocusConversationScope.ts"
+      - "src/hoid/readingFocusConversationScope.test.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScopeSelection.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN336_READING_FOCUS_CONVERSATION_SCOPE.md"
+      - ".github/workflows/hoid-run336-reading-focus-conversation-scope.yml"
+  pull_request:
+    paths:
+      - "src/screens/HoidScreen.tsx"
+      - "src/hoid/readingFocus.ts"
+      - "src/hoid/readingFocusConversationScope.ts"
+      - "src/hoid/readingFocusConversationScope.test.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/answerScopeSelection.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN336_READING_FOCUS_CONVERSATION_SCOPE.md"
+      - ".github/workflows/hoid-run336-reading-focus-conversation-scope.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reading-focus-conversation-scope:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test focus, scope and progress boundaries
+        run: >-
+          npx vitest run
+          src/hoid/readingFocusConversationScope.test.ts
+          src/hoid/readingFocus.test.ts
+          src/hoid/answerScopeSelection.test.ts
+          src/hoid/cursorProgressFingerprint.test.ts
+      - name: Strict type-check screen and focus-scope contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --jsx react-native
+          --esModuleInterop
+          src/screens/HoidScreen.tsx
+          src/hoid/readingFocusConversationScope.ts
+          src/hoid/readingFocus.ts
+          src/hoid/answerScopeSelection.ts
+          src/hoid/answerScope.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingBoundary.ts
+          src/hoid/readingManifest.ts

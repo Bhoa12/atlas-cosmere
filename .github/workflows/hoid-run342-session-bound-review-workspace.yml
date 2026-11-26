@@ -1,0 +1,57 @@
+name: Hoid Run 342 — session-bound historical review workspace
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run342"
+    paths:
+      - "src/hoid/historicalReviewSession.ts"
+      - "src/hoid/historicalReviewSession.test.ts"
+      - "src/hoid/historicalSourceReinspection.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "docs/hoid/RUN342_SESSION_BOUND_REVIEW_WORKSPACE.md"
+      - ".github/workflows/hoid-run342-session-bound-review-workspace.yml"
+  pull_request:
+    paths:
+      - "src/hoid/historicalReviewSession.ts"
+      - "src/hoid/historicalReviewSession.test.ts"
+      - "src/hoid/historicalSourceReinspection.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "docs/hoid/RUN342_SESSION_BOUND_REVIEW_WORKSPACE.md"
+      - ".github/workflows/hoid-run342-session-bound-review-workspace.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  session-bound-review-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test session binding and historical reinspection
+        run: >-
+          npx vitest run
+          src/hoid/historicalReviewSession.test.ts
+          src/hoid/historicalSourceReinspection.test.ts
+          src/hoid/sourceInspectionReviewQueue.test.ts
+      - name: Strict type-check domain and UI integration
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --jsx react-native
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/historicalReviewSession.ts
+          src/hoid/historicalReviewSession.test.ts
+          src/components/HoidEpubImportPanel.tsx

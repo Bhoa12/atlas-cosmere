@@ -542,6 +542,9 @@ export const HoidEpubImportPanel: React.FC<{
     setBusy(true);
     setHistoricalReviewHandoff(null);
     setHistoricalReviewDraft(null);
+    setHistoricalReviewPacket(null);
+    setHistoricalReviewReceipt(null);
+    setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
     setHistoricalReviewSummary("");
     setHistoricalReviewOriginalityConfirmed(false);
     setMessage("Volviendo a verificar el capítulo exacto contra el recibo local…");
@@ -900,6 +903,9 @@ export const HoidEpubImportPanel: React.FC<{
               }
               setHistoricalReviewSummary(value);
               setHistoricalReviewDraft(null);
+              setHistoricalReviewPacket(null);
+              setHistoricalReviewReceipt(null);
+              setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
             }}
             placeholder="Escribe aquí un resumen original de 80 a 3.000 caracteres…"
             placeholderTextColor="#64748b"
@@ -913,6 +919,9 @@ export const HoidEpubImportPanel: React.FC<{
                 historicalReviewControllerRef.current.discardDraft(historicalReviewHandoff);
               }
               setHistoricalReviewDraft(null);
+              setHistoricalReviewPacket(null);
+              setHistoricalReviewReceipt(null);
+              setHistoricalReviewChecklist(EMPTY_HISTORICAL_REVIEW_CHECKLIST);
               setHistoricalReviewOriginalityConfirmed(value => !value);
             }}
             style={styles.reviewAttestation}

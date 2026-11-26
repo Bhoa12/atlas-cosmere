@@ -106,9 +106,8 @@ describe("resolveHoidReadingFocus", () => {
   });
 
   it("reports an empty valid snapshot without inferring a default work", () => {
-    expect(resolveHoidReadingFocus({ progress: snapshot([], 0 })).status).toBe("unavailable");
-    expect(resolveHoidReadingFocus({ progress: snapshot([], 0 })).status === "unavailable" &&
-      resolveHoidReadingFocus({ progress: snapshot([], 0 })).reason).toBe("no-active-work");
+    const result = resolveHoidReadingFocus({ progress: snapshot([], 0) });
+    expect(result).toEqual({ status: "unavailable", reason: "no-active-work" });
   });
 
   it("rejects malformed, duplicated or stale edition-bound progress", () => {

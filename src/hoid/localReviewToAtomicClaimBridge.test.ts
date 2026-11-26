@@ -188,12 +188,13 @@ describe("Hoid local review to atomic claim bridge", () => {
 
   it("does not promote revision-required or rejected local source reviews", () => {
     const packet = sourcePacket();
-    const receipt = reviewReceipt(packet, "revision-required");
-
-    expect(buildHoidLocalReviewAtomicClaimCandidate(packet, receipt, CLAIM)).toMatchObject({
-      status: "invalid",
-      reason: "source-review-not-approved",
-    });
+    for (const decision of ["revision-required", "rejected"] as const) {
+      const receipt = reviewReceipt(packet, decision);
+      expect(buildHoidLocalReviewAtomicClaimCandidate(packet, receipt, CLAIM)).toMatchObject({
+        status: "invalid",
+        reason: "source-review-not-approved",
+      });
+    }
   });
 
   it("requires the exact source document to exist in the verified atomic-claim corpus", () => {
@@ -237,7 +238,7 @@ describe("Hoid local review to atomic claim bridge", () => {
     }
   });
 
-  it("requires a unique exact chapter locator before constructing evidence", () => {
+  it("rejects a non-positive chapter identity before source lookup", () => {
     const packet = sourcePacket();
     const ambiguous = Object.freeze({
       ...packet,

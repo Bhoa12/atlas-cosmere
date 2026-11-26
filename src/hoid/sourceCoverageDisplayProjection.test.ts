@@ -30,8 +30,8 @@ describe("Hoid metadata-only source coverage display projection", () => {
       totalVerifiedChapterLocators: 1110,
     });
     expect(result.chapterBodies).toEqual({
-      worksWithInspectedDocuments: 4,
-      totalInspectedChapterDocuments: 73,
+      worksWithInspectedDocuments: 8,
+      totalInspectedChapterDocuments: 114,
     });
     expect(result.editorial).toEqual({
       worksWithStagedSummaries: 4,

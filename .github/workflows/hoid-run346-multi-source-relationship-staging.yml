@@ -1,0 +1,71 @@
+name: Hoid Run 346 — multi-source relationship staging
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run346"
+    paths:
+      - "src/hoid/localReviewToMultiSourceRelationshipBridge.ts"
+      - "src/hoid/localReviewToMultiSourceRelationshipBridge.test.ts"
+      - "src/hoid/localReviewToMultiSourceAtomicClaimBridge.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "docs/hoid/RUN346_MULTI_SOURCE_RELATIONSHIP_STAGING.md"
+      - ".github/workflows/hoid-run346-multi-source-relationship-staging.yml"
+  pull_request:
+    paths:
+      - "src/hoid/localReviewToMultiSourceRelationshipBridge.ts"
+      - "src/hoid/localReviewToMultiSourceRelationshipBridge.test.ts"
+      - "src/hoid/localReviewToMultiSourceAtomicClaimBridge.ts"
+      - "src/hoid/editorialEntityDrafts.ts"
+      - "src/hoid/editorialRelationshipDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "docs/hoid/RUN346_MULTI_SOURCE_RELATIONSHIP_STAGING.md"
+      - ".github/workflows/hoid-run346-multi-source-relationship-staging.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  multi-source-relationship-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run relationship bridge and adjacent regressions
+        run: >-
+          npx vitest run
+          src/hoid/localReviewToMultiSourceRelationshipBridge.test.ts
+          src/hoid/localReviewToMultiSourceAtomicClaimBridge.test.ts
+          src/hoid/editorialRelationshipDrafts.test.ts
+          src/hoid/editorialEntityDrafts.test.ts
+          src/hoid/editorialClaimDrafts.test.ts
+          src/hoid/editorialClaimReviewPackets.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/localReviewToMultiSourceRelationshipBridge.ts
+          src/hoid/localReviewToMultiSourceRelationshipBridge.test.ts
+          src/hoid/localReviewToMultiSourceAtomicClaimBridge.ts
+          src/hoid/editorialEntityDrafts.ts
+          src/hoid/editorialRelationshipDrafts.ts
+          src/hoid/editorialClaimDrafts.ts
+          src/hoid/historicalEditorialReview.ts

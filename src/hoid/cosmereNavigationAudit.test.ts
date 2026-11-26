@@ -68,7 +68,7 @@ describe("cosmere.epub navigation audit", () => {
     }
   });
 
-  it("keeps TOC locators distinct from sparse chapter-body evidence", () => {
+  it("keeps TOC locators distinct from individually fingerprinted chapter documents", () => {
     for (const [bookId] of EXPECTED_COSMERE_LOCATORS) {
       expect(getVerifiedChapterDocumentCount(bookId)).toBe(bookId === "tfe" ? 11 : 0);
     }
@@ -76,9 +76,10 @@ describe("cosmere.epub navigation audit", () => {
     expect(getVerifiedChapterDocumentCount("twok")).toBe(23);
     expect(getVerifiedChapterDocumentCount("edgedancer")).toBe(20);
     expect(getVerifiedChapterDocumentCount("dawnshard")).toBe(19);
-    for (const bookId of ["wor", "ob", "row", "sawt"]) {
-      expect(getVerifiedChapterDocumentCount(bookId)).toBe(0);
-    }
+    expect(getVerifiedChapterDocumentCount("wor")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("ob")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("row")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("sawt")).toBe(11);
   });
 
   it("includes exact duplicate-label locators without widening the numeric progress inventory", () => {

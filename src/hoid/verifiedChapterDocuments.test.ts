@@ -138,6 +138,31 @@ describe("verified EPUB chapter document fingerprints", () => {
     )).toBe("bdbdd338d35c37d455c542384b51c4d67e7e46c1e4d2a5bf6d1535e02c4808c7");
   });
 
+  it("returns source-bound document fingerprints for the remaining Roshar novels", () => {
+    const nav = "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025";
+    expect(getVerifiedChapterDocumentSha256("wor", "roshar-omnibus-v1", nav, 1))
+      .toBe("231ed12af6186bd835d27004b180774cba3ebc7732659f68ce573c463585d8c0");
+    expect(getVerifiedChapterDocumentSha256("wor", "roshar-omnibus-v1", nav, 10))
+      .toBe("9ded7cabd6c50f30182c3f236cc8e206f3d9af6ed1e0bed28ecdfb48d1fa002d");
+    expect(getVerifiedChapterDocumentSha256("ob", "roshar-omnibus-v1", nav, 1))
+      .toBe("6f8cd63118038a157a2a77e2d1dfda0d5fdb84420f06e7e3515c92cfa6a38799");
+    expect(getVerifiedChapterDocumentSha256("ob", "roshar-omnibus-v1", nav, 10))
+      .toBe("6b26b6bd6284aedb121000a803bc4873e3d610d60d2117290354eb1bf7cee307");
+    expect(getVerifiedChapterDocumentSha256("row", "roshar-omnibus-v1", nav, 1))
+      .toBe("349a575cf48a6141874e53985ce37f127ac848a9c593e394783a9ed8f2db07b1");
+    expect(getVerifiedChapterDocumentSha256("row", "roshar-omnibus-v1", nav, 10))
+      .toBe("5c131c44ae47518fa09aa445a989667332ecaf639ad6fde95b47206d00118c63");
+    expect(getVerifiedChapterDocumentSha256("sawt", "roshar-omnibus-v1", nav, 1))
+      .toBe("0b3ec1a5bfc0f67824a6fa6d0316fc38ad62fb78d0ab903aae9ba7ec573443b6");
+    expect(getVerifiedChapterDocumentSha256("sawt", "roshar-omnibus-v1", nav, 11))
+      .toBe("c1a98e660d872ade96902be18e01e04d9a9272787565a0986c6dce34572e57fa");
+    expect(getVerifiedChapterDocumentSha256("sawt", "roshar-omnibus-v1", nav, 12)).toBeNull();
+    expect(getVerifiedChapterDocumentCount("wor")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("ob")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("row")).toBe(10);
+    expect(getVerifiedChapterDocumentCount("sawt")).toBe(11);
+  });
+
   it("rejects a digest lookup from another edition or navigation document", () => {
     expect(getVerifiedChapterDocumentSha256(
       "twok",

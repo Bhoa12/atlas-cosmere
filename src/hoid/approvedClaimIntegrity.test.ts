@@ -143,9 +143,9 @@ describe("Hoid approved-claim integrity", () => {
       id: "e-unverified",
       aliases: ["Entidad sin documento inspeccionado"],
       kind: "concept",
-      firstSafeAppearance: { bookId: "wor", chapter: 3 },
-      evidenceSource: { bookId: "wor", chapter: 3, locatorId: locator("wor", 3) },
-      evidenceUnlock: { bookId: "wor", chapter: 3 },
+      firstSafeAppearance: { bookId: "wor", chapter: 11 },
+      evidenceSource: { bookId: "wor", chapter: 11, locatorId: locator("wor", 11) },
+      evidenceUnlock: { bookId: "wor", chapter: 11 },
       provenance: "verified",
       summary: "Resumen sintético sin documento XHTML incluido en la allowlist.",
     }];

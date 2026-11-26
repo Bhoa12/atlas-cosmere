@@ -16,6 +16,18 @@ type VerifiedChapterDocumentSource = Readonly<{
  * fingerprints; Run 230 added El Camino de los Reyes chapter 19 and Danzante
  * del Filo chapter 20; Run 231 added El Camino de los Reyes chapter 20; Run 232 added chapter 21; Run 321 added El Camino de los Reyes chapter 22; Run 322 added chapter 23.
  */
+function chapterDocumentDigests(encoded: string): Readonly<Record<number, string>> {
+  const values = encoded.split(",");
+  if (values.length === 0 || values.some(value => !/^[a-f0-9]{64}$/.test(value))) {
+    throw new Error("Invalid verified chapter document digest list");
+  }
+  const documents: Record<number, string> = Object.create(null) as Record<number, string>;
+  values.forEach((digest, index) => {
+    documents[index + 1] = digest;
+  });
+  return Object.freeze(documents);
+}
+
 const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object.freeze({
   twok: Object.freeze({
     editionId: "roshar-omnibus-v1",
@@ -45,6 +57,28 @@ const VERIFIED: Readonly<Record<string, VerifiedChapterDocumentSource>> = Object
       22: "f584be238d9ac09a0d1426e61e8f29c7b0d7221b09b692533d2a2ca503f4c148",
       23: "cbf8cc5fd1bfe5ef8d4d614bed5e9419f1f6ad94013aaa9e8c5bec8ce2a2b64a",
     }),
+  }),
+  // Chapter XHTML byte digests from the supplied Roshar omnibus. No prose is stored.
+  wor: Object.freeze({
+    editionId: "roshar-omnibus-v1",
+    navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+    documents: chapterDocumentDigests("231ed12af6186bd835d27004b180774cba3ebc7732659f68ce573c463585d8c0,273ab0c7db186426271e9bf6be82f723c9f930bca502724af3846426442d5c8d,aa9b37ee40c4fd6f5fcaf726665ce6228124af0faa6f8c4299d4a7b244ad3a23,8bb9b76b5fb8abab24acd7e3e5bb8f8e4bb1d2a8cab013465e8ef5c50305ff77,66843e12cfafa6a7d5e86c35591be2734af89de2e162e242e5fdc7ad9954318c,65436f99fee169186999079b0729616ff887ca3dcb92787d8e23d41a8da0a9f0,568afa0042aa90d62ee18dc332617de9110f92c370b444bd0b5ab4cd1fb8464d,1d2ae726c9dbe760e3a5e83aaf009bdeddf28b13db16830235203b7246113936,cd77423d2dfedfd8d5cad3c120c0e3060fd0b9069d893f4c96fd45f863a95adb,9ded7cabd6c50f30182c3f236cc8e206f3d9af6ed1e0bed28ecdfb48d1fa002d"),
+  }),
+  ob: Object.freeze({
+    editionId: "roshar-omnibus-v1",
+    navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+    documents: chapterDocumentDigests("6f8cd63118038a157a2a77e2d1dfda0d5fdb84420f06e7e3515c92cfa6a38799,1c5df50ccbaa2587cf02a6a14ed1ff4d8f5a2814d501d39fbec4f2ea8d71fc60,0bdcfd8494371211c8ea8bec535309ba53587ad0703d37c638fd8c05b7e56dd5,daf0000d9b903e37f76587f5d68e31a631e4949fe82b20aec628d67bcc9b6ced,2570d786deda631a3b245d8f37328ca672fb27aec074f75b78aff119abbf4899,56ca5d3c2250f858cd98f1b887a83a67f5b84707057a02b852bd754cf1e8dd2e,26e9659283a848e3bafd2e0ff2af3ac934e28cdc06f34963ddbe326145057660,eb924368b81794e0d7a56c216c6fe9f87c9bf57e8cce2e7af355585cc236ad27,e86926b1b25f48c85252a1a27ca7b343347c8066bc71cd7ddca8b1e2daecf929,6b26b6bd6284aedb121000a803bc4873e3d610d60d2117290354eb1bf7cee307"),
+  }),
+  row: Object.freeze({
+    editionId: "roshar-omnibus-v1",
+    navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+    documents: chapterDocumentDigests("349a575cf48a6141874e53985ce37f127ac848a9c593e394783a9ed8f2db07b1,a0226238454378f966d27518d4fb3bb99679786cbebe95833a0d9bd260a067ac,7c7af3671c3955e2fa331f4d836d89816facfa7f82b657711d5977dc426f468f,6f585691199030a9ee23e736944135743d90b2208dc08ddc80ce3316b0405e74,60a2b9d67ecb91450555f971e8d800d9f43f4194a10b3d1c2e53b9111f72cc27,ca2d410cd773b6d2186629a2558c811cfd6bf1b8bf6e9d3e2731c776d7a50a6e,4da1f1aab7d5508e7f0e6e4ea23a4ed394e50d533e8fce9abb9b1bc3b7d1474a,49a07661b2dd121653121bc0ed3743fe199bc1661d5f73fc2892aab551e462b8,ed00aa4df3029df27a7f2290595410ee8a442b89f315588c55dabbdfa2054436,5c131c44ae47518fa09aa445a989667332ecaf639ad6fde95b47206d00118c63"),
+  }),
+  // Numeric coverage intentionally stops at chapter 11, before duplicate labels 12 and 14.
+  sawt: Object.freeze({
+    editionId: "roshar-omnibus-v1",
+    navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+    documents: chapterDocumentDigests("0b3ec1a5bfc0f67824a6fa6d0316fc38ad62fb78d0ab903aae9ba7ec573443b6,a96327db605f1fee2c351b46037fd40a355b6da1c9ece9ec7c2f2d8a01f00d96,8d3879b7933477e3b05d6d530746981a1b944dfea84a61646de85ba861f3992f,3e7c73b2c5daa8b9998555ec3e42dc8d65982ab841bd242ffb62e1c6de0fd765,5b80bc17420a8b1d2e02d845ce0385d1c5e7f80c4dce84b8fc164b08f40ecd92,02fe8973fb7bfcda7a4b2fefa99bc21cd530d581ed0a3fd44b372d1405f7804c,545adf34ea6aef909819d4d4e5ab54baa7da4027fbdf1163fc814e564afc7a4c,1b723c5058f8f1d14ced3932c4df87966cd352089d9890b26080cffa2366c4db,ed9d7953c011305a1060d6859ea778dfcc1079c6795b42bca9bc9375dfb6692f,b621dff23d2d71f34298d72ea9da392b41af46d34777470cb5cf211619dddfc3,c1a98e660d872ade96902be18e01e04d9a9272787565a0986c6dce34572e57fa"),
   }),
   edgedancer: Object.freeze({
     editionId: "edgedancer-epub-v1",

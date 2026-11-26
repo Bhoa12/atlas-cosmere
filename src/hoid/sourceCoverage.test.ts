@@ -33,18 +33,22 @@ describe("Hoid metadata-only source coverage", () => {
       totalVerifiedChapterLocators: 1110,
     });
     expect(report.chapterBodies).toEqual({
-      worksWithInspectedDocuments: 4,
-      totalInspectedChapterDocuments: 73,
+      worksWithInspectedDocuments: 8,
+      totalInspectedChapterDocuments: 114,
     });
   });
 
-  it("reports only the four works with individually inspected chapter documents", () => {
+  it("reports only the eight works with individually inspected chapter documents", () => {
     expect(work("tfe").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     expect(work("twok").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]);
+    expect(work("wor").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(work("ob").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(work("row").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(work("sawt").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     expect(work("edgedancer").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
     expect(work("dawnshard").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
-    for (const id of ["woa", "hoa", "aol", "sos", "bom", "tlm", "warbreaker", "elantris", "tress", "yumi", "sunlit", "isles", "arcanum", "wor", "ob", "row", "sawt"]) {
+    for (const id of ["woa", "hoa", "aol", "sos", "bom", "tlm", "warbreaker", "elantris", "tress", "yumi", "sunlit", "isles", "arcanum"]) {
       expect(work(id).inspectedChapterDocumentCount).toBe(0);
     }
   });

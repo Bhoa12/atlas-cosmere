@@ -61,11 +61,15 @@ describe("Hoid device-local source inspection receipts", () => {
 
     expect(created.status).toBe("ready");
     if (created.status !== "ready") return;
+    const manifest = getHoidReadingManifest("tfe");
+    const task = getHoidSourceIngestionPlan().tasks.find(item => item.workId === "tfe");
+    expect(manifest.status).toBe("ready");
+    expect(task).toBeDefined();
     expect(created.receipt).toMatchObject({
       schemaVersion: 1,
       workId: "tfe",
-      editionId: "cosmere-epub-merged-v1",
-      chapterNumber: 12,
+      editionId: manifest.status === "ready" ? manifest.manifest.editionId : "",
+      chapterNumber: task?.chapterNumber,
       byteLength: 512,
       inspectedAt: INSPECTED_AT,
     });

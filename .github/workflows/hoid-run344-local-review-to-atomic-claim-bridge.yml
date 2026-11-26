@@ -61,8 +61,8 @@ jobs:
           src/hoid/localReviewToAtomicClaimBridge.test.ts
           src/hoid/historicalReviewSession.ts
           src/hoid/historicalReviewSession.test.ts
-          src/hoid/historicalEditorialReview.test.ts
           src/hoid/historicalReviewSession.test.ts
+          src/hoid/historicalEditorialReview.test.ts
           src/hoid/editorialClaimDrafts.test.ts
           src/hoid/editorialClaimReviewPackets.test.ts
       - name: Strict TypeScript check

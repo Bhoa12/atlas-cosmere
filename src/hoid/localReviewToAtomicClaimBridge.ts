@@ -1,4 +1,4 @@
-import type { HoidKnowledgeKind } from "./knowledgeKinds";
+import { isHoidKnowledgeKind, type HoidKnowledgeKind } from "./knowledgeKinds";
 import {
   createHoidEditorialClaimDraft,
   type HoidEditorialClaimAssertionKind,
@@ -138,11 +138,7 @@ function canonicalClaimInput(value: unknown): HoidLocalAtomicClaimInput | null {
     /[\u0000-\u001F\u007F]/u.test(statement)
   ) return null;
 
-  const allowedKinds = new Set([
-    "character", "place", "event", "phenomenon",
-    "concept", "magic", "organization", "object",
-  ]);
-  if (!allowedKinds.has(raw.subjectKind)) return null;
+  if (!isHoidKnowledgeKind(raw.subjectKind)) return null;
 
   return Object.freeze({
     subjectId,

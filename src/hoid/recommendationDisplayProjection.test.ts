@@ -40,10 +40,10 @@ function editionFixture() {
     items: Object.freeze([Object.freeze({
       sourceId: work.id,
       title: work.title,
-      reason: "unread-source",
-      explanationCode: "start-first-numbered-chapter",
-      heading: "Comenzar " + work.title,
-      detail: "La obra figura en el catálogo y tiene un manifiesto de lectura verificable.",
+      reason: "resume-current-work",
+      explanationCode: "resume-current-cursor",
+      heading: "Reanudar " + work.title,
+      detail: "El cursor validado señala el capítulo 1. No se ha añadido contenido narrativo.",
       target,
     })]),
   });
@@ -113,6 +113,24 @@ describe("Hoid recommendation display projections", () => {
     ]) expect(serialized).not.toContain(secret);
   });
 
+  it("projects a no-safe-next-work state without exposing progress fingerprints", () => {
+    const display = projectHoidEditionRecommendationsForDisplay({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 7,
+      progressFingerprint: fingerprint,
+      heading: "No hay una ruta de lectura aprobada",
+      detail: "No se inferirá una obra siguiente.",
+    });
+    expect(display).toEqual({
+      status: "no-safe-next-work",
+      heading: "No hay una ruta de lectura aprobada",
+      detail: "No se inferirá una obra siguiente.",
+    });
+    expect(JSON.stringify(display)).not.toContain("progressFingerprint");
+    expect(JSON.stringify(display)).not.toContain(fingerprint);
+  });
+
   it("keeps the selection-required UI projection free of internal progress identity", () => {
     const works = HOID_SOURCE_BIBLIOGRAPHY.filter(work => {
       const manifest = getHoidReadingManifest(work.id);
@@ -148,6 +166,19 @@ describe("Hoid recommendation display projections", () => {
     });
     expect(JSON.stringify(display)).not.toContain("progressFingerprint");
     expect(JSON.stringify(display)).not.toContain("progressRevision");
+  });
+
+  it("rejects an unstarted-source recommendation even when its chapter-one cursor is structurally valid", () => {
+    const fixture = editionFixture();
+    const tampered = {
+      ...fixture.presentation,
+      items: [{
+        ...fixture.presentation.items[0],
+        reason: "unread-source",
+        explanationCode: "start-first-numbered-chapter",
+      }],
+    };
+    expect(projectHoidEditionRecommendationsForDisplay(tampered)).toBeNull();
   });
 
   it("rejects an edition target whose locator does not match its verified manifest", () => {

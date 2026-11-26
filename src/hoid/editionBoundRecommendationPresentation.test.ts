@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { createHoidEditionBoundRecommendationPresentation } from "./editionBoundRecommendationPresentation";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
@@ -86,20 +85,17 @@ describe("edition-bound recommendation presentation adapter", () => {
     expect(result.items[0].detail).toContain("El cursor validado señala el capítulo 3.");
   });
 
-  it("preserves catalog-only status for an unsegmented work", () => {
-    const completed = HOID_SOURCE_BIBLIOGRAPHY
-      .filter(work => work.id !== "white-sand-1")
-      .map(work => ({ bookId: work.id, completed: true as const }));
+  it("returns a progress-bound no-safe-next-work state when tracked works are complete", () => {
     const result = createHoidEditionBoundRecommendationPresentation(
-      snapshot(completed, 1),
+      snapshot([{ bookId: "tfe", completed: true }], 1),
       1,
     );
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.items[0]).toMatchObject({
-      sourceId: "white-sand-1",
-      explanationCode: "catalog-only-unsegmented",
-      target: { kind: "catalog-only", reason: "segmentation-unverified" },
+    expect(result).toMatchObject({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 1,
+      progressFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      heading: "No hay una ruta de lectura aprobada",
     });
   });
 
@@ -188,18 +184,13 @@ describe("edition-bound recommendation presentation adapter", () => {
     )).toEqual({ status: "unavailable", reason: "invalid-active-work" });
   });
 
-  it("allows a canonical empty snapshot to discover the first verified numbered chapter", () => {
+  it("does not infer a new work from a canonical empty snapshot", () => {
     const result = createHoidEditionBoundRecommendationPresentation(snapshot(), 1);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.items[0]).toMatchObject({
-      sourceId: "tfe",
-      reason: "unread-source",
-      explanationCode: "start-first-numbered-chapter",
-      target: {
-        kind: "edition-cursor",
-        cursor: { bookId: "tfe", chapterNumber: 1 },
-      },
+    expect(result).toMatchObject({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 0,
+      progressFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
   });
 

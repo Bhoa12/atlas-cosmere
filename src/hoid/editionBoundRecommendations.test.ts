@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { recommendEditionBoundReadingNextSteps } from "./editionBoundRecommendations";
 import { createHoidReadingCursor, validateHoidReadingCursor } from "./readingManifest";
 
@@ -72,36 +71,23 @@ describe("edition-bound reading recommendation targets", () => {
     });
   });
 
-  it("creates a chapter-one cursor for a trackable unread source", () => {
-    const result = recommendEditionBoundReadingNextSteps(snapshot(), 1);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-
-    expect(result.items[0]).toMatchObject({
-      sourceId: "tfe",
-      reason: "unread-source",
-      target: {
-        kind: "edition-cursor",
-        editionId: "cosmere-epub-merged-v1",
-        cursor: { bookId: "tfe", chapterNumber: 1, ordinal: 1 },
-      },
+  it("does not infer a first work from an empty progress ledger", () => {
+    expect(recommendEditionBoundReadingNextSteps(snapshot(), 1)).toEqual({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 0,
     });
   });
 
-  it("keeps unsegmented works catalog-only instead of inventing a chapter target", () => {
-    const positions = HOID_SOURCE_BIBLIOGRAPHY
-      .filter(work => work.id !== "white-sand-1")
-      .map(work => ({ bookId: work.id, completed: true as const }));
-    const result = recommendEditionBoundReadingNextSteps(snapshot(positions), 1);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-
-    expect(result.items).toEqual([{
-      sourceId: "white-sand-1",
-      title: HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === "white-sand-1")!.title,
-      reason: "unread-source",
-      target: { kind: "catalog-only", reason: "segmentation-unverified" },
-    }]);
+  it("does not choose an unstarted catalogue entry after tracked works are complete", () => {
+    expect(recommendEditionBoundReadingNextSteps(snapshot([
+      { bookId: "tfe", completed: true },
+      { bookId: "elantris", completed: true },
+    ]), 1)).toEqual({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 1,
+    });
   });
 
   it("requires an explicit choice when several works are in progress", () => {
@@ -154,14 +140,13 @@ describe("edition-bound reading recommendation targets", () => {
     expect(result).toEqual({ status: "unavailable", reason: "invalid-active-work" });
   });
 
-  it("never resumes a work explicitly marked complete", () => {
-    const result = recommendEditionBoundReadingNextSteps(snapshot([
+  it("does not convert a completed work into an implicit discovery recommendation", () => {
+    expect(recommendEditionBoundReadingNextSteps(snapshot([
       { bookId: "tfe", completed: true },
-    ]), 1);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.items[0].sourceId).not.toBe("tfe");
-    expect(result.items[0].reason).toBe("unread-source");
+    ]), 1)).toMatchObject({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+    });
   });
 
   it("uses the exact last manifest chapter rather than inventing a chapter beyond it", () => {
@@ -202,22 +187,22 @@ describe("edition-bound reading recommendation targets", () => {
       .toEqual({ status: "unavailable", reason: "invalid-active-work" });
   });
 
-  it("rejects non-finite limits and safely handles zero", () => {
+  it("rejects non-finite limits and permits an explicit zero-item resume plan", () => {
     expect(recommendEditionBoundReadingNextSteps(snapshot(), Number.NaN))
       .toEqual({ status: "unavailable", reason: "invalid-limit" });
     expect(recommendEditionBoundReadingNextSteps(snapshot(), Number.POSITIVE_INFINITY))
       .toEqual({ status: "unavailable", reason: "invalid-limit" });
-    expect(recommendEditionBoundReadingNextSteps(snapshot(), 0)).toMatchObject({ status: "ready", items: [] });
+    expect(recommendEditionBoundReadingNextSteps(snapshot([
+      { bookId: "tfe", chapter: 4 },
+    ]), 0)).toMatchObject({ status: "ready", items: [] });
   });
 
-  it("preserves the exact cursor when a chapter has no verified opaque locator", () => {
-    const positions = HOID_SOURCE_BIBLIOGRAPHY
-      .filter(work => work.id !== "elantris")
-      .map(work => ({ bookId: work.id, completed: true as const }));
-    const result = recommendEditionBoundReadingNextSteps(snapshot(positions), 1);
+  it("preserves the exact cursor when an active chapter has no verified opaque locator", () => {
+    const result = recommendEditionBoundReadingNextSteps(snapshot([
+      { bookId: "elantris", chapter: 1 },
+    ]), 1);
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
-
     const target = result.items[0].target;
     expect(target.kind).toBe("edition-cursor");
     if (target.kind !== "edition-cursor") throw new Error("Elantris chapter-one cursor was not produced");
@@ -229,4 +214,5 @@ describe("edition-bound reading recommendation targets", () => {
       expect(target.locatorId).toBeTruthy();
     }
   });
+
 });

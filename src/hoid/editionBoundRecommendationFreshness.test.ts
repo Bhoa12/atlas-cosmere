@@ -58,6 +58,17 @@ describe("edition-bound recommendation freshness", () => {
     )).toBe("current");
   });
 
+  it("accepts a no-safe-next-work state only for its exact live progress projection", () => {
+    const empty = { schemaVersion: 2, revision: 0, positions: [], updatedAt: null };
+    const presentation = createHoidEditionBoundRecommendationPresentation(empty, 1);
+    expect(presentation.status).toBe("no-safe-next-work");
+    expect(validateHoidEditionBoundRecommendationFreshness(presentation, projection(empty))).toBe("current");
+    expect(validateHoidEditionBoundRecommendationFreshness(
+      presentation,
+      projection(snapshot("tfe", 9, 1)),
+    )).toBe("stale");
+  });
+
   it("marks a recommendation stale when the cursor changes at the same revision", () => {
     const original = snapshot("tfe", 9, 4);
     const changed = snapshot("tfe", 10, 4);

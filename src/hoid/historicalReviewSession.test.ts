@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { HoidHistoricalSourceReinspectionResult } from "./historicalSourceReinspection";
-import {
-  createHoidSourceInspectionReceiptFromCandidate,
-  type HoidSourceInspectionReceipt,
-} from "./sourceInspectionReceipts";
-import { getHoidSourceIngestionPlan } from "./sourceIngestionPlan";
+import type { HoidSourceInspectionReceipt } from "./sourceInspectionReceipts";
 import { getHoidReadingManifest } from "./readingManifest";
-import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import { sha256Hex } from "./sha256";
 import { createHoidHistoricalReviewSessionController } from "./historicalReviewSession";
 import type { HoidHistoricalEditorialChecklist } from "./historicalEditorialReview";
 
@@ -15,40 +11,39 @@ const WORK_ID = "twok";
 const manifestResult = getHoidReadingManifest(WORK_ID);
 if (manifestResult.status !== "ready") throw new Error("Test reading manifest is unavailable");
 const manifest = manifestResult.manifest;
-const task = getHoidSourceIngestionPlan().tasks.find(item =>
-  item.workId === WORK_ID && item.chapterNumber === 1,
-);
-if (!task) throw new Error("Test source-ingestion task is unavailable");
-const documentSha256 = getVerifiedChapterDocumentSha256(
-  WORK_ID,
-  manifest.editionId,
-  manifest.navigationSha256,
-  1,
-);
-if (!documentSha256) throw new Error("Test chapter document digest is unavailable");
-const createdReceipt = createHoidSourceInspectionReceiptFromCandidate({
-  schemaVersion: 1,
-  status: "candidate-only",
-  workId: task.workId,
-  title: task.title,
-  chapterNumber: task.chapterNumber,
-  editionId: task.editionId,
-  sourceGroup: task.sourceGroup,
-  locatorId: task.locatorId,
-  navigationHref: task.navigationHref,
+const receiptBase = Object.freeze({
+  schemaVersion: 1 as const,
+  status: "candidate-only" as const,
+  authorizationEffect: "none" as const,
+  editorialEffect: "none" as const,
+  summaryCreated: false as const,
+  productionWritePerformed: false as const,
+  workId: WORK_ID,
+  editionId: manifest.editionId,
+  chapterNumber: 1,
   byteLength: 512,
-  documentSha256,
+  documentSha256: "c".repeat(64),
   navigationSha256: manifest.navigationSha256,
-  packageSourceFingerprint: "a".repeat(64),
-  candidateFingerprint: "b".repeat(64),
-  minimumReaderChapter: task.minimumReaderChapter,
-  authorizationEffect: "none",
-  editorialEffect: "none",
-  summaryCreated: false,
-  productionWritePerformed: false,
-}, VERIFIED_AT);
-if (createdReceipt.status !== "ready") throw new Error("Test source receipt could not be created");
-const RECEIPT: HoidSourceInspectionReceipt = createdReceipt.receipt;
+  inspectedAt: VERIFIED_AT,
+});
+const RECEIPT: HoidSourceInspectionReceipt = Object.freeze({
+  ...receiptBase,
+  receiptFingerprint: sha256Hex(JSON.stringify([
+    receiptBase.schemaVersion,
+    receiptBase.status,
+    receiptBase.authorizationEffect,
+    receiptBase.editorialEffect,
+    receiptBase.summaryCreated,
+    receiptBase.productionWritePerformed,
+    receiptBase.workId,
+    receiptBase.editionId,
+    receiptBase.chapterNumber,
+    receiptBase.byteLength,
+    receiptBase.documentSha256,
+    receiptBase.navigationSha256,
+    receiptBase.inspectedAt,
+  ])),
+});
 
 const identity = (sourceId = "local-source-a") => ({
   sourceId,
@@ -59,7 +54,7 @@ const source = (sourceId = "local-source-a") => ({
   sourceId,
   workId: WORK_ID,
   editionId: manifest.editionId,
-  sourceGroup: task.sourceGroup,
+  sourceGroup: "roshar-epubs",
 });
 const inputFor = (sourceValue = source(sourceValueId())) => ({
   receipt: RECEIPT,

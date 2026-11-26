@@ -230,10 +230,6 @@ describe("Hoid device-local source inspection receipts", () => {
     );
     if (first.status !== "added") throw new Error("Expected first receipt to be added");
 
-    const changed = receiptFor("tfe", {
-      documentSha256: "d".repeat(64),
-      receiptFingerprint: undefined,
-    });
     const recreated = createHoidSourceInspectionReceiptFromCandidate(
       candidateFor("tfe", { documentSha256: "d".repeat(64) }),
       "2026-11-26T14:31:00.000Z",
@@ -243,7 +239,6 @@ describe("Hoid device-local source inspection receipts", () => {
     expect(recordHoidSourceInspectionReceipt(first.ledger, recreated.receipt).status)
       .toBe("conflict");
     expect(first.ledger.receipts[0].documentSha256).toBe("a".repeat(64));
-    void changed;
   });
 
   it("rejects duplicate keys and non-canonical receipt ordering", () => {

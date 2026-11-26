@@ -66,6 +66,17 @@ import {
   type HoidTopicRecommendationDisplayItem,
 } from '../hoid/recommendationDisplayProjection';
 import {
+  rankHoidCuratedPathRecommendationsForReader,
+  getDefaultHoidReaderRecommendationPreferences,
+  type HoidReaderRecommendationPreferences,
+  type HoidReaderRecommendationPreferencesStorePort,
+} from '../hoid/readerRecommendationPreferences';
+import {
+  HoidReaderPreferencesEditor,
+  type HoidReaderPreferencesStoreStatus,
+} from '../components/HoidReaderPreferencesEditor';
+
+import {
   HOID_STATIC_GREETING_ID,
   HOID_STATIC_GREETING_KIND,
   HOID_STATIC_GREETING_TEXT,
@@ -107,10 +118,14 @@ export const HoidScreen: React.FC<{
   trustedConversationPort?: HoidTrustedConversationScreenPort | null;
   /** Host-owned, branded port; each presentation reloads and revalidates its complete signed route context. */
   trustedCuratedPathRecommendationPort?: HoidTrustedCuratedPathRecommendationScreenPort | null;
+  readerPreferencesStore?: HoidReaderRecommendationPreferencesStorePort | null;
+  readerPreferencesStoreStatus?: HoidReaderPreferencesStoreStatus;
 }> = ({
   trustedAnswerPort: trustedAnswerPortInput = null,
   trustedConversationPort: trustedConversationPortInput = null,
   trustedCuratedPathRecommendationPort: curatedPathRecommendationPortInput = null,
+  readerPreferencesStore = null,
+  readerPreferencesStoreStatus = 'unavailable',
 }) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
   // The signed presenter capability gates topic recommendations; the exact-unit
@@ -224,6 +239,9 @@ export const HoidScreen: React.FC<{
   const readerAbortControllerRef = useRef<AbortController | null>(null);
   const [curatedPathProjection, setCuratedPathProjection] =
     useState<HoidTrustedCuratedPathRecommendationScreenResult | null>(null);
+  const [readerPreferences, setReaderPreferences] = useState<HoidReaderRecommendationPreferences>(
+    getDefaultHoidReaderRecommendationPreferences(),
+  );
   const [curatedPathLoading, setCuratedPathLoading] = useState(false);
   const [curatedPathMessage, setCuratedPathMessage] = useState('');
   const curatedPathAbortControllerRef = useRef<AbortController | null>(null);
@@ -1085,6 +1103,9 @@ export const HoidScreen: React.FC<{
     setCuratedPathMessage('Consulta cancelada. No se ha modificado el progreso.');
   };
 
+  const rankedCuratedPathProjection = curatedPathProjection?.status === 'ready'
+    ? rankHoidCuratedPathRecommendationsForReader(curatedPathProjection, readerPreferences)
+    : null;
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
   const topicRecommendationBinding = topicRecommendationBindingRef.current;
   const topicRecommendationsAreCurrent =
@@ -1115,6 +1136,12 @@ export const HoidScreen: React.FC<{
       </View>
 
       <HoidEpubImportPanel onReaderPortChange={handleReaderPortChange} />
+
+      <HoidReaderPreferencesEditor
+        store={readerPreferencesStore}
+        storeStatus={readerPreferencesStoreStatus}
+        onPreferencesChange={setReaderPreferences}
+      />
 
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>
@@ -1277,7 +1304,8 @@ export const HoidScreen: React.FC<{
           </Text>
         )}
         {curatedPathProjection?.status === 'ready' &&
-          curatedPathProjection.items.map(item => (
+          rankedCuratedPathProjection?.status === 'ready' &&
+          rankedCuratedPathProjection.items.map(item => (
             <View key={item.key} style={styles.curatedPathItem}>
               <Text style={styles.recommendationItemText}>{item.workTitle}</Text>
               <Text style={styles.recommendationItemMeta}>{item.pathTitle}</Text>
@@ -1287,6 +1315,12 @@ export const HoidScreen: React.FC<{
               </Text>
             </View>
           ))}
+        {curatedPathProjection?.status === 'ready' &&
+          rankedCuratedPathProjection?.status === 'withheld' && (
+            <Text style={styles.recommendationMessage}>
+              No se han podido aplicar las preferencias. Se han ocultado las recomendaciones de esta vista.
+            </Text>
+          )}
       </View>
 
       <View style={styles.answerScopePanel}>

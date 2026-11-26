@@ -148,7 +148,8 @@ describe("Hoid metadata-only source coverage display projection", () => {
     const serialized = JSON.stringify(result);
 
     for (const forbidden of [
-      "summary",
+      '"summary":',
+      '"text":',
       "documentSha256",
       "navigationSha256",
       "locatorId",

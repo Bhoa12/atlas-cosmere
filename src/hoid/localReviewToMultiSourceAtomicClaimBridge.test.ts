@@ -4,9 +4,10 @@ import {
   validateHoidHistoricalEditorialReviewDecision,
   type HoidHistoricalEditorialReviewPacket,
 } from "./historicalEditorialReview";
-import { getHoidReadingManifest } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 import { sha256Hex } from "./sha256";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import { evaluateHoidEditorialClaimDrafts } from "./editorialClaimDrafts";
 import {
   buildHoidLocalReviewMultiSourceAtomicClaimCandidate,
   type HoidLocalMultiSourceAtomicClaimInput,
@@ -107,6 +108,23 @@ function validSources() {
   ]);
 }
 
+function progress(positions: Array<{ bookId: string; chapter?: number; completed?: boolean }>) {
+  const cursorPositions = positions.map(position => {
+    if (position.completed === true) {
+      return { bookId: position.bookId, completed: true as const };
+    }
+    const created = createHoidReadingCursor(position.bookId, position.chapter);
+    if (created.status !== "ready") throw new Error("Expected a valid progress cursor");
+    return { bookId: position.bookId, cursor: created.cursor };
+  });
+  return {
+    schemaVersion: 2,
+    revision: cursorPositions.length === 0 ? 0 : 1,
+    positions: cursorPositions,
+    updatedAt: cursorPositions.length === 0 ? null : "2026-11-26T21:35:00.000Z",
+  };
+}
+
 describe("Hoid local review to multi-source atomic claim bridge", () => {
   it("creates one cross-work claim whose every source chapter is a mandatory evidence requirement", () => {
     const result = buildHoidLocalReviewMultiSourceAtomicClaimCandidate(validSources(), CLAIM);
@@ -125,6 +143,37 @@ describe("Hoid local review to multi-source atomic claim bridge", () => {
     expect(result.candidate.stage).toBe("awaiting-independent-claim-review");
     expect(result.candidate.claimDraft.review.status).toBe("pending-review");
     expect(result.candidate.claimReviewPacket.status).toBe("pending-review");
+  });
+
+  it("keeps the cross-work claim withheld until every source book passes its chapter threshold", () => {
+    const result = buildHoidLocalReviewMultiSourceAtomicClaimCandidate(validSources(), CLAIM);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+
+    const partial = evaluateHoidEditorialClaimDrafts(
+      [result.candidate.claimDraft],
+      progress([{ bookId: "tfe", chapter: 2 }]),
+    );
+    expect(partial.status).toBe("ready");
+    if (partial.status !== "ready") return;
+    expect(partial.evaluations[0].status).toBe("withheld");
+    if (partial.evaluations[0].status === "withheld") {
+      expect(partial.evaluations[0].missingRequirements).toEqual([
+        { bookId: "twok", chapter: 1 },
+      ]);
+    }
+
+    const complete = evaluateHoidEditorialClaimDrafts(
+      [result.candidate.claimDraft],
+      progress([
+        { bookId: "tfe", chapter: 2 },
+        { bookId: "twok", chapter: 2 },
+      ]),
+    );
+    expect(complete.status).toBe("ready");
+    if (complete.status === "ready") {
+      expect(complete.evaluations[0].status).toBe("eligible-for-review");
+    }
   });
 
   it("does not carry any chapter summary or source passage into the candidate", () => {

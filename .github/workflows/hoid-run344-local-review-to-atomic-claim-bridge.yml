@@ -1,0 +1,70 @@
+name: Hoid Run 344 — local review to atomic claim bridge
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run344"
+    paths:
+      - "src/hoid/localReviewToAtomicClaimBridge.ts"
+      - "src/hoid/localReviewToAtomicClaimBridge.test.ts"
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/historicalEditorialReview.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialClaimReviewPackets.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "docs/hoid/RUN344_LOCAL_REVIEW_TO_ATOMIC_CLAIM_BRIDGE.md"
+      - ".github/workflows/hoid-run344-local-review-to-atomic-claim-bridge.yml"
+  pull_request:
+    paths:
+      - "src/hoid/localReviewToAtomicClaimBridge.ts"
+      - "src/hoid/localReviewToAtomicClaimBridge.test.ts"
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/historicalEditorialReview.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimDrafts.test.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialClaimReviewPackets.test.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "docs/hoid/RUN344_LOCAL_REVIEW_TO_ATOMIC_CLAIM_BRIDGE.md"
+      - ".github/workflows/hoid-run344-local-review-to-atomic-claim-bridge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-review-claim-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test local review to atomic claim bridge
+        run: >-
+          npx vitest run
+          src/hoid/localReviewToAtomicClaimBridge.test.ts
+          src/hoid/historicalEditorialReview.test.ts
+          src/hoid/editorialClaimDrafts.test.ts
+          src/hoid/editorialClaimReviewPackets.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/localReviewToAtomicClaimBridge.ts
+          src/hoid/localReviewToAtomicClaimBridge.test.ts

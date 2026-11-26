@@ -1,0 +1,55 @@
+name: Hoid Run 327 — signed curated reading paths
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/RUN327_SIGNED_CURATED_READING_PATHS.md"
+      - ".github/workflows/hoid-run327-curated-reading-paths.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run327"
+    paths:
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/hoid/chapterReference.ts"
+      - "src/hoid/unitProgressCursor.ts"
+      - "src/hoid/unitProgressLedger.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/RUN327_SIGNED_CURATED_READING_PATHS.md"
+      - ".github/workflows/hoid-run327-curated-reading-paths.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  curated-reading-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test signed path catalogue, quorum and progress gates
+        run: npx vitest run src/hoid/curatedReadingPathCatalogue.test.ts
+      - name: Strict type-check route contracts and tests
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/curatedReadingPathCatalogue.ts
+          src/hoid/curatedReadingPathCatalogue.test.ts

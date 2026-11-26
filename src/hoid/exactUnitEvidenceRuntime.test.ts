@@ -437,7 +437,7 @@ describe("Hoid exact-unit evidence runtime v2", () => {
   });
 
 
-  it("preserves the original v2 selector fingerprint when no conversation context is supplied", async () => {
+  it("binds exact-unit spoiler dependencies into the v2 selector fingerprint without exposing their references", async () => {
     const store = new MemoryStore();
     store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
     let providerRequest: HoidExactClaimSelectionRequest | undefined;
@@ -454,20 +454,10 @@ describe("Hoid exact-unit evidence runtime v2", () => {
     const request = providerRequest!;
     expect(request.schemaVersion).toBe(2);
     expect(request.conversationContext).toBeUndefined();
-    expect(request.requestFingerprint).toBe(sha256Hex(JSON.stringify({
-      protocol: "hoid.exact-claim-selection.v2",
-      schemaVersion: 2,
-      question: request.question,
-      intent: request.intent,
-      depth: "brief",
-      bookScope: null,
-      selectionBudget: request.selectionBudget,
-      candidates: request.candidates.map(candidate => ({
-        id: candidate.id,
-        text: candidate.text,
-        evidenceIds: [...candidate.evidenceIds],
-      })),
-    })));
+    // The opaque digest now commits to the exact-unit spoiler dependency set.
+    // Chapter identities and progress thresholds must remain local to Hoid.
+    expect(request.requestFingerprint).toBe("9f4c42f162936422926b993b05061edb00ea2f13615bf446f9ae4cd7722ee6e9");
+    expect(JSON.stringify(request)).not.toMatch(/chapterNumber|unitId|completedThroughChapter|navigationSha256/u);
   });
 
 
@@ -599,7 +589,7 @@ describe("Hoid exact-unit evidence runtime v2", () => {
       intent: "explain",
       bookScope: { mode: "single-work", bookIds: ["twok"] },
       chapterScope: [reference("twok", 2)],
-    })).toEqual({ status: "unavailable", reason: "no-authorized-claims" });
+    })).toEqual({ status: "unavailable", reason: "spoiler-dependency-locked" });
     expect(selector).not.toHaveBeenCalled();
   });
 

@@ -49,9 +49,9 @@ const REREAD_CUES = Object.freeze([
 function normalize(value: string): string {
   return value
     .normalize("NFKD")
-    .replace(/[\\p{M}\\p{Cf}]/gu, "")
+    .replace(/[\p{M}\p{Cf}]/gu, "")
     .toLowerCase()
-    .replace(/[^\\p{L}\\p{N}]+/gu, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
 
@@ -86,7 +86,7 @@ export function resolveHoidRereadRequest(
     questionInput.length < 1 ||
     questionInput.length > MAX_QUESTION_LENGTH ||
     questionInput !== questionInput.trim() ||
-    /[\\u0000-\\u001f\\u007f\\p{Cf}]/u.test(questionInput)
+    /[\u0000-\u001f\u007f\p{Cf}]/u.test(questionInput)
   ) {
     return Object.freeze({ status: "blocked", reason: "invalid-question" });
   }

@@ -33,6 +33,7 @@ import {
   type HoidExplanationDepth,
 } from "./explanationDepth";
 import { isHoidKnowledgeKind } from "./knowledgeKinds";
+import { composeHoidNarrative } from "./narrativeComposition";
 
 type ProgressIdentity = Readonly<{
   revision: number;
@@ -283,7 +284,7 @@ function projectDossier(
 
   const summaryClaimId = "dossier-summary-" + dossier.dossierId.slice(0, 16);
   const summarySegmentText = "Expediente de " + entity.label + ": " + summary.text;
-  if (summarySegmentText.length > 4_200) return null;
+  if (summarySegmentText.length > 4_000) return null;
   const claimIds = new Set<string>([summaryClaimId]);
   const allEvidence = new Map<string, HoidPresentedCitation>();
   allEvidence.set(summarySource.citation.evidenceId, summarySource.citation);
@@ -355,22 +356,29 @@ function projectDossier(
   const evidenceIds = Object.freeze([...allEvidence.keys()].sort());
   const citations = Object.freeze(evidenceIds.map(id => allEvidence.get(id)!));
   const workIds = new Set(citations.map(citation => citation.sourceBookId));
-  const text = segments.map(segment => segment.text).join("\n\n");
   if (
     segments.length > budget.maxClaims ||
     evidenceIds.length > budget.maxEvidence ||
     workIds.size > budget.maxWorks ||
-    workIds.size < budget.minimumWorks ||
-    text.length > budget.maxCharacters
+    workIds.size < budget.minimumWorks
   ) return null;
+
+  const composition = composeHoidNarrative({
+    segments: segments.map(segment => Object.freeze({
+      claimId: segment.claimId,
+      text: segment.text,
+      evidenceIds: segment.evidenceIds,
+    })),
+  }, "grouped");
+  if (composition.status !== "ready" || composition.text.length > budget.maxCharacters) return null;
 
   const presentation: Extract<HoidAnswerPresentation, { status: "ready" }> = Object.freeze({
     status: "ready",
-    text,
-    claimIds: Object.freeze(segments.map(segment => segment.claimId)),
+    text: composition.text,
+    claimIds: composition.claimIds,
     evidenceIds,
     citations,
-    layout: "grouped",
+    layout: composition.layout,
     segments: Object.freeze(segments),
   });
   return projectHoidAnswerForDisplay(presentation);

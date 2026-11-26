@@ -31,6 +31,9 @@ const MAXIMUM_EVIDENCE = 16;
 const MAXIMUM_RECOMMENDATIONS = 5;
 
 const WORK_BY_ID = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work]));
+const BIBLIOGRAPHY_FINGERPRINT = sha256Hex(JSON.stringify(
+  HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title, work.sourceGroup]),
+));
 
 export type HoidReadingPathPrerequisite = Readonly<{
   stepId: string;
@@ -308,6 +311,7 @@ function catalogueFingerprint(
 ): string {
   return sha256Hex(JSON.stringify([
     "hoid-curated-reading-path-catalogue-v1",
+    BIBLIOGRAPHY_FINGERPRINT,
     catalogueId,
     revision,
     paths.map(path => [path.pathId, path.fingerprint]),
@@ -518,16 +522,18 @@ function canonicalAttestations(
 /** Canonical, domain-separated payload for an offline or hardware-backed route reviewer. */
 export function buildHoidReadingPathApprovalSigningMessage(input: unknown): string | null {
   const raw = exactRecord(input, [
-    "catalogueId", "revision", "catalogueFingerprint", "reviewerId",
+    "repositoryFullName", "catalogueId", "revision", "catalogueFingerprint", "reviewerId",
     "decision", "reviewedAt", "keyId",
   ]);
-  if (!raw || !validId(raw.catalogueId) ||
+  if (!raw || typeof raw.repositoryFullName !== "string" ||
+    !REPOSITORY_PATTERN.test(raw.repositoryFullName) || !validId(raw.catalogueId) ||
     typeof raw.revision !== "number" || !Number.isSafeInteger(raw.revision) || raw.revision < 1 ||
     typeof raw.catalogueFingerprint !== "string" || !SHA_PATTERN.test(raw.catalogueFingerprint) ||
     !validId(raw.reviewerId) || (raw.decision !== "approve" && raw.decision !== "reject") ||
     !canonicalTimestamp(raw.reviewedAt) || !validId(raw.keyId)) return null;
   return JSON.stringify([
     "hoid-curated-reading-path-catalogue-approval-ed25519-v1",
+    raw.repositoryFullName,
     raw.catalogueId,
     raw.revision,
     raw.catalogueFingerprint,
@@ -592,6 +598,7 @@ export async function verifyHoidCuratedReadingPathCatalogueApproval(
 
   const requests = attestations.map(attestation => {
     const message = buildHoidReadingPathApprovalSigningMessage({
+      repositoryFullName: raw.repositoryFullName,
       catalogueId: catalogue.catalogueId,
       revision: catalogue.revision,
       catalogueFingerprint: catalogue.fingerprint,

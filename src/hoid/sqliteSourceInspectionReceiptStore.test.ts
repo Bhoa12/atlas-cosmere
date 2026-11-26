@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "./sha256";
+import { getHoidReadingManifest } from "./readingManifest";
+import { getHoidSourceIngestionPlan } from "./sourceIngestionPlan";
 import {
   createHoidEmptySourceInspectionReceiptLedger,
   recordHoidSourceInspectionReceipt,
@@ -136,6 +138,9 @@ class FakeSqliteDatabase implements HoidSqliteDatabasePort {
 function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
   const empty = createHoidEmptySourceInspectionReceiptLedger();
   if (revision === 0) return empty;
+  const manifest = getHoidReadingManifest("tfe");
+  const task = getHoidSourceIngestionPlan().tasks.find(item => item.workId === "tfe");
+  if (manifest.status !== "ready" || !task) throw new Error("Missing verified fixture manifest/task");
   const receipt = {
     schemaVersion: 1 as const,
     status: "candidate-only" as const,
@@ -144,11 +149,11 @@ function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
     summaryCreated: false as const,
     productionWritePerformed: false as const,
     workId: "tfe",
-    editionId: "cosmere-epub-merged-v1",
-    chapterNumber: 12,
+    editionId: manifest.manifest.editionId,
+    chapterNumber: task.chapterNumber,
     byteLength: 512,
     documentSha256: "a".repeat(64),
-    navigationSha256: "85c53b4a8a24bffdd1c2cbba99bcd5da47d47b78589d784047e0fcb9cfab7aee",
+    navigationSha256: manifest.manifest.navigationSha256,
     inspectedAt: "2026-11-26T14:30:00.000Z",
     receiptFingerprint: "",
   };

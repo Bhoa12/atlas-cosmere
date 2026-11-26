@@ -13,13 +13,13 @@ The plan is derived from the metadata-only coverage report and the exact edition
 | Measure | Current value |
 |---|---:|
 | Catalogue works | 24 |
-| Works with a safe next chapter-body inspection candidate | 18 |
-| Continuations of already inspected works | 2 |
-| New works ready to begin | 16 |
-| Works blocked by unresolved segmentation | 4 |
-| Individually inspected chapter documents | 71 |
-| Original staged summaries | 67 |
-| Summaries pending review | 67 |
+| Works with a safe next chapter-body inspection candidate | 17 |
+| Continuations of already inspected works | 5 |
+| New works ready to begin | 12 |
+| Works blocked by unresolved segmentation | 5 |
+| Individually inspected chapter documents | 114 |
+| Original staged summaries | 69 |
+| Summaries pending review | 69 |
 | Numbered-chapter works with every current manifest unit inspected | 2 |
 | Approved production claims | 0 |
 | Production knowledge entries | 0 |
@@ -38,11 +38,14 @@ The current continuation candidates are:
 
 | Work | Next chapter to inspect |
 |---|---:|
+| Palabras radiantes | 11 |
+| Juramentada | 11 |
+| El Ritmo de la Guerra | 11 |
 | El Imperio Final | 12 |
-| El Camino de los Reyes | 22 |
+| El Camino de los Reyes | 24 |
 
 
-Danzante del Filo has all 20 and Esquirla del amanecer has all 19 numbered manifest chapters fingerprinted; both are reported as completed within the `numbered-chapters-only` scope; this does not claim that unmodelled front/back matter or narrative evidence is complete. The other 16 candidates begin at chapter 1. Elantris and Viento y Verdad are eligible only within their already verified safe numeric prefixes (1–47 and 1–11 respectively). When those prefixes are fully inspected, the planner blocks further numeric work until the duplicate chapter locators are resolved.
+Danzante del Filo has all 20 and Esquirla del amanecer has all 19 numbered manifest chapters fingerprinted; both are reported as completed within the `numbered-chapters-only` scope; this does not claim that unmodelled front/back matter or narrative evidence is complete. The 12 new-work tasks are the remaining Cosmere catalogue entries and begin at chapter 1; the planner does not assert that the local Cosmere EPUB is currently available. Three Roshar novels continue at chapter 11, alongside El Imperio Final at chapter 12 and El Camino de los Reyes at chapter 24. Elantris remains schedulable only within its safe numeric prefix (1–47). Viento y verdad has all 11 safe numeric chapter documents fingerprinted and is now blocked at chapter 12 because duplicate labels 12 and 14 prevent a unique sequential watermark.
 
 Arena blanca vol. 1–3 remain blocked until each volume is segmented independently. Arcanum ilimitado remains blocked until its internal works/sections receive independent units.
 
@@ -265,3 +268,14 @@ The current Library copy of `cosmere.epub` was selected explicitly. Its ZIP CRC 
 One original Spanish summary was added to editorial staging with exact source provenance and an N+1 evidence watermark. It remains pending independent review. The current metadata-only inventory is 71 inspected chapter documents and 67 pending-review summaries. The next continuation candidates are El Imperio Final chapter 12 and El Camino de los Reyes chapter 22. The planner still reports source availability as unchecked and has no authorization effect; production knowledge, approved claims and activation receipt remain empty.
 
 No EPUB bytes, XHTML body, extracted prose, image or private file URI was committed.
+
+
+## Run 346 — refreshed Roshar chapter coverage and continuation queue
+
+The five-book Roshar omnibus was selected from the Library and its ZIP CRC, OPF package, EPUB 3 navigation document and chapter-spine membership were checked. The navigation SHA-256 matched the registered roshar-omnibus-v1 edition. All 414 numbered chapter targets across the five novels resolve to one XHTML manifest item and a reading-spine entry. The two standalone novella EPUBs also passed ZIP CRC checks; their NCX navigation digests match their registered edition structures, and all 20 Danzante del Filo and 19 Esquirla del amanecer numbered chapter targets resolve to manifest and spine entries.
+
+Forty-one new raw XHTML byte fingerprints were added: Palabras radiantes 1–10, Juramentada 1–10, El Ritmo de la Guerra 1–10 and Viento y verdad 1–11. The 23 previously registered El Camino de los Reyes chapter hashes all matched the selected omnibus. This is document-byte integrity only, not narrative review or summary approval. No EPUB bytes, XHTML, chapter prose, titles or private file paths were committed.
+
+The source-coverage snapshot is now 114 chapter-document fingerprints across eight works. The refreshed ingestion plan has 17 candidate tasks: five continuations (Palabras radiantes 11, Juramentada 11, El Ritmo de la Guerra 11, El Imperio Final 12 and El Camino de los Reyes 24), twelve new Cosmere chapter-one tasks, five blocked works and two completed numbered-chapter works (Danzante del Filo and Esquirla del amanecer). Viento y verdad is blocked at chapter 12 after its 11-chapter safe prefix because chapter labels 12 and 14 are duplicated.
+
+All 69 existing summaries remain pending independent review. Approved production claims and production knowledge entries remain zero. The planner still performs no source access and never treats a task as proof that a local EPUB is available. No cosmere.epub file was found in the current Library inventory; the 17-work Cosmere catalogue remains metadata-only for this source audit.

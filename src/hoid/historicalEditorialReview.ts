@@ -191,6 +191,10 @@ function isSha256(value: unknown): value is string {
   return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 }
 
+function hasForbiddenSummaryControls(value: string): boolean {
+  return /[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]/u.test(value);
+}
+
 function canonicalEvidence(value: unknown): HoidHistoricalReviewSourceEvidence | null {
   const raw = exactRecord(value, EVIDENCE_KEYS);
   if (!raw || !isSha256(raw.receiptFingerprint) || !isSha256(raw.documentSha256) ||

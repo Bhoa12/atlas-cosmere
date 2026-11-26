@@ -33,9 +33,9 @@ A signed rejection vetoes the entire catalogue. Missing, malformed, stale or unv
 
 For every prerequisite, Hoid checks the exact `HoidChapterReference` against the live v3 unit-progress ledger.
 
-The current cursor is not considered completed. A prerequisite at ordinal N is satisfied only when the verified cursor's completed-through ordinal is at least N, or the work is explicitly marked complete. This prevents a cursor currently on the prerequisite chapter from unlocking the next work.
+The current cursor is not considered completed. A prerequisite at ordinal N is satisfied only when the verified cursor's completed-through ordinal is at least N, or the work is explicitly marked complete. This prevents a cursor currently on the prerequisite chapter from unlocking the next work. An already-open path step is not recommended again; later steps are still evaluated, but only their own exact prerequisite thresholds can unlock them.
 
-Only the first eligible, unstarted step in each approved path is returned. If a target work is already in progress, the path does not recommend a second start; the existing resume-current-work flow remains responsible for it.
+Only the first eligible, unstarted step in each approved path is returned. An already-open step is skipped as a recommendation, while later steps remain locked until their declared thresholds are completed. The existing resume-current-work flow remains responsible for resuming an open work.
 
 ## Navigation and provider boundary
 

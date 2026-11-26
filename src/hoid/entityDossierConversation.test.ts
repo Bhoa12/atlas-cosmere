@@ -146,11 +146,12 @@ describe("Hoid entity dossier conversation adapter", () => {
     expect(JSON.stringify(result)).not.toContain("providerEgress");
   });
 
-  it("does not route ordinary explanations or missing-name prompts to the gateway", async () => {
-    const getDossier = vi.fn();
+  it("does not refresh progress or call the gateway for ordinary explanations and missing-name prompts", async () => {
+    const { gateway } = fixture();
+    const refresh = vi.fn(async () => progress());
     const adapter = createHoidEntityDossierConversationAdapter({
-      gateway: { getDossier },
-      refreshCurrentProgress: async () => progress(),
+      gateway,
+      refreshCurrentProgress: refresh,
     });
     if (!adapter) throw new Error("Expected adapter");
     expect(await adapter.answer({
@@ -163,7 +164,7 @@ describe("Hoid entity dossier conversation adapter", () => {
       progress: progress(),
       bookScope: SINGLE_SCOPE,
     })).toEqual({ status: "needs-name" });
-    expect(getDossier).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("keeps unknown and locked aliases indistinguishable", async () => {
@@ -264,11 +265,12 @@ describe("Hoid entity dossier conversation adapter", () => {
     expect(result).toEqual({ status: "unavailable", reason: "progress-changed" });
   });
 
-  it("does not invoke the gateway when the caller has already cancelled", async () => {
-    const getDossier = vi.fn();
+  it("does not refresh progress or invoke the gateway when the caller has already cancelled", async () => {
+    const { gateway } = fixture();
+    const refresh = vi.fn(async () => progress());
     const adapter = createHoidEntityDossierConversationAdapter({
-      gateway: { getDossier },
-      refreshCurrentProgress: async () => progress(),
+      gateway,
+      refreshCurrentProgress: refresh,
     });
     if (!adapter) throw new Error("Expected adapter");
     const controller = new AbortController();
@@ -279,15 +281,19 @@ describe("Hoid entity dossier conversation adapter", () => {
       bookScope: SINGLE_SCOPE,
     }, { signal: controller.signal });
     expect(result).toEqual({ status: "unavailable", reason: "cancelled" });
-    expect(getDossier).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
-  it("rejects provider-bearing configuration and malformed scopes", () => {
-    const gateway = { getDossier: vi.fn() };
+  it("rejects provider-bearing configuration and unbranded gateway objects", () => {
+    const { gateway } = fixture();
     expect(createHoidEntityDossierConversationAdapter({
       gateway,
       refreshCurrentProgress: () => progress(),
       provider: { invoke: vi.fn() },
+    })).toBeNull();
+    expect(createHoidEntityDossierConversationAdapter({
+      gateway: { getDossier: vi.fn() },
+      refreshCurrentProgress: () => progress(),
     })).toBeNull();
     expect(createHoidEntityDossierConversationAdapter({
       gateway,

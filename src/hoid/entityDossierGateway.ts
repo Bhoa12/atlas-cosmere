@@ -21,6 +21,7 @@ import {
 import {
   resolveHoidAuthorizedEntities,
   resolveHoidAuthorizedEntityIds,
+  resolveHoidAuthorizedEntityMentions,
   type HoidResolvedEntitySource,
 } from "./entityResolver";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
@@ -344,6 +345,28 @@ export function buildHoidAuthorizedEntityDossier(
   }
   const summarySource = evidenceCitationFor(safeEntity);
   if (!summarySource) return unavailable("invalid-knowledge");
+  const summaryMentions = resolveHoidAuthorizedEntityMentions(
+    knowledge,
+    aliasEvidenceInput,
+    progressInput,
+    safeEntity.summary,
+  );
+  if (summaryMentions.status === "unavailable") {
+    return unavailable(
+      summaryMentions.reason === "invalid-progress" ? "invalid-progress" : "invalid-knowledge",
+    );
+  }
+  if (
+    summaryMentions.status === "blocked" ||
+    summaryMentions.resolution === "ambiguous" ||
+    summaryMentions.truncated
+  ) {
+    return Object.freeze({
+      status: "not-found",
+      progressRevision: progress.revision,
+      progressFingerprint: progress.fingerprint,
+    });
+  }
 
   const knowledgeById = new Map(knowledge.map(entry => [entry.id, entry]));
   const visibleClaims: HoidEntityDossierClaim[] = [];
@@ -372,6 +395,27 @@ export function buildHoidAuthorizedEntityDossier(
       }
       continue;
     }
+
+    // Scan approved prose against the independently gated alias registry. A
+    // locked alias, ambiguous mention, or named entity missing from entityIds
+    // withholds the whole claim rather than relying on the summary watermark.
+    const mentions = resolveHoidAuthorizedEntityMentions(
+      knowledge,
+      aliasEvidenceInput,
+      progressInput,
+      claim.text,
+    );
+    if (mentions.status === "unavailable") {
+      if (mentions.reason === "invalid-progress") return unavailable("invalid-progress");
+      return unavailable("invalid-claims");
+    }
+    if (
+      mentions.status === "blocked" ||
+      mentions.resolution === "ambiguous" ||
+      mentions.truncated ||
+      (mentions.resolution === "matched" &&
+        mentions.matches.some(match => !entityIds.includes(match.id)))
+    ) continue;
 
     const evidenceEntries = claim.evidenceIds.map(id => knowledgeById.get(id));
     if (evidenceEntries.some(entry => !entry)) return unavailable("invalid-claims");

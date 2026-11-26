@@ -2,6 +2,8 @@ import type { HoidClaimIntent } from "./evidenceRuntime";
 import { isHoidRelationshipQuestion } from "./relationshipIntent";
 
 export type HoidConversationIntentMode =
+  | "reread-request"
+  | "curated-discovery"
   | "catalogue-recommendation"
   | "reading-progress"
   | "narrative-context"
@@ -9,6 +11,8 @@ export type HoidConversationIntentMode =
   | "explanation";
 
 export type HoidConversationIntentSignal =
+  | "reread-cue"
+  | "discovery-cue"
   | "recommendation-cue"
   | "progress-position-cue"
   | "narrative-recap-cue"
@@ -53,6 +57,28 @@ const RECOMMENDATION_CUES = Object.freeze([
   "sugerencias de lectura",
   "sugiereme una lectura",
   "aconsejame",
+]);
+
+const REREAD_CUES = Object.freeze([
+  "quiero releer",
+  "me gustaria releer",
+  "me apetece releer",
+  "volver a leer",
+  "leer de nuevo",
+  "releer",
+]);
+
+const DISCOVERY_CUES = Object.freeze([
+  "quiero descubrir otra obra",
+  "quiero descubrir otro libro",
+  "descubrir una obra nueva",
+  "descubrir un libro nuevo",
+  "recomiendame una obra nueva",
+  "recomiendame un libro nuevo",
+  "quiero empezar otra obra",
+  "quiero empezar un libro nuevo",
+  "que obra nueva puedo leer",
+  "que libro nuevo puedo leer",
 ]);
 
 const PROGRESS_POSITION_CUES = Object.freeze([
@@ -123,6 +149,27 @@ export function classifyHoidConversationIntent(
   }
   if (!normalizedQuestion) {
     return Object.freeze({ status: "unavailable", reason: "invalid-question" });
+  }
+
+  // Explicit reread and discovery requests are distinct local capabilities.
+  // They must not fall through to the generic recommendation path, which is
+  // intentionally limited to safe continuation of an already-open work.
+  if (containsCue(normalizedQuestion, REREAD_CUES)) {
+    return Object.freeze({
+      status: "ready",
+      intent: "recommend",
+      mode: "reread-request",
+      signal: "reread-cue",
+    });
+  }
+
+  if (containsCue(normalizedQuestion, DISCOVERY_CUES)) {
+    return Object.freeze({
+      status: "ready",
+      intent: "recommend",
+      mode: "curated-discovery",
+      signal: "discovery-cue",
+    });
   }
 
   if (containsCue(normalizedQuestion, RECOMMENDATION_CUES)) {

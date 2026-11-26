@@ -28,6 +28,32 @@ describe("classifyHoidConversationIntent", () => {
     });
   });
 
+  it("routes an explicit reread request to the local progress-bound resolver", () => {
+    expect(classifyHoidConversationIntent("Quiero releer El Imperio Final")).toEqual({
+      status: "ready",
+      intent: "recommend",
+      mode: "reread-request",
+      signal: "reread-cue",
+    });
+  });
+
+  it("routes explicit new-work discovery to the signed curated-path capability", () => {
+    expect(classifyHoidConversationIntent("Recomiéndame una obra nueva")).toEqual({
+      status: "ready",
+      intent: "recommend",
+      mode: "curated-discovery",
+      signal: "discovery-cue",
+    });
+  });
+
+  it("gives explicit reread intent precedence over generic recommendation cues", () => {
+    expect(classifyHoidConversationIntent("Recomiéndame algo para releer")).toMatchObject({
+      status: "ready",
+      mode: "reread-request",
+      signal: "reread-cue",
+    });
+  });
+
   it("routes reading-position questions to metadata-only progress context", () => {
     expect(classifyHoidConversationIntent("¿Hasta dónde he leído?")).toEqual({
       status: "ready",

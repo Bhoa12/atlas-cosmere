@@ -1,0 +1,68 @@
+name: Hoid Run 334 — progress-aware reading action routing
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/rereadRequest.ts"
+      - "src/hoid/rereadRequest.test.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/hoid/conversationIntent.test.ts"
+      - "src/hoid/readerRecommendationPreferences.ts"
+      - "src/hoid/trustedCuratedPathRecommendationScreenPort.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN334_READING_ACTION_ROUTING.md"
+      - ".github/workflows/hoid-run334-reading-action-routing.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run334"
+    paths:
+      - "src/hoid/rereadRequest.ts"
+      - "src/hoid/rereadRequest.test.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/hoid/conversationIntent.test.ts"
+      - "src/hoid/readerRecommendationPreferences.ts"
+      - "src/hoid/trustedCuratedPathRecommendationScreenPort.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN334_READING_ACTION_ROUTING.md"
+      - ".github/workflows/hoid-run334-reading-action-routing.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reading-action-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test explicit reread and intent routing
+        run: >-
+          npx vitest run
+          src/hoid/rereadRequest.test.ts
+          src/hoid/conversationIntent.test.ts
+          src/hoid/readerRecommendationPreferences.test.ts
+          src/hoid/editionBoundRecommendationExplanations.test.ts
+      - name: Strict type-check HoidScreen and reading action contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/screens/HoidScreen.tsx
+          src/hoid/conversationIntent.ts
+          src/hoid/conversationIntent.test.ts
+          src/hoid/rereadRequest.ts
+          src/hoid/rereadRequest.test.ts
+          src/hoid/readerRecommendationPreferences.ts
+          src/hoid/trustedCuratedPathRecommendationScreenPort.ts

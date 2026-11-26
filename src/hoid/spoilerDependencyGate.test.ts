@@ -185,7 +185,7 @@ describe("Hoid cross-work spoiler dependency gate", () => {
     expect(evaluateHoidSpoilerDependencies(buildSet(), [
       { bookId: "tfe", chapter: 9 },
       { bookId: "twok", chapter: 21 },
-    })).toMatchObject({
+    ])).toMatchObject({
       status: "withheld",
       missingRequirementCount: 1,
     });

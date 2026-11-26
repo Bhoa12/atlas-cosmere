@@ -362,6 +362,12 @@ function projectDossier(
     workIds.size > budget.maxWorks ||
     workIds.size < budget.minimumWorks
   ) return null;
+  if (
+    depth === "comparative" &&
+    !segments.some(segment =>
+      new Set(segment.citations.map(citation => citation.sourceBookId)).size >= 2
+    )
+  ) return null;
 
   const composition = composeHoidNarrative({
     segments: segments.map(segment => Object.freeze({

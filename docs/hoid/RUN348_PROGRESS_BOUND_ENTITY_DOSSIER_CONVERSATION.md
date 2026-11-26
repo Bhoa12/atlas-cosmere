@@ -51,6 +51,7 @@ The summary is one segment. If the complete dossier exceeds a budget, it is with
 - No provider port exists in the dossier adapter.
 - The UI routes recognized dossier questions before the trusted conversation port.
 - The adapter accepts no provider configuration and rejects extra configuration keys.
+- The adapter also requires a branded gateway instance created by `createHoidEntityDossierGateway`; a shape-compatible object supplied by an untrusted caller is not a capability grant.
 - No raw EPUB/XHTML, source passages, local paths, internal locators, evidence IDs or unlock thresholds enter React message state.
 - The display projection reuses \`projectHoidAnswerForDisplay\`, retaining only canonical work titles, chapter numbers, stable chapter ordinals and original approved editorial wording.
 - No SQLite write, progress mutation, graph mutation, claim promotion or spoiler authorization occurs.

@@ -19,7 +19,6 @@ import {
   type HoidExactClaimSelector,
 } from "./exactUnitEvidenceRuntime";
 import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
-import { sha256Hex } from "./sha256";
 
 const fixedNow = () => "2026-11-24T18:10:00.000Z";
 

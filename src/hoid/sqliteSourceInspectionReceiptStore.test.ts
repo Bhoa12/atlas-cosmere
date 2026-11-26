@@ -138,6 +138,11 @@ function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
   if (revision === 0) return empty;
   const receipt = {
     schemaVersion: 1 as const,
+    status: "candidate-only" as const,
+    authorizationEffect: "none" as const,
+    editorialEffect: "none" as const,
+    summaryCreated: false as const,
+    productionWritePerformed: false as const,
     workId: "tfe",
     editionId: "cosmere-epub-merged-v1",
     chapterNumber: 12,
@@ -150,6 +155,11 @@ function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
   // Obtain the canonical receipt through the same digest function used by callers.
   const receiptPayload = JSON.stringify([
     1,
+    "candidate-only",
+    "none",
+    "none",
+    false,
+    false,
     receipt.workId,
     receipt.editionId,
     receipt.chapterNumber,

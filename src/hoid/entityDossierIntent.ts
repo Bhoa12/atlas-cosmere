@@ -8,8 +8,8 @@ const MAX_QUESTION_LENGTH = 4_000;
 const MAX_ENTITY_NAME_LENGTH = 256;
 
 const PREFIXES: readonly RegExp[] = Object.freeze([
-  /^(?:¿\s*)?qu[ií]en(?:es)?\s+(?:es|son|fue|era)\b\s*/iu,
-  /^(?:¿\s*)?dime\s+qu[ií]en\s+es\b\s*/iu,
+  /^(?:¿\s*)?qui[eé]n(?:es)?\s+(?:es|son|fue|era)\b\s*/iu,
+  /^(?:¿\s*)?dime\s+qui[eé]n\s+es\b\s*/iu,
   /^(?:¿\s*)?h[aá]blame\s+de\b\s*/iu,
   /^(?:¿\s*)?cu[eé]ntame\s+de\b\s*/iu,
   /^(?:¿\s*)?qu[eé]\s+sabemos\s+de\b\s*/iu,

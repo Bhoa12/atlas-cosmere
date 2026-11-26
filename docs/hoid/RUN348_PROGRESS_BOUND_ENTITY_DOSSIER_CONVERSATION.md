@@ -9,7 +9,7 @@ This is a read-only projection over the existing production registries. It does 
 ## Components
 
 - \`entityDossierIntent.ts\` parses a small, deterministic set of Spanish and English dossier cues and extracts one exact lookup string. It does not fuzzy-match, infer entities, or generate candidates.
-- \`entityDossierGateway.ts\` now accepts an optional canonical \`bookScope\`. The entity summary must originate inside the selected scope, and every source attached to a claim must belong to that scope. A cross-work claim is omitted unless all its source works are selected.
+- \`entityDossierGateway.ts\` now accepts an optional canonical \`bookScope\`. The entity identity source and every mandatory alias-disclosure source must belong to the selected scope; the entity summary must also originate inside it, and every source attached to a claim must belong to it. A cross-work claim is omitted unless all its source works are selected.
 - \`entityDossierConversation.ts\` composes the local gateway with durable progress refresh, exact work-scope validation, depth budgets and the existing one-way answer display projection.
 - \`HoidScreen.tsx\` routes dossier requests locally before the trusted provider-backed conversation port and renders only the safe display projection and chapter citations.
 
@@ -20,7 +20,7 @@ This is a read-only projection over the existing production registries. It does 
 3. The reading-focus resolver must provide a valid single-work or cross-work scope. Multi-work focus selection remains explicit.
 4. The adapter refreshes progress and compares revision plus fingerprint with the request.
 5. The production dossier gateway reads only \`HOID_EDITORIAL_KNOWLEDGE\`, \`HOID_APPROVED_CLAIMS\` and \`HOID_ENTITY_ALIAS_EVIDENCE\`.
-6. The gateway validates entity identity, approved aliases, summary watermark, claim attestations, all evidence thresholds and every participant identity. The new scope filter then rejects any summary or claim whose evidence is outside the reader-selected work set.
+6. The gateway validates entity identity, approved aliases, summary watermark, claim attestations, all evidence thresholds and every participant identity. The scope filter also requires the entity identity and every mandatory alias-disclosure source to belong to the reader-selected work set; summaries and claims are filtered by the same scope.
 7. The adapter applies the selected explanation-depth budget without truncating claims or dependent evidence. It projects exact chapter locators to the existing UI-safe citation model.
 8. Progress is refreshed again. Any revision/fingerprint change discards the complete presentation.
 9. The screen performs its existing final progress comparison before committing text to chat state.

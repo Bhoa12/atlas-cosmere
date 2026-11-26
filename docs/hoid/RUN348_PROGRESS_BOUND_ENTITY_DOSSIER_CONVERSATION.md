@@ -42,7 +42,7 @@ The existing \`HoidExplanationDepth\` budgets are reused:
 
 - \`brief\`: at most 3 segments, 4 distinct evidence items, 2 works and 6,000 characters.
 - \`detailed\`: at most 8 segments, 12 evidence items, 4 works and 18,000 characters.
-- \`comparative\`: at most 12 segments, 16 evidence items, 4 works and 24,000 characters, with at least two source works.
+- \`comparative\`: at most 12 segments, 16 evidence items, 4 works and 24,000 characters, with at least two source works and at least one individual claim segment supported by two or more works.
 
 The summary is one segment. If the complete dossier exceeds a budget, it is withheld; claims are not silently truncated or rewritten.
 

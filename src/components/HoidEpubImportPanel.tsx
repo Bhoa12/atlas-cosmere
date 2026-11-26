@@ -381,7 +381,7 @@ export const HoidEpubImportPanel: React.FC<{
             await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
             setMessage(
               receiptResult.status === "saved"
-                ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto y sigue pendiente de revisión editorial.`
+                ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto; requiere volver a seleccionar la fuente antes de cualquier revisión editorial.`
                 : `El capítulo ${result.candidate.chapterNumber} ya tenía un recibo local idéntico. No se ha duplicado ni sobrescrito.`,
             );
           } else if (receiptResult.status === "receipt-conflict") {
@@ -590,7 +590,7 @@ export const HoidEpubImportPanel: React.FC<{
             <View key={inspectionReceiptKey(item.workId, item.editionId, item.chapterNumber)} style={styles.reviewQueueItem}>
               <Text style={styles.reviewQueueWork}>{item.title} · capítulo {item.chapterNumber}</Text>
               <Text style={styles.reviewQueueMeta}>Edición {item.editionId} · inspeccionado {new Date(item.inspectedAt).toLocaleString()}</Text>
-              <Text style={styles.reviewQueueMeta}>Vuelve a seleccionar el EPUB y reinspecciona este capítulo antes de iniciar la revisión editorial.</Text>
+              <Text style={styles.reviewQueueMeta}>Este recibo no conserva el capítulo. La reinspección histórica requiere un flujo adicional y aún no puede iniciarse desde aquí.</Text>
             </View>
           ))}
           {reviewQueueItems.length > 5 && (

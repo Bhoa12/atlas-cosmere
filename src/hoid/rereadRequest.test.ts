@@ -132,7 +132,7 @@ describe("explicit progress-bound Hoid reread requests", () => {
   it("rejects malformed questions and control characters", () => {
     expect(resolveHoidRereadRequest(" Quiero releer El Imperio Final", snapshot()))
       .toEqual({ status: "blocked", reason: "invalid-question" });
-    expect(resolveHoidRereadRequest("Quiero releer\\u0000 El Imperio Final", snapshot()))
+    expect(resolveHoidRereadRequest("Quiero releer\u0000 El Imperio Final", snapshot()))
       .toEqual({ status: "blocked", reason: "invalid-question" });
   });
 });

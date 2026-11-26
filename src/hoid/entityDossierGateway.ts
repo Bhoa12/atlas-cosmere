@@ -22,6 +22,7 @@ import {
   resolveHoidAuthorizedEntities,
   resolveHoidAuthorizedEntityIds,
   resolveHoidAuthorizedEntityMentions,
+  type HoidResolvedEntity,
   type HoidResolvedEntitySource,
 } from "./entityResolver";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
@@ -128,7 +129,7 @@ const MAX_KNOWLEDGE = 512;
 const MAX_CLAIMS = 512;
 const MAX_DOSSIER_CLAIMS = 24;
 const MAX_DOSSIER_SOURCES = 64;
-const MAX_PARTICIPANTS = 8;
+const MAX_PARTICIPANTS = 4;
 
 function exactRecord(
   value: unknown,
@@ -379,21 +380,25 @@ export function buildHoidAuthorizedEntityDossier(
 
     // Entity IDs are disclosure facts too. Do not show a claim that names a
     // participant whose identity or alias is still locked.
-    const participants = resolveHoidAuthorizedEntityIds(
-      knowledge,
-      aliasEvidenceInput,
-      progressInput,
-      entityIds,
-    );
-    if (
-      participants.status !== "ready" ||
-      participants.resolution !== "matched" ||
-      participants.matches.length !== entityIds.length
-    ) {
-      if (participants.status === "unavailable" && participants.reason === "invalid-progress") {
-        return unavailable("invalid-progress");
+    let participantMatches: readonly HoidResolvedEntity[] = Object.freeze([resolvedEntity]);
+    if (entityIds.length > 1) {
+      const participants = resolveHoidAuthorizedEntityIds(
+        knowledge,
+        aliasEvidenceInput,
+        progressInput,
+        entityIds,
+      );
+      if (
+        participants.status !== "ready" ||
+        participants.resolution !== "matched" ||
+        participants.matches.length !== entityIds.length
+      ) {
+        if (participants.status === "unavailable" && participants.reason === "invalid-progress") {
+          return unavailable("invalid-progress");
+        }
+        continue;
       }
-      continue;
+      participantMatches = participants.matches;
     }
 
     // Scan approved prose against the independently gated alias registry. A
@@ -436,7 +441,7 @@ export function buildHoidAuthorizedEntityDossier(
     ) return unavailable("budget-exceeded");
 
     const canonicalParticipants = Object.freeze(
-      participants.matches
+      participantMatches
         .map(match => Object.freeze({
           id: match.id,
           kind: match.kind,

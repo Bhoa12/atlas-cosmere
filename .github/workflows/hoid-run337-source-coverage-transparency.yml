@@ -1,0 +1,60 @@
+name: Hoid Run 337 — source coverage transparency
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/sourceCoverage.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.test.ts"
+      - "src/components/HoidSourceCoveragePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN337_SOURCE_COVERAGE_TRANSPARENCY.md"
+      - ".github/workflows/hoid-run337-source-coverage-transparency.yml"
+  pull_request:
+    paths:
+      - "src/hoid/sourceCoverage.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.test.ts"
+      - "src/components/HoidSourceCoveragePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN337_SOURCE_COVERAGE_TRANSPARENCY.md"
+      - ".github/workflows/hoid-run337-source-coverage-transparency.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-coverage-transparency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test source coverage projection and audit
+        run: >-
+          npx vitest run
+          src/hoid/sourceCoverageDisplayProjection.test.ts
+          src/hoid/sourceCoverage.test.ts
+      - name: Strict type-check projection, panel and HoidScreen integration
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --jsx react-native
+          --esModuleInterop
+          src/hoid/sourceCoverageDisplayProjection.ts
+          src/hoid/sourceCoverageDisplayProjection.test.ts
+          src/hoid/sourceCoverage.ts
+          src/components/HoidSourceCoveragePanel.tsx
+          src/screens/HoidScreen.tsx

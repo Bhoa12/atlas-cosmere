@@ -57,6 +57,7 @@ import {
 } from '../hoid/topicInterestRecommendationsGateway';
 import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAnswerPort';
 import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
+import { HoidSourceCoveragePanel } from '../components/HoidSourceCoveragePanel';
 import {
   openHoidRecommendationChapter,
   type HoidRecommendationReaderPort,
@@ -1347,6 +1348,16 @@ export const HoidScreen: React.FC<{
           </Text>
         )}
       </View>
+
+      <HoidSourceCoveragePanel
+        selectedBookId={
+          answerScopeMode === 'cross-work'
+            ? null
+            : readingFocusResolution.status === 'ready'
+              ? readingFocusResolution.focus.bookId
+              : null
+        }
+      />
 
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>

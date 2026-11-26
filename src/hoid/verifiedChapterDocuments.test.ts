@@ -561,4 +561,22 @@ describe("verified EPUB chapter document fingerprints", () => {
     expect(getVerifiedChapterDocumentCount("twok")).toBe(22);
   });
 
+
+  it("returns the exact inspected El Camino de los Reyes chapter-23 digest", () => {
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      23,
+    )).toBe("cbf8cc5fd1bfe5ef8d4d614bed5e9419f1f6ad94013aaa9e8c5bec8ce2a2b64a");
+
+    expect(getVerifiedChapterDocumentSha256(
+      "twok",
+      "roshar-omnibus-v1",
+      "a".repeat(64),
+      23,
+    )).toBeNull();
+    expect(getVerifiedChapterDocumentCount("twok")).toBe(23);
+  });
+
 });

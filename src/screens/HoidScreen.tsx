@@ -45,10 +45,11 @@ import { prepareHoidRecommendationNavigationHandoff } from '../hoid/editionBound
 import { HOID_TOPIC_TAXONOMY, type HoidTopicId } from '../hoid/topicTaxonomy';
 import { HOID_SOURCE_BIBLIOGRAPHY } from '../hoid/bibliography';
 import {
-  buildHoidAnswerScopeSelection,
   toggleHoidAnswerScopeBook,
   type HoidAnswerScopeMode,
 } from '../hoid/answerScopeSelection';
+import { resolveHoidReadingFocus } from '../hoid/readingFocus';
+import { resolveHoidReadingFocusConversationScope } from '../hoid/readingFocusConversationScope';
 
 import { createHoidTopicInterestContext } from '../hoid/topicInterestContext';
 import {
@@ -273,7 +274,8 @@ export const HoidScreen: React.FC<{
   const [topicRecommendationMessage, setTopicRecommendationMessage] = useState('');
   const [answerScopeMode, setAnswerScopeMode] = useState<HoidAnswerScopeMode>('automatic');
   const [answerScopeBookIds, setAnswerScopeBookIds] = useState<readonly string[]>([]);
-  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: la primera respuesta fijará las obras que aporten evidencia; el progreso de cada obra seguirá aplicándose.');
+  const [selectedReadingFocusBookId, setSelectedReadingFocusBookId] = useState<string | null>(null);
+  const [answerScopeMessage, setAnswerScopeMessage] = useState('Ámbito automático: si hay una sola obra activa, Hoid limitará la respuesta a ella. Si hay varias, tendrás que elegir el foco; para comparar, activa «Comparar 2–4».');
 
   const liveProgress = progressReaderRef.current();
   const liveProjection = liveProgress ? projectHoidCursorProgressSnapshot(liveProgress) : null;
@@ -283,6 +285,34 @@ export const HoidScreen: React.FC<{
         fingerprint: fingerprintHoidCursorProgressProjection(liveProjection),
       }
     : null;
+  const focusSelectionBookId = answerScopeMode === 'single-work' && answerScopeBookIds.length === 1
+    ? answerScopeBookIds[0]
+    : selectedReadingFocusBookId;
+  const readingFocusResolution = liveProgress && progresoPersistenciaEstado === 'ready'
+    ? resolveHoidReadingFocus({
+        progress: liveProgress,
+        ...(focusSelectionBookId ? { selectedBookId: focusSelectionBookId } : {}),
+      })
+    : { status: 'unavailable' as const, reason: 'invalid-progress' as const };
+
+  useEffect(() => {
+    if (!selectedReadingFocusBookId || !liveProgress || progresoPersistenciaEstado !== 'ready') return;
+    const currentSelection = resolveHoidReadingFocus({
+      progress: liveProgress,
+      selectedBookId: selectedReadingFocusBookId,
+    });
+    if (
+      currentSelection.status === 'unavailable' &&
+      currentSelection.reason === 'selected-work-not-active'
+    ) {
+      setSelectedReadingFocusBookId(null);
+    }
+  }, [
+    selectedReadingFocusBookId,
+    liveProgressScope?.revision,
+    liveProgressScope?.fingerprint,
+    progresoPersistenciaEstado,
+  ]);
 
   useEffect(() => {
     curatedPathRequestGenerationRef.current += 1;
@@ -356,6 +386,29 @@ export const HoidScreen: React.FC<{
     }]);
   };
 
+  const selectReadingFocus = (bookId: string) => {
+    if (cargando || progresoPersistenciaEstado !== 'ready') return;
+    const currentProgress = progressReaderRef.current();
+    if (!currentProgress) return;
+    const resolved = resolveHoidReadingFocus({
+      progress: currentProgress,
+      selectedBookId: bookId,
+    });
+    if (resolved.status !== 'ready') return;
+
+    setSelectedReadingFocusBookId(bookId);
+    setAnswerScopeMode('automatic');
+    setAnswerScopeBookIds([]);
+    setAnswerScopeMessage('Foco elegido explícitamente. En modo Automático, las explicaciones narrativas quedarán limitadas a esta obra y su progreso actual.');
+    resetConversationForAnswerScopeChange();
+  };
+
+  const clearReadingFocusSelection = () => {
+    if (cargando) return;
+    setSelectedReadingFocusBookId(null);
+    resetConversationForAnswerScopeChange();
+  };
+
   const changeAnswerScopeMode = (mode: HoidAnswerScopeMode) => {
     if (cargando || mode === answerScopeMode) return;
     const nextIds = mode === 'automatic'
@@ -363,13 +416,14 @@ export const HoidScreen: React.FC<{
       : mode === 'single-work'
         ? answerScopeBookIds.slice(0, 1)
         : answerScopeBookIds.slice(0, 4);
+    setSelectedReadingFocusBookId(null);
     setAnswerScopeMode(mode);
     setAnswerScopeBookIds(nextIds);
     setAnswerScopeMessage(mode === 'automatic'
-      ? 'Ámbito automático: la primera respuesta fijará las obras que aporten evidencia; el progreso de cada obra seguirá aplicándose.'
+      ? 'Ámbito automático: si hay una sola obra activa, Hoid limitará la respuesta a ella. Si hay varias, tendrás que elegir el foco; para comparar, activa «Comparar 2–4».'
       : mode === 'single-work'
-        ? 'Selecciona exactamente una obra. Solo se considerarán afirmaciones cuya evidencia pertenezca a ella.'
-        : 'Selecciona entre dos y cuatro obras. Cada una debe aportar evidencia autorizada; si falta una, Hoid se abstendrá.');
+        ? 'Selecciona exactamente una obra que ya tenga progreso activo y estructura de capítulos verificada.'
+        : 'Selecciona entre dos y cuatro obras activas. Cada una debe tener progreso verificable y evidencias autorizadas; si falta una, Hoid se abstendrá.');
     resetConversationForAnswerScopeChange();
   };
 
@@ -380,14 +434,15 @@ export const HoidScreen: React.FC<{
       bookId,
     );
     if (next.bookIds.join('\n') === answerScopeBookIds.join('\n')) return;
+    setSelectedReadingFocusBookId(null);
     setAnswerScopeBookIds(next.bookIds);
     setAnswerScopeMessage(answerScopeMode === 'single-work'
-      ? 'La respuesta narrativa quedará limitada a la obra seleccionada.'
+      ? 'La respuesta narrativa quedará limitada a la obra seleccionada si mantiene progreso activo y estructura verificada.'
       : next.bookIds.length < 2
-        ? 'Selecciona al menos dos obras para comparar.'
+        ? 'Selecciona al menos dos obras activas para comparar.'
         : next.bookIds.length === 4
           ? 'Has alcanzado el máximo de cuatro obras.'
-          : 'Cada obra seleccionada deberá aportar evidencia desbloqueada.');
+          : 'Cada obra seleccionada deberá tener progreso activo y evidencias desbloqueadas.');
     resetConversationForAnswerScopeChange();
   };
 
@@ -444,7 +499,12 @@ export const HoidScreen: React.FC<{
         fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
       };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
-      const answerScopeSelection = buildHoidAnswerScopeSelection(answerScopeMode, answerScopeBookIds);
+      const answerScopeSelection = resolveHoidReadingFocusConversationScope({
+        progress: currentProgress,
+        answerScopeMode,
+        answerScopeBookIds,
+        ...(selectedReadingFocusBookId ? { selectedFocusBookId: selectedReadingFocusBookId } : {}),
+      });
       let respuesta: string;
       let citas: readonly HoidDisplayCitation[] | undefined;
       let segmentos: readonly HoidDisplaySegment[] | undefined;
@@ -579,16 +639,26 @@ export const HoidScreen: React.FC<{
             ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
             : 'No puedo generar una recomendación válida con esos parámetros.';
         }
-      } else if (answerScopeSelection.status === 'incomplete') {
+      } else if (answerScopeSelection.status === 'selection-required') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         responseScope = requestScope;
-        respuesta = answerScopeSelection.reason === 'one-work-required'
-          ? 'Selecciona exactamente una obra para limitar esta respuesta narrativa.'
-          : answerScopeSelection.reason === 'two-to-four-works-required'
-            ? 'Selecciona entre dos y cuatro obras para una comparación narrativa.'
-            : 'La selección de obras no es válida. No enviaré la consulta al runtime.';
+        respuesta = 'Tienes varias obras activas. Elige el foco en el panel «Foco de lectura» antes de una explicación narrativa. No seleccionaré por orden, recencia ni serie.';
+      } else if (answerScopeSelection.status === 'unavailable') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        responseScope = requestScope;
+        respuesta = answerScopeSelection.reason === 'no-active-work'
+          ? 'No hay una obra activa en tu progreso. Inicia una lectura verificada o selecciona una obra con progreso antes de pedir una explicación narrativa.'
+          : answerScopeSelection.reason === 'selected-work-not-active'
+            ? 'La obra elegida no tiene un progreso activo registrado. Selecciona una obra iniciada o actualiza tu progreso.'
+            : answerScopeSelection.reason === 'chapter-structure-unavailable'
+              ? 'No puedo verificar la estructura de capítulos de la edición seleccionada. La explicación queda bloqueada para evitar spoilers.'
+              : answerScopeSelection.reason === 'invalid-scope'
+                ? 'El ámbito de lectura no es válido. Comprueba la selección de una obra o de dos a cuatro obras activas.'
+                : 'No puedo verificar el progreso y el foco de lectura. La respuesta queda bloqueada para evitar spoilers.';
       } else if (!trustedConversationPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
@@ -603,7 +673,7 @@ export const HoidScreen: React.FC<{
           question: textoUsuario,
           intent: intentPlan.intent,
           depth: explanationDepth,
-          ...(answerScopeSelection.status === 'ready' ? { bookScope: answerScopeSelection.scope } : {}),
+          bookScope: answerScopeSelection.scope,
         }, { signal: ticket.signal });
         if (!conversationTurnSession.isCurrent(ticket)) return;
         if (ticket.signal.aborted) { commitCancelledTurn(); return; }
@@ -1203,6 +1273,79 @@ export const HoidScreen: React.FC<{
         onPreferencesChange={setReaderPreferences}
       />
 
+      <View style={styles.readingFocusPanel}>
+        <Text style={styles.recommendationTitle}>FOCO DE LECTURA</Text>
+        <Text style={styles.recommendationNote}>
+          En modo Automático, una única obra activa limita las explicaciones a ese libro. Si tienes varias, elige explícitamente el foco. Comparar obras requiere el modo «Comparar 2–4».
+        </Text>
+        {progresoPersistenciaEstado !== 'ready' ? (
+          <Text style={styles.recommendationMessage}>El progreso no está disponible; no se puede establecer un foco fiable.</Text>
+        ) : answerScopeMode === 'cross-work' ? (
+          <Text style={styles.recommendationMessage}>La conversación usa una comparación explícita. Cada obra seleccionada se valida por separado y conserva su propio límite de lectura.</Text>
+        ) : readingFocusResolution.status === 'ready' ? (
+          <View style={styles.recommendationItem}>
+            <Text style={styles.recommendationItemText}>{readingFocusResolution.focus.title}</Text>
+            <Text style={styles.recommendationItemMeta}>
+              {readingFocusResolution.focus.status === 'completed'
+                ? 'Obra marcada como terminada en el progreso.'
+                : `Capítulo actual ${readingFocusResolution.focus.currentChapter} · completado hasta ${readingFocusResolution.focus.completedThroughChapter ?? 'ningún capítulo'}.`}
+            </Text>
+            <Text style={styles.recommendationNote}>
+              {readingFocusResolution.focus.manifestCoverage === 'verified-numeric-chapters'
+                ? `Estructura verificada · ${readingFocusResolution.focus.numberedChapterCount} capítulos numerados.`
+                : `Estructura parcial verificada hasta antes del primer capítulo ambiguo · ${readingFocusResolution.focus.numberedChapterCount} capítulos numerados seguros.`}
+            </Text>
+            {answerScopeMode === 'automatic' && selectedReadingFocusBookId !== null && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Volver a elegir el foco de lectura"
+                disabled={cargando}
+                onPress={clearReadingFocusSelection}
+                style={[styles.scopeResetButton, cargando && styles.disabledButton]}
+              >
+                <Text style={styles.scopeResetButtonText}>Cambiar foco</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : readingFocusResolution.status === 'selection-required' ? (
+          <View style={styles.recommendationSelection}>
+            <Text style={styles.recommendationItemMeta}>Hay varias obras activas. Selecciona cuál debe orientar las explicaciones narrativas:</Text>
+            {readingFocusResolution.choices.map(choice => (
+              <TouchableOpacity
+                key={choice.bookId}
+                accessibilityRole="button"
+                accessibilityLabel={`Usar ${choice.title} como foco de lectura`}
+                accessibilityState={{ disabled: cargando || choice.chapterTracking !== 'verified' }}
+                disabled={cargando || choice.chapterTracking !== 'verified'}
+                onPress={() => selectReadingFocus(choice.bookId)}
+                style={[
+                  styles.recommendationChoice,
+                  (cargando || choice.chapterTracking !== 'verified') && styles.disabledButton,
+                ]}
+              >
+                <Text style={styles.recommendationItemText}>{choice.title}</Text>
+                <Text style={styles.recommendationItemMeta}>
+                  {choice.status === 'completed'
+                    ? 'Obra marcada como terminada'
+                    : `Capítulo actual ${choice.currentChapter} · completado hasta ${choice.completedThroughChapter ?? 'ningún capítulo'}`}
+                  {choice.chapterTracking !== 'verified' ? ' · estructura no verificada' : ''}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.recommendationMessage}>
+            {readingFocusResolution.reason === 'no-active-work'
+              ? 'Todavía no hay una obra iniciada en el progreso guardado.'
+              : readingFocusResolution.reason === 'chapter-structure-unavailable'
+                ? 'La edición activa no dispone de una estructura de capítulos verificada.'
+                : readingFocusResolution.reason === 'selected-work-not-active'
+                  ? 'La obra seleccionada ya no está activa. Elige otra obra con progreso registrado.'
+                  : 'No puedo verificar el progreso actual. No estableceré un foco aproximado.'}
+          </Text>
+        )}
+      </View>
+
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>
           <View style={{ flex: 1 }}>
@@ -1680,6 +1823,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#f8fafc', fontSize: 14, fontWeight: '900', letterSpacing: 1.5 },
   headerSub: { color: '#818cf8', fontSize: 11, marginTop: 2 },
   recommendationPanel: { padding: 12, backgroundColor: '#101a2e', borderBottomWidth: 1, borderColor: '#1e293b' },
+  readingFocusPanel: { padding: 12, backgroundColor: '#101827', borderBottomWidth: 1, borderColor: '#334155' },
   curatedPathPanel: { padding: 12, backgroundColor: '#101827', borderBottomWidth: 1, borderColor: '#334155' },
   curatedPathItem: { paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#334155', marginTop: 8 },
   recommendationHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },

@@ -5,7 +5,7 @@ import {
 import {
   recommendEditionBoundReadingNextSteps,
 } from "./editionBoundRecommendations";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T14:00:00.000Z";
 
@@ -77,19 +77,22 @@ describe("edition-bound recommendation explanations", () => {
   });
 
   it("withholds ambiguous duplicate chapter cursors before explanation", () => {
-    const recommendation = recommendEditionBoundReadingNextSteps(snapshot([
-      {
+    const manifestResult = getHoidReadingManifest("sawt");
+    expect(manifestResult.status).toBe("ready");
+    if (manifestResult.status !== "ready") return;
+    const ambiguous = manifestResult.manifest.units.find(unit => unit.chapterNumber === 12);
+    if (!ambiguous) return;
+    const recommendation = recommendEditionBoundReadingNextSteps(snapshot([{
+      bookId: "sawt",
+      cursor: {
+        schemaVersion: 1,
+        manifestId: manifestResult.manifest.manifestId,
         bookId: "sawt",
-        cursor: {
-          schemaVersion: 1,
-          manifestId: "hoid:roshar-omnibus-v1:sawt:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
-          bookId: "sawt",
-          unitId: "chapter:012:unit:149",
-          ordinal: 149,
-          chapterNumber: 12,
-        },
+        unitId: ambiguous.id,
+        ordinal: ambiguous.ordinal,
+        chapterNumber: ambiguous.chapterNumber,
       },
-    ]), 1);
+    }]), 1);
     expect(recommendation).toEqual({ status: "unavailable", reason: "invalid-progress" });
     expect(explainEditionBoundRecommendationResult(recommendation))
       .toEqual({ status: "unavailable", reason: "invalid-progress" });

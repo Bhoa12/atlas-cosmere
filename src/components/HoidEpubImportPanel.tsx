@@ -117,6 +117,7 @@ export const HoidEpubImportPanel: React.FC<{
   const leaseRef = useRef<number | null>(null);
   const progressChangeEpochRef = useRef(0);
   const readerSessionEpochRef = useRef(0);
+  const reviewQueueReadEpochRef = useRef(0);
   const readerSessionAbortRef = useRef<AbortController | null>(null);
   const markingProgressRef = useRef(false);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
@@ -125,10 +126,14 @@ export const HoidEpubImportPanel: React.FC<{
   );
 
   const refreshLocalReviewQueue = async (isCurrent: () => boolean) => {
+    const readEpoch = reviewQueueReadEpochRef.current + 1;
+    reviewQueueReadEpochRef.current = readEpoch;
+    const isLatestRead = () =>
+      isCurrent() && reviewQueueReadEpochRef.current === readEpoch;
     try {
       const store = await getExpoHoidSourceInspectionReceiptStore();
       const projection = projectHoidSourceInspectionReviewQueue(await store.read());
-      if (!isCurrent()) return;
+      if (!isLatestRead()) return;
       if (projection.status !== "ready") {
         setReviewQueueItems([]);
         setLocalReceiptKeys([]);
@@ -141,7 +146,7 @@ export const HoidEpubImportPanel: React.FC<{
       ));
       setReceiptStoreStatus("ready");
     } catch {
-      if (!isCurrent()) return;
+      if (!isLatestRead()) return;
       setReviewQueueItems([]);
       setLocalReceiptKeys([]);
       setReceiptStoreStatus("unavailable");

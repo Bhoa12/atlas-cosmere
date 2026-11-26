@@ -111,7 +111,7 @@ describe("Hoid trusted curated-path recommendation screen port", () => {
     release(null);
     expect(await request).toEqual({
       status: "withheld",
-      reason: "cancelled",
+      reason: "port-disposed",
     });
   });
 });

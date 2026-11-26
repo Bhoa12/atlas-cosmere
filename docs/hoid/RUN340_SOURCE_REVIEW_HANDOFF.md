@@ -11,7 +11,6 @@ Turn the device-local chapter-inspection ledger into a visible, deterministic ha
 A valid receipt becomes a small queue item containing only:
 
 - catalogue work ID and title;
-- source group;
 - edition ID;
 - numeric chapter number;
 - inspection timestamp;

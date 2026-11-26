@@ -348,7 +348,7 @@ export function validateHoidReadingFocus(
   if (resolved.status !== "ready") {
     return Object.freeze({
       status: "stale",
-      reason: resolved.reason === "selected-work-not-active"
+      reason: resolved.reason === "selected-work-not-active" || resolved.reason === "no-active-work"
         ? "work-no-longer-active"
         : "edition-changed",
     });

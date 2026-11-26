@@ -381,6 +381,13 @@ export const HoidEpubImportPanel: React.FC<{
                 : `El capítulo ${result.candidate.chapterNumber} ya tenía un recibo local idéntico. No se ha duplicado ni sobrescrito.`,
             );
           } else if (receiptResult.status === "conflict") {
+            const key = inspectionReceiptKey(
+              result.candidate.workId,
+              result.candidate.editionId,
+              result.candidate.chapterNumber,
+            );
+            setLocalReceiptKeys(current => current.includes(key) ? current : [...current, key]);
+            setReceiptStoreStatus("ready");
             setMessage("Ya existe un recibo local distinto para este capítulo. Se conserva el anterior y no se sobrescribe.");
           } else {
             setReceiptStoreStatus("unavailable");

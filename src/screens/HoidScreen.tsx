@@ -600,6 +600,8 @@ export const HoidScreen: React.FC<{
     }
   };
 
+  // Cross-work discovery stays withheld until a separately reviewed reading-path catalogue exists.
+  // This screen may only resume a validated cursor already present in the reader's progress ledger.
   const cargarRecomendaciones = async (activeBookId?: string) => {
     if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready') return;
     const ticket = recommendationRequestSession.begin();

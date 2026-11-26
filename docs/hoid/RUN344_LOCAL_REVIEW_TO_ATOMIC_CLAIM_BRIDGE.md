@@ -17,6 +17,8 @@ The bridge accepts exactly one original atomic statement at a time. It does not 
 7. Build the existing independent atomic-claim review packet through `buildHoidEditorialClaimReviewPackets()`.
 8. Return an ephemeral candidate at `awaiting-independent-claim-review`.
 
+The application-facing entry point is `HoidHistoricalReviewSessionController.buildAtomicClaimCandidate()`. It requires the exact handoff and packet objects retained by the active session controller, checks the packet-to-handoff association and retrieves the local receipt from the controller's private WeakMap. Stale sessions, cross-handoff packets and packets without a local decision are rejected before the bridge runs.
+
 The generated claim uses the source chapter as its unlock threshold. The downstream cursor-native evaluator projects an open chapter N to completed-through N-1, so opening a chapter does not unlock claims sourced from that chapter.
 
 ## Reused contracts
@@ -71,7 +73,7 @@ The bridge validates the packet and receipt structure, but it cannot prove that 
 
 ## Limitations
 
-- The bridge is a domain adapter and is not yet exposed as a new UI action.
+- The bridge is exposed through the session-controller API, but it is not yet exposed as a new UI action.
 - A local reviewer label remains unauthenticated.
 - The bridge only works when the exact source chapter is already in the sparse verified claim corpus. Local-only historical receipts do not silently expand that corpus.
 - The originality attestation remains human; no automated plagiarism detector is claimed.
@@ -79,7 +81,7 @@ The bridge validates the packet and receipt structure, but it cannot prove that 
 
 ## Validation
 
-The dedicated workflow runs the bridge tests together with the existing local editorial packet, atomic claim draft and atomic claim review packet tests. It then performs strict TypeScript checking of the bridge and its test entrypoint.
+The dedicated workflow runs the bridge tests, the session-bound controller regressions, the local editorial packet tests, atomic claim draft tests and atomic claim review packet tests. It then performs strict TypeScript checking of the bridge, session controller and their test entrypoints.
 
 ## Source availability
 

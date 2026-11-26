@@ -42,7 +42,7 @@ The adapter imports only domain contracts and deterministic validation helpers. 
 
 ## Validation
 
-The dedicated workflow runs the multi-source bridge tests plus the existing single-source bridge, atomic draft and review-packet regression suites, followed by strict TypeScript checking.
+The dedicated workflow runs 13 multi-source bridge tests plus the existing single-source bridge, atomic draft and review-packet regression suites, followed by strict TypeScript checking. A direct progress regression proves that one completed source book is insufficient and that the candidate remains withheld until every source chapter threshold is reached.
 
 The tests use synthetic summaries and registered document digests as structural fixtures. They do not claim that the corresponding narrative passages were consulted in this run and do not add protected source text.
 

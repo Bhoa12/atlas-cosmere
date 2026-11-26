@@ -156,6 +156,20 @@ describe("Hoid cross-work spoiler dependency gate", () => {
     })).toEqual({ status: "invalid", reason: "fingerprint-mismatch" });
   });
 
+  it("rejects a changed edition locator even when the original dependency fingerprint is retained", () => {
+    const dependencySet = buildSet();
+    const tampered = {
+      ...dependencySet,
+      requirements: dependencySet.requirements.map((requirement, index) =>
+        index === 0 ? { ...requirement, locatorId: requirement.locatorId + "-tampered" } : requirement,
+      ),
+    };
+    expect(validateHoidSpoilerDependencySet(tampered)).toEqual({
+      status: "invalid",
+      reason: "fingerprint-mismatch",
+    });
+  });
+
   it("withholds a cross-work explanation until every required work reaches its own watermark", () => {
     const result = evaluateHoidSpoilerDependencies(buildSet(), [
       { bookId: "twok", chapter: 22 },

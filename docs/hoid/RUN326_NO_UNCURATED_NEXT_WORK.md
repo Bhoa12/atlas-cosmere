@@ -12,7 +12,7 @@ Run 326 removes that fallback from the existing screen recommendation pipeline.
 - If several works are open, Hoid requires an explicit reader choice and does not rank one as the canonical next work.
 - If no work is open (empty ledger or only completed works), the planner returns `no-safe-next-work`.
 - An explicit selection that does not identify an actually open work is rejected.
-- The existing exact edition cursor, edition identity, navigation hash, locator checks and presentation-time progress freshness remain mandatory.
+- The existing exact edition cursor, edition identity, navigation hash, locator checks and presentation-time progress freshness remain mandatory. The exact cursor unit ID and ordinal are preserved; numeric cursor v1 still rejects duplicate visible chapter labels until a separately reviewed locator-bound progress contract exists.
 - A zero-item limit can return an empty resume result, but it never causes discovery of another work.
 
 ## Why this is a spoiler control

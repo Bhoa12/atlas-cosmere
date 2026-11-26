@@ -5,7 +5,7 @@ import {
 import {
   recommendEditionBoundReadingNextSteps,
 } from "./editionBoundRecommendations";
-import { createHoidReadingCursor, getHoidReadingManifest, type HoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T14:00:00.000Z";
 
@@ -76,36 +76,23 @@ describe("edition-bound recommendation explanations", () => {
       .toContain("no elegirá otra por orden bibliográfico");
   });
 
-  it("preserves an exact duplicate chapter cursor through explanation canonicalization", () => {
-    const manifestResult = getHoidReadingManifest("sawt");
-    expect(manifestResult.status).toBe("ready");
-    if (manifestResult.status !== "ready") return;
-    const duplicates = manifestResult.manifest.units.filter(unit => unit.chapterNumber === 12);
-    const second = duplicates[1];
-    if (!second) return;
-    const cursor = Object.freeze({
-      schemaVersion: 1 as const,
-      manifestId: manifestResult.manifest.manifestId,
-      bookId: "sawt",
-      unitId: second.id,
-      ordinal: second.ordinal,
-      chapterNumber: second.chapterNumber,
-    });
-    const recommendation = recommendEditionBoundReadingNextSteps(
-      snapshot([{ bookId: "sawt", cursor }]),
-      1,
-    );
-    expect(recommendation.status).toBe("ready");
-    if (recommendation.status !== "ready") return;
-    const explained = explainEditionBoundRecommendationResult(recommendation);
-    expect(explained.status).toBe("ready");
-    if (explained.status !== "ready") return;
-    expect(explained.items[0].target).toMatchObject({
-      kind: "edition-cursor",
-      cursor: { unitId: second.id, ordinal: second.ordinal, chapterNumber: 12 },
-    });
-    const previous = manifestResult.manifest.units.find(unit => unit.ordinal === second.ordinal - 1);
-    expect(explained.items[0].completedThroughChapter).toBe(previous?.chapterNumber ?? null);
+  it("withholds ambiguous duplicate chapter cursors before explanation", () => {
+    const recommendation = recommendEditionBoundReadingNextSteps(snapshot([
+      {
+        bookId: "sawt",
+        cursor: {
+          schemaVersion: 1,
+          manifestId: "hoid:roshar-omnibus-v1:sawt:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+          bookId: "sawt",
+          unitId: "chapter:012:unit:149",
+          ordinal: 149,
+          chapterNumber: 12,
+        },
+      },
+    ]), 1);
+    expect(recommendation).toEqual({ status: "unavailable", reason: "invalid-progress" });
+    expect(explainEditionBoundRecommendationResult(recommendation))
+      .toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
 
   it("presents an explicit choice when several works are active", () => {

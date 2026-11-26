@@ -169,31 +169,24 @@ describe("edition-bound reading recommendation targets", () => {
     }
   });
 
-  it("preserves the exact ordinal for duplicate visible chapter labels", () => {
+  it("rejects forged progress cursors at ambiguous duplicate chapter labels", () => {
     const manifestResult = getHoidReadingManifest("sawt");
     expect(manifestResult.status).toBe("ready");
     if (manifestResult.status !== "ready") return;
-    const duplicates = manifestResult.manifest.units.filter(unit => unit.chapterNumber === 12);
-    expect(duplicates).toHaveLength(2);
-    const second = duplicates[1];
-    if (!second) return;
-    const cursor = Object.freeze({
+    const duplicate = manifestResult.manifest.units.find(unit => unit.chapterNumber === 12);
+    if (!duplicate) return;
+    const forgedCursor = Object.freeze({
       schemaVersion: 1 as const,
       manifestId: manifestResult.manifest.manifestId,
       bookId: "sawt",
-      unitId: second.id,
-      ordinal: second.ordinal,
-      chapterNumber: second.chapterNumber,
+      unitId: duplicate.id,
+      ordinal: duplicate.ordinal,
+      chapterNumber: duplicate.chapterNumber,
     });
-    const result = recommendEditionBoundReadingNextSteps(snapshot([{ bookId: "sawt", cursor }]), 1);
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.items[0].target).toMatchObject({
-      kind: "edition-cursor",
-      cursor: { unitId: second.id, ordinal: second.ordinal, chapterNumber: 12 },
-    });
-    const previous = manifestResult.manifest.units.find(unit => unit.ordinal === second.ordinal - 1);
-    expect(result.items[0].completedThroughChapter).toBe(previous?.chapterNumber ?? null);
+    expect(validateHoidReadingCursor(forgedCursor).status).toBe("invalid");
+    expect(recommendEditionBoundReadingNextSteps(snapshot([
+      { bookId: "sawt", cursor: forgedCursor },
+    ]), 1)).toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
 
   it("rejects malformed or stale cursor progress instead of producing navigation targets", () => {

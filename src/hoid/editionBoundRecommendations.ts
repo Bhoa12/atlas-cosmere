@@ -168,11 +168,13 @@ export function recommendEditionBoundReadingNextSteps(
   }
 
   const items: HoidEditionBoundRecommendation[] = [];
-  if (safeLimit > 0 && activePosition) {
-    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === activePosition.bookId);
+  const selectedPosition = activePosition;
+  if (!selectedPosition) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+  if (safeLimit > 0) {
+    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === selectedPosition.bookId);
     if (!source) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
-    const completedThroughChapter = completedThroughForCursor(source.id, activePosition.cursor);
-    const target = targetForCursor(source.id, activePosition.cursor);
+    const completedThroughChapter = completedThroughForCursor(source.id, selectedPosition.cursor);
+    const target = targetForCursor(source.id, selectedPosition.cursor);
     if (completedThroughChapter === undefined || target.kind !== "edition-cursor") {
       return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
     }
@@ -180,7 +182,7 @@ export function recommendEditionBoundReadingNextSteps(
       sourceId: source.id,
       title: source.title,
       reason: "resume-current-work",
-      currentChapter: activePosition.cursor.chapterNumber,
+      currentChapter: selectedPosition.cursor.chapterNumber,
       completedThroughChapter,
       target,
     }));

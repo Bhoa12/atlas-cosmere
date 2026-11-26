@@ -305,6 +305,37 @@ describe("Hoid device-local source inspection receipts", () => {
     expect(JSON.stringify(stored)).not.toContain('"summary":');
   });
 
+  it("distinguishes a changed-document conflict from a concurrent SQLite CAS race", async () => {
+    const initial = recordHoidSourceInspectionReceipt(
+      createHoidEmptySourceInspectionReceiptLedger(),
+      receiptFor("tfe"),
+    );
+    if (initial.status !== "added") throw new Error("Expected initial receipt");
+
+    const duplicateStore: HoidSourceInspectionReceiptStorePort = {
+      async read() { return initial.ledger; },
+      async compareAndSwap() { return "saved"; },
+    };
+    const changedCandidate = candidateFor("tfe", { documentSha256: "d".repeat(64) });
+    const duplicate = await appendHoidSourceInspectionReceipt(
+      duplicateStore,
+      changedCandidate as never,
+      "2026-11-26T14:31:00.000Z",
+    );
+    expect(duplicate.status).toBe("receipt-conflict");
+
+    const raceStore: HoidSourceInspectionReceiptStorePort = {
+      async read() { return createHoidEmptySourceInspectionReceiptLedger(); },
+      async compareAndSwap() { return "conflict"; },
+    };
+    const raced = await appendHoidSourceInspectionReceipt(
+      raceStore,
+      candidateFor("tfe") as never,
+      INSPECTED_AT,
+    );
+    expect(raced.status).toBe("write-conflict");
+  });
+
   it("does not overwrite an invalid persisted ledger", async () => {
     let writes = 0;
     const store: HoidSourceInspectionReceiptStorePort = {

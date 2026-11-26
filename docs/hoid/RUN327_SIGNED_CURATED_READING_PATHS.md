@@ -8,7 +8,7 @@ The production catalogue exported by `HOID_CURATED_READING_PATH_CATALOGUE` is in
 
 ## Catalogue contract
 
-A catalogue is immutable, revisioned and fingerprinted. Each path contains an explicit ordered list of distinct works. Every step after the first must declare:
+A catalogue is immutable, revisioned and fingerprinted. Its digest includes the canonical bibliographic identity (work IDs, display titles and source groups) as well as every path. Each path contains an explicit ordered list of distinct works. Every step after the first must declare:
 
 - one or more prerequisites that point only to earlier step IDs;
 - an exact edition-bound chapter reference for the completion threshold of each prerequisite;
@@ -21,11 +21,11 @@ A path cannot infer dependencies from bibliography order, publication order, chr
 
 The canonical signing payload is domain-separated and binds:
 
-- catalogue ID and revision;
+- repository full name, catalogue ID and revision;
 - the complete catalogue fingerprint (including every path, step, prerequisite and rationale);
 - reviewer ID, decision, review timestamp and key ID.
 
-Approval requires at least two distinct reviewer identities and two distinct key IDs. Every signature is checked through the existing root-authenticated reviewer trust registry and the injected Ed25519 verification port. Repository authorization, key validity, revocation, registry expiry and minimum registry revision remain enforced by the shared signature verifier.
+Approval requires at least two distinct reviewer identities and two distinct key IDs. Every signature is repository-bound and checked through the existing root-authenticated reviewer trust registry and the injected Ed25519 verification port. Repository authorization, key validity, revocation, registry expiry and minimum registry revision remain enforced by the shared signature verifier.
 
 A signed rejection vetoes the entire catalogue. Missing, malformed, stale or unverifiable approvals fail closed. The route module creates no keys and does not treat a caller-supplied `approved` flag as authority.
 

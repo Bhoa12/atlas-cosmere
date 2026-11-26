@@ -61,7 +61,7 @@ function sourcePacket(
     }),
     Object.freeze({
       receiptFingerprint: sha256Hex("source-receipt-" + chapterNumber),
-      documentSha256,
+      documentSha256: documentDigest,
       navigationSha256: manifest.navigationSha256,
       byteLength: 512,
       inspectedAt: "2026-11-26T19:45:00.000Z",

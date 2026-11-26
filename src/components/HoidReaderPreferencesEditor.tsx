@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -14,6 +14,7 @@ import {
   type HoidReaderRecommendationPreferences,
   type HoidReaderRecommendationPreferencesStorePort,
 } from "../hoid/readerRecommendationPreferences";
+import { createHoidReaderPreferenceOperationFence } from "../hoid/readerRecommendationPreferencesLifecycle";
 
 export type HoidReaderPreferencesStoreStatus = "loading" | "ready" | "unavailable";
 
@@ -41,26 +42,42 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const operationFenceRef = useRef<ReturnType<typeof createHoidReaderPreferenceOperationFence> | null>(null);
+  if (operationFenceRef.current === null) {
+    operationFenceRef.current = createHoidReaderPreferenceOperationFence();
+  }
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    let active = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      operationFenceRef.current?.invalidate();
+    };
+  }, []);
+
+  useEffect(() => {
+    const fence = operationFenceRef.current;
+    if (!fence) return;
+    fence.invalidate();
+    const token = fence.beginRead();
     setLoaded(false);
 
     if (storeStatus === "loading") {
       setLoading(true);
       setMessage("Conectando con las preferencias locales…");
-      return () => { active = false; };
+      return () => fence.invalidate();
     }
     if (storeStatus !== "ready" || !store) {
       setLoading(false);
       setMessage("Almacenamiento local no disponible. Se conservará el orden editorial original.");
-      return () => { active = false; };
+      return () => fence.invalidate();
     }
 
     setLoading(true);
     setMessage("Cargando preferencias guardadas…");
     void store.read().then(raw => {
-      if (!active) return;
+      if (!mountedRef.current || !fence.isCurrent(token)) return;
       setLoading(false);
       const validation = validateHoidReaderRecommendationPreferences(raw);
       if (validation.status !== "valid") {
@@ -72,19 +89,27 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
       setLoaded(true);
       setMessage("Preferencias guardadas localmente en este dispositivo.");
     }).catch(() => {
-      if (!active) return;
+      if (!mountedRef.current || !fence.isCurrent(token)) return;
       setLoading(false);
       setMessage("No se pudieron leer las preferencias. Se conservará el orden editorial original.");
     });
 
-    return () => { active = false; };
+    return () => fence.invalidate();
   }, [store, storeStatus, onPreferencesChange]);
 
   const persist = async (candidate: unknown) => {
-    if (!store || !loaded || saving) return;
+    const fence = operationFenceRef.current;
+    if (!fence || !store || !loaded || saving || storeStatus !== "ready") return;
+    const token = fence.tryBeginWrite();
+    if (!token) {
+      setMessage("Ya hay un cambio de preferencias en curso.");
+      return;
+    }
+
     const validation = validateHoidReaderRecommendationPreferences(candidate);
     if (validation.status !== "valid" ||
         validation.preferences.revision !== preferences.revision + 1) {
+      fence.finishWrite(token);
       setMessage("El cambio no supera la validación de preferencias.");
       return;
     }
@@ -93,12 +118,14 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
     setMessage("Guardando preferencias locales…");
     try {
       const result = await store.compareAndSwap(preferences.revision, validation.preferences);
+      if (!mountedRef.current || !fence.isCurrent(token)) return;
       if (result === "saved") {
         setPreferences(validation.preferences);
         onPreferencesChange(validation.preferences);
         setMessage("Preferencias guardadas. El progreso y los permisos de spoilers no han cambiado.");
       } else if (result === "conflict") {
         const latest = validateHoidReaderRecommendationPreferences(await store.read());
+        if (!mountedRef.current || !fence.isCurrent(token)) return;
         if (latest.status === "valid") {
           setPreferences(latest.preferences);
           onPreferencesChange(latest.preferences);
@@ -111,9 +138,12 @@ export const HoidReaderPreferencesEditor: React.FC<HoidReaderPreferencesEditorPr
         setMessage("El almacenamiento no confirmó el cambio. Las preferencias anteriores se mantienen.");
       }
     } catch {
-      setMessage("No se pudo guardar el cambio. Las preferencias anteriores se mantienen.");
+      if (mountedRef.current && fence.isCurrent(token)) {
+        setMessage("No se pudo guardar el cambio. Las preferencias anteriores se mantienen.");
+      }
     } finally {
-      setSaving(false);
+      fence.finishWrite(token);
+      if (mountedRef.current) setSaving(false);
     }
   };
 

@@ -379,7 +379,7 @@ export const HoidScreen: React.FC<{
       { mode: answerScopeMode, bookIds: answerScopeBookIds },
       bookId,
     );
-    if (next.bookIds.join('\\n') === answerScopeBookIds.join('\\n')) return;
+    if (next.bookIds.join('\n') === answerScopeBookIds.join('\n')) return;
     setAnswerScopeBookIds(next.bookIds);
     setAnswerScopeMessage(answerScopeMode === 'single-work'
       ? 'La respuesta narrativa quedará limitada a la obra seleccionada.'
@@ -469,7 +469,7 @@ export const HoidScreen: React.FC<{
             revision: reread.progressRevision,
             fingerprint: reread.progressFingerprint,
           };
-          respuesta = `Relectura disponible: ${reread.title}.\\n\\nLa obra figura como terminada en tu progreso y su manifiesto verifica el capítulo 1. Puedes iniciar la relectura desde ahí mediante selección manual en Atlas. No abriré el EPUB ni modificaré tu progreso.`;
+          respuesta = `Relectura disponible: ${reread.title}.\n\nLa obra figura como terminada en tu progreso y su manifiesto verifica el capítulo 1. Puedes iniciar la relectura desde ahí mediante selección manual en Atlas. No abriré el EPUB ni modificaré tu progreso.`;
         } else if (reread.status === 'needs-clarification') {
           respuesta = reread.reason === 'multiple-works-mentioned'
             ? 'Has mencionado varias obras. Para evitar elegir por ti, dime el título exacto de una sola obra que quieras releer.'
@@ -510,10 +510,10 @@ export const HoidScreen: React.FC<{
           if (ranked.status === 'ready') {
             respuesta = ranked.items.length === 0
               ? 'No hay itinerarios editoriales aprobados que pueda recomendar con tu progreso actual.'
-              : 'Opciones de descubrimiento respaldadas por itinerarios editoriales firmados:\\n\\n'
+              : 'Opciones de descubrimiento respaldadas por itinerarios editoriales firmados:\n\n'
                 + ranked.items.map(item =>
-                  `• ${item.workTitle} — ${item.pathTitle}\\n${item.whyNow}\\nLa selección es manual; no se abrirá ningún capítulo ni se modificará tu progreso.`,
-                ).join('\\n\\n');
+                  `• ${item.workTitle} — ${item.pathTitle}\n${item.whyNow}\nLa selección es manual; no se abrirá ningún capítulo ni se modificará tu progreso.`,
+                ).join('\n\n');
           } else {
             respuesta = 'No hay una recomendación de descubrimiento que pueda mostrarse con seguridad. La validación editorial o de progreso no ha autorizado ningún resultado.';
           }
@@ -536,12 +536,12 @@ export const HoidScreen: React.FC<{
             const positions = result.context.positions;
             respuesta = positions.length === 0
               ? 'No hay obras iniciadas en el progreso guardado.'
-              : 'Este es tu progreso de lectura registrado:\\n\\n'
+              : 'Este es tu progreso de lectura registrado:\n\n'
                 + positions.map(position => position.status === 'completed'
                   ? `• ${position.title}: obra marcada como terminada.`
                   : `• ${position.title}: estás en el capítulo ${position.currentChapter}; completado hasta ${position.completedThroughChapter ?? 'ningún capítulo'}.`
-                ).join('\\n')
-                + `\\n\\nTienes ${result.context.startedCount} obras con progreso registrado de ${result.context.catalogSize}. Hay ${result.context.trackableUnstartedCount} obras sin empezar con estructura verificada y ${result.context.untrackedWorkCount} obras cuya segmentación todavía no está verificada. Esto describe únicamente tu posición registrada, no es un resumen narrativo.`;
+                ).join('\n')
+                + `\n\nTienes ${result.context.startedCount} obras con progreso registrado de ${result.context.catalogSize}. Hay ${result.context.trackableUnstartedCount} obras sin empezar con estructura verificada y ${result.context.untrackedWorkCount} obras cuya segmentación todavía no está verificada. Esto describe únicamente tu posición registrada, no es un resumen narrativo.`;
           } else {
             respuesta = result.reason === 'progress-changed'
               ? 'Tu progreso ha cambiado mientras consultaba tu posición. He descartado el resultado; vuelve a preguntarme.'

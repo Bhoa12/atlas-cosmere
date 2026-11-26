@@ -1,0 +1,53 @@
+name: Hoid Run 331 — local reader preference ranking
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/readerRecommendationPreferences.ts"
+      - "src/hoid/readerRecommendationPreferences.test.ts"
+      - "src/hoid/curatedPathRecommendationDisplayProjection.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN331_LOCAL_READER_PREFERENCES.md"
+      - ".github/workflows/hoid-run331-local-reader-preferences.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run331"
+    paths:
+      - "src/hoid/readerRecommendationPreferences.ts"
+      - "src/hoid/readerRecommendationPreferences.test.ts"
+      - "src/hoid/curatedPathRecommendationDisplayProjection.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/sha256.ts"
+      - "docs/hoid/RUN331_LOCAL_READER_PREFERENCES.md"
+      - ".github/workflows/hoid-run331-local-reader-preferences.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-reader-preferences:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test local preference validation and ranking
+        run: npx vitest run src/hoid/readerRecommendationPreferences.test.ts
+      - name: Strict type-check preference contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/readerRecommendationPreferences.ts
+          src/hoid/readerRecommendationPreferences.test.ts

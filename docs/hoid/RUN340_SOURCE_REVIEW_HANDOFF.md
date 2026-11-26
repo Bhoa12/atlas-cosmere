@@ -31,7 +31,7 @@ The queue exposes no approve, reject, publish, or unlock action. Invalid or tamp
 
 The EPUB import panel reads the same device-local SQLite receipt store and presents the handoff items separately from the static bibliography/source-coverage audit.
 
-The list is a reminder that the original local EPUB must be selected again and the exact chapter reinspected before a human editorial review can begin. It does not retain a file URI, filename, archive path, EPUB/XHTML bytes, document digest, navigation locator, provider payload, conversation text, or summary prose.
+The list is informational only. The original local EPUB must be selected again, and the exact historical chapter must be reinspected before a human editorial review can begin. This run does not yet expose a historical-chapter reinspection action in the UI. The queue does not retain a file URI, filename, archive path, EPUB/XHTML bytes, document digest, navigation locator, provider payload, conversation text, or summary prose.
 
 ## Safety boundaries
 

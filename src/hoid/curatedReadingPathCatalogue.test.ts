@@ -53,6 +53,27 @@ function makeCatalogue() {
   return result.catalogue;
 }
 
+function makeSingleStepCatalogue() {
+  const result = buildHoidCuratedReadingPathCatalogue({
+    catalogueId: "synthetic-single-step",
+    revision: 1,
+    paths: [{
+      pathId: "single-step-path",
+      title: "Ruta sintética de un solo paso",
+      description: "Fixture técnico para comprobar un paso ya iniciado.",
+      steps: [{
+        stepId: "single-start",
+        workId: "twok",
+        rationale: "Paso sintético ya iniciado.",
+        prerequisites: [],
+        rationaleEvidence: [],
+      }],
+    }],
+  });
+  if (result.status !== "ready") throw new Error("Single-step test catalogue invalid");
+  return result.catalogue;
+}
+
 function makeProgress(
   position:
     | Readonly<{ kind: "empty" }>
@@ -572,8 +593,8 @@ describe("Hoid curated reading path recommendations", () => {
     expect(result.plan.recommendations[0].workId).toBe("wor");
   });
 
-  it("does not recommend a target work that is already in progress", async () => {
-    const catalogue = makeCatalogue();
+  it("does not recommend a single-step target work that is already in progress", async () => {
+    const catalogue = makeSingleStepCatalogue();
     const result = await evaluateHoidCuratedReadingPathRecommendations(
       evaluationInput(makeProgress({
         kind: "cursor",

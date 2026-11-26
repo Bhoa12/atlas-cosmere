@@ -7,6 +7,12 @@ export type HoidSpoilerDependencyRequirement = Readonly<{
   bookId: string;
   /** Minimum completed-through chapter watermark, not the currently open chapter. */
   completedThroughChapter: number;
+  /** Exact edition identity resolved from the verified reading manifest. */
+  manifestId: string;
+  editionId: string;
+  navigationSha256: string;
+  unitId: string;
+  locatorId: string;
 }>;
 
 export type HoidSpoilerDependencySet = Readonly<{
@@ -58,6 +64,15 @@ const MAX_REQUIREMENTS = 24;
 const MAX_CHAPTER = 100_000_000;
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
+const STORED_REQUIREMENT_KEYS = [
+  "bookId",
+  "completedThroughChapter",
+  "manifestId",
+  "editionId",
+  "navigationSha256",
+  "unitId",
+  "locatorId",
+] as const;
 
 function exactRecord(value: unknown, keys: readonly string[]): Record<string, unknown> | null {
   try {
@@ -107,9 +122,7 @@ function denseArray(value: unknown, minimum: number, maximum: number): readonly 
       result.push(descriptor.value);
     }
     for (const key of keys) {
-      if (
-        key === "length"
-      ) continue;
+      if (key === "length") continue;
       if (typeof key !== "string" || !/^(0|[1-9][0-9]*)$/u.test(key) || Number(key) >= value.length) {
         return null;
       }
@@ -142,7 +155,15 @@ function fingerprintFor(
   return sha256Hex(JSON.stringify([
     "hoid-spoiler-dependency-set-v1",
     id,
-    requirements.map(item => [item.bookId, item.completedThroughChapter]),
+    requirements.map(item => [
+      item.bookId,
+      item.completedThroughChapter,
+      item.manifestId,
+      item.editionId,
+      item.navigationSha256,
+      item.unitId,
+      item.locatorId,
+    ]),
   ]));
 }
 
@@ -195,6 +216,11 @@ export function buildHoidSpoilerDependencySet(input: unknown): HoidSpoilerDepend
     requirements.push(Object.freeze({
       bookId,
       completedThroughChapter: chapter,
+      manifestId: identity.identity.manifestId,
+      editionId: identity.identity.editionId,
+      navigationSha256: identity.identity.navigationSha256,
+      unitId: identity.identity.unitId,
+      locatorId: identity.identity.locatorId,
     }));
   }
 
@@ -218,26 +244,54 @@ export function buildHoidSpoilerDependencySet(input: unknown): HoidSpoilerDepend
   return Object.freeze({ status: "ready", dependencySet });
 }
 
-/** Rebuilds the canonical contract and rejects any altered fingerprint or field. */
+/** Rebuilds the canonical contract and rejects altered edition identities or fingerprints. */
 export function validateHoidSpoilerDependencySet(input: unknown): HoidSpoilerDependencyValidation {
   const raw = exactRecord(input, ["schemaVersion", "kind", "id", "requirements", "fingerprint"]);
   if (!raw || typeof raw.fingerprint !== "string" || !SHA_PATTERN.test(raw.fingerprint)) {
     return Object.freeze({ status: "invalid", reason: "invalid-shape" });
   }
 
+  const storedEntries = denseArray(raw.requirements, 2, MAX_REQUIREMENTS);
+  if (!storedEntries) return Object.freeze({ status: "invalid", reason: "invalid-shape" });
+
+  const minimalRequirements: Readonly<{ bookId: unknown; completedThroughChapter: unknown }>[] = [];
+  const storedRequirements: Record<string, unknown>[] = [];
+  for (const entry of storedEntries) {
+    const requirement = exactRecord(entry, STORED_REQUIREMENT_KEYS);
+    if (!requirement) return Object.freeze({ status: "invalid", reason: "invalid-shape" });
+    minimalRequirements.push(Object.freeze({
+      bookId: requirement.bookId,
+      completedThroughChapter: requirement.completedThroughChapter,
+    }));
+    storedRequirements.push(requirement);
+  }
+
   const rebuilt = buildHoidSpoilerDependencySet({
     schemaVersion: raw.schemaVersion,
     kind: raw.kind,
     id: raw.id,
-    requirements: raw.requirements,
+    requirements: minimalRequirements,
   });
   if (rebuilt.status !== "ready") {
     return Object.freeze({ status: "invalid", reason: "invalid-dependency-set" });
   }
-  if (rebuilt.dependencySet.fingerprint !== raw.fingerprint) {
+
+  const canonical = rebuilt.dependencySet;
+  const identityMatches = canonical.requirements.length === storedRequirements.length &&
+    canonical.requirements.every((expected, index) => {
+      const actual = storedRequirements[index];
+      return actual.bookId === expected.bookId &&
+        actual.completedThroughChapter === expected.completedThroughChapter &&
+        actual.manifestId === expected.manifestId &&
+        actual.editionId === expected.editionId &&
+        actual.navigationSha256 === expected.navigationSha256 &&
+        actual.unitId === expected.unitId &&
+        actual.locatorId === expected.locatorId;
+    });
+  if (!identityMatches || canonical.fingerprint !== raw.fingerprint) {
     return Object.freeze({ status: "invalid", reason: "fingerprint-mismatch" });
   }
-  return Object.freeze({ status: "valid", dependencySet: rebuilt.dependencySet });
+  return Object.freeze({ status: "valid", dependencySet: canonical });
 }
 
 /**

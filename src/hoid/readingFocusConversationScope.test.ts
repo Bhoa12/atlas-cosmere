@@ -157,10 +157,29 @@ describe("resolveHoidReadingFocusConversationScope", () => {
     });
   });
 
-  it("blocks narrative scope when the selected edition has no verified chapter structure", () => {
+  it("carries only the verified manifest boundary for an active single-work focus", () => {
     const progress = snapshot([cursorPosition("tfe", 3)]);
-    const malformed = request(progress, "single-work", ["tfe"]);
-    expect(resolveHoidReadingFocusConversationScope(malformed).status).toBe("ready");
+    const result = resolveHoidReadingFocusConversationScope(
+      request(progress, "single-work", ["tfe"]),
+    );
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready" || result.focus === null) return;
+    expect(result.focus.manifestId.length).toBeGreaterThan(0);
+    expect(result.focus.numberedChapterCount).toBeGreaterThan(0);
+    expect(result.focus.currentChapter).toBe(3);
+    expect(result.focus.completedThroughChapter).toBe(2);
+  });
+
+  it("allows a completed work as an explicit single-work scope without inventing a final chapter number", () => {
+    const progress = snapshot([{ bookId: "tfe", completed: true }]);
+    const result = resolveHoidReadingFocusConversationScope(
+      request(progress, "single-work", ["tfe"]),
+    );
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready" || result.focus === null) return;
+    expect(result.focus.status).toBe("completed");
+    expect(result.focus.currentChapter).toBeNull();
+    expect(result.focus.completedThroughChapter).toBeNull();
   });
 
   it("rejects an accessor-backed request before evaluating its properties", () => {

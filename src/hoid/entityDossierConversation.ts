@@ -282,13 +282,15 @@ function projectDossier(
   if (!budget) return null;
 
   const summaryClaimId = "dossier-summary-" + dossier.dossierId.slice(0, 16);
+  const summarySegmentText = "Expediente de " + entity.label + ": " + summary.text;
+  if (summarySegmentText.length > 4_200) return null;
   const claimIds = new Set<string>([summaryClaimId]);
   const allEvidence = new Map<string, HoidPresentedCitation>();
   allEvidence.set(summarySource.citation.evidenceId, summarySource.citation);
   const summaryEvidenceIds = Object.freeze([summarySource.citation.evidenceId]);
   const segments: HoidPresentedSegment[] = [Object.freeze({
     claimId: summaryClaimId,
-    text: summary.text,
+    text: summarySegmentText,
     evidenceIds: summaryEvidenceIds,
     citations: Object.freeze([summarySource.citation]),
   })];
@@ -353,7 +355,7 @@ function projectDossier(
   const evidenceIds = Object.freeze([...allEvidence.keys()].sort());
   const citations = Object.freeze(evidenceIds.map(id => allEvidence.get(id)!));
   const workIds = new Set(citations.map(citation => citation.sourceBookId));
-  const text = "Expediente de " + entity.label + "\n\n" + segments.map(segment => segment.text).join("\n\n");
+  const text = segments.map(segment => segment.text).join("\n\n");
   if (
     segments.length > budget.maxClaims ||
     evidenceIds.length > budget.maxEvidence ||

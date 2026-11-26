@@ -1,0 +1,76 @@
+name: Hoid Run 348 — progress-bound entity dossier conversation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run348"
+    paths:
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityDossierGateway.test.ts"
+      - "src/hoid/entityDossierIntent.ts"
+      - "src/hoid/entityDossierIntent.test.ts"
+      - "src/hoid/entityDossierConversation.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN348_PROGRESS_BOUND_ENTITY_DOSSIER_CONVERSATION.md"
+      - ".github/workflows/hoid-run348-progress-bound-entity-dossier-conversation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityDossierGateway.test.ts"
+      - "src/hoid/entityDossierIntent.ts"
+      - "src/hoid/entityDossierIntent.test.ts"
+      - "src/hoid/entityDossierConversation.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN348_PROGRESS_BOUND_ENTITY_DOSSIER_CONVERSATION.md"
+      - ".github/workflows/hoid-run348-progress-bound-entity-dossier-conversation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  progress-bound-entity-dossier-conversation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run dossier conversation and regression suites
+        run: >-
+          npx vitest run
+          src/hoid/entityDossierIntent.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/knowledgeGraph.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check — dossier conversation and screen
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/entityDossierIntent.ts
+          src/hoid/entityDossierIntent.test.ts
+          src/hoid/entityDossierConversation.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityDossierGateway.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/screens/HoidScreen.tsx

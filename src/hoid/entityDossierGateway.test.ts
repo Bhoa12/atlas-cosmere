@@ -398,6 +398,103 @@ describe("Hoid progress-bound entity dossier", () => {
     )).toEqual({ status: "unavailable", reason: "invalid-query" });
   });
 
+  it("withholds a summary whose source is outside the selected work scope", () => {
+    const fixture = baseFixture();
+    const result = buildHoidAuthorizedEntityDossier(
+      fixture.knowledge,
+      [],
+      fixture.aliases,
+      progress([{ bookId: "tfe", chapter: 3 }]),
+      { text: "Vin", bookScope: { mode: "single-work", bookIds: ["twok"] } },
+    );
+    expect(result.status).toBe("not-found");
+  });
+
+  it("filters multi-source claims unless every evidence work belongs to the selected scope", () => {
+    const entity = makeEntry("entity.vin", "Vin", "tfe");
+    const supporting = makeEntry("evidence.context", "Contexto", "twok", "concept");
+    const knowledge = Object.freeze([entity, supporting]);
+    const claim = approvedClaim(
+      "claim.vin.scoped-cross-work",
+      "Afirmación sintética de prueba con evidencia en dos obras.",
+      knowledge,
+      [entity.id, supporting.id],
+      [entity.id],
+    );
+    const aliases = Object.freeze([aliasRecord(entity)]);
+    const snapshot = progress([
+      { bookId: "tfe", chapter: 3 },
+      { bookId: "twok", chapter: 3 },
+    ]);
+
+    const singleWork = buildHoidAuthorizedEntityDossier(
+      knowledge,
+      [claim],
+      aliases,
+      snapshot,
+      { text: "Vin", bookScope: { mode: "single-work", bookIds: ["tfe"] } },
+    );
+    expect(singleWork.status).toBe("ready");
+    if (singleWork.status !== "ready") return;
+    expect(singleWork.dossier.claims).toHaveLength(0);
+
+    const crossWork = buildHoidAuthorizedEntityDossier(
+      knowledge,
+      [claim],
+      aliases,
+      snapshot,
+      { text: "Vin", bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] } },
+    );
+    expect(crossWork.status).toBe("ready");
+    if (crossWork.status !== "ready") return;
+    expect(crossWork.dossier.claims).toHaveLength(1);
+  });
+
+  it("does not disclose an alias whose mandatory disclosure evidence is outside the selected scope", () => {
+    const entity = makeEntry("entity.vin", "Vin", "tfe");
+    const aliasSource = makeEntry("alias.source.vin", "Vin", "twok");
+    const rawAlias = aliasRecord(aliasSource);
+    const crossWorkAlias = Object.freeze({
+      ...rawAlias,
+      id: "alias.vin.cross-work",
+      entityId: entity.id,
+    });
+    const snapshot = progress([
+      { bookId: "tfe", chapter: 3 },
+      { bookId: "twok", chapter: 3 },
+    ]);
+
+    const singleWork = buildHoidAuthorizedEntityDossier(
+      [entity],
+      [],
+      [crossWorkAlias],
+      snapshot,
+      { text: "Vin", bookScope: { mode: "single-work", bookIds: ["tfe"] } },
+    );
+    expect(singleWork.status).toBe("not-found");
+
+    const crossWork = buildHoidAuthorizedEntityDossier(
+      [entity],
+      [],
+      [crossWorkAlias],
+      snapshot,
+      { text: "Vin", bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] } },
+    );
+    expect(crossWork.status).toBe("ready");
+  });
+
+  it("rejects unknown and malformed work scopes", () => {
+    const fixture = baseFixture();
+    const snapshot = progress([{ bookId: "tfe", chapter: 3 }]);
+    expect(buildHoidAuthorizedEntityDossier(
+      fixture.knowledge,
+      [],
+      fixture.aliases,
+      snapshot,
+      { text: "Vin", bookScope: { mode: "single-work", bookIds: ["unknown-work"] } },
+    )).toEqual({ status: "unavailable", reason: "invalid-query" });
+  });
+
   it("production composition remains bound to empty trusted registries until promotion", () => {
     const snapshot = progress([{ bookId: "tfe", chapter: 3 }]);
     const gateway = createProductionHoidEntityDossierGateway(() => snapshot);

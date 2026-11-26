@@ -37,6 +37,11 @@ import {
 } from "./approvedClaimIntegrity";
 import { isHoidKnowledgeKind, type HoidKnowledgeKind } from "./knowledgeKinds";
 import { sha256Hex } from "./sha256";
+import {
+  canonicalizeHoidAnswerBookScope,
+  claimEvidenceMatchesHoidBookScope,
+  type HoidAnswerBookScope,
+} from "./answerScope";
 
 /**
  * A read-only, progress-bound view over already approved entity knowledge.
@@ -45,6 +50,8 @@ import { sha256Hex } from "./sha256";
 export type HoidEntityDossierQuery = Readonly<{
   text: string;
   kind?: HoidKnowledgeKind;
+  /** Restricts every visible summary and claim to the reader-selected works. */
+  bookScope?: HoidAnswerBookScope;
 }>;
 
 export type HoidEntityDossierParticipant = Readonly<{
@@ -134,6 +141,12 @@ const MAX_DOSSIER_CLAIMS = 24;
 const MAX_DOSSIER_SOURCES = 64;
 const MAX_PARTICIPANTS = 4;
 
+const HOID_ENTITY_DOSSIER_GATEWAYS = new WeakSet<object>();
+
+export function isHoidEntityDossierGateway(value: unknown): value is HoidEntityDossierGateway {
+  return value !== null && typeof value === "object" && HOID_ENTITY_DOSSIER_GATEWAYS.has(value as object);
+}
+
 function exactRecord(
   value: unknown,
   allowedKeys: readonly string[],
@@ -200,7 +213,7 @@ function denseArray(value: unknown, maximum: number): readonly unknown[] | null 
 }
 
 function canonicalQuery(value: unknown): HoidEntityDossierQuery | null {
-  const raw = exactRecord(value, ["text", "kind"], ["text"]);
+  const raw = exactRecord(value, ["text", "kind", "bookScope"], ["text"]);
   if (!raw) return null;
   const text = raw.text;
   if (
@@ -211,9 +224,14 @@ function canonicalQuery(value: unknown): HoidEntityDossierQuery | null {
     /[\u0000-\u001F\u007F\p{Cf}]/u.test(text)
   ) return null;
   if (raw.kind !== undefined && !isHoidKnowledgeKind(raw.kind)) return null;
+  const bookScope = raw.bookScope === undefined
+    ? undefined
+    : canonicalizeHoidAnswerBookScope(raw.bookScope);
+  if (raw.bookScope !== undefined && !bookScope) return null;
   return Object.freeze({
     text,
     ...(raw.kind === undefined ? {} : { kind: raw.kind as HoidKnowledgeKind }),
+    ...(bookScope ? { bookScope } : {}),
   });
 }
 
@@ -317,7 +335,10 @@ export function buildHoidAuthorizedEntityDossier(
     knowledgeInput,
     aliasEvidenceInput,
     progressInput,
-    query,
+    {
+      text: query.text,
+      ...(query.kind === undefined ? {} : { kind: query.kind }),
+    },
   );
   if (resolution.status === "unavailable") {
     return unavailable(
@@ -350,6 +371,22 @@ export function buildHoidAuthorizedEntityDossier(
   if (!claims) return unavailable("invalid-claims");
 
   const resolvedEntity = resolution.matches[0];
+  if (
+    !claimEvidenceMatchesHoidBookScope(
+      [resolvedEntity.entitySource.sourceBookId],
+      query.bookScope,
+    ) ||
+    !claimEvidenceMatchesHoidBookScope(
+      resolvedEntity.aliasEvidence.map(item => item.source.sourceBookId),
+      query.bookScope,
+    )
+  ) {
+    return Object.freeze({
+      status: "not-found",
+      progressRevision: progress.revision,
+      progressFingerprint: progress.fingerprint,
+    });
+  }
   const catalog = new HoidKnowledgeCatalog(knowledge);
   const safeEntries = catalog.entriesForContext(projection.reading);
   const safeEntity = safeEntries.find(entry => entry.id === resolvedEntity.id);
@@ -366,6 +403,13 @@ export function buildHoidAuthorizedEntityDossier(
   }
   const summarySource = evidenceCitationFor(safeEntity);
   if (!summarySource) return unavailable("invalid-knowledge");
+  if (!claimEvidenceMatchesHoidBookScope([summarySource.sourceBookId], query.bookScope)) {
+    return Object.freeze({
+      status: "not-found",
+      progressRevision: progress.revision,
+      progressFingerprint: progress.fingerprint,
+    });
+  }
   const summaryMentions = resolveHoidAuthorizedEntityMentions(
     knowledge,
     aliasEvidenceInput,
@@ -467,6 +511,10 @@ export function buildHoidAuthorizedEntityDossier(
     const sources = concreteEntries.map(entry => evidenceCitationFor(entry));
     if (sources.some(source => source === null)) return unavailable("invalid-claims");
     const canonicalSources = Object.freeze(sources as HoidEvidenceCitation[]);
+    if (!claimEvidenceMatchesHoidBookScope(
+      canonicalSources.map(source => source.sourceBookId),
+      query.bookScope,
+    )) continue;
     sourceCount += canonicalSources.length;
     if (
       visibleClaims.length >= MAX_DOSSIER_CLAIMS ||
@@ -506,6 +554,7 @@ export function buildHoidAuthorizedEntityDossier(
   const dossierId = sha256Hex(JSON.stringify([
     "hoid-entity-dossier-v1",
     progress.fingerprint,
+    query.bookScope ?? null,
     resolvedEntity.id,
     resolvedEntity.kind,
     resolvedEntity.matchedAlias,
@@ -574,7 +623,7 @@ export function createHoidEntityDossierGateway(
   const config = canonicalConfig(configInput);
   if (!config) return null;
 
-  return Object.freeze({
+  const gateway: HoidEntityDossierGateway = Object.freeze({
     getDossier(input: unknown): HoidEntityDossierGatewayResult {
       const request = exactRecord(input, ["progress", "query"]);
       if (!request) return Object.freeze({ status: "unavailable", reason: "invalid-request" });
@@ -616,6 +665,8 @@ export function createHoidEntityDossierGateway(
       return result;
     },
   });
+  HOID_ENTITY_DOSSIER_GATEWAYS.add(gateway as object);
+  return gateway;
 }
 
 /** Production composition uses only the trusted source-controlled registries. */

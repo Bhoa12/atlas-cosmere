@@ -78,14 +78,28 @@ progress. It does not open or close a second connection. Web remains
 unavailable because the existing Hoid database port requires native exclusive
 SQLite transactions.
 
-## Integration status
+## Screen integration
 
-The persistence adapter and native database factory are implemented, but the
-preference editor is not yet mounted in HoidScreen. The current app entry point
-does not provision the curated-path trust authority, so there are no real
-editorial recommendations to rank. This run does not activate recommendations,
-change reading progress, or write a user profile automatically.
+`HoidTrustedScreenHost` obtains the preference store through the Expo factory
+and passes it to `HoidScreen`. The screen mounts
+`HoidReaderPreferencesEditor`, which:
 
-The next integration step is a small preference editor that loads this store,
-uses compare-and-swap for every edit, and passes the resulting profile only to
-the post-authorization ranking function.
+- loads and validates the persisted profile before enabling controls;
+- lets the reader prioritize or deprioritize catalogued works;
+- preserves the order in which priorities were selected;
+- changes the display limit to 1, 3 or 5;
+- uses compare-and-swap for every edit and reloads after a revision conflict;
+- provides an explicit reset that advances the revision rather than deleting
+  or silently replacing the row.
+
+The screen applies `rankHoidCuratedPathRecommendationsForReader()` only to the
+already trusted signed display projection. If the preference store is
+unavailable or corrupt, the editor is disabled and the default editorial order
+is retained. Preferences cannot add a work to the projection or change its
+spoiler eligibility.
+
+The app entry point still does not provision the curated-path trust authority,
+so there are no real editorial recommendations to rank yet. The editor is
+usable for setting local preferences in preparation for approved routes, but
+this run does not activate narrative recommendations or change reading
+progress.

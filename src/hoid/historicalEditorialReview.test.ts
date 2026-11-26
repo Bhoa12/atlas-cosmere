@@ -85,13 +85,25 @@ describe("Hoid local historical editorial review packets", () => {
       .toMatchObject({ status: "invalid", reason: "invalid-draft" });
   });
 
-  it("rejects unknown works, mismatched editions and ambiguous chapter identities", () => {
+  it("rejects unknown works, mismatched editions and invalid chapter numbers", () => {
     expect(buildHoidHistoricalEditorialReviewPacket({ ...DRAFT, workId: "unknown-work" }, EVIDENCE))
       .toMatchObject({ status: "invalid", reason: "unknown-work" });
     expect(buildHoidHistoricalEditorialReviewPacket({ ...DRAFT, editionId: "other-edition" }, EVIDENCE))
       .toMatchObject({ status: "invalid", reason: "manifest-mismatch" });
     expect(buildHoidHistoricalEditorialReviewPacket({ ...DRAFT, chapterNumber: 0 }, EVIDENCE))
       .toMatchObject({ status: "invalid", reason: "invalid-draft" });
+  });
+
+  it("accepts ordinary multiline summaries without accepting control characters", () => {
+    const result = buildHoidHistoricalEditorialReviewPacket({
+      ...DRAFT,
+      summaryText: "Resumen original del capítulo con suficiente detalle y contexto para una revisión editorial local.\\n\\nIncluye un segundo párrafo redactado con palabras propias.",
+    }, EVIDENCE);
+    expect(result.status).toBe("ready");
+    expect(buildHoidHistoricalEditorialReviewPacket({
+      ...DRAFT,
+      summaryText: SUMMARY + "\\u0001",
+    }, EVIDENCE)).toMatchObject({ status: "invalid", reason: "invalid-draft" });
   });
 
   it("requires source evidence to match the edition navigation fingerprint", () => {

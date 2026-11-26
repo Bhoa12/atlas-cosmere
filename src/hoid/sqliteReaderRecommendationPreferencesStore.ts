@@ -137,7 +137,11 @@ implements HoidReaderRecommendationPreferencesStorePort {
       validation.preferences.revision !== expectedRevision + 1
     ) return "unavailable";
 
-    await this.ensureInitialized();
+    try {
+      await this.ensureInitialized();
+    } catch {
+      return "unavailable";
+    }
     const next = validation.preferences;
     const payload = JSON.stringify(next);
     if (typeof payload !== "string") return "unavailable";

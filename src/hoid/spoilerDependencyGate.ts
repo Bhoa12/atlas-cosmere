@@ -152,7 +152,7 @@ function fingerprintFor(
   id: string,
   requirements: readonly HoidSpoilerDependencyRequirement[],
 ): string {
-  return sha256Hex(JSON.stringify([
+  const payload = JSON.stringify([
     "hoid-spoiler-dependency-set-v1",
     id,
     requirements.map(item => [
@@ -164,7 +164,8 @@ function fingerprintFor(
       item.unitId,
       item.locatorId,
     ]),
-  ]));
+  ]);
+  return sha256Hex(typeof payload === "string" ? payload : "[]");
 }
 
 /**

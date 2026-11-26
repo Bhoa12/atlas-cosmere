@@ -91,7 +91,8 @@ describe("Hoid editorial draft staging", () => {
       "a9686d904b5cc7258477b6db18e7d965624dfa1d5051e2d380294909c101cbbd",
       "ac7e05bf315a566f32da1f1dff741c7bbf80fb4b45bf76f3c0ce490c3bf47ce7",
       "a44a3e6fd6533b40f0662fe18f4b305d6c1c2e39688cacaa1ecf933e59b6dfd7",
-    ]);
+          "cd46838d190f810cebec4a90575e6c681defe13fc5d4ce723e2b27ce4fed6833",
+]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
       expect(draft.summaryIntegrity.sha256).toBe(sha256Hex(draft.summary));
     }
@@ -194,9 +195,10 @@ describe("Hoid editorial draft staging", () => {
       "twok.chapter-021.kaladin-gathers-teft-for-a-secret-plan",
       "tfe.chapter-011.vin-kelsier-camon-attack",
       "twok.chapter-022.dalinar-sadeas-information-highprince",
-    ]);
+          "twok.chapter-023.kaladin-roca-teft-matopomo-and-bridge-four-bond",
+]);
     for (const draft of HOID_EDITORIAL_DRAFTS) {
-      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]).toContain(draft.evidenceSource.chapter);
+      expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]).toContain(draft.evidenceSource.chapter);
       expect(draft.evidenceUnlock).toEqual({
         bookId: draft.evidenceSource.bookId,
         chapter: draft.evidenceSource.chapter,
@@ -656,6 +658,24 @@ describe("Hoid editorial draft staging", () => {
       documentSha256: "f584be238d9ac09a0d1426e61e8f29c7b0d7221b09b692533d2a2ca503f4c148",
     });
     expect(draft.summaryIntegrity.sha256).toBe("a44a3e6fd6533b40f0662fe18f4b305d6c1c2e39688cacaa1ecf933e59b6dfd7");
+    expect(draft.review.status).toBe("pending-review");
+  });
+
+
+  it("keeps the Run 322 chapter-23 summary bound to the inspected source and unavailable until chapter 23 is completed", () => {
+    const draft = HOID_EDITORIAL_DRAFTS.find(candidate =>
+      candidate.id === "twok.chapter-023.kaladin-roca-teft-matopomo-and-bridge-four-bond",
+    );
+    expect(draft).toBeDefined();
+    if (!draft) return;
+    expect(draft.evidenceSource).toMatchObject({ bookId: "twok", chapter: 23 });
+    expect(draft.evidenceUnlock).toEqual({ bookId: "twok", chapter: 23 });
+    expect(draft.sourceIntegrity).toEqual({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "cbf8cc5fd1bfe5ef8d4d614bed5e9419f1f6ad94013aaa9e8c5bec8ce2a2b64a",
+    });
+    expect(draft.summaryIntegrity.sha256).toBe("cd46838d190f810cebec4a90575e6c681defe13fc5d4ce723e2b27ce4fed6833");
     expect(draft.review.status).toBe("pending-review");
   });
 

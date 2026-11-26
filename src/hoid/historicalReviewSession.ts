@@ -12,6 +12,10 @@ import {
   type HoidHistoricalReviewSourceEvidence,
 } from "./historicalEditorialReview";
 import { validateHoidSourceInspectionReceipt } from "./sourceInspectionReceipts";
+import {
+  buildHoidLocalReviewAtomicClaimCandidate,
+  type HoidLocalReviewAtomicClaimBridgeResult,
+} from "./localReviewToAtomicClaimBridge";
 
 type ReinspectionInput = Parameters<typeof reinspectHoidHistoricalSourceChapter>[0];
 type ReinspectionOperation = (input: ReinspectionInput) => Promise<HoidHistoricalSourceReinspectionResult>;
@@ -73,6 +77,15 @@ export type HoidHistoricalReviewDraftResult =
       reason: "stale-session" | "originality-not-confirmed" | "invalid-summary";
     }>;
 
+export type HoidHistoricalSessionAtomicClaimCandidateResult =
+  | HoidLocalReviewAtomicClaimBridgeResult
+  | Readonly<{
+      status: "invalid";
+      reason: "stale-session" | "packet-handoff-mismatch";
+      promotionAllowed: false;
+      productionWritePerformed: false;
+    }>;
+
 export interface HoidHistoricalReviewSessionController {
   beginSession(identity: unknown): HoidHistoricalReviewSessionLease | null;
   isCurrent(lease: unknown): lease is HoidHistoricalReviewSessionLease;
@@ -95,6 +108,11 @@ export interface HoidHistoricalReviewSessionController {
     decision: unknown,
   ): HoidHistoricalEditorialReviewDecisionResult;
   getReviewReceipt(packet: HoidHistoricalEditorialReviewPacket): HoidHistoricalEditorialReviewReceipt | null;
+  buildAtomicClaimCandidate(
+    handoff: HoidHistoricalReviewHandoff,
+    packet: HoidHistoricalEditorialReviewPacket,
+    claimInput: unknown,
+  ): HoidHistoricalSessionAtomicClaimCandidateResult;
 }
 
 const IDENTITY_KEYS = ["sourceId", "workId", "editionId"] as const;
@@ -389,6 +407,44 @@ export function createHoidHistoricalReviewSessionController(
       const handoff = reviewPacketHandoffs.get(packet);
       if (!lease || !handoff || !isCurrent(lease) || handoffPackets.get(handoff) !== packet) return null;
       return reviewReceipts.get(packet) ?? null;
+    },
+
+    buildAtomicClaimCandidate(
+      handoff: HoidHistoricalReviewHandoff,
+      packet: HoidHistoricalEditorialReviewPacket,
+      claimInput: unknown,
+    ): HoidHistoricalSessionAtomicClaimCandidateResult {
+      const lease = handoffLeases.get(handoff);
+      if (!lease || !isCurrent(lease)) {
+        return Object.freeze({
+          status: "invalid",
+          reason: "stale-session",
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        });
+      }
+      if (
+        handoffPackets.get(handoff) !== packet ||
+        reviewPacketHandoffs.get(packet) !== handoff ||
+        reviewPacketLeases.get(packet) !== lease
+      ) {
+        return Object.freeze({
+          status: "invalid",
+          reason: "packet-handoff-mismatch",
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        });
+      }
+      const receipt = reviewReceipts.get(packet);
+      if (!receipt) {
+        return Object.freeze({
+          status: "invalid",
+          reason: "invalid-source-review-receipt",
+          promotionAllowed: false,
+          productionWritePerformed: false,
+        });
+      }
+      return buildHoidLocalReviewAtomicClaimCandidate(packet, receipt, claimInput);
     },
 
     discardDraft(handoff: HoidHistoricalReviewHandoff): boolean {

@@ -1,0 +1,62 @@
+name: Hoid Run 329 — curated path safe display boundary
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/curatedPathRecommendationDisplayProjection.ts"
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimSignatures.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/RUN329_CURATED_PATH_SAFE_DISPLAY_BOUNDARY.md"
+      - ".github/workflows/hoid-run329-curated-path-safe-display-boundary.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run329"
+    paths:
+      - "src/hoid/curatedPathRecommendationDisplayProjection.ts"
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimSignatures.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/RUN329_CURATED_PATH_SAFE_DISPLAY_BOUNDARY.md"
+      - ".github/workflows/hoid-run329-curated-path-safe-display-boundary.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  curated-path-safe-display:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test signed route revalidation and safe display projection
+        run: npx vitest run src/hoid/curatedReadingPathCatalogue.test.ts
+      - name: Strict type-check route, evidence and display contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/curatedPathRecommendationDisplayProjection.ts
+          src/hoid/curatedReadingPathCatalogue.ts
+          src/hoid/curatedReadingPathCatalogue.test.ts
+          src/hoid/exactUnitClaimSignatures.ts
+          src/hoid/exactUnitClaimIntegrity.ts
+          src/hoid/unitEvidenceAuthorizationV2.ts
+          src/hoid/editorialReviewSignatures.ts

@@ -1,0 +1,66 @@
+name: Hoid Run 345 — cross-work multi-source claim staging
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run345"
+    paths:
+      - "src/hoid/localReviewToMultiSourceAtomicClaimBridge.ts"
+      - "src/hoid/localReviewToMultiSourceAtomicClaimBridge.test.ts"
+      - "src/hoid/localReviewToAtomicClaimBridge.ts"
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "docs/hoid/RUN345_MULTI_SOURCE_ATOMIC_CLAIM_STAGING.md"
+      - ".github/workflows/hoid-run345-multi-source-atomic-claim-staging.yml"
+  pull_request:
+    paths:
+      - "src/hoid/localReviewToMultiSourceAtomicClaimBridge.ts"
+      - "src/hoid/localReviewToMultiSourceAtomicClaimBridge.test.ts"
+      - "src/hoid/localReviewToAtomicClaimBridge.ts"
+      - "src/hoid/historicalEditorialReview.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "docs/hoid/RUN345_MULTI_SOURCE_ATOMIC_CLAIM_STAGING.md"
+      - ".github/workflows/hoid-run345-multi-source-atomic-claim-staging.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  multi-source-claim-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run multi-source and adjacent regressions
+        run: >-
+          npx vitest run
+          src/hoid/localReviewToMultiSourceAtomicClaimBridge.test.ts
+          src/hoid/localReviewToAtomicClaimBridge.test.ts
+          src/hoid/editorialClaimDrafts.test.ts
+          src/hoid/editorialClaimReviewPackets.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/localReviewToMultiSourceAtomicClaimBridge.ts
+          src/hoid/localReviewToMultiSourceAtomicClaimBridge.test.ts
+          src/hoid/localReviewToAtomicClaimBridge.ts
+          src/hoid/editorialClaimDrafts.ts
+          src/hoid/editorialClaimReviewPackets.ts
+          src/hoid/historicalEditorialReview.ts

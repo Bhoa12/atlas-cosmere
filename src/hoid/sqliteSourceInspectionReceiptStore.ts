@@ -55,6 +55,30 @@ function isSqliteBusyError(error: unknown): boolean {
     /database is locked|SQLITE_BUSY|SQLITE_LOCKED/i.test(candidate.message);
 }
 
+function receiptKey(receipt: HoidSourceInspectionReceiptLedger["receipts"][number]): string {
+  return `${receipt.workId}\\u0000${receipt.editionId}\\u0000${receipt.chapterNumber}`;
+}
+
+/** The SQLite adapter permits append-only ledger evolution, never replacement. */
+function isStrictAppend(
+  current: HoidSourceInspectionReceiptLedger,
+  next: HoidSourceInspectionReceiptLedger,
+): boolean {
+  if (
+    next.revision !== current.revision + 1 ||
+    next.receipts.length !== current.receipts.length + 1
+  ) return false;
+
+  const nextByKey = new Map(next.receipts.map(receipt => [receiptKey(receipt), receipt]));
+  for (const previous of current.receipts) {
+    const retained = nextByKey.get(receiptKey(previous));
+    if (!retained || retained.receiptFingerprint !== previous.receiptFingerprint) return false;
+  }
+  return next.receipts.filter(receipt => !current.receipts.some(
+    previous => receiptKey(previous) === receiptKey(receipt),
+  )).length === 1;
+}
+
 function decodeRow(row: ReceiptLedgerRow | null): HoidSourceInspectionReceiptLedger | null {
   if (
     !row ||
@@ -159,6 +183,10 @@ implements HoidSourceInspectionReceiptStorePort {
         }
         if (current.revision !== expectedRevision) {
           outcome = "conflict";
+          return;
+        }
+        if (!isStrictAppend(current, next)) {
+          outcome = "unavailable";
           return;
         }
 

@@ -768,6 +768,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
 
   for (const path of catalogue.paths) {
     let pathState: "completed" | "waiting" | "in-progress" | "recommended" = "completed";
+    let encounteredInProgressStep = false;
     for (const step of path.steps) {
       if (!step.prerequisites.every(item => prerequisiteCompleted(item, progress))) {
         pathState = "waiting";
@@ -776,8 +777,10 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
       const position = progress.positions.find(item => item.bookId === step.workId);
       if (position && "completed" in position && position.completed === true) continue;
       if (position && "cursor" in position) {
-        pathState = "in-progress";
-        break;
+        // An already-open step is not recommended again. Continue evaluating
+        // later steps, whose own exact prerequisites decide when they unlock.
+        encounteredInProgressStep = true;
+        continue;
       }
       const work = WORK_BY_ID.get(step.workId);
       if (!work) {
@@ -797,6 +800,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
       pathState = "recommended";
       break;
     }
+    if (pathState === "completed" && encounteredInProgressStep) pathState = "in-progress";
     if (pathState === "completed") completedPathCount += 1;
     if (pathState === "waiting") waitingPathCount += 1;
     if (pathState === "in-progress") inProgressPathCount += 1;

@@ -335,7 +335,10 @@ export function buildHoidAuthorizedEntityDossier(
     knowledgeInput,
     aliasEvidenceInput,
     progressInput,
-    query,
+    {
+      text: query.text,
+      ...(query.kind === undefined ? {} : { kind: query.kind }),
+    },
   );
   if (resolution.status === "unavailable") {
     return unavailable(

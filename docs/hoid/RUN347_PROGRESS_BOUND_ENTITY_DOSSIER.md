@@ -12,8 +12,9 @@ The projection is deliberately separate from editorial staging. Pending local su
 2. Resolve one exact entity alias through the existing entity resolver. Unknown and locked aliases both return the same not-found shape; ambiguous aliases return an opaque ambiguous result.
 3. Require the entity's first-safe appearance, complete summary watermark, and every alias-disclosure evidence item to be unlocked.
 4. Validate the knowledge and approved-claim collections with the existing catalog and evidence-runtime contracts.
-5. Include a claim only when it explicitly references the resolved entity, every claim evidence item is verified and unlocked, and every entity ID named by that claim independently resolves with its own unlocked alias evidence.
-6. Return original editorial summaries and approved claim statements with chapter-level citations. Sort deterministically and enforce fixed dossier budgets.
+5. Scan the complete entity summary and each candidate claim against every catalogued alias. A locked or unreviewed alias, an ambiguous spelling, or a named entity absent from the claim's participant metadata withholds that content.
+6. Include a claim only when it explicitly references the resolved entity, every claim evidence item is verified and unlocked, and every entity ID named by that claim independently resolves with its own unlocked alias evidence.
+7. Return original editorial summaries and approved claim statements with chapter-level citations. Sort deterministically and enforce fixed dossier budgets.
 7. The gateway reads authoritative progress before and after construction. A revision or fingerprint change discards the complete result.
 
 ## Spoiler semantics
@@ -21,6 +22,9 @@ The projection is deliberately separate from editorial staging. Pending local su
 - Cursor chapter N means N is open; only chapters through N-1 are complete.
 - Entity-name disclosure, alias disclosure, complete-summary disclosure, claim evidence, and participant identities are separate gates.
 - All evidence attached to one claim is mandatory (AND semantics).
+- Summary and claim prose are scanned against all catalogued aliases, including aliases without an approved disclosure record.
+- A locked, unreviewed, or ambiguous alias in summary/claim prose withholds the affected dossier or claim.
+- Every named entity in a claim must appear in its participant metadata.
 - A claim mentioning multiple entities is withheld until every participant identity and every evidence source is safe.
 - Locked aliases and unknown aliases are indistinguishable.
 - Ambiguous aliases do not produce a partial dossier.

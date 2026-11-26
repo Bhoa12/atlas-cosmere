@@ -162,7 +162,7 @@ export function recommendEditionBoundReadingNextSteps(
     });
   }
 
-  const items: HoidEditionBoundRecommendation[] = [];  const items: HoidEditionBoundRecommendation[] = [];
+  const items: HoidEditionBoundRecommendation[] = [];
   if (safeLimit > 0 && activePosition) {
     const currentChapter = activePosition.cursor.chapterNumber;
     // Capture the narrowed identifier before the callback; TypeScript cannot
@@ -181,8 +181,6 @@ export function recommendEditionBoundReadingNextSteps(
       target: targetForChapter(source.id, currentChapter),
     }));
   }
-
-
 
   return Object.freeze({
     status: "ready",

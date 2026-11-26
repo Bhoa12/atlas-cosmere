@@ -241,11 +241,14 @@ function verifyLocalSource(input: unknown): VerifiedLocalSource | HoidLocalMulti
     return invalid("source-not-in-verified-claim-corpus");
   }
 
+  const locatorId = units[0].locatorId;
+  if (typeof locatorId !== "string") return invalid("source-unit-ambiguous");
+
   const evidence: HoidEditorialClaimEvidence = Object.freeze({
     source: Object.freeze({
       bookId: packet.workId,
       chapter: packet.chapterNumber,
-      locatorId: units[0].locatorId,
+      locatorId,
     }),
     unlock: Object.freeze({
       bookId: packet.workId,

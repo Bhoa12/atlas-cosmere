@@ -7,10 +7,10 @@ describe("Hoid metadata-only source ingestion plan", () => {
     const plan = getHoidSourceIngestionPlan();
 
     expect(plan.catalogueWorkCount).toBe(24);
-    expect(plan.candidateCount).toBe(18);
-    expect(plan.blockedWorkCount).toBe(4);
-    expect(plan.continuationTaskCount).toBe(2);
-    expect(plan.newWorkTaskCount).toBe(16);
+    expect(plan.candidateCount).toBe(17);
+    expect(plan.blockedWorkCount).toBe(5);
+    expect(plan.continuationTaskCount).toBe(5);
+    expect(plan.newWorkTaskCount).toBe(12);
     expect(plan.completedNumberedChapterWorkCount).toBe(2);
     expect(plan.sourceAccessPerformed).toBe(false);
     expect(plan.authorizationEffect).toBe("none");
@@ -21,6 +21,9 @@ describe("Hoid metadata-only source ingestion plan", () => {
     const continuation = plan.tasks.filter(task => task.priority === "continue-inspected-work");
 
     expect(continuation.map(task => [task.workId, task.chapterNumber])).toEqual([
+      ["wor", 11],
+      ["ob", 11],
+      ["row", 11],
       ["tfe", 12],
       ["twok", 24],
     ]);
@@ -46,20 +49,20 @@ describe("Hoid metadata-only source ingestion plan", () => {
     expect(plan.tasks.some(task => task.workId === "dawnshard")).toBe(false);
   });
 
-  it("starts every other navigable work at chapter one", () => {
+  it("starts only the uninspected Cosmere works at chapter one", () => {
     const plan = getHoidSourceIngestionPlan();
     const newWorks = plan.tasks.filter(task => task.priority !== "continue-inspected-work");
 
-    expect(newWorks).toHaveLength(16);
+    expect(newWorks).toHaveLength(12);
     expect(newWorks.every(task => task.chapterNumber === 1)).toBe(true);
     expect(newWorks.filter(task => task.priority === "start-cosmere-work")).toHaveLength(12);
-    expect(newWorks.filter(task => task.priority === "start-roshar-work")).toHaveLength(4);
+    expect(newWorks.filter(task => task.priority === "start-roshar-work")).toHaveLength(0);
   });
 
-  it("keeps the safe numeric prefixes of Elantris and Viento y Verdad eligible", () => {
+  it("keeps Elantris schedulable and blocks Viento after its verified safe prefix", () => {
     const plan = getHoidSourceIngestionPlan();
     const elantris = plan.tasks.find(task => task.workId === "elantris");
-    const sawt = plan.tasks.find(task => task.workId === "sawt");
+    const sawt = plan.blockedWorks.find(work => work.workId === "sawt");
 
     expect(elantris).toMatchObject({
       chapterNumber: 1,
@@ -67,9 +70,11 @@ describe("Hoid metadata-only source ingestion plan", () => {
       manifestCoverage: "partial-before-ambiguous-chapter",
     });
     expect(sawt).toMatchObject({
-      chapterNumber: 1,
+      reason: "ambiguous-numbering-after-safe-prefix",
       safeChapterCount: 11,
-      manifestCoverage: "partial-before-ambiguous-chapter",
+      inspectedChapterCount: 11,
+      nextBlockedChapter: 12,
+      ambiguousChapterNumbers: [12, 14],
     });
   });
 
@@ -104,7 +109,7 @@ describe("Hoid metadata-only source ingestion plan", () => {
     );
   });
 
-  it("blocks White Sand volumes and Arcanum until their units are segmented", () => {
+  it("blocks Viento at duplicate numbering and keeps White Sand and Arcanum segmented", () => {
     const plan = getHoidSourceIngestionPlan();
 
     expect(plan.blockedWorks.map(work => [work.workId, work.reason])).toEqual([
@@ -112,6 +117,7 @@ describe("Hoid metadata-only source ingestion plan", () => {
       ["white-sand-2", "volume-segmentation-required"],
       ["white-sand-3", "volume-segmentation-required"],
       ["arcanum", "collection-section-segmentation-required"],
+      ["sawt", "ambiguous-numbering-after-safe-prefix"],
     ]);
   });
 

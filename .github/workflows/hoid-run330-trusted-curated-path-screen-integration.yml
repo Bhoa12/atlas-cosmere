@@ -1,0 +1,65 @@
+name: Hoid Run 330 — trusted curated-path screen integration
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/trustedCuratedPathRecommendationScreenPort.ts"
+      - "src/hoid/trustedCuratedPathRecommendationScreenPort.test.ts"
+      - "src/hoid/curatedPathRecommendationDisplayProjection.ts"
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "docs/hoid/RUN330_TRUSTED_CURATED_PATH_SCREEN_INTEGRATION.md"
+      - ".github/workflows/hoid-run330-trusted-curated-path-screen-integration.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run330"
+    paths:
+      - "src/hoid/trustedCuratedPathRecommendationScreenPort.ts"
+      - "src/hoid/trustedCuratedPathRecommendationScreenPort.test.ts"
+      - "src/hoid/curatedPathRecommendationDisplayProjection.ts"
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "docs/hoid/RUN330_TRUSTED_CURATED_PATH_SCREEN_INTEGRATION.md"
+      - ".github/workflows/hoid-run330-trusted-curated-path-screen-integration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-curated-path-screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Set up Node dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test trusted screen port and signed route display boundary
+        run: >-
+          npx vitest run
+          src/hoid/trustedCuratedPathRecommendationScreenPort.test.ts
+          src/hoid/curatedReadingPathCatalogue.test.ts
+      - name: Strict type-check screen and route contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/trustedCuratedPathRecommendationScreenPort.ts
+          src/hoid/curatedPathRecommendationDisplayProjection.ts
+          src/hoid/curatedReadingPathCatalogue.ts
+          src/hoid/curatedReadingPathCatalogue.test.ts
+          src/screens/HoidScreen.tsx
+          src/screens/HoidTrustedScreenHost.tsx

@@ -8,14 +8,14 @@ This change is provider-neutral and uses the existing exact-unit editorial claim
 
 ## Exact evidence binding
 
-Every rationaleEvidence item in a non-empty route catalogue must resolve to a signed exact-unit claim package verified by verifyHoidExactUnitClaimSignatures.
+Every rationaleEvidence item names both an exact claim ID and an evidence ID, and must resolve to that signed exact-unit claim package verified by verifyHoidExactUnitClaimSignatures. The claim ID removes ambiguity when one evidence record is reused by multiple approved claims.
 
 The verification uses the same root-authenticated reviewer trust registry, Ed25519 verification port, repository identity, clock and minimum registry revision as the route approval quorum. The evidence review context must name the same repository as the route catalogue.
 
 For every route evidence reference, Hoid requires:
 
 1. The evidence ID to exist in a verified signed package.
-2. The route's exact chapter reference (including edition/unit identity) to equal the package policy's source.
+2. The route's exact claim ID and evidence ID to resolve to one package; its exact chapter reference (including edition/unit identity) must equal that package policy's source.
 3. Every evidence ID in the approved claim to be declared by that route step; a route cannot silently omit part of a multi-evidence claim.
 4. The step's explicit prerequisites to cover all three exact policy requirements: source, firstSafeAppearance and unlock.
 5. Each prerequisite completion threshold to be at or after the corresponding requirement's exact ordinal in the same work.

@@ -43,6 +43,8 @@ export type HoidReadingPathPrerequisite = Readonly<{
 }>;
 
 export type HoidReadingPathRationaleEvidence = Readonly<{
+  /** Exact signed editorial claim whose evidence package supports this rationale. */
+  claimId: string;
   evidenceId: string;
   reference: HoidChapterReference;
 }>;
@@ -303,7 +305,7 @@ function pathFingerprint(
       step.workId,
       step.rationale,
       step.prerequisites.map(item => [item.stepId, referenceValue(item.through)]),
-      step.rationaleEvidence.map(item => [item.evidenceId, referenceValue(item.reference)]),
+      step.rationaleEvidence.map(item => [item.claimId, item.evidenceId, referenceValue(item.reference)]),
     ]),
   ]));
 }
@@ -337,7 +339,7 @@ function canonicalPath(value: unknown): HoidCuratedReadingPath | null {
   const previousSteps = new Map<string, Readonly<{ workId: string; index: number }>>();
   const seenStepIds = new Set<string>();
   const seenWorkIds = new Set<string>();
-  const seenEvidenceIds = new Set<string>();
+  const seenClaimEvidenceKeys = new Set<string>();
   const steps: HoidCuratedReadingPathStep[] = [];
 
   for (let index = 0; index < rawSteps.length; index += 1) {
@@ -371,17 +373,24 @@ function canonicalPath(value: unknown): HoidCuratedReadingPath | null {
 
     const rationaleEvidence: HoidReadingPathRationaleEvidence[] = [];
     for (const rawItem of rawEvidence) {
-      const item = exactRecord(rawItem, ["evidenceId", "reference"]);
-      if (!item || !validId(item.evidenceId) || seenEvidenceIds.has(item.evidenceId)) return null;
+      const item = exactRecord(rawItem, ["claimId", "evidenceId", "reference"]);
+      if (!item || !validId(item.claimId) || !validId(item.evidenceId)) return null;
+      const claimEvidenceKey = JSON.stringify([item.claimId, item.evidenceId]);
+      if (seenClaimEvidenceKeys.has(claimEvidenceKey)) return null;
       const reference = canonicalReference(item.reference);
       if (!reference) return null;
       const matchingPrerequisite = prerequisites.find(candidate =>
         candidate.through.bookId === reference.bookId);
       if (!matchingPrerequisite || reference.ordinal > matchingPrerequisite.through.ordinal) return null;
-      seenEvidenceIds.add(item.evidenceId);
-      rationaleEvidence.push(Object.freeze({ evidenceId: item.evidenceId, reference }));
+      seenClaimEvidenceKeys.add(claimEvidenceKey);
+      rationaleEvidence.push(Object.freeze({
+        claimId: item.claimId,
+        evidenceId: item.evidenceId,
+        reference,
+      }));
     }
-    rationaleEvidence.sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
+    rationaleEvidence.sort((left, right) =>
+      left.claimId.localeCompare(right.claimId) || left.evidenceId.localeCompare(right.evidenceId));
 
     const canonicalStep: HoidCuratedReadingPathStep = Object.freeze({
       stepId: step.stepId,
@@ -774,36 +783,30 @@ async function verifyRouteRationaleEvidence(
   );
   if (verified.status !== "verified") return null;
 
-  const policyByEvidenceId = new Map<string, Readonly<{
-    policy: (typeof verified.packages)[number]["policies"][number];
-    claimEvidenceIds: readonly string[];
-  }>>();
-  for (const item of verified.packages) {
-    for (const policy of item.policies) {
-      if (policyByEvidenceId.has(policy.evidenceId)) return null;
-      policyByEvidenceId.set(policy.evidenceId, Object.freeze({
-        policy,
-        claimEvidenceIds: item.claim.evidenceIds,
-      }));
-    }
-  }
+  const packageByClaimId = new Map(
+    verified.packages.map(item => [item.claim.id, item] as const),
+  );
 
   const bindings: unknown[] = [];
   for (const { path, step, evidence } of evidenceReferences) {
-    const binding = policyByEvidenceId.get(evidence.evidenceId);
-    if (!binding ||
-      JSON.stringify(referenceValue(binding.policy.source)) !==
+    const claimPackage = packageByClaimId.get(evidence.claimId);
+    if (!claimPackage || !claimPackage.claim.evidenceIds.includes(evidence.evidenceId)) return null;
+    const policy = claimPackage.policies.find(item => item.evidenceId === evidence.evidenceId);
+    if (!policy ||
+      JSON.stringify(referenceValue(policy.source)) !==
         JSON.stringify(referenceValue(evidence.reference))) return null;
 
     // A claim may cite multiple evidence records. The route rationale must
-    // declare all of them, not silently rely on an omitted supporting record.
-    const stepEvidenceIds = new Set(step.rationaleEvidence.map(item => item.evidenceId));
-    if (!binding.claimEvidenceIds.every(id => stepEvidenceIds.has(id))) return null;
+    // declare all of them under the same exact claim ID.
+    const stepClaimEvidenceIds = new Set(step.rationaleEvidence
+      .filter(item => item.claimId === evidence.claimId)
+      .map(item => item.evidenceId));
+    if (!claimPackage.claim.evidenceIds.every(id => stepClaimEvidenceIds.has(id))) return null;
 
     const policyRequirements = [
-      binding.policy.source,
-      binding.policy.firstSafeAppearance,
-      binding.policy.unlock,
+      policy.source,
+      policy.firstSafeAppearance,
+      policy.unlock,
     ];
     for (const requirement of policyRequirements) {
       const prerequisite = step.prerequisites.find(item =>
@@ -814,11 +817,12 @@ async function verifyRouteRationaleEvidence(
     bindings.push([
       path.pathId,
       step.stepId,
+      evidence.claimId,
       evidence.evidenceId,
-      referenceValue(binding.policy.source),
-      referenceValue(binding.policy.firstSafeAppearance),
-      referenceValue(binding.policy.unlock),
-      binding.claimEvidenceIds,
+      referenceValue(policy.source),
+      referenceValue(policy.firstSafeAppearance),
+      referenceValue(policy.unlock),
+      claimPackage.claim.evidenceIds,
     ]);
   }
 

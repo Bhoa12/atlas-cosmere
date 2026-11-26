@@ -141,7 +141,11 @@ function makeCatalogue() {
           workId: "wor",
           rationale: "Paso posterior de una ruta sintética, sujeto a progreso.",
           prerequisites: [{ stepId: "start-twok", through }],
-          rationaleEvidence: [{ evidenceId: "test-evidence-one", reference: evidence }],
+          rationaleEvidence: [{
+            claimId: "claim.route-rationale",
+            evidenceId: "test-evidence-one",
+            reference: evidence,
+          }],
         },
       ],
     }],
@@ -405,7 +409,11 @@ describe("Hoid curated reading path catalogue", () => {
             workId: "wor",
             rationale: "Second",
             prerequisites: [{ stepId: "first", through: reference("twok", 2) }],
-            rationaleEvidence: [{ evidenceId: "too-late", reference: reference("twok", 3) }],
+            rationaleEvidence: [{
+              claimId: "claim.too-late",
+              evidenceId: "too-late",
+              reference: reference("twok", 3),
+            }],
           },
         ],
       }],
@@ -636,6 +644,8 @@ describe("Hoid curated reading path recommendations", () => {
       catalogue: HOID_CURATED_READING_PATH_CATALOGUE,
       progressSnapshot: makeProgress({ kind: "empty" }),
       verifier: { verify },
+      evidencePackages: [],
+      evidenceContext: EVIDENCE_REVIEW_CONTEXT,
     });
     expect(result).toMatchObject({ status: "no-curated-paths" });
     expect(verify).not.toHaveBeenCalled();

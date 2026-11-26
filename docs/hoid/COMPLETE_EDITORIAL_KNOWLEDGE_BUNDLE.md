@@ -183,3 +183,9 @@ The current staging manifest now contains 62 original summaries, one atomic clai
 The current editorial staging set contains **86 records across 68 source documents**: 68 original summaries, one atomic claim, 14 identity dossiers and three relationship records. The Run 321 chapter-22 summary for El Camino de los Reyes is included as a source-bound draft; its source digest and edition locator are verified, but its review status remains pending.
 
 All 68 summaries remain outside the production registry. The bundle is structurally ready for independent review only; it is not approved, does not carry a production activation receipt and does not authorize a narrative response. The broader source audit records 72 individually inspected chapter documents, four of which do not currently have a staged summary. No EPUB or XHTML body was committed.
+
+## Run 322 — current staging snapshot
+
+The current editorial staging set contains **87 records across 69 source documents**: 69 original summaries, one atomic claim, 14 identity dossiers and three relationship records. The new Run 322 summary is bound to El Camino de los Reyes chapter 23, the exact edition navigation fingerprint and the raw XHTML digest. It remains pending review.
+
+All 69 summaries remain outside the production registry. The bundle is structurally ready for independent review only; it is not approved, does not carry a production activation receipt and does not authorize a narrative response. The broader source audit records 73 individually inspected chapter documents, four of which do not currently have a staged summary. No EPUB or XHTML body was committed.

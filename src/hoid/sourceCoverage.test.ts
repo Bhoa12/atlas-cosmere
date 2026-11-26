@@ -34,13 +34,13 @@ describe("Hoid metadata-only source coverage", () => {
     });
     expect(report.chapterBodies).toEqual({
       worksWithInspectedDocuments: 4,
-      totalInspectedChapterDocuments: 72,
+      totalInspectedChapterDocuments: 73,
     });
   });
 
   it("reports only the four works with individually inspected chapter documents", () => {
     expect(work("tfe").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-    expect(work("twok").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
+    expect(work("twok").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]);
     expect(work("edgedancer").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
     expect(work("dawnshard").inspectedChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
@@ -49,20 +49,20 @@ describe("Hoid metadata-only source coverage", () => {
     }
   });
 
-  it("keeps the current 68 summaries in pending review and production empty", () => {
+  it("keeps the current 69 summaries in pending review and production empty", () => {
     const report = getHoidSourceCoverageReport();
 
     expect(report.editorial).toEqual({
       worksWithStagedSummaries: 4,
-      stagedSummaryCount: 68,
-      pendingReviewSummaryCount: 68,
+      stagedSummaryCount: 69,
+      pendingReviewSummaryCount: 69,
       draftRegistryStatus: "pending-review",
       productionKnowledgeEntryCount: 0,
       approvedClaimCount: 0,
       productionRegistryStatus: "empty",
     });
     expect(work("tfe").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 11]);
-    expect(work("twok").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22]);
+    expect(work("twok").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23]);
     expect(work("edgedancer").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20]);
     expect(work("dawnshard").stagedSummaryChapterNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
   });

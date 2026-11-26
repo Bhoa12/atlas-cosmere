@@ -311,3 +311,23 @@ One additional XHTML chapter document was inspected in memory: El Camino de los 
 Current Run 321 counts are 72 individually inspected chapter documents and 68 original summaries pending review. The 24-work bibliography is unchanged. The current Library listing returned only the three unique Roshar EPUBs (each with a duplicate copy); cosmere.epub was not present in this run's listing, so no new Cosmere segmentation or chapter evidence was created. Run 320's earlier inspection remains historical and was not treated as a current source read.
 
 See RUN321_WORK_SEGMENTATION_AND_CHAPTER_22.md for exact edition fingerprints, work ranges, the chapter locator and the privacy boundary.
+
+## Run 322 — El Camino de los Reyes chapter 23 and cross-work spoiler gate
+
+The Roshar omnibus was re-opened from the current Library EPUB inventory. Its OPF and navigation fingerprints match the existing edition manifest. The chapter-23 navigation entry is TOC ordinal 34, points to the edition-bound locator ending in `L1-045.xhtml`, and occupies spine ordinal 50. The raw XHTML document was inspected in memory and discarded after its SHA-256 was computed:
+
+- Work: `twok` (El Camino de los Reyes).
+- Chapter: 23.
+- Navigation SHA-256: `08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025`.
+- Document SHA-256: `cbf8cc5fd1bfe5ef8d4d614bed5e9419f1f6ad94013aaa9e8c5bec8ce2a2b64a`.
+- Editorial draft ID: `twok.chapter-023.kaladin-roca-teft-matopomo-and-bridge-four-bond`.
+- Summary SHA-256: `cd46838d190f810cebec4a90575e6c681defe13fc5d4ce723e2b27ce4fed6833`.
+- Review status: pending; no production registration.
+
+The summary's completed-through watermark is chapter 23, so it remains withheld until chapter 23 is completed (equivalent to opening chapter 24). It is an original Spanish paraphrase; no source passage or EPUB bytes are stored in the repository.
+
+The current source-coverage snapshot is 73 individually inspected chapter documents across four works and 69 original summaries pending review. Four inspected documents still have no staged summary. Approved production summaries and claims remain zero.
+
+Run 322 also adds a provider-neutral cross-work spoiler dependency contract. It requires at least two distinct known works, binds each prerequisite to a uniquely resolved chapter identity, and evaluates each work's own completed-through watermark. Missing progress, ambiguous chapter labels, duplicate work positions, stale fingerprints and out-of-range progress fail closed. The gate returns only readiness/withholding metadata and does not call a provider, promote knowledge or write production state.
+
+The current Library EPUB filter still returns only the three unique Roshar editions (with duplicate copies); `cosmere.epub` is not available in this run's Library inventory. Its 17 bibliographic works remain catalogued but no new Cosmere chapter evidence is claimed.

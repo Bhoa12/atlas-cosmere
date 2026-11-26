@@ -109,7 +109,7 @@ describe("Hoid local historical editorial review packets", () => {
       summaryText: "Un resumen distinto que no coincide con la huella original.",
     })).toMatchObject({ status: "invalid", reason: "invalid-packet" });
     const serialized = JSON.stringify(value);
-    for (const forbidden of ["locatorId", "navigationHref", "file://", "sourceText", "archivePath"]) {
+    for (const forbidden of ["locatorId", "navigationHref", "file://", "sourcePassage", "archivePath"]) {
       expect(serialized).not.toContain(forbidden);
     }
   });

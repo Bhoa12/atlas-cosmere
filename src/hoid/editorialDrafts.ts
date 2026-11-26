@@ -1715,6 +1715,29 @@ const RAW_DRAFTS: readonly unknown[] = Object.freeze([
     review: Object.freeze({ status: "pending-review" }),
   }),
 
+  Object.freeze({
+    schemaVersion: 1,
+    id: "twok.chapter-023.kaladin-roca-teft-matopomo-and-bridge-four-bond",
+    kind: "event",
+    aliases: Object.freeze(["Kaladin", "Roca", "Teft", "Syl", "Puente Cuatro", "matopomo"]),
+    firstSafeAppearance: Object.freeze({ bookId: "twok", chapter: 23 }),
+    evidenceSource: Object.freeze({
+      bookId: "twok",
+      chapter: 23,
+      locatorId: "nav:roshar-omnibus-v1:08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025:L1-045.xhtml",
+    }),
+    evidenceUnlock: Object.freeze({ bookId: "twok", chapter: 23 }),
+    sourceIntegrity: Object.freeze({
+      editionId: "roshar-omnibus-v1",
+      navigationSha256: "08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025",
+      documentSha256: "cbf8cc5fd1bfe5ef8d4d614bed5e9419f1f6ad94013aaa9e8c5bec8ce2a2b64a",
+    }),
+    summaryIntegrity: Object.freeze({ sha256: "cd46838d190f810cebec4a90575e6c681defe13fc5d4ce723e2b27ce4fed6833" }),
+    summary: "Kaladin, Roca y Teft reúnen a escondidas tallos de matopomo para obtener la savia que necesitan los heridos del Puente Cuatro. Durante la búsqueda, Syl ayuda a Roca a localizar las plantas. Kaladin observa que los demás miembros de la cuadrilla siguen distantes pese a sus esfuerzos por protegerlos y comprende que sobrevivir juntos no basta para crear confianza. Mientras trabajan, Roca cuenta cómo su antiguo señor perdió un duelo de esquirladas contra Sadeas y cómo él se vengó contaminando la comida del alto príncipe, tras lo cual acabó destinado a las cuadrillas de puentes. La historia provoca las carcajadas de Teft y ofrece a Kaladin una pista sobre lo que falta al grupo: vínculos compartidos y motivos para reír juntos. Cuando le preguntan por su pasado, Kaladin admite que mató a un hombre y que después sufrió las consecuencias de rechazar los regalos de alguien poderoso, pero no revela todavía todos los detalles.",
+    summaryKind: "original-editorial-summary",
+    review: Object.freeze({ status: "pending-review" }),
+  }),
+
 ]);
 
 // Chapter-N summaries remain locked until the reader reaches chapter N+1.

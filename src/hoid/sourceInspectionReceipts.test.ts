@@ -113,12 +113,20 @@ describe("Hoid device-local source inspection receipts", () => {
     ]) expect(serialized).not.toContain(forbidden);
   });
 
-  it("rejects a candidate for a task that is no longer current", () => {
+  it("rejects a structurally valid candidate for a task that is no longer current", () => {
     const created = createHoidSourceInspectionReceiptFromCandidate(
-      candidateFor("tfe", { chapterNumber: 13 }),
+      candidateFor("tfe", { chapterNumber: 13, minimumReaderChapter: 14 }),
       INSPECTED_AT,
     );
     expect(created).toEqual({ status: "rejected", reason: "stale-task" });
+  });
+
+  it("rejects a candidate whose reader threshold does not match its chapter", () => {
+    const created = createHoidSourceInspectionReceiptFromCandidate(
+      candidateFor("tfe", { minimumReaderChapter: 12 }),
+      INSPECTED_AT,
+    );
+    expect(created).toEqual({ status: "rejected", reason: "invalid-candidate" });
   });
 
   it("rejects candidate locator, edition and navigation mismatches", () => {
@@ -225,9 +233,14 @@ describe("Hoid device-local source inspection receipts", () => {
     );
     if (first.status !== "added") throw new Error("Expected first receipt to be added");
 
-    const second = recordHoidSourceInspectionReceipt(first.ledger, receiptFor("tfe", {
-      inspectedAt: "2026-11-26T14:31:00.000Z",
-    }));
+    const recreated = createHoidSourceInspectionReceiptFromCandidate(
+      candidateFor("tfe"),
+      "2026-11-26T14:31:00.000Z",
+    );
+    expect(recreated.status).toBe("ready");
+    if (recreated.status !== "ready") return;
+
+    const second = recordHoidSourceInspectionReceipt(first.ledger, recreated.receipt);
     expect(second.status).toBe("unchanged");
     if (second.status === "unchanged") expect(second.ledger.revision).toBe(1);
   });

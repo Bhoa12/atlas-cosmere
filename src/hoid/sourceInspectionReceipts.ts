@@ -15,6 +15,11 @@ import type { HoidPlannedChapterInspectionCandidate } from "./sourceIngestionExe
  */
 export type HoidSourceInspectionReceipt = Readonly<{
   schemaVersion: 1;
+  status: "candidate-only";
+  authorizationEffect: "none";
+  editorialEffect: "none";
+  summaryCreated: false;
+  productionWritePerformed: false;
   workId: string;
   editionId: string;
   chapterNumber: number;
@@ -87,6 +92,11 @@ export type HoidSourceInspectionReceiptAppendResult = Readonly<{
 
 const RECEIPT_KEYS = new Set([
   "schemaVersion",
+  "status",
+  "authorizationEffect",
+  "editorialEffect",
+  "summaryCreated",
+  "productionWritePerformed",
   "workId",
   "editionId",
   "chapterNumber",
@@ -181,6 +191,11 @@ function isCanonicalIsoTimestamp(value: unknown): value is string {
 function receiptPayload(receipt: Omit<HoidSourceInspectionReceipt, "receiptFingerprint">): string {
   return JSON.stringify([
     receipt.schemaVersion,
+    receipt.status,
+    receipt.authorizationEffect,
+    receipt.editorialEffect,
+    receipt.summaryCreated,
+    receipt.productionWritePerformed,
     receipt.workId,
     receipt.editionId,
     receipt.chapterNumber,
@@ -241,7 +256,15 @@ export function validateHoidSourceInspectionReceipt(
   value: unknown,
 ): HoidSourceInspectionReceiptValidation {
   const raw = exactDataRecord(value, RECEIPT_KEYS);
-  if (!raw || raw.schemaVersion !== 1) {
+  if (
+    !raw ||
+    raw.schemaVersion !== 1 ||
+    raw.status !== "candidate-only" ||
+    raw.authorizationEffect !== "none" ||
+    raw.editorialEffect !== "none" ||
+    raw.summaryCreated !== false ||
+    raw.productionWritePerformed !== false
+  ) {
     return Object.freeze({ status: "invalid", reason: "invalid-shape" });
   }
 
@@ -293,6 +316,11 @@ export function validateHoidSourceInspectionReceipt(
 
   const payload = {
     schemaVersion: 1 as const,
+    status: "candidate-only" as const,
+    authorizationEffect: "none" as const,
+    editorialEffect: "none" as const,
+    summaryCreated: false as const,
+    productionWritePerformed: false as const,
     workId: raw.workId,
     editionId: raw.editionId,
     chapterNumber: raw.chapterNumber,
@@ -463,6 +491,11 @@ export function createHoidSourceInspectionReceiptFromCandidate(
 
   const base = Object.freeze({
     schemaVersion: 1 as const,
+    status: "candidate-only" as const,
+    authorizationEffect: "none" as const,
+    editorialEffect: "none" as const,
+    summaryCreated: false as const,
+    productionWritePerformed: false as const,
     workId: task.workId,
     editionId: task.editionId,
     chapterNumber: task.chapterNumber,

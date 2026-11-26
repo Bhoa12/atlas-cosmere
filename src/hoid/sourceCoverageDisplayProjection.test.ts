@@ -52,7 +52,7 @@ describe("Hoid metadata-only source coverage display projection", () => {
       workId: "tfe",
       title: "El Imperio Final",
       manifest: { status: "ready", coverage: "verified-numeric-chapters" },
-      navigation: { kind: "numeric-chapters", status: "partial" },
+      navigation: { kind: "numeric-chapters", status: "complete" },
       inspectedChapterNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       inspectedChapterDocumentCount: 11,
       stagedSummaryChapterNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 11],

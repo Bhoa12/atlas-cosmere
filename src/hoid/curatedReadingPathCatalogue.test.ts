@@ -701,7 +701,10 @@ describe("Hoid curated reading path recommendations", () => {
     const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
     const result = await evaluateHoidCuratedReadingPathRecommendations({
       ...input,
-      evidencePackages: [signedRouteEvidencePackage({ source: reference("twok", 2) })],
+      evidencePackages: [signedRouteEvidencePackage({
+        source: reference("twok", 2),
+        unlock: reference("twok", 2),
+      })],
     });
     expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
   });

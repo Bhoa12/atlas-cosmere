@@ -34,7 +34,7 @@ function makeEntry(
     evidenceSource: Object.freeze({ bookId, chapter, locatorId: unit.locatorId }),
     evidenceUnlock: Object.freeze({ bookId, chapter: unlockChapter }),
     summary: "Resumen editorial original y sintético para " + alias + ".",
-    provenance: "verified",
+    provenance: "verified" as const,
   });
 }
 
@@ -54,8 +54,8 @@ function aliasRecord(entry: HoidKnowledgeEntry, unlockOverride?: number): HoidEn
       }),
     })]),
     review: Object.freeze({
-      status: "approved",
-      origin: "original-editorial",
+      status: "approved" as const,
+      origin: "original-editorial" as const,
       reviewerId: "reviewer.alpha",
       reviewedAt: NOW,
     }),

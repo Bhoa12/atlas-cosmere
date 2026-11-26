@@ -119,6 +119,7 @@ export const HoidEpubImportPanel: React.FC<{
   const [historicalReviewDraft, setHistoricalReviewDraft] = useState<HoidHistoricalReviewDraft | null>(null);
   const [historicalReviewSummary, setHistoricalReviewSummary] = useState("");
   const [historicalReviewOriginalityConfirmed, setHistoricalReviewOriginalityConfirmed] = useState(false);
+  const [historicalReviewSessionGeneration, setHistoricalReviewSessionGeneration] = useState<number | null>(null);
   const [receiptStoreStatus, setReceiptStoreStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -182,6 +183,7 @@ export const HoidEpubImportPanel: React.FC<{
     setHistoricalReviewDraft(null);
     setHistoricalReviewSummary("");
     setHistoricalReviewOriginalityConfirmed(false);
+    setHistoricalReviewSessionGeneration(null);
   };
 
   const invalidateReaderSession = () => {
@@ -238,6 +240,7 @@ export const HoidEpubImportPanel: React.FC<{
     });
     if (lease === null) return;
     historicalReviewLeaseRef.current = lease;
+    setHistoricalReviewSessionGeneration(lease.generation);
     return () => {
       historicalReviewControllerRef.current.invalidate(lease);
       if (historicalReviewLeaseRef.current === lease) historicalReviewLeaseRef.current = null;
@@ -775,6 +778,7 @@ export const HoidEpubImportPanel: React.FC<{
                 selectedChoice.editionId === item.editionId &&
                 candidate?.workId === item.workId &&
                 candidate.declaredEditionId === item.editionId &&
+                historicalReviewSessionGeneration !== null &&
                 historicalReviewLeaseRef.current !== null &&
                 historicalReviewControllerRef.current.isCurrent(historicalReviewLeaseRef.current) ? (
                   <TouchableOpacity

@@ -161,7 +161,7 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("invalidates handoffs and drafts when the source is released", async () => {
     const { controller, lease, handoff } = await openVerifiedHandoff();
-    const saved = controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial.", true);
+    const saved = controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.", true);
     expect(saved.status).toBe("saved-in-memory");
     controller.invalidate(lease);
     expect(controller.isCurrent(lease)).toBe(false);
@@ -174,7 +174,7 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("requires an explicit originality attestation before accepting a draft", async () => {
     const { controller, handoff } = await openVerifiedHandoff();
-    expect(controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local.", false)).toEqual({
+    expect(controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.", false)).toEqual({
       status: "rejected",
       reason: "originality-not-confirmed",
     });
@@ -182,7 +182,7 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("keeps a valid original summary in memory only and marks it non-authorizing", async () => {
     const { controller, handoff } = await openVerifiedHandoff();
-    const summary = "Resumen original suficientemente extenso para una prueba local de revisión editorial.";
+    const summary = "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.";
     const result = controller.saveDraft(handoff, summary, true);
     expect(result.status).toBe("saved-in-memory");
     expect(result).toMatchObject({

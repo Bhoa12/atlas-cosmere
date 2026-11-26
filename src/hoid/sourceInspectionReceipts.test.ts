@@ -70,14 +70,19 @@ describe("Hoid device-local source inspection receipts", () => {
       inspectedAt: INSPECTED_AT,
     });
     expect(Object.keys(created.receipt).sort()).toEqual([
+      "authorizationEffect",
       "byteLength",
       "chapterNumber",
       "documentSha256",
       "editionId",
+      "editorialEffect",
       "inspectedAt",
       "navigationSha256",
+      "productionWritePerformed",
       "receiptFingerprint",
       "schemaVersion",
+      "status",
+      "summaryCreated",
       "workId",
     ]);
   });

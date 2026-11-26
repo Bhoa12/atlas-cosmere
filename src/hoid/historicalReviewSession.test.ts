@@ -5,6 +5,8 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { sha256Hex } from "./sha256";
 import { createHoidHistoricalReviewSessionController } from "./historicalReviewSession";
 import type { HoidHistoricalEditorialChecklist } from "./historicalEditorialReview";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
+import type { HoidLocalAtomicClaimInput } from "./localReviewToAtomicClaimBridge";
 
 const VERIFIED_AT = "2026-11-26T18:00:00.000Z";
 const WORK_ID = "twok";
@@ -56,8 +58,8 @@ const source = (sourceId = "local-source-a") => ({
   editionId: manifest.editionId,
   sourceGroup: "roshar-epubs",
 });
-const inputFor = (sourceValue = source(sourceValueId())) => ({
-  receipt: RECEIPT,
+const inputFor = (sourceValue = source(sourceValueId()), receipt = RECEIPT) => ({
+  receipt,
   source: sourceValue,
   packageCandidate: {},
   ingestion: { inspectChapterDocument: async () => ({ status: "rejected" as const, reason: "inspection-failed" as const }) },
@@ -95,11 +97,11 @@ function verifiedController() {
   return { controller, calls: () => calls };
 }
 
-async function openVerifiedHandoff() {
+async function openVerifiedHandoff(receipt: HoidSourceInspectionReceipt = RECEIPT) {
   const value = verifiedController();
   const lease = value.controller.beginSession(identity());
   if (!lease) throw new Error("Test session could not be opened");
-  const result = await value.controller.verifyAndBind(lease, inputFor());
+  const result = await value.controller.verifyAndBind(lease, inputFor(source(), receipt));
   if (result.status !== "ready") throw new Error("Test handoff could not be verified");
   return { ...value, lease, handoff: result.handoff };
 }
@@ -111,6 +113,43 @@ const APPROVED_CHECKLIST: HoidHistoricalEditorialChecklist = Object.freeze({
   originality: true,
   spoilerCeiling: true,
   provenance: true,
+});
+
+const VERIFIED_DOCUMENT_SHA256 = getVerifiedChapterDocumentSha256(
+  WORK_ID,
+  manifest.editionId,
+  manifest.navigationSha256,
+  1,
+);
+if (!VERIFIED_DOCUMENT_SHA256) throw new Error("Verified chapter fixture is unavailable");
+const VERIFIED_RECEIPT_BASE = Object.freeze({
+  ...receiptBase,
+  documentSha256: VERIFIED_DOCUMENT_SHA256,
+});
+const VERIFIED_RECEIPT: HoidSourceInspectionReceipt = Object.freeze({
+  ...VERIFIED_RECEIPT_BASE,
+  receiptFingerprint: sha256Hex(JSON.stringify([
+    VERIFIED_RECEIPT_BASE.schemaVersion,
+    VERIFIED_RECEIPT_BASE.status,
+    VERIFIED_RECEIPT_BASE.authorizationEffect,
+    VERIFIED_RECEIPT_BASE.editorialEffect,
+    VERIFIED_RECEIPT_BASE.summaryCreated,
+    VERIFIED_RECEIPT_BASE.productionWritePerformed,
+    VERIFIED_RECEIPT_BASE.workId,
+    VERIFIED_RECEIPT_BASE.editionId,
+    VERIFIED_RECEIPT_BASE.chapterNumber,
+    VERIFIED_RECEIPT_BASE.byteLength,
+    VERIFIED_RECEIPT_BASE.documentSha256,
+    VERIFIED_RECEIPT_BASE.navigationSha256,
+    VERIFIED_RECEIPT_BASE.inspectedAt,
+  ])),
+});
+const ATOMIC_CLAIM: HoidLocalAtomicClaimInput = Object.freeze({
+  subjectId: "synthetic-test-subject",
+  subjectKind: "character",
+  assertionKind: "interpretation",
+  intent: "explain",
+  statement: "Afirmación sintética de prueba para comprobar el acceso a la conversión atómica desde una sesión activa.",
 });
 
 describe("Hoid session-bound historical review workspace", () => {
@@ -346,6 +385,98 @@ describe("Hoid session-bound historical review workspace", () => {
       noteCodes: ["completeness-issue"],
     })).toMatchObject({ status: "invalid", reason: "invalid-packet" });
     expect(controller.getReviewReceipt(built.packet)).toBeNull();
+  });
+
+
+
+  it("creates an atomic claim candidate only through the exact active reviewed handoff", async () => {
+    const { controller, handoff } = await openVerifiedHandoff(VERIFIED_RECEIPT);
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+    const reviewed = controller.recordReviewDecision(handoff, built.packet, {
+      decision: "approved",
+      reviewerLabel: "local-editor",
+      reviewedAt: VERIFIED_AT,
+      checklist: APPROVED_CHECKLIST,
+      noteCodes: ["no-issues"],
+    });
+    if (reviewed.status !== "valid") throw new Error("Local review was not recorded");
+
+    const result = controller.buildAtomicClaimCandidate(handoff, built.packet, ATOMIC_CLAIM);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.candidate).toMatchObject({
+      stage: "awaiting-independent-claim-review",
+      sourceReviewTrust: "local-unverified",
+      providerEgress: "none",
+      promotionAllowed: false,
+      productionWritePerformed: false,
+      spoilerAuthorization: "none",
+    });
+    expect(result.candidate.claimDraft.evidence[0].unlock).toEqual({
+      bookId: WORK_ID,
+      chapter: 1,
+    });
+  });
+
+  it("requires a local approval receipt before building an atomic claim candidate", async () => {
+    const { controller, handoff } = await openVerifiedHandoff(VERIFIED_RECEIPT);
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+
+    expect(controller.buildAtomicClaimCandidate(handoff, built.packet, ATOMIC_CLAIM)).toMatchObject({
+      status: "invalid",
+      reason: "invalid-source-review-receipt",
+      promotionAllowed: false,
+    });
+  });
+
+  it("rejects a review packet when it is presented with a different handoff", async () => {
+    const value = verifiedController();
+    const lease = value.controller.beginSession(identity());
+    if (!lease) throw new Error("Test session could not be opened");
+    const first = await value.controller.verifyAndBind(lease, inputFor(source(), VERIFIED_RECEIPT));
+    const second = await value.controller.verifyAndBind(lease, inputFor(source(), VERIFIED_RECEIPT));
+    if (first.status !== "ready" || second.status !== "ready") throw new Error("Test handoffs were not created");
+    value.controller.saveDraft(first.handoff, SUMMARY, true);
+    const built = value.controller.buildReviewPacket(first.handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+    value.controller.recordReviewDecision(first.handoff, built.packet, {
+      decision: "approved",
+      reviewerLabel: "local-editor",
+      reviewedAt: VERIFIED_AT,
+      checklist: APPROVED_CHECKLIST,
+      noteCodes: ["no-issues"],
+    });
+
+    expect(value.controller.buildAtomicClaimCandidate(second.handoff, built.packet, ATOMIC_CLAIM)).toMatchObject({
+      status: "invalid",
+      reason: "packet-handoff-mismatch",
+      promotionAllowed: false,
+    });
+  });
+
+  it("invalidates atomic claim candidate creation when the source session ends", async () => {
+    const { controller, lease, handoff } = await openVerifiedHandoff(VERIFIED_RECEIPT);
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+    controller.recordReviewDecision(handoff, built.packet, {
+      decision: "approved",
+      reviewerLabel: "local-editor",
+      reviewedAt: VERIFIED_AT,
+      checklist: APPROVED_CHECKLIST,
+      noteCodes: ["no-issues"],
+    });
+    controller.invalidate(lease);
+
+    expect(controller.buildAtomicClaimCandidate(handoff, built.packet, ATOMIC_CLAIM)).toMatchObject({
+      status: "invalid",
+      reason: "stale-session",
+      promotionAllowed: false,
+    });
   });
 
   it("invalidates review packets and local decisions when the source session ends", async () => {

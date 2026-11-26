@@ -26,7 +26,10 @@ import {
   type HoidResolvedEntitySource,
 } from "./entityResolver";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
-import { fingerprintHoidCursorProgressSnapshot } from "./knowledgeGraph";
+import {
+  fingerprintHoidCursorProgressProjection,
+  fingerprintHoidCursorProgressSnapshot,
+} from "./knowledgeGraph";
 import {
   validateHoidApprovedClaimAttestation,
   type HoidApprovedClaim,
@@ -225,6 +228,14 @@ function sameProgress(left: ProgressIdentity, right: ProgressIdentity): boolean 
   return left.revision === right.revision && left.fingerprint === right.fingerprint;
 }
 
+function resultMatchesProgress(
+  revision: number,
+  fingerprint: string,
+  expected: ProgressIdentity,
+): boolean {
+  return revision === expected.revision && fingerprint === expected.fingerprint;
+}
+
 function unavailable(
   reason: Extract<HoidEntityDossierBuildResult, { status: "unavailable" }>["reason"],
 ): HoidEntityDossierBuildResult {
@@ -296,7 +307,11 @@ export function buildHoidAuthorizedEntityDossier(
   const projection = projectHoidCursorProgressSnapshot(progressInput);
   if (projection.status !== "ready") return unavailable("invalid-progress");
   const progress = progressIdentity(progressInput);
-  if (!progress) return unavailable("invalid-progress");
+  if (
+    !progress ||
+    projection.revision !== progress.revision ||
+    fingerprintHoidCursorProgressProjection(projection) !== progress.fingerprint
+  ) return unavailable("invalid-progress");
 
   const resolution = resolveHoidAuthorizedEntities(
     knowledgeInput,
@@ -309,6 +324,11 @@ export function buildHoidAuthorizedEntityDossier(
       resolution.reason === "invalid-progress" ? "invalid-progress" : "invalid-knowledge",
     );
   }
+  if (!resultMatchesProgress(
+    resolution.progressRevision,
+    resolution.progressFingerprint,
+    progress,
+  )) return unavailable("invalid-progress");
   if (resolution.resolution === "not-found") {
     return Object.freeze({
       status: "not-found",
@@ -357,6 +377,11 @@ export function buildHoidAuthorizedEntityDossier(
       summaryMentions.reason === "invalid-progress" ? "invalid-progress" : "invalid-knowledge",
     );
   }
+  if (summaryMentions.status === "ready" && !resultMatchesProgress(
+    summaryMentions.progressRevision,
+    summaryMentions.progressFingerprint,
+    progress,
+  )) return unavailable("invalid-progress");
   if (
     summaryMentions.status === "blocked" ||
     summaryMentions.resolution === "ambiguous" ||
@@ -388,16 +413,19 @@ export function buildHoidAuthorizedEntityDossier(
         progressInput,
         entityIds,
       );
+      if (participants.status === "unavailable" && participants.reason === "invalid-progress") {
+        return unavailable("invalid-progress");
+      }
+      if (participants.status !== "ready") continue;
+      if (!resultMatchesProgress(
+        participants.progressRevision,
+        participants.progressFingerprint,
+        progress,
+      )) return unavailable("invalid-progress");
       if (
-        participants.status !== "ready" ||
         participants.resolution !== "matched" ||
         participants.matches.length !== entityIds.length
-      ) {
-        if (participants.status === "unavailable" && participants.reason === "invalid-progress") {
-          return unavailable("invalid-progress");
-        }
-        continue;
-      }
+      ) continue;
       participantMatches = participants.matches;
     }
 
@@ -414,6 +442,11 @@ export function buildHoidAuthorizedEntityDossier(
       if (mentions.reason === "invalid-progress") return unavailable("invalid-progress");
       return unavailable("invalid-claims");
     }
+    if (mentions.status === "ready" && !resultMatchesProgress(
+      mentions.progressRevision,
+      mentions.progressFingerprint,
+      progress,
+    )) return unavailable("invalid-progress");
     if (
       mentions.status === "blocked" ||
       mentions.resolution === "ambiguous" ||

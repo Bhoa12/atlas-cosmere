@@ -1,0 +1,57 @@
+name: Hoid Run 341 — exact historical source reinspection
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/historicalSourceReinspection.ts"
+      - "src/hoid/historicalSourceReinspection.test.ts"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN341_HISTORICAL_SOURCE_REINSPECTION.md"
+      - ".github/workflows/hoid-run341-historical-source-reinspection.yml"
+  pull_request:
+    paths:
+      - "src/hoid/historicalSourceReinspection.ts"
+      - "src/hoid/historicalSourceReinspection.test.ts"
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/epubImportSelection.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN341_HISTORICAL_SOURCE_REINSPECTION.md"
+      - ".github/workflows/hoid-run341-historical-source-reinspection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  historical-source-reinspection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test historical reinspection and adjacent receipt contracts
+        run: >-
+          npx vitest run
+          src/hoid/historicalSourceReinspection.test.ts
+          src/hoid/sourceInspectionReviewQueue.test.ts
+          src/hoid/sourceInspectionReceipts.test.ts
+      - name: Strict type-check historical reinspection contract
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/historicalSourceReinspection.ts
+          src/hoid/historicalSourceReinspection.test.ts

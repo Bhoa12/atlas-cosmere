@@ -157,6 +157,16 @@ describe("resolveHoidReadingFocusConversationScope", () => {
     });
   });
 
+  it("blocks an unsegmented merged volume even when its progress is marked completed", () => {
+    const progress = snapshot([{ bookId: "white-sand-1", completed: true }]);
+    expect(resolveHoidReadingFocusConversationScope(
+      request(progress, "single-work", ["white-sand-1"]),
+    )).toEqual({
+      status: "unavailable",
+      reason: "chapter-structure-unavailable",
+    });
+  });
+
   it("carries only the verified manifest boundary for an active single-work focus", () => {
     const progress = snapshot([cursorPosition("tfe", 3)]);
     const result = resolveHoidReadingFocusConversationScope(

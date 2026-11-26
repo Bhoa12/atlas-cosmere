@@ -105,6 +105,22 @@ describe("Hoid session-bound historical review workspace", () => {
     expect(Object.isFrozen(handoff)).toBe(true);
   });
 
+  it("rejects a verified-shaped result whose attestation is incomplete or authorizing", async () => {
+    const controller = createHoidHistoricalReviewSessionController(async () => ({
+      ...verifiedResult,
+      attestation: Object.freeze({
+        ...verifiedResult.attestation,
+        sourceContentIncluded: true,
+      }),
+    }));
+    const lease = controller.beginSession(identity());
+    if (!lease) throw new Error("Test session could not be opened");
+    expect(await controller.verifyAndBind(lease, inputFor())).toEqual({
+      status: "rejected",
+      reason: "attestation-session-mismatch",
+    });
+  });
+
   it("propagates changed documents without creating a review handoff", async () => {
     const controller = createHoidHistoricalReviewSessionController(async () => ({
       status: "changed",
@@ -232,7 +248,7 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("allows an active reviewer to discard an in-memory draft", async () => {
     const { controller, handoff } = await openVerifiedHandoff();
-    controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión.", true);
+    controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial, con detalles adicionales y contexto.", true);
     expect(controller.discardDraft(handoff)).toBe(true);
     expect(controller.getDraft(handoff)).toBeNull();
   });

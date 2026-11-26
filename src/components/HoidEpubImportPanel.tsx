@@ -817,6 +817,9 @@ export const HoidEpubImportPanel: React.FC<{
             editable={!busy}
             value={historicalReviewSummary}
             onChangeText={value => {
+              if (historicalReviewHandoff !== null) {
+                historicalReviewControllerRef.current.discardDraft(historicalReviewHandoff);
+              }
               setHistoricalReviewSummary(value);
               setHistoricalReviewDraft(null);
             }}
@@ -827,7 +830,13 @@ export const HoidEpubImportPanel: React.FC<{
           <TouchableOpacity
             accessibilityRole="checkbox"
             accessibilityState={{ checked: historicalReviewOriginalityConfirmed }}
-            onPress={() => setHistoricalReviewOriginalityConfirmed(value => !value)}
+            onPress={() => {
+              if (historicalReviewHandoff !== null) {
+                historicalReviewControllerRef.current.discardDraft(historicalReviewHandoff);
+              }
+              setHistoricalReviewDraft(null);
+              setHistoricalReviewOriginalityConfirmed(value => !value);
+            }}
             style={styles.reviewAttestation}
           >
             <Text style={styles.reviewAttestationText}>

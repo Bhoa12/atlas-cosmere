@@ -206,6 +206,14 @@ export function createHoidHistoricalReviewSessionController(
         result.attestation.workId !== activeIdentity.workId ||
         result.attestation.editionId !== activeIdentity.editionId ||
         result.attestation.reviewCanStart !== true ||
+        result.attestation.sourceAvailability !== "verified-local" ||
+        result.attestation.sourceContentIncluded !== false ||
+        result.attestation.sourceAccessPerformed !== true ||
+        result.attestation.documentUnchanged !== true ||
+        result.attestation.summaryCreated !== false ||
+        result.attestation.productionWritePerformed !== false ||
+        !Number.isSafeInteger(result.attestation.chapterNumber) ||
+        result.attestation.chapterNumber < 1 ||
         result.attestation.authorizationEffect !== "none" ||
         result.attestation.editorialEffect !== "none"
       ) return Object.freeze({ status: "rejected", reason: "attestation-session-mismatch" });

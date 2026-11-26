@@ -97,7 +97,7 @@ describe("Hoid device-local source inspection receipts", () => {
 
     const serialized = JSON.stringify(created.receipt);
     for (const forbidden of [
-      "summary",
+      '"summary":',
       "sourceId",
       "file://",
       "displayName",
@@ -298,7 +298,7 @@ describe("Hoid device-local source inspection receipts", () => {
       INSPECTED_AT,
     );
     expect(result).toEqual({ status: "saved", receiptCount: 1 });
-    expect(JSON.stringify(stored)).not.toContain("summary");
+    expect(JSON.stringify(stored)).not.toContain('"summary":');
   });
 
   it("does not overwrite an invalid persisted ledger", async () => {

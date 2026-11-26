@@ -85,7 +85,7 @@ export type HoidSourceInspectionReceiptCreation =
     }>;
 
 export type HoidSourceInspectionReceiptAppendResult = Readonly<{
-  status: "saved" | "unchanged" | "conflict" | "unavailable" | "rejected";
+  status: "saved" | "unchanged" | "receipt-conflict" | "write-conflict" | "unavailable" | "rejected";
   receiptCount: number;
   reason?: string;
 }>;
@@ -583,7 +583,7 @@ export async function appendHoidSourceInspectionReceipt(
       return Object.freeze({ status: "unavailable", receiptCount: ledgerValidation.ledger.receipts.length });
     }
     if (next.status === "conflict") {
-      return Object.freeze({ status: "conflict", receiptCount: ledgerValidation.ledger.receipts.length });
+      return Object.freeze({ status: "receipt-conflict", receiptCount: ledgerValidation.ledger.receipts.length });
     }
     if (next.status === "unchanged") {
       return Object.freeze({ status: "unchanged", receiptCount: next.ledger.receipts.length });
@@ -594,7 +594,7 @@ export async function appendHoidSourceInspectionReceipt(
       return Object.freeze({ status: "saved", receiptCount: next.ledger.receipts.length });
     }
     if (saved === "conflict") {
-      return Object.freeze({ status: "conflict", receiptCount: ledgerValidation.ledger.receipts.length });
+      return Object.freeze({ status: "write-conflict", receiptCount: ledgerValidation.ledger.receipts.length });
     }
     return Object.freeze({ status: "unavailable", receiptCount: ledgerValidation.ledger.receipts.length });
   } catch {

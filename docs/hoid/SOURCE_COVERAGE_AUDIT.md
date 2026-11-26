@@ -16,8 +16,8 @@ The checked-in catalogue contains 24 works: 17 assigned to `cosmere.epub` and 7 
 | Edition structures | 24 | A conservative progress policy is recorded for every catalogue work |
 | Verified numbered-chapter locators | 1,110 | Relative navigation hrefs are bound to an edition and navigation digest |
 | Works with at least one verified locator | 20 | Navigation metadata exists for those work IDs |
-| Individually inspected chapter documents | 72 | Exact XHTML document bytes were inspected and fingerprinted |
-| Works with inspected chapter documents | 4 | Body-level inspection is limited to those four works |
+| Individually inspected chapter documents | 114 | Exact XHTML document bytes were fingerprinted from edition-matched private EPUBs; no prose is stored |
+| Works with inspected chapter documents | 8 | Byte-level coverage spans TFE, the five Roshar novels (safe numeric prefix for Viento y Verdad), Danzante del Filo and Esquirla del amanecer |
 | Original staged chapter summaries | 68 | Original editorial summaries exist in staging |
 | Summaries pending review | 68 | None of those summaries is approved for production |
 | Production knowledge entries | 0 | No narrative knowledge entry is active |
@@ -78,7 +78,7 @@ Counts are: verified navigation locators / individually inspected chapter docume
 
 - `src/hoid/sourceCoverage.ts` builds the immutable report from the checked-in bibliography, edition policies, reading manifests, sparse navigation/document allowlists, staging drafts and production registry.
 - `src/hoid/verifiedChapterDocuments.ts` exposes the sorted chapter numbers whose original XHTML bytes were individually inspected. It exposes no prose or hashes through the coverage report.
-- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,110 locators, 72 inspected documents, 68 pending summaries, ambiguous/segmented policies and empty production registries.
+- `src/hoid/sourceCoverage.test.ts` asserts the 24-work inventory, 1,110 locators, 114 byte-fingerprinted chapter documents, 69 pending summaries, ambiguous/segmented policies and empty production registries.
 - `hoid-source-coverage-audit.yml` runs the coverage and source-boundary regressions with strict TypeScript checks.
 
 ## Scope of Run 165 (historical)
@@ -331,3 +331,25 @@ The current source-coverage snapshot is 73 individually inspected chapter docume
 Run 322 also adds a provider-neutral cross-work spoiler dependency contract. It requires at least two distinct known works, binds each prerequisite to a uniquely resolved chapter identity, and evaluates each work's own completed-through watermark. Missing progress, ambiguous chapter labels, duplicate work positions, stale fingerprints and out-of-range progress fail closed. The gate returns only readiness/withholding metadata and does not call a provider, promote knowledge or write production state.
 
 The current Library EPUB filter still returns only the three unique Roshar editions (with duplicate copies); `cosmere.epub` is not available in this run's Library inventory. Its 17 bibliographic works remain catalogued but no new Cosmere chapter evidence is claimed.
+
+
+## Run 346 — multi-source relationships and Roshar chapter byte fingerprints
+
+The Library contains the five-book Roshar omnibus and separate EPUBs for Danzante del Filo and Esquirla del amanecer. Their registered navigation-document SHA-256 values were checked against the exact selected files:
+- Roshar omnibus: 08280d2afd0845699e5a9987d38c11c4f68626b372404700ac67ce604bf00025
+- Danzante del Filo: 5b98fb8090f55b3e9d597bd1317dad53bcd1b00e339196b7156aa2bd93ec1517
+- Esquirla del amanecer: 8ae9931de471b771c5d426556e6d8d3c05aed58565a24d504fcba7128bca8075
+
+All three navigation fingerprints match their registered edition structures. The five-book omnibus TOC identifies El camino de los reyes, Palabras radiantes, Juramentada, El Ritmo de la Guerra and Viento y verdad. The 23 previously registered El Camino de los Reyes chapter XHTML hashes were compared with the selected omnibus and all matched.
+
+Forty-one additional raw XHTML byte fingerprints were added, without extracting or committing text:
+- Palabras radiantes: chapters 1–10;
+- Juramentada: chapters 1–10;
+- El Ritmo de la Guerra: chapters 1–10;
+- Viento y verdad: chapters 1–11 only.
+
+The numeric prefix for Viento y verdad remains capped before duplicate chapter labels 12 and 14. No later chapter was added to numeric progress. The source-coverage inventory is now 114 individually fingerprinted chapter documents across eight works. This is byte-integrity evidence only; it is not narrative review, summary approval or production knowledge.
+
+The Run 346 relationship bridge now converts locally approved, multi-work chapter reviews plus resolved entity drafts into an existing editorial relationship draft and review packet. Every source chapter remains a mandatory AND requirement. The bridge does not create a graph edge, promote production knowledge, mutate progress, call a provider or authorize spoilers.
+
+The current Library EPUB-filtered listing still does not contain `cosmere.epub`. The 17-work Cosmere catalogue remains metadata-only in this run. No Cosmere chapter hashes or new narrative claims were created. All 69 existing summaries remain pending independent review; approved claims and production knowledge remain zero. No EPUB bytes, XHTML, copied passages, extracted prose, chapter titles or private file paths were committed.

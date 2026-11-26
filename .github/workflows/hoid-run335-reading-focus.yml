@@ -1,0 +1,64 @@
+name: Hoid Run 335 — explicit reading focus
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/readingFocus.ts"
+      - "src/hoid/readingFocus.test.ts"
+      - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN335_EXPLICIT_READING_FOCUS.md"
+      - ".github/workflows/hoid-run335-reading-focus.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run335"
+    paths:
+      - "src/hoid/readingFocus.ts"
+      - "src/hoid/readingFocus.test.ts"
+      - "src/hoid/cursorReadingContext.ts"
+      - "src/hoid/cursorProgressLedger.ts"
+      - "src/hoid/readingBoundary.ts"
+      - "src/hoid/readingManifest.ts"
+      - "docs/hoid/RUN335_EXPLICIT_READING_FOCUS.md"
+      - ".github/workflows/hoid-run335-reading-focus.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  explicit-reading-focus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test reading focus and adjacent progress boundaries
+        run: >-
+          npx vitest run
+          src/hoid/readingFocus.test.ts
+          src/hoid/cursorReadingContext.test.ts
+          src/hoid/cursorProgressFingerprint.test.ts
+      - name: Strict type-check reading focus contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/readingFocus.ts
+          src/hoid/readingFocus.test.ts
+          src/hoid/cursorReadingContext.ts
+          src/hoid/cursorProgressLedger.ts
+          src/hoid/readingBoundary.ts
+          src/hoid/readingManifest.ts

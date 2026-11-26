@@ -7,11 +7,12 @@
 export type HoidReaderPreferenceOperationToken = object;
 
 type OperationKind = "read" | "write";
-type OperationMetadata = Readonly<{
+type OperationMetadata = {
   generation: number;
   id: number;
   kind: OperationKind;
-}>;
+  finished: boolean;
+};
 
 export type HoidReaderPreferenceOperationFence = Readonly<{
   beginRead(): HoidReaderPreferenceOperationToken;
@@ -31,7 +32,7 @@ HoidReaderPreferenceOperationFence {
   const issue = (kind: OperationKind): HoidReaderPreferenceOperationToken => {
     const token = Object.freeze(Object.create(null)) as object;
     const id = ++nextId;
-    metadata.set(token, Object.freeze({ generation, id, kind }));
+    metadata.set(token, { generation, id, kind, finished: false });
     return token;
   };
 
@@ -52,7 +53,9 @@ HoidReaderPreferenceOperationFence {
     isCurrent(token: unknown): boolean {
       if (token === null || typeof token !== "object") return false;
       const entry = metadata.get(token);
-      return entry !== undefined && entry.generation === generation;
+      return entry !== undefined &&
+        !entry.finished &&
+        entry.generation === generation;
     },
 
     finishWrite(token: unknown): boolean {
@@ -61,8 +64,10 @@ HoidReaderPreferenceOperationFence {
       if (
         entry === undefined ||
         entry.kind !== "write" ||
+        entry.finished ||
         activeWriteId !== entry.id
       ) return false;
+      entry.finished = true;
       activeWriteId = null;
       return true;
     },

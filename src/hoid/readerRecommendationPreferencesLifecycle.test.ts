@@ -127,11 +127,11 @@ describe("Hoid reader preference operation fence", () => {
     expect(fence.tryBeginWrite()).not.toBeNull();
   });
 
-  it("does not treat a completed write token as a current-generation change", () => {
+  it("does not allow a completed write token to be reused", () => {
     const fence = createHoidReaderPreferenceOperationFence();
     const token = fence.tryBeginWrite();
     expect(fence.finishWrite(token)).toBe(true);
-    expect(fence.isCurrent(token)).toBe(true);
+    expect(fence.isCurrent(token)).toBe(false);
     expect(fence.finishWrite(token)).toBe(false);
   });
 });

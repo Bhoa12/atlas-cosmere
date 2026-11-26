@@ -198,19 +198,6 @@ export type HoidCuratedReadingPathPlanValidation =
       reason: "invalid-input" | "invalid-plan" | "stale-or-tampered-plan" | "current-plan-unavailable";
     }>;
 
-type RawPathInput = Readonly<{
-  pathId: string;
-  title: string;
-  description: string;
-  steps: readonly unknown[];
-}>;
-
-type RawCatalogueInput = Readonly<{
-  catalogueId: string;
-  revision: number;
-  paths: readonly unknown[];
-}>;
-
 function exactRecord(value: unknown, keys: readonly string[]): Record<string, unknown> | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
@@ -563,10 +550,10 @@ export async function verifyHoidCuratedReadingPathCatalogueApproval(
     "catalogue", "attestations", "repositoryFullName", "registry",
     "rootKey", "verifier", "now", "minimumRegistryRevision",
   ]);
-  if (!raw || typeof raw.repositoryFullName !== "string' ||
+  if (!raw || typeof raw.repositoryFullName !== "string" ||
     !REPOSITORY_PATTERN.test(raw.repositoryFullName) ||
     !canonicalTimestamp(raw.now) ||
-    typeof raw.minimumRegistryRevision !== "number' ||
+    typeof raw.minimumRegistryRevision !== "number" ||
     !Number.isSafeInteger(raw.minimumRegistryRevision) || raw.minimumRegistryRevision < 1) {
     return Object.freeze({
       status: "invalid", reason: "invalid-input",
@@ -596,7 +583,7 @@ export async function verifyHoidCuratedReadingPathCatalogueApproval(
     });
   }
   const verifierRecord = exactRecord(raw.verifier, ["verify"]);
-  if (!verifierRecord || typeof verifierRecord.verify !== "function') {
+  if (!verifierRecord || typeof verifierRecord.verify !== "function") {
     return Object.freeze({
       status: "invalid", reason: "invalid-verifier",
       promotionAllowed: false, productionWritePerformed: false,
@@ -622,7 +609,8 @@ export async function verifyHoidCuratedReadingPathCatalogueApproval(
       signatureHex: attestation.signatureHex,
     });
   });
-  if (requests.some(request => request === null)) {
+  const canonicalRequests = requests.filter((request): request is NonNullable<typeof request> => request !== null);
+  if (canonicalRequests.length !== attestations.length) {
     return Object.freeze({
       status: "invalid", reason: "invalid-attestations",
       promotionAllowed: false, productionWritePerformed: false,
@@ -632,7 +620,7 @@ export async function verifyHoidCuratedReadingPathCatalogueApproval(
   let trust: Awaited<ReturnType<typeof verifyHoidReviewerBoundPayloadSignatures>>;
   try {
     trust = await verifyHoidReviewerBoundPayloadSignatures(
-      requests,
+      canonicalRequests,
       raw.registry as HoidReviewerTrustRegistry,
       raw.rootKey as HoidReviewerTrustRootKey,
       raw.verifier as HoidEd25519VerificationPort,
@@ -645,7 +633,7 @@ export async function verifyHoidCuratedReadingPathCatalogueApproval(
       promotionAllowed: false, productionWritePerformed: false,
     });
   }
-  if (trust.status !== "verified' || trust.verifiedCount !== attestations.length) {
+  if (trust.status !== "verified" || trust.verifiedCount !== attestations.length) {
     return Object.freeze({
       status: "blocked",
       reason: "trust-verification-failed",
@@ -687,7 +675,7 @@ function prerequisiteCompleted(
   if ("completed" in position && position.completed === true) return true;
   if (!("cursor" in position)) return false;
   const cursor = validateHoidUnitProgressCursor(position.cursor);
-  return cursor.status === "valid' &&
+  return cursor.status === "valid" &&
     cursor.boundary.completedThroughOrdinal !== null &&
     cursor.boundary.completedThroughOrdinal >= prerequisite.through.ordinal;
 }
@@ -730,7 +718,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
   });
 
   const catalogueValidation = validateHoidCuratedReadingPathCatalogue(raw.catalogue);
-  if (catalogueValidation.status !== "valid') return Object.freeze({
+  if (catalogueValidation.status !== "valid") return Object.freeze({
     status: "invalid", reason: "invalid-catalogue",
     promotionAllowed: false, productionWritePerformed: false,
   });
@@ -743,7 +731,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
   });
 
   const progressValidation = validateHoidUnitProgressSnapshot(raw.progressSnapshot);
-  if (progressValidation.status !== "valid') return Object.freeze({
+  if (progressValidation.status !== "valid") return Object.freeze({
     status: "blocked", reason: "progress-invalid",
     promotionAllowed: false, productionWritePerformed: false,
   });
@@ -762,11 +750,13 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
     status: "blocked", reason: "approval-rejected",
     promotionAllowed: false, productionWritePerformed: false,
   });
-  if (approval.status !== "verified') return Object.freeze({
-    status: approval.status === "blocked" ? "blocked" : "invalid",
-    reason: approval.status === "blocked" ? "approval-required" : "invalid-approval",
-    promotionAllowed: false,
-    productionWritePerformed: false,
+  if (approval.status === "blocked") return Object.freeze({
+    status: "blocked", reason: "approval-required",
+    promotionAllowed: false, productionWritePerformed: false,
+  });
+  if (approval.status !== "verified") return Object.freeze({
+    status: "invalid", reason: "invalid-approval",
+    promotionAllowed: false, productionWritePerformed: false,
   });
 
   const progress = progressValidation.snapshot;
@@ -868,7 +858,7 @@ export async function validateHoidCuratedReadingPathRecommendationPlan(
   try {
     if (!isPlainJsonData(raw.plan)) return Object.freeze({ status: "invalid", reason: "invalid-plan" });
     serializedPlan = JSON.stringify(raw.plan);
-    if (typeof serializedPlan !== "string' || serializedPlan.length > 1_000_000) {
+    if (typeof serializedPlan !== "string" || serializedPlan.length > 1_000_000) {
       return Object.freeze({ status: "invalid", reason: "invalid-plan" });
     }
   } catch {
@@ -886,7 +876,7 @@ export async function validateHoidCuratedReadingPathRecommendationPlan(
     now: raw.now,
     minimumRegistryRevision: raw.minimumRegistryRevision,
   });
-  if (current.status !== "ready') {
+  if (current.status !== "ready") {
     return Object.freeze({ status: "invalid", reason: "current-plan-unavailable" });
   }
   if (serializedPlan !== JSON.stringify(current.plan)) {
@@ -901,9 +891,9 @@ function isPlainJsonData(
   ancestors: Set<object> = new Set(),
 ): boolean {
   if (depth > 48) return false;
-  if (value === null || typeof value === "string" || typeof value === "boolean') return true;
+  if (value === null || typeof value === "string" || typeof value === "boolean") return true;
   if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value !== "object') return false;
+  if (typeof value !== "object") return false;
   if (ancestors.has(value)) return false;
   ancestors.add(value);
   try {
@@ -923,7 +913,7 @@ function isPlainJsonData(
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) return false;
     for (const key of Reflect.ownKeys(value)) {
-      if (typeof key !== "string') return false;
+      if (typeof key !== "string") return false;
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (!descriptor ||
         !Object.prototype.hasOwnProperty.call(descriptor, "value") ||

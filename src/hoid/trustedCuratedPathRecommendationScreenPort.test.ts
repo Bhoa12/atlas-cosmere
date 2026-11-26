@@ -160,10 +160,9 @@ describe("Hoid trusted curated-path recommendation screen port", () => {
     port.dispose();
   });
 
-  it("invalidates in-flight work when disposed", async () => {
-    let release!: (value: unknown) => void;
-    const pending = new Promise<unknown>(resolve => { release = resolve; });
-    const port = createHoidTrustedCuratedPathRecommendationScreenPort(config(() => pending));
+  it("invalidates in-flight work before loading route material when disposed", async () => {
+    const loadValidationInput = vi.fn(async () => validationMaterial());
+    const port = createHoidTrustedCuratedPathRecommendationScreenPort(config(loadValidationInput));
     if (!port) throw new Error("Port unavailable");
 
     const request = port.present();
@@ -172,11 +171,11 @@ describe("Hoid trusted curated-path recommendation screen port", () => {
       status: "withheld",
       reason: "port-disposed",
     });
-    release(validationMaterial());
     expect(await request).toEqual({
       status: "withheld",
       reason: "port-disposed",
     });
+    expect(loadValidationInput).not.toHaveBeenCalled();
   });
 
   it("blocks when the pinned trust bootstrap is not provisioned", async () => {

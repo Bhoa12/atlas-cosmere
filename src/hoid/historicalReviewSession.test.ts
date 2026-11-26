@@ -1,35 +1,83 @@
 import { describe, expect, it } from "vitest";
 import type { HoidHistoricalSourceReinspectionResult } from "./historicalSourceReinspection";
+import {
+  createHoidSourceInspectionReceiptFromCandidate,
+  type HoidSourceInspectionReceipt,
+} from "./sourceInspectionReceipts";
+import { getHoidSourceIngestionPlan } from "./sourceIngestionPlan";
+import { getHoidReadingManifest } from "./readingManifest";
+import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { createHoidHistoricalReviewSessionController } from "./historicalReviewSession";
+import type { HoidHistoricalEditorialChecklist } from "./historicalEditorialReview";
 
 const VERIFIED_AT = "2026-11-26T18:00:00.000Z";
-const identity = (sourceId = "local-source-a", workId = "tfe", editionId = "edition-tfe") => ({
+const WORK_ID = "twok";
+const manifestResult = getHoidReadingManifest(WORK_ID);
+if (manifestResult.status !== "ready") throw new Error("Test reading manifest is unavailable");
+const manifest = manifestResult.manifest;
+const task = getHoidSourceIngestionPlan().tasks.find(item =>
+  item.workId === WORK_ID && item.chapterNumber === 1,
+);
+if (!task) throw new Error("Test source-ingestion task is unavailable");
+const documentSha256 = getVerifiedChapterDocumentSha256(
+  WORK_ID,
+  manifest.editionId,
+  manifest.navigationSha256,
+  1,
+);
+if (!documentSha256) throw new Error("Test chapter document digest is unavailable");
+const createdReceipt = createHoidSourceInspectionReceiptFromCandidate({
+  schemaVersion: 1,
+  status: "candidate-only",
+  workId: task.workId,
+  title: task.title,
+  chapterNumber: task.chapterNumber,
+  editionId: task.editionId,
+  sourceGroup: task.sourceGroup,
+  locatorId: task.locatorId,
+  navigationHref: task.navigationHref,
+  byteLength: 512,
+  documentSha256,
+  navigationSha256: manifest.navigationSha256,
+  packageSourceFingerprint: "a".repeat(64),
+  candidateFingerprint: "b".repeat(64),
+  minimumReaderChapter: task.minimumReaderChapter,
+  authorizationEffect: "none",
+  editorialEffect: "none",
+  summaryCreated: false,
+  productionWritePerformed: false,
+}, VERIFIED_AT);
+if (createdReceipt.status !== "ready") throw new Error("Test source receipt could not be created");
+const RECEIPT: HoidSourceInspectionReceipt = createdReceipt.receipt;
+
+const identity = (sourceId = "local-source-a") => ({
   sourceId,
-  workId,
-  editionId,
+  workId: WORK_ID,
+  editionId: manifest.editionId,
 });
-const source = (sourceId = "local-source-a", workId = "tfe", editionId = "edition-tfe") => ({
+const source = (sourceId = "local-source-a") => ({
   sourceId,
-  workId,
-  editionId,
-  sourceGroup: "cosmere.epub",
+  workId: WORK_ID,
+  editionId: manifest.editionId,
+  sourceGroup: task.sourceGroup,
 });
-const inputFor = (sourceValue = source()) => ({
-  receipt: {},
+const inputFor = (sourceValue = source(sourceValueId())) => ({
+  receipt: RECEIPT,
   source: sourceValue,
   packageCandidate: {},
   ingestion: { inspectChapterDocument: async () => ({ status: "rejected" as const, reason: "inspection-failed" as const }) },
   verifiedAt: VERIFIED_AT,
 });
+function sourceValueId() { return "local-source-a"; }
 
 const verifiedResult: HoidHistoricalSourceReinspectionResult = Object.freeze({
   status: "verified",
   attestation: Object.freeze({
     schemaVersion: 1,
     scope: "ephemeral-historical-source-reinspection",
-    workId: "tfe",
-    editionId: "edition-tfe",
-    chapterNumber: 4,
+    workId: WORK_ID,
+    editionId: manifest.editionId,
+    chapterNumber: 1,
     verifiedAt: VERIFIED_AT,
     sourceAvailability: "verified-local",
     sourceContentIncluded: false,
@@ -61,6 +109,15 @@ async function openVerifiedHandoff() {
   return { ...value, lease, handoff: result.handoff };
 }
 
+const SUMMARY = "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.";
+const APPROVED_CHECKLIST: HoidHistoricalEditorialChecklist = Object.freeze({
+  factualAccuracy: true,
+  completeness: true,
+  originality: true,
+  spoilerCeiling: true,
+  provenance: true,
+});
+
 describe("Hoid session-bound historical review workspace", () => {
   it("rejects malformed source-session identities", () => {
     const controller = createHoidHistoricalReviewSessionController();
@@ -85,14 +142,27 @@ describe("Hoid session-bound historical review workspace", () => {
     expect(value.calls()).toBe(0);
   });
 
+  it("rejects an invalid or wrong-edition receipt before invoking the inspection port", async () => {
+    const value = verifiedController();
+    const lease = value.controller.beginSession(identity());
+    if (!lease) throw new Error("Test session could not be opened");
+    expect(await value.controller.verifyAndBind(lease, { ...inputFor(), receipt: {} }))
+      .toEqual({ status: "rejected", reason: "invalid-receipt" });
+    expect(await value.controller.verifyAndBind(lease, {
+      ...inputFor(),
+      receipt: { ...RECEIPT, editionId: "wrong-edition" },
+    })).toEqual({ status: "rejected", reason: "invalid-receipt" });
+    expect(value.calls()).toBe(0);
+  });
+
   it("binds a verified handoff to the active source session without exposing source identifiers", async () => {
     const { controller, lease, handoff } = await openVerifiedHandoff();
     expect(controller.isCurrent(lease)).toBe(true);
     expect(handoff).toMatchObject({
       scope: "session-bound-local-editorial-handoff",
-      workId: "tfe",
-      editionId: "edition-tfe",
-      chapterNumber: 4,
+      workId: WORK_ID,
+      editionId: manifest.editionId,
+      chapterNumber: 1,
       sourceAvailability: "verified-local",
       sourceContentIncluded: false,
       sourceTextPersisted: false,
@@ -176,7 +246,7 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("invalidates handoffs and drafts when the source is released", async () => {
     const { controller, lease, handoff } = await openVerifiedHandoff();
-    const saved = controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.", true);
+    const saved = controller.saveDraft(handoff, SUMMARY, true);
     expect(saved.status).toBe("saved-in-memory");
     controller.invalidate(lease);
     expect(controller.isCurrent(lease)).toBe(false);
@@ -189,7 +259,7 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("requires an explicit originality attestation before accepting a draft", async () => {
     const { controller, handoff } = await openVerifiedHandoff();
-    expect(controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.", false)).toEqual({
+    expect(controller.saveDraft(handoff, SUMMARY, false)).toEqual({
       status: "rejected",
       reason: "originality-not-confirmed",
     });
@@ -197,12 +267,11 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("keeps a valid original summary in memory only and marks it non-authorizing", async () => {
     const { controller, handoff } = await openVerifiedHandoff();
-    const summary = "Resumen original suficientemente extenso para una prueba local de revisión editorial con detalles adicionales y contexto.";
-    const result = controller.saveDraft(handoff, summary, true);
+    const result = controller.saveDraft(handoff, SUMMARY, true);
     expect(result.status).toBe("saved-in-memory");
     expect(result).toMatchObject({
       draft: {
-        summaryText: summary,
+        summaryText: SUMMARY,
         originalityAttested: true,
         reviewState: "awaiting-human-editorial-review",
         sourceContentIncluded: false,
@@ -213,16 +282,91 @@ describe("Hoid session-bound historical review workspace", () => {
         spoilerAuthorization: "none",
       },
     });
-    expect(controller.getDraft(handoff)?.summaryText).toBe(summary);
-    expect(Object.keys(controller).sort()).toEqual([
-      "beginSession",
-      "discardDraft",
-      "getDraft",
-      "invalidate",
-      "isCurrent",
-      "saveDraft",
-      "verifyAndBind",
-    ]);
+    expect(controller.getDraft(handoff)?.summaryText).toBe(SUMMARY);
+  });
+
+  it("creates a chapter-bound review packet from the current draft and exact receipt evidence", async () => {
+    const { controller, handoff } = await openVerifiedHandoff();
+    controller.saveDraft(handoff, SUMMARY, true);
+    const result = controller.buildReviewPacket(handoff);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.packet).toMatchObject({
+      workId: WORK_ID,
+      editionId: manifest.editionId,
+      chapterNumber: 1,
+      declaredSpoilerCeilingChapter: 1,
+      summaryText: SUMMARY,
+      sourceEvidence: {
+        receiptFingerprint: RECEIPT.receiptFingerprint,
+        documentSha256: RECEIPT.documentSha256,
+        navigationSha256: RECEIPT.navigationSha256,
+      },
+      status: "pending-human-review",
+      providerEgress: "none",
+      promotionAllowed: false,
+      spoilerAuthorization: "none",
+    });
+    expect(JSON.stringify(result.packet)).not.toContain("local-source-a");
+  });
+
+  it("records only an explicitly checked local decision and never authorizes production", async () => {
+    const { controller, handoff } = await openVerifiedHandoff();
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+    const result = controller.recordReviewDecision(handoff, built.packet, {
+      decision: "approved",
+      reviewerLabel: "local-editor",
+      reviewedAt: VERIFIED_AT,
+      checklist: APPROVED_CHECKLIST,
+      noteCodes: ["no-issues"],
+    });
+    expect(result).toMatchObject({
+      status: "valid",
+      outcome: "approved-awaiting-trusted-promotion",
+      promotionAllowed: false,
+      productionWritePerformed: false,
+      receipt: {
+        reviewerIdentityAuthority: "unverified-local-label",
+        trustLevel: "local-unverified",
+        authorizationEffect: "none",
+        spoilerAuthorization: "none",
+      },
+    });
+    expect(controller.getReviewReceipt(built.packet)).toEqual(result.status === "valid" ? result.receipt : null);
+  });
+
+  it("does not accept an old packet after the draft is edited or replaced", async () => {
+    const { controller, handoff } = await openVerifiedHandoff();
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+    controller.saveDraft(handoff, SUMMARY + " Una precisión adicional.", true);
+    expect(controller.recordReviewDecision(handoff, built.packet, {
+      decision: "revision-required",
+      reviewerLabel: "local-editor",
+      reviewedAt: VERIFIED_AT,
+      checklist: { ...APPROVED_CHECKLIST, completeness: false },
+      noteCodes: ["completeness-issue"],
+    })).toMatchObject({ status: "invalid", reason: "invalid-packet" });
+    expect(controller.getReviewReceipt(built.packet)).toBeNull();
+  });
+
+  it("invalidates review packets and local decisions when the source session ends", async () => {
+    const { controller, lease, handoff } = await openVerifiedHandoff();
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
+    controller.recordReviewDecision(handoff, built.packet, {
+      decision: "approved",
+      reviewerLabel: "local-editor",
+      reviewedAt: VERIFIED_AT,
+      checklist: APPROVED_CHECKLIST,
+      noteCodes: ["no-issues"],
+    });
+    controller.invalidate(lease);
+    expect(controller.getReviewReceipt(built.packet)).toBeNull();
   });
 
   it("rejects XHTML, file references and summaries outside the bounded length", async () => {
@@ -245,14 +389,17 @@ describe("Hoid session-bound historical review workspace", () => {
     });
   });
 
-  it("allows an active reviewer to discard an in-memory draft", async () => {
+  it("allows an active reviewer to discard an in-memory draft and its packet", async () => {
     const { controller, handoff } = await openVerifiedHandoff();
-    controller.saveDraft(handoff, "Resumen original suficientemente extenso para una prueba local de revisión editorial, con detalles adicionales y contexto.", true);
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
     expect(controller.discardDraft(handoff)).toBe(true);
     expect(controller.getDraft(handoff)).toBeNull();
+    expect(controller.getReviewReceipt(built.packet)).toBeNull();
   });
 
-  it("does not allow an older lease to invalidate a newer source session", () => {
+  it("does not let an older lease invalidate a newer source session", () => {
     const controller = createHoidHistoricalReviewSessionController();
     const oldLease = controller.beginSession(identity());
     const newLease = controller.beginSession(identity("local-source-b"));
@@ -263,19 +410,26 @@ describe("Hoid session-bound historical review workspace", () => {
 
   it("invalidates all session state when a newer session begins", async () => {
     const { controller, lease, handoff } = await openVerifiedHandoff();
+    controller.saveDraft(handoff, SUMMARY, true);
+    const built = controller.buildReviewPacket(handoff);
+    if (built.status !== "ready") throw new Error("Review packet was not created");
     controller.beginSession(identity("local-source-b"));
     expect(controller.isCurrent(lease)).toBe(false);
     expect(controller.getDraft(handoff)).toBeNull();
+    expect(controller.getReviewReceipt(built.packet)).toBeNull();
   });
 
-  it("does not expose persistence, provider, approval or publication operations", () => {
+  it("exposes no persistence or provider egress operations", () => {
     const controller = createHoidHistoricalReviewSessionController();
     expect(Object.keys(controller).sort()).toEqual([
       "beginSession",
+      "buildReviewPacket",
       "discardDraft",
       "getDraft",
+      "getReviewReceipt",
       "invalidate",
       "isCurrent",
+      "recordReviewDecision",
       "saveDraft",
       "verifyAndBind",
     ]);

@@ -1,4 +1,7 @@
-import type { HoidEntityDossierGateway } from "./entityDossierGateway";
+import {
+  isHoidEntityDossierGateway,
+  type HoidEntityDossierGateway,
+} from "./entityDossierGateway";
 import {
   classifyHoidEntityDossierIntent,
   type HoidEntityDossierIntent,
@@ -373,11 +376,13 @@ function projectDossier(
 
 function canonicalConfig(value: unknown): AdapterConfig | null {
   const raw = exactRecord(value, ["gateway", "refreshCurrentProgress"]);
-  if (!raw || typeof raw.refreshCurrentProgress !== "function") return null;
-  const gateway = exactRecord(raw.gateway, ["getDossier"]);
-  if (!gateway || typeof gateway.getDossier !== "function") return null;
+  if (
+    !raw ||
+    !isHoidEntityDossierGateway(raw.gateway) ||
+    typeof raw.refreshCurrentProgress !== "function"
+  ) return null;
   return Object.freeze({
-    gateway: Object.freeze({ getDossier: gateway.getDossier as HoidEntityDossierGateway["getDossier"] }),
+    gateway: raw.gateway,
     refreshCurrentProgress: raw.refreshCurrentProgress as () => unknown | Promise<unknown>,
   });
 }

@@ -25,6 +25,11 @@ import {
 } from "../hoid/epubRecommendationReaderHost";
 import type { HoidRecommendationReaderPort } from "../hoid/recommendationReaderPort";
 import { getHoidReadingManifest } from "../hoid/readingManifest";
+import { getExpoHoidSourceInspectionReceiptStore } from "../hoid/expoSourceInspectionReceiptStore";
+import {
+  appendHoidSourceInspectionReceipt,
+  validateHoidSourceInspectionReceiptLedger,
+} from "../hoid/sourceInspectionReceipts";
 import {
   createHoidEpubSourceDescriptor,
   getHoidEpubImportChoices,
@@ -46,6 +51,10 @@ function progressModeLabel(choice: HoidEpubImportChoice): string {
     case "collection-sections": return "Colección · secciones independientes";
     default: return "Estructura no verificada";
   }
+}
+
+function inspectionReceiptKey(workId: string, editionId: string, chapterNumber: number): string {
+  return `${workId}:${editionId}:${chapterNumber}`;
 }
 
 function rejectionMessage(reason: string): string {
@@ -93,6 +102,8 @@ export const HoidEpubImportPanel: React.FC<{
   const [selectedChoice, setSelectedChoice] = useState<HoidEpubImportChoice | null>(null);
   const [candidate, setCandidate] = useState<HoidEpubPackageInspectionCandidate | null>(null);
   const [chapterCandidate, setChapterCandidate] = useState<HoidPlannedChapterInspectionCandidate | null>(null);
+  const [localReceiptKeys, setLocalReceiptKeys] = useState<string[]>([]);
+  const [receiptStoreStatus, setReceiptStoreStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
@@ -107,6 +118,9 @@ export const HoidEpubImportPanel: React.FC<{
   const readerSessionAbortRef = useRef<AbortController | null>(null);
   const markingProgressRef = useRef(false);
   const plannedTask = selectedChoice === null ? null : getHoidSourceIngestionPlan().tasks.find(task => task.workId === selectedChoice.workId) ?? null;
+  const plannedTaskAlreadyRecorded = plannedTask !== null && localReceiptKeys.includes(
+    inspectionReceiptKey(plannedTask.workId, plannedTask.editionId, plannedTask.chapterNumber),
+  );
 
   const invalidateReaderSession = () => {
     readerSessionEpochRef.current += 1;
@@ -135,6 +149,28 @@ export const HoidEpubImportPanel: React.FC<{
     setOpenedChapter(null);
     setMessage("El progreso ha cambiado. El capítulo abierto se ha cerrado; vuelve a validar el destino desde Hoid.");
   }), []);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const store = await getExpoHoidSourceInspectionReceiptStore();
+        const validation = validateHoidSourceInspectionReceiptLedger(await store.read());
+        if (!active) return;
+        if (validation.status === "valid") {
+          setLocalReceiptKeys(validation.ledger.receipts.map(receipt =>
+            inspectionReceiptKey(receipt.workId, receipt.editionId, receipt.chapterNumber),
+          ));
+          setReceiptStoreStatus("ready");
+        } else {
+          setReceiptStoreStatus("unavailable");
+        }
+      } catch {
+        if (active) setReceiptStoreStatus("unavailable");
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const source = pickedSource;
@@ -322,7 +358,62 @@ export const HoidEpubImportPanel: React.FC<{
       if (!lifecycleRef.current.isCurrent(operation)) return;
       if (result.status === "candidate") {
         setChapterCandidate(result.candidate);
-        setMessage(`Capítulo ${result.candidate.chapterNumber} inspeccionado localmente. Solo se conserva su huella; no se guarda texto, no se crea un resumen y no se autoriza producción.`);
+        setMessage(`Capítulo ${result.candidate.chapterNumber} inspeccionado localmente. Guardando únicamente un recibo de metadatos en el dispositivo…`);
+        try {
+          const store = await getExpoHoidSourceInspectionReceiptStore();
+          const receiptResult = await appendHoidSourceInspectionReceipt(
+            store,
+            result.candidate,
+            new Date().toISOString(),
+          );
+          if (!lifecycleRef.current.isCurrent(operation)) return;
+          if (receiptResult.status === "saved" || receiptResult.status === "unchanged") {
+            const key = inspectionReceiptKey(
+              result.candidate.workId,
+              result.candidate.editionId,
+              result.candidate.chapterNumber,
+            );
+            setLocalReceiptKeys(current => current.includes(key) ? current : [...current, key]);
+            setReceiptStoreStatus("ready");
+            setMessage(
+              receiptResult.status === "saved"
+                ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto y sigue pendiente de revisión editorial.`
+                : `El capítulo ${result.candidate.chapterNumber} ya tenía un recibo local idéntico. No se ha duplicado ni sobrescrito.`,
+            );
+          } else if (receiptResult.status === "receipt-conflict") {
+            const key = inspectionReceiptKey(
+              result.candidate.workId,
+              result.candidate.editionId,
+              result.candidate.chapterNumber,
+            );
+            setLocalReceiptKeys(current => current.includes(key) ? current : [...current, key]);
+            setReceiptStoreStatus("ready");
+            setMessage("Ya existe un recibo local distinto para este capítulo. Se conserva el anterior y no se sobrescribe.");
+          } else if (receiptResult.status === "write-conflict") {
+            try {
+              const refreshed = validateHoidSourceInspectionReceiptLedger(await store.read());
+              if (refreshed.status === "valid") {
+                setLocalReceiptKeys(refreshed.ledger.receipts.map(receipt =>
+                  inspectionReceiptKey(receipt.workId, receipt.editionId, receipt.chapterNumber),
+                ));
+                setReceiptStoreStatus("ready");
+              } else {
+                setReceiptStoreStatus("unavailable");
+              }
+            } catch {
+              setReceiptStoreStatus("unavailable");
+            }
+            setMessage("El registro local cambió durante la escritura. Se ha conservado el estado persistido; vuelve a intentar la inspección después de actualizar la lista.");
+          } else {
+            setReceiptStoreStatus("unavailable");
+            setMessage("La inspección sigue siendo candidate-only, pero no se pudo guardar el recibo local. No se ha guardado texto ni se ha autorizado producción.");
+          }
+        } catch {
+          if (lifecycleRef.current.isCurrent(operation)) {
+            setReceiptStoreStatus("unavailable");
+            setMessage("La inspección sigue siendo candidate-only; el almacenamiento local no está disponible. No se ha guardado texto ni se ha modificado el progreso.");
+          }
+        }
       } else setMessage(rejectionMessage(result.reason));
     } catch {
       if (lifecycleRef.current.isCurrent(operation)) setMessage("La inspección del capítulo ha fallado de forma segura. No se ha creado un resumen ni se ha modificado el progreso.");
@@ -498,6 +589,13 @@ export const HoidEpubImportPanel: React.FC<{
 
       {busy && <ActivityIndicator color="#a5b4fc" style={styles.spinner} />}
       <Text style={styles.message}>{message}</Text>
+      <Text style={styles.receiptMeta}>
+        {receiptStoreStatus === "ready"
+          ? `${localReceiptKeys.length} recibos locales de inspección · solo metadatos · pendientes de revisión`
+          : receiptStoreStatus === "loading"
+            ? "Cargando el registro local de inspecciones…"
+            : "Registro local de inspecciones no disponible; las inspecciones nuevas no se persistirán."}
+      </Text>
 
       {pickedSource !== null && !busy && (
         <View style={styles.actions}>
@@ -589,9 +687,15 @@ export const HoidEpubImportPanel: React.FC<{
             </View>
           </View>
           {plannedTask !== null && (
-            <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={inspectNextChapter} style={[styles.inspectButton, busy && styles.disabled]}>
-              <Text style={styles.inspectButtonText}>Inspeccionar capítulo {plannedTask.chapterNumber}</Text>
-            </TouchableOpacity>
+            plannedTaskAlreadyRecorded ? (
+              <Text style={styles.receiptWarning}>
+                El capítulo {plannedTask.chapterNumber} ya tiene un recibo local. La planificación no lo considera producción: requiere revisión editorial y promoción explícita antes de avanzar al siguiente capítulo.
+              </Text>
+            ) : (
+              <TouchableOpacity accessibilityRole="button" disabled={busy || receiptStoreStatus === "loading"} onPress={inspectNextChapter} style={[styles.inspectButton, (busy || receiptStoreStatus === "loading") && styles.disabled]}>
+                <Text style={styles.inspectButtonText}>Inspeccionar capítulo {plannedTask.chapterNumber}</Text>
+              </TouchableOpacity>
+            )
           )}
           {chapterCandidate !== null && (
             <View style={styles.chapterPreview}>
@@ -698,6 +802,8 @@ const styles = StyleSheet.create({
   chapterPreview: { marginTop: 9, padding: 9, borderRadius: 8, backgroundColor: "#0b1424", borderWidth: 1, borderColor: "#475569" },
   chapterPreviewTitle: { color: "#86efac", fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
   privacyNote: { color: "#94a3b8", fontSize: 9, lineHeight: 13, marginTop: 9 },
+  receiptMeta: { color: "#94a3b8", fontSize: 9, lineHeight: 14, marginTop: 5 },
+  receiptWarning: { color: "#fbbf24", fontSize: 10, lineHeight: 15, marginTop: 9 },
   modalBackdrop: { flex: 1, justifyContent: "center", padding: 18, backgroundColor: "rgba(0,0,0,0.72)" },
   modal: { maxHeight: "85%", backgroundColor: "#0f172a", borderRadius: 16, borderWidth: 1, borderColor: "#334155", padding: 14 },
   modalTitle: { color: "#f8fafc", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },

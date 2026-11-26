@@ -1,0 +1,67 @@
+name: Hoid Run 338 — local source inspection receipts
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/hoid/sourceInspectionReceipts.test.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.test.ts"
+      - "src/hoid/expoSourceInspectionReceiptStore.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "docs/hoid/RUN338_LOCAL_INSPECTION_RECEIPTS.md"
+      - ".github/workflows/hoid-run338-local-inspection-receipts.yml"
+  pull_request:
+    paths:
+      - "src/hoid/sourceInspectionReceipts.ts"
+      - "src/hoid/sourceInspectionReceipts.test.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.ts"
+      - "src/hoid/sqliteSourceInspectionReceiptStore.test.ts"
+      - "src/hoid/expoSourceInspectionReceiptStore.ts"
+      - "src/components/HoidEpubImportPanel.tsx"
+      - "src/hoid/sourceIngestionExecution.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "docs/hoid/RUN338_LOCAL_INSPECTION_RECEIPTS.md"
+      - ".github/workflows/hoid-run338-local-inspection-receipts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-source-inspection-receipts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test receipt contract, SQLite persistence and source audit
+        run: >-
+          npx vitest run
+          src/hoid/sourceInspectionReceipts.test.ts
+          src/hoid/sqliteSourceInspectionReceiptStore.test.ts
+          src/hoid/sourceCoverage.test.ts
+      - name: Strict type-check receipt adapters and HoidScreen integration
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --jsx react-native
+          --esModuleInterop
+          src/hoid/sourceInspectionReceipts.ts
+          src/hoid/sourceInspectionReceipts.test.ts
+          src/hoid/sqliteSourceInspectionReceiptStore.ts
+          src/hoid/sqliteSourceInspectionReceiptStore.test.ts
+          src/hoid/expoSourceInspectionReceiptStore.ts
+          src/components/HoidEpubImportPanel.tsx
+          src/screens/HoidScreen.tsx

@@ -26,6 +26,9 @@ on:
       - "src/hoid/sqliteProgressStore.ts"
       - "src/hoid/expoHoidDatabase.ts"
       - "src/hoid/sharedSqliteDatabase.ts"
+      - "src/components/HoidReaderPreferencesEditor.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
       - "docs/hoid/RUN332_SQLITE_READER_PREFERENCES.md"
       - ".github/workflows/hoid-run332-sqlite-reader-preferences.yml"
 

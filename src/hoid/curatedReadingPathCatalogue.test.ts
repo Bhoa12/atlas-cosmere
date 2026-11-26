@@ -60,7 +60,10 @@ function signedRouteEvidencePackage(
   }> = {},
 ): HoidSignedExactUnitClaimPackage {
   const evidence = Object.freeze([
-    ROUTE_EVIDENCE,
+    Object.freeze({
+      ...ROUTE_EVIDENCE,
+      ...(overrides.summary === undefined ? {} : { summary: overrides.summary }),
+    }),
     ...(overrides.extraEvidence ? [overrides.extraEvidence] : []),
   ]);
   const policies: readonly HoidExactUnitEvidencePolicy[] = Object.freeze([
@@ -97,13 +100,7 @@ function signedRouteEvidencePackage(
     integrity: attestation.integrity,
     review: attestation.review,
   });
-  const unsigned = Object.freeze({
-    claim,
-    evidence: Object.freeze(evidence.map(item => item.id === ROUTE_EVIDENCE.id && overrides.summary
-      ? Object.freeze({ ...item, summary: overrides.summary })
-      : item)),
-    policies,
-  });
+  const unsigned = Object.freeze({ claim, evidence, policies });
   const message = buildHoidExactUnitClaimReviewSigningMessage(
     unsigned,
     EVIDENCE_REVIEW_CONTEXT,

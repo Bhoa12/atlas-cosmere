@@ -317,6 +317,31 @@ describe("Expo SQLite Hoid reader recommendation preferences store", () => {
     expect(database.inspect()?.revision).toBe(1);
   });
 
+
+  it("rejects a valid JSON payload whose SQL revision envelope does not match", async () => {
+    const database = new FakeSqliteDatabase();
+    database.seed({
+      schema_version: 1,
+      revision: 7,
+      payload: JSON.stringify(nextPreferences(6)),
+    });
+    const store = new ExpoSqliteHoidReaderRecommendationPreferencesStore(database);
+    const result = validateHoidReaderRecommendationPreferences(await store.read());
+
+    expect(result.status).toBe("invalid");
+    expect(database.inspect()?.revision).toBe(7);
+  });
+
+  it("returns unavailable when initial schema setup fails and permits a later retry", async () => {
+    const database = new FakeSqliteDatabase();
+    database.failNextTransaction = new Error("disk I/O failure during schema setup");
+    const store = new ExpoSqliteHoidReaderRecommendationPreferencesStore(database);
+
+    expect(await store.compareAndSwap(0, nextPreferences(1))).toBe("unavailable");
+    expect(await store.compareAndSwap(0, nextPreferences(1))).toBe("saved");
+    expect(database.inspect()?.revision).toBe(1);
+  });
+
   it("uses only known bibliography works in its persisted profile", async () => {
     const database = new FakeSqliteDatabase();
     const store = new ExpoSqliteHoidReaderRecommendationPreferencesStore(database);

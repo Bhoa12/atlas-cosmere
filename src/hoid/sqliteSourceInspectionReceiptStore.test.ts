@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sha256Hex } from "./sha256";
 import {
   createHoidEmptySourceInspectionReceiptLedger,
   recordHoidSourceInspectionReceipt,
@@ -146,8 +147,7 @@ function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
     inspectedAt: "2026-11-26T14:30:00.000Z",
     receiptFingerprint: "",
   };
-  // Obtain the canonical receipt through the same pure ledger reducer used by callers.
-  const { sha256Hex } = require("./sha256") as typeof import("./sha256");
+  // Obtain the canonical receipt through the same digest function used by callers.
   const receiptPayload = JSON.stringify([
     1,
     receipt.workId,

@@ -1,0 +1,98 @@
+name: Hoid chapter 23 and cross-work spoiler dependency
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run*"
+    paths:
+      - "src/hoid/spoilerDependencyGate.ts"
+      - "src/hoid/spoilerDependencyGate.test.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterDocuments.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialDrafts.test.ts"
+      - "src/hoid/sourceCoverage.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "src/hoid/sourceIngestionPlan.test.ts"
+      - "src/hoid/editorialKnowledgeBundle.ts"
+      - "src/hoid/editorialKnowledgeBundle.test.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialReviewBundle.test.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialReviewPackets.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "docs/hoid/RUN322_CHAPTER_23_AND_CROSS_WORK_SPOILER_GATE.md"
+      - ".github/workflows/hoid-chapter23-and-spoiler-dependency.yml"
+  pull_request:
+    paths:
+      - "src/hoid/spoilerDependencyGate.ts"
+      - "src/hoid/spoilerDependencyGate.test.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterDocuments.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialDrafts.test.ts"
+      - "src/hoid/sourceCoverage.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "src/hoid/sourceIngestionPlan.ts"
+      - "src/hoid/sourceIngestionPlan.test.ts"
+      - "src/hoid/editorialKnowledgeBundle.ts"
+      - "src/hoid/editorialKnowledgeBundle.test.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialReviewBundle.test.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialReviewPackets.test.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/editorialReviewBundleQuorum.test.ts"
+      - "docs/hoid/RUN322_CHAPTER_23_AND_CROSS_WORK_SPOILER_GATE.md"
+      - ".github/workflows/hoid-chapter23-and-spoiler-dependency.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  chapter23-and-spoiler-dependency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test chapter evidence, spoiler dependencies and editorial regressions
+        run: >-
+          npx vitest run
+          src/hoid/spoilerDependencyGate.test.ts
+          src/hoid/verifiedChapterDocuments.test.ts
+          src/hoid/editorialDrafts.test.ts
+          src/hoid/sourceCoverage.test.ts
+          src/hoid/sourceIngestionPlan.test.ts
+          src/hoid/editorialKnowledgeBundle.test.ts
+          src/hoid/editorialReviewBundle.test.ts
+          src/hoid/editorialReviewPackets.test.ts
+          src/hoid/editorialReviewBundleQuorum.test.ts
+      - name: Type-check spoiler and chapter evidence boundaries
+        run: >-
+          npx tsc --noEmit --strict --target ES2020
+          --module commonjs --moduleResolution node --skipLibCheck
+          src/hoid/spoilerDependencyGate.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/editorialDrafts.ts
+          src/hoid/sourceCoverage.ts
+          src/hoid/sourceIngestionPlan.ts
+          src/hoid/readingManifest.ts
+          src/hoid/chapterIdentity.ts
+          src/hoid/editionProgressValidation.ts
+          src/hoid/readingValidation.ts
+          src/hoid/editionStructure.ts
+          src/hoid/verifiedChapterLocators.ts
+          src/hoid/sourceCatalogManifest.ts
+          src/hoid/bibliography.ts
+          src/hoid/sha256.ts
+          src/hoid/catalog.ts
+          src/hoid/knowledgeKinds.ts
+          src/hoid/types.ts

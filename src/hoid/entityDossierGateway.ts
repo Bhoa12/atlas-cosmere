@@ -141,6 +141,12 @@ const MAX_DOSSIER_CLAIMS = 24;
 const MAX_DOSSIER_SOURCES = 64;
 const MAX_PARTICIPANTS = 4;
 
+const HOID_ENTITY_DOSSIER_GATEWAYS = new WeakSet<object>();
+
+export function isHoidEntityDossierGateway(value: unknown): value is HoidEntityDossierGateway {
+  return value !== null && typeof value === "object" && HOID_ENTITY_DOSSIER_GATEWAYS.has(value as object);
+}
+
 function exactRecord(
   value: unknown,
   allowedKeys: readonly string[],
@@ -598,7 +604,7 @@ export function createHoidEntityDossierGateway(
   const config = canonicalConfig(configInput);
   if (!config) return null;
 
-  return Object.freeze({
+  const gateway: HoidEntityDossierGateway = Object.freeze({
     getDossier(input: unknown): HoidEntityDossierGatewayResult {
       const request = exactRecord(input, ["progress", "query"]);
       if (!request) return Object.freeze({ status: "unavailable", reason: "invalid-request" });
@@ -640,6 +646,8 @@ export function createHoidEntityDossierGateway(
       return result;
     },
   });
+  HOID_ENTITY_DOSSIER_GATEWAYS.add(gateway as object);
+  return gateway;
 }
 
 /** Production composition uses only the trusted source-controlled registries. */

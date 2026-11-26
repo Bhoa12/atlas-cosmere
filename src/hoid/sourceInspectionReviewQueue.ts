@@ -10,7 +10,6 @@ import { validateHoidSourceInspectionReceiptLedger } from "./sourceInspectionRec
 export type HoidSourceInspectionReviewQueueItem = Readonly<{
   workId: string;
   title: string;
-  sourceGroup: "cosmere.epub" | "roshar-epubs";
   editionId: string;
   chapterNumber: number;
   inspectedAt: string;
@@ -94,7 +93,6 @@ export function projectHoidSourceInspectionReviewQueue(
     items.push(Object.freeze({
       workId: work.id,
       title: work.title,
-      sourceGroup: work.sourceGroup,
       editionId: receipt.editionId,
       chapterNumber: receipt.chapterNumber,
       inspectedAt: receipt.inspectedAt,

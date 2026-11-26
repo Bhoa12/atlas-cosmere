@@ -1,0 +1,62 @@
+name: Hoid Run 333 — preference editor lifecycle safety
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/readerRecommendationPreferencesLifecycle.ts"
+      - "src/hoid/readerRecommendationPreferencesLifecycle.test.ts"
+      - "src/components/HoidReaderPreferencesEditor.tsx"
+      - "src/hoid/readerRecommendationPreferences.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/RUN333_PREFERENCE_EDITOR_LIFECYCLE.md"
+      - ".github/workflows/hoid-run333-preference-editor-lifecycle.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run333"
+    paths:
+      - "src/hoid/readerRecommendationPreferencesLifecycle.ts"
+      - "src/hoid/readerRecommendationPreferencesLifecycle.test.ts"
+      - "src/components/HoidReaderPreferencesEditor.tsx"
+      - "src/hoid/readerRecommendationPreferences.ts"
+      - "src/hoid/bibliography.ts"
+      - "docs/hoid/RUN333_PREFERENCE_EDITOR_LIFECYCLE.md"
+      - ".github/workflows/hoid-run333-preference-editor-lifecycle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preference-editor-lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test preference editor operation fence
+        run: npx vitest run src/hoid/readerRecommendationPreferencesLifecycle.test.ts
+      - name: Strict type-check preference editor lifecycle
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/readerRecommendationPreferences.ts
+          src/hoid/readerRecommendationPreferencesLifecycle.ts
+          src/hoid/readerRecommendationPreferencesLifecycle.test.ts
+          src/hoid/sqliteProgressStore.ts
+          src/hoid/sharedSqliteDatabase.ts
+          src/hoid/expoHoidDatabase.ts
+          src/hoid/sqliteReaderRecommendationPreferencesStore.ts
+          src/hoid/expoReaderRecommendationPreferencesStore.ts
+          src/hoid/bibliography.ts
+          src/components/HoidReaderPreferencesEditor.tsx

@@ -10,6 +10,9 @@ import { HoidScreen } from "./HoidScreen";
 import type { HoidTrustedApplicationBootstrap } from "../hoid/trustedApplicationBootstrap";
 import { projectHoidTrustedApplicationScreen } from "../hoid/trustedApplicationScreenProjection";
 import type { HoidTrustedCuratedPathRecommendationScreenPort } from "../hoid/trustedCuratedPathRecommendationScreenPort";
+import { getExpoHoidReaderRecommendationPreferencesStore } from "../hoid/expoReaderRecommendationPreferencesStore";
+import type { HoidReaderRecommendationPreferencesStorePort } from "../hoid/readerRecommendationPreferences";
+import type { HoidReaderPreferencesStoreStatus } from "../components/HoidReaderPreferencesEditor";
 
 export type HoidTrustedScreenHostProps = Readonly<{
   /**
@@ -56,6 +59,23 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
 }) => {
   const [bootstrap, setBootstrap] = useState<HoidTrustedApplicationBootstrap | null>(null);
   const [, setRevision] = useState(0);
+  const [readerPreferencesStoreState, setReaderPreferencesStoreState] = useState<
+    | Readonly<{ status: "loading" }>
+    | Readonly<{ status: "ready"; store: HoidReaderRecommendationPreferencesStorePort }>
+    | Readonly<{ status: "unavailable" }>
+  >(() => Object.freeze({ status: "loading" }));
+
+  useEffect(() => {
+    let active = true;
+    void getExpoHoidReaderRecommendationPreferencesStore()
+      .then(store => {
+        if (active) setReaderPreferencesStoreState(Object.freeze({ status: "ready", store }));
+      })
+      .catch(() => {
+        if (active) setReaderPreferencesStoreState(Object.freeze({ status: "unavailable" }));
+      });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -129,6 +149,10 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
         trustedAnswerPort={null}
         trustedConversationPort={screenPort}
         trustedCuratedPathRecommendationPort={curatedPathRecommendationPort}
+        readerPreferencesStore={readerPreferencesStoreState.status === "ready"
+          ? readerPreferencesStoreState.store
+          : null}
+        readerPreferencesStoreStatus={readerPreferencesStoreState.status as HoidReaderPreferencesStoreStatus}
       />
     </View>
   );

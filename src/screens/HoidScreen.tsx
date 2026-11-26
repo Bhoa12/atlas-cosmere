@@ -306,6 +306,7 @@ export const HoidScreen: React.FC<{
       currentSelection.reason === 'selected-work-not-active'
     ) {
       setSelectedReadingFocusBookId(null);
+      setAnswerScopeMessage('Ámbito automático: si hay una sola obra activa, Hoid limitará la respuesta a ella. Si hay varias, tendrás que elegir el foco; para comparar, activa «Comparar 2–4».');
     }
   }, [
     selectedReadingFocusBookId,
@@ -406,6 +407,7 @@ export const HoidScreen: React.FC<{
   const clearReadingFocusSelection = () => {
     if (cargando) return;
     setSelectedReadingFocusBookId(null);
+    setAnswerScopeMessage('Ámbito automático: si hay una sola obra activa, Hoid limitará la respuesta a ella. Si hay varias, tendrás que elegir el foco; para comparar, activa «Comparar 2–4».');
     resetConversationForAnswerScopeChange();
   };
 

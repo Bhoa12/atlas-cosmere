@@ -5,10 +5,12 @@ import {
 } from "./chapterReference";
 import {
   verifyHoidReviewerBoundPayloadSignatures,
+  type HoidApprovedClaimReviewSignatureContext,
   type HoidEd25519VerificationPort,
   type HoidReviewerTrustRegistry,
   type HoidReviewerTrustRootKey,
 } from "./editorialReviewSignatures";
+import { verifyHoidExactUnitClaimSignatures } from "./exactUnitClaimSignatures";
 import {
   validateHoidUnitProgressCursor,
 } from "./unitProgressCursor";
@@ -156,6 +158,8 @@ export type HoidCuratedReadingPathRecommendationPlan = Readonly<{
   progressRevision: number;
   progressFingerprint: string;
   registryRevision: number;
+  /** Digest of the signed exact-unit claim packages that support route rationales. */
+  rationaleEvidenceFingerprint: string;
   recommendations: readonly HoidCuratedReadingPathRecommendation[];
   fingerprint: string;
 }>;
@@ -183,7 +187,7 @@ export type HoidCuratedReadingPathEvaluation =
     }>
   | Readonly<{
       status: "blocked";
-      reason: "approval-required" | "approval-rejected" | "progress-invalid";
+      reason: "approval-required" | "approval-rejected" | "progress-invalid" | "evidence-unverified";
       promotionAllowed: false;
       productionWritePerformed: false;
     }>
@@ -692,6 +696,7 @@ function recommendationPlanFingerprint(
   progressRevision: number,
   progressFingerprint: string,
   registryRevision: number,
+  rationaleEvidenceFingerprint: string,
   recommendations: readonly HoidCuratedReadingPathRecommendation[],
 ): string {
   return sha256Hex(JSON.stringify([
@@ -700,11 +705,136 @@ function recommendationPlanFingerprint(
     progressRevision,
     progressFingerprint,
     registryRevision,
+    rationaleEvidenceFingerprint,
     recommendations.map(item => [
       item.pathId, item.pathTitle, item.pathFingerprint, item.stepId,
       item.workId, item.workTitle, item.rationale, item.navigation,
     ]),
   ]));
+}
+
+type VerifiedRouteRationaleEvidence = Readonly<{
+  fingerprint: string;
+  registryRevision: number | null;
+}>;
+
+/**
+ * Bind every route rationale to an actually signed exact-unit claim package.
+ * The route's evidence reference must equal the package's source reference,
+ * and the route prerequisites must cover source, first-safe-appearance and
+ * unlock references. This prevents a signed route from citing a plausible but
+ * nonexistent evidence ID, or from revealing its rationale before a policy's
+ * later unlock boundary.
+ */
+async function verifyRouteRationaleEvidence(
+  catalogue: HoidCuratedReadingPathCatalogue,
+  evidencePackagesInput: unknown,
+  evidenceContextInput: unknown,
+  repositoryFullName: string,
+  registry: unknown,
+  rootKey: unknown,
+  verifier: unknown,
+  now: unknown,
+  minimumRegistryRevision: unknown,
+): Promise<VerifiedRouteRationaleEvidence | null> {
+  const evidenceReferences = catalogue.paths.flatMap(path =>
+    path.steps.flatMap(step => step.rationaleEvidence.map(evidence => ({
+      path,
+      step,
+      evidence,
+    }))),
+  );
+  const rawPackages = denseArray(evidencePackagesInput, 0, 512);
+  if (!rawPackages) return null;
+
+  if (evidenceReferences.length === 0) {
+    if (rawPackages.length !== 0) return null;
+    return Object.freeze({
+      fingerprint: sha256Hex(JSON.stringify(["hoid-curated-reading-path-evidence-v1", []])),
+      registryRevision: null,
+    });
+  }
+
+  const context = exactRecord(evidenceContextInput, [
+    "schemaVersion", "repositoryFullName", "pullRequestNumber", "baseRef", "baseSha",
+    "headRef", "headSha", "promotionManifestPath", "promotionPlanFingerprint",
+    "reviewBundleFingerprint",
+  ]);
+  if (!context || context.schemaVersion !== 1 ||
+    context.repositoryFullName !== repositoryFullName) return null;
+
+  const verified = await verifyHoidExactUnitClaimSignatures(
+    rawPackages,
+    evidenceContextInput as HoidApprovedClaimReviewSignatureContext,
+    registry as HoidReviewerTrustRegistry,
+    rootKey as HoidReviewerTrustRootKey,
+    verifier as HoidEd25519VerificationPort,
+    now,
+    minimumRegistryRevision,
+  );
+  if (verified.status !== "verified") return null;
+
+  const policyByEvidenceId = new Map<string, Readonly<{
+    policy: (typeof verified.packages)[number]["policies"][number];
+    claimEvidenceIds: readonly string[];
+  }>>();
+  for (const item of verified.packages) {
+    for (const policy of item.policies) {
+      if (policyByEvidenceId.has(policy.evidenceId)) return null;
+      policyByEvidenceId.set(policy.evidenceId, Object.freeze({
+        policy,
+        claimEvidenceIds: item.claim.evidenceIds,
+      }));
+    }
+  }
+
+  const bindings: unknown[] = [];
+  for (const { path, step, evidence } of evidenceReferences) {
+    const binding = policyByEvidenceId.get(evidence.evidenceId);
+    if (!binding ||
+      JSON.stringify(referenceValue(binding.policy.source)) !==
+        JSON.stringify(referenceValue(evidence.reference))) return null;
+
+    // A claim may cite multiple evidence records. The route rationale must
+    // declare all of them, not silently rely on an omitted supporting record.
+    const stepEvidenceIds = new Set(step.rationaleEvidence.map(item => item.evidenceId));
+    if (!binding.claimEvidenceIds.every(id => stepEvidenceIds.has(id))) return null;
+
+    const policyRequirements = [
+      binding.policy.source,
+      binding.policy.firstSafeAppearance,
+      binding.policy.unlock,
+    ];
+    for (const requirement of policyRequirements) {
+      const prerequisite = step.prerequisites.find(item =>
+        item.through.bookId === requirement.bookId);
+      if (!prerequisite || prerequisite.through.ordinal < requirement.ordinal) return null;
+    }
+
+    bindings.push([
+      path.pathId,
+      step.stepId,
+      evidence.evidenceId,
+      referenceValue(binding.policy.source),
+      referenceValue(binding.policy.firstSafeAppearance),
+      referenceValue(binding.policy.unlock),
+      binding.claimEvidenceIds,
+    ]);
+  }
+
+  const claimFingerprints = verified.claims
+    .map(item => [item.claimId, item.reviewerId, item.keyId, item.messageFingerprint])
+    .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+  return Object.freeze({
+    fingerprint: sha256Hex(JSON.stringify([
+      "hoid-curated-reading-path-evidence-v1",
+      verified.contextFingerprint,
+      verified.registryRevision,
+      claimFingerprints,
+      bindings,
+    ])),
+    registryRevision: verified.registryRevision,
+  });
 }
 
 /**
@@ -718,6 +848,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
   const raw = exactRecord(input, [
     "catalogue", "progressSnapshot", "attestations", "repositoryFullName",
     "registry", "rootKey", "verifier", "now", "minimumRegistryRevision",
+    "evidencePackages", "evidenceContext",
   ]);
   if (!raw) return Object.freeze({
     status: "invalid", reason: "invalid-input",
@@ -743,6 +874,22 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
     promotionAllowed: false, productionWritePerformed: false,
   });
 
+  const rationaleEvidence = await verifyRouteRationaleEvidence(
+    catalogue,
+    raw.evidencePackages,
+    raw.evidenceContext,
+    raw.repositoryFullName as string,
+    raw.registry,
+    raw.rootKey,
+    raw.verifier,
+    raw.now,
+    raw.minimumRegistryRevision,
+  );
+  if (!rationaleEvidence) return Object.freeze({
+    status: "blocked", reason: "evidence-unverified",
+    promotionAllowed: false, productionWritePerformed: false,
+  });
+
   const approval = await verifyHoidCuratedReadingPathCatalogueApproval({
     catalogue,
     attestations: raw.attestations,
@@ -763,6 +910,14 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
   });
   if (approval.status !== "verified") return Object.freeze({
     status: "invalid", reason: "invalid-approval",
+    promotionAllowed: false, productionWritePerformed: false,
+  });
+
+  if (
+    rationaleEvidence.registryRevision !== null &&
+    rationaleEvidence.registryRevision !== approval.registryRevision
+  ) return Object.freeze({
+    status: "blocked", reason: "evidence-unverified",
     promotionAllowed: false, productionWritePerformed: false,
   });
 
@@ -836,6 +991,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
     progress.revision,
     progressFingerprint,
     approval.registryRevision,
+    rationaleEvidence.fingerprint,
     selected,
   );
   return Object.freeze({
@@ -847,6 +1003,7 @@ export async function evaluateHoidCuratedReadingPathRecommendations(
       progressRevision: progress.revision,
       progressFingerprint,
       registryRevision: approval.registryRevision,
+      rationaleEvidenceFingerprint: rationaleEvidence.fingerprint,
       recommendations: selected,
       fingerprint,
     }),
@@ -862,6 +1019,7 @@ export async function validateHoidCuratedReadingPathRecommendationPlan(
   const raw = exactRecord(input, [
     "plan", "catalogue", "progressSnapshot", "attestations", "repositoryFullName",
     "registry", "rootKey", "verifier", "now", "minimumRegistryRevision",
+    "evidencePackages", "evidenceContext",
   ]);
   if (!raw) return Object.freeze({ status: "invalid", reason: "invalid-input" });
 
@@ -886,6 +1044,8 @@ export async function validateHoidCuratedReadingPathRecommendationPlan(
     verifier: raw.verifier,
     now: raw.now,
     minimumRegistryRevision: raw.minimumRegistryRevision,
+    evidencePackages: raw.evidencePackages,
+    evidenceContext: raw.evidenceContext,
   });
   if (current.status !== "ready") {
     return Object.freeze({ status: "invalid", reason: "current-plan-unavailable" });

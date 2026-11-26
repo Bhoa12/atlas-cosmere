@@ -1,0 +1,61 @@
+name: Hoid Run 328 — curated path signed evidence binding
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimSignatures.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/RUN328_CURATED_PATH_SIGNED_EVIDENCE_BINDING.md"
+      - ".github/workflows/hoid-run328-curated-path-evidence-binding.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run328"
+    paths:
+      - "src/hoid/curatedReadingPathCatalogue.ts"
+      - "src/hoid/curatedReadingPathCatalogue.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimSignatures.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "docs/hoid/RUN328_CURATED_PATH_SIGNED_EVIDENCE_BINDING.md"
+      - ".github/workflows/hoid-run328-curated-path-evidence-binding.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  curated-path-evidence-binding:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test route evidence binding and exact-unit signature regressions
+        run: >-
+          npx vitest run
+          src/hoid/curatedReadingPathCatalogue.test.ts
+          src/hoid/exactUnitClaimSignatures.test.ts
+      - name: Strict type-check route and signed evidence contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/curatedReadingPathCatalogue.ts
+          src/hoid/curatedReadingPathCatalogue.test.ts
+          src/hoid/exactUnitClaimSignatures.ts
+          src/hoid/exactUnitClaimIntegrity.ts
+          src/hoid/unitEvidenceAuthorizationV2.ts

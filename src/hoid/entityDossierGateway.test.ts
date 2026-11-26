@@ -38,7 +38,7 @@ function makeEntry(
   });
 }
 
-function aliasRecord(entry: HoidKnowledgeEntry): HoidEntityAliasRecord {
+function aliasRecord(entry: HoidKnowledgeEntry, unlockOverride?: number): HoidEntityAliasRecord {
   if (!entry.evidenceSource || !entry.evidenceUnlock) throw new Error("Expected source metadata");
   const alias = entry.aliases[0];
   return Object.freeze({
@@ -48,7 +48,10 @@ function aliasRecord(entry: HoidKnowledgeEntry): HoidEntityAliasRecord {
     evidence: Object.freeze([Object.freeze({
       id: "alias-evidence." + entry.id,
       source: entry.evidenceSource,
-      unlock: entry.evidenceUnlock,
+      unlock: Object.freeze({
+        bookId: entry.evidenceUnlock.bookId,
+        chapter: unlockOverride ?? entry.evidenceUnlock.chapter,
+      }),
     })]),
     review: Object.freeze({
       status: "approved",
@@ -254,6 +257,80 @@ describe("Hoid progress-bound entity dossier", () => {
     );
     expect(result.status).toBe("ambiguous");
     expect(result).not.toHaveProperty("dossier");
+  });
+
+
+  it("withholds an entity summary that mentions a separately locked alias", () => {
+    const base = makeEntry("entity.vin", "Vin", "tfe");
+    const vin = Object.freeze({
+      ...base,
+      summary: "Resumen original sintético sobre Vin que menciona a Kelsier.",
+    });
+    const kelsier = makeEntry("entity.kelsier", "Kelsier", "tfe");
+    const knowledge = Object.freeze([vin, kelsier]);
+    const aliases = Object.freeze([
+      aliasRecord(vin),
+      aliasRecord(kelsier, 4),
+    ]);
+
+    const beforeAliasUnlock = buildHoidAuthorizedEntityDossier(
+      knowledge,
+      [],
+      aliases,
+      progress([{ bookId: "tfe", chapter: 3 }]),
+      { text: "Vin" },
+    );
+    expect(beforeAliasUnlock.status).toBe("not-found");
+
+    const afterAliasUnlock = buildHoidAuthorizedEntityDossier(
+      knowledge,
+      [],
+      aliases,
+      progress([{ bookId: "tfe", chapter: 5 }]),
+      { text: "Vin" },
+    );
+    expect(afterAliasUnlock.status).toBe("ready");
+  });
+
+  it("withholds claim prose until every named alias is independently disclosed", () => {
+    const vin = makeEntry("entity.vin", "Vin", "tfe");
+    const kelsier = makeEntry("entity.kelsier", "Kelsier", "tfe");
+    const knowledge = Object.freeze([vin, kelsier]);
+    const claim = approvedClaim(
+      "claim.vin-kelsier.context",
+      "Vin y Kelsier aparecen juntos en esta afirmación sintética de prueba.",
+      knowledge,
+      [vin.id, kelsier.id],
+      [vin.id, kelsier.id],
+    );
+    const aliases = Object.freeze([
+      aliasRecord(vin),
+      aliasRecord(kelsier, 4),
+    ]);
+
+    const locked = buildHoidAuthorizedEntityDossier(
+      knowledge,
+      [claim],
+      aliases,
+      progress([{ bookId: "tfe", chapter: 3 }]),
+      { text: "Vin" },
+    );
+    expect(locked.status).toBe("ready");
+    if (locked.status !== "ready") return;
+    expect(locked.dossier.claims).toHaveLength(0);
+
+    const unlocked = buildHoidAuthorizedEntityDossier(
+      knowledge,
+      [claim],
+      aliases,
+      progress([{ bookId: "tfe", chapter: 5 }]),
+      { text: "Vin" },
+    );
+    expect(unlocked.status).toBe("ready");
+    if (unlocked.status !== "ready") return;
+    expect(unlocked.dossier.claims).toHaveLength(1);
+    expect(unlocked.dossier.claims[0].participants.map(item => item.id).sort())
+      .toEqual(["entity.kelsier", "entity.vin"]);
   });
 
   it("rejects a tampered approved claim instead of presenting it", () => {

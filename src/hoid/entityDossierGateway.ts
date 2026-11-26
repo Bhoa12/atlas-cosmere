@@ -9,7 +9,6 @@ import {
 } from "./editorialRegistry";
 import {
   HOID_ENTITY_ALIAS_EVIDENCE,
-  type HoidEntityAliasRecord,
 } from "./entityAliasRegistry";
 import {
   createHoidEvidenceRuntime,

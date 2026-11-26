@@ -192,7 +192,7 @@ function isSha256(value: unknown): value is string {
 }
 
 function hasForbiddenSummaryControls(value: string): boolean {
-  return /[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]/u.test(value);
+  return /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value);
 }
 
 function canonicalEvidence(value: unknown): HoidHistoricalReviewSourceEvidence | null {
@@ -282,7 +282,7 @@ function canonicalPacket(value: unknown): HoidHistoricalEditorialReviewPacket | 
       typeof raw.summaryText !== "string" ||
       raw.summaryText !== raw.summaryText.trim() ||
       raw.summaryText.length < 80 || raw.summaryText.length > 3_000 ||
-      /[\u0000-\u001f\u007f]/u.test(raw.summaryText) ||
+      hasForbiddenSummaryControls(raw.summaryText) ||
       /<(?:!doctype|html|body|script|style)\b/i.test(raw.summaryText) ||
       /(?:file|content):\/\//i.test(raw.summaryText) ||
       !isSha256(raw.summarySha256) || raw.summarySha256 !== sha256Hex(raw.summaryText) ||
@@ -318,6 +318,15 @@ function canonicalPacket(value: unknown): HoidHistoricalEditorialReviewPacket | 
     authorizationEffect: "none" as const,
     spoilerAuthorization: "none" as const,
   };
+  const expectedDraftId = "local:" + sha256Hex(JSON.stringify([
+    "hoid-local-editorial-draft-v1",
+    raw.workId,
+    raw.editionId,
+    raw.chapterNumber,
+    evidence.receiptFingerprint,
+    raw.summarySha256,
+  ]));
+  if (raw.draftId !== expectedDraftId) return null;
   if (packetId(payload) !== raw.packetId) return null;
   return Object.freeze({ ...payload, packetId: raw.packetId });
 }
@@ -345,7 +354,7 @@ export function buildHoidHistoricalEditorialReviewPacket(
       draft.chapterNumber < 1 || typeof draft.summaryText !== "string" ||
       draft.summaryText !== draft.summaryText.trim() ||
       draft.summaryText.length < 80 || draft.summaryText.length > 3_000 ||
-      /[\u0000-\u001f\u007f]/u.test(draft.summaryText) ||
+      hasForbiddenSummaryControls(draft.summaryText) ||
       /<(?:!doctype|html|body|script|style)\b/i.test(draft.summaryText) ||
       /(?:file|content):\/\//i.test(draft.summaryText)) {
     return Object.freeze({ status: "invalid", reason: "invalid-draft" });

@@ -151,6 +151,7 @@ export function createHoidHistoricalReviewSessionController(
   let handoffEvidence = new WeakMap<object, HoidHistoricalReviewSourceEvidence>();
   let handoffPackets = new WeakMap<object, HoidHistoricalEditorialReviewPacket>();
   let reviewPacketLeases = new WeakMap<object, HoidHistoricalReviewSessionLease>();
+  let reviewPacketHandoffs = new WeakMap<object, HoidHistoricalReviewHandoff>();
   let reviewReceipts = new WeakMap<object, HoidHistoricalEditorialReviewReceipt>();
 
   const isCurrent = (lease: unknown): lease is HoidHistoricalReviewSessionLease =>
@@ -165,6 +166,7 @@ export function createHoidHistoricalReviewSessionController(
     handoffEvidence = new WeakMap<object, HoidHistoricalReviewSourceEvidence>();
     handoffPackets = new WeakMap<object, HoidHistoricalEditorialReviewPacket>();
     reviewPacketLeases = new WeakMap<object, HoidHistoricalReviewSessionLease>();
+    reviewPacketHandoffs = new WeakMap<object, HoidHistoricalReviewHandoff>();
     reviewReceipts = new WeakMap<object, HoidHistoricalEditorialReviewReceipt>();
     generation += 1;
   };
@@ -307,6 +309,12 @@ export function createHoidHistoricalReviewSessionController(
         return Object.freeze({ status: "rejected", reason: "invalid-summary" });
       }
 
+      const previousPacket = handoffPackets.get(handoff);
+      if (previousPacket) {
+        reviewPacketLeases.delete(previousPacket);
+        reviewPacketHandoffs.delete(previousPacket);
+        reviewReceipts.delete(previousPacket);
+      }
       handoffPackets.delete(handoff);
       const draft: HoidHistoricalReviewDraft = Object.freeze({
         schemaVersion: 1,
@@ -343,8 +351,15 @@ export function createHoidHistoricalReviewSessionController(
       }
       const result = buildHoidHistoricalEditorialReviewPacket(draft, evidence);
       if (result.status === "ready") {
+        const previousPacket = handoffPackets.get(handoff);
+        if (previousPacket) {
+          reviewPacketLeases.delete(previousPacket);
+          reviewPacketHandoffs.delete(previousPacket);
+          reviewReceipts.delete(previousPacket);
+        }
         handoffPackets.set(handoff, result.packet);
         reviewPacketLeases.set(result.packet, lease);
+        reviewPacketHandoffs.set(result.packet, handoff);
       }
       return result;
     },
@@ -371,7 +386,8 @@ export function createHoidHistoricalReviewSessionController(
 
     getReviewReceipt(packet: HoidHistoricalEditorialReviewPacket): HoidHistoricalEditorialReviewReceipt | null {
       const lease = reviewPacketLeases.get(packet);
-      if (!lease || !isCurrent(lease)) return null;
+      const handoff = reviewPacketHandoffs.get(packet);
+      if (!lease || !handoff || !isCurrent(lease) || handoffPackets.get(handoff) !== packet) return null;
       return reviewReceipts.get(packet) ?? null;
     },
 
@@ -381,6 +397,7 @@ export function createHoidHistoricalReviewSessionController(
       const packet = handoffPackets.get(handoff);
       if (packet) {
         reviewPacketLeases.delete(packet);
+        reviewPacketHandoffs.delete(packet);
         reviewReceipts.delete(packet);
       }
       handoffPackets.delete(handoff);

@@ -92,16 +92,18 @@ describe("edition-bound recommendation navigation boundary", () => {
     expect(Object.isFrozen(result.handoff)).toBe(true);
   });
 
-  it("allows chapter one only when the work has no recorded position", () => {
+  it("does not create a recommendation handoff for chapter one of an unstarted work", () => {
     const progress = emptySnapshot();
-    const target = targetFor(progress);
-    const result = prepare(target, progress);
+    const target = targetFor(snapshotFor("tfe", 1));
+    const presentation = createHoidEditionBoundRecommendationPresentation(progress, 1);
 
-    expect(result.status).toBe("ready");
-    if (result.status !== "ready") return;
-    expect(result.handoff.cursor).toMatchObject({
-      bookId: "tfe",
-      chapterNumber: 1,
+    expect(presentation).toMatchObject({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+    });
+    expect(prepare(target, progress)).toEqual({
+      status: "unavailable",
+      reason: "work-not-started",
     });
   });
 
@@ -202,7 +204,7 @@ describe("edition-bound recommendation navigation boundary", () => {
     });
   });
 
-  it("allows an unread chapter-one discovery target after the active work was explicitly selected", () => {
+  it("rejects an unstarted chapter-one target even when another active work is selected", () => {
     const twok = createHoidReadingCursor("twok", 21);
     const elantris = createHoidReadingCursor("elantris", 3);
     if (twok.status !== "ready" || elantris.status !== "ready") {
@@ -217,9 +219,12 @@ describe("edition-bound recommendation navigation boundary", () => {
       ],
       updatedAt: UPDATED_AT,
     };
-    const discoveryTarget = targetFor(emptySnapshot());
+    const unstartedTarget = targetFor(snapshotFor("tfe", 1));
 
-    expect(prepare(discoveryTarget, progress, "twok").status).toBe("ready");
+    expect(prepare(unstartedTarget, progress, "twok")).toEqual({
+      status: "unavailable",
+      reason: "work-not-started",
+    });
   });
 
   it("rejects a selected active work that is not in the current progress snapshot", () => {

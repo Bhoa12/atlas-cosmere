@@ -10,10 +10,12 @@ import {
 
 type ReadyExplanation = Extract<HoidExplainedRecommendationResult, { status: "ready" }>;
 type SelectionExplanation = Extract<HoidExplainedRecommendationResult, { status: "selection-required" }>;
+type NoSafeNextWorkExplanation = Extract<HoidExplainedRecommendationResult, { status: "no-safe-next-work" }>;
 
 export type HoidEditionBoundRecommendationPresentation =
   | (ReadyExplanation & Readonly<{ progressFingerprint: string }>)
   | (SelectionExplanation & Readonly<{ progressFingerprint: string }>)
+  | (NoSafeNextWorkExplanation & Readonly<{ progressFingerprint: string }>)
   | Readonly<{
       status: "unavailable";
       reason: "invalid-progress" | "invalid-limit" | "invalid-active-work" | "invalid-recommendation";

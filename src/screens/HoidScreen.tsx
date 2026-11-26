@@ -600,6 +600,8 @@ export const HoidScreen: React.FC<{
     }
   };
 
+  // Cross-work discovery stays withheld until a separately reviewed reading-path catalogue exists.
+  // This screen may only resume a validated cursor already present in the reader's progress ledger.
   const cargarRecomendaciones = async (activeBookId?: string) => {
     if (cargandoRecomendaciones || progresoPersistenciaEstado !== 'ready') return;
     const ticket = recommendationRequestSession.begin();
@@ -673,7 +675,9 @@ export const HoidScreen: React.FC<{
       }
       setRecommendationMessage(presentation.status === 'selection-required'
         ? 'Hay varias obras en curso. Selecciona explícitamente cuál quieres reanudar.'
-        : `Se han preparado ${presentation.items.length} recomendaciones vinculadas al progreso y a sus manifiestos. No es una ruta canónica.`);
+        : presentation.status === 'no-safe-next-work'
+          ? presentation.detail
+          : 'Se ha preparado una recomendación para reanudar tu lectura actual, vinculada al progreso y al manifiesto de su edición.');
     } catch {
       if (!recommendationRequestSession.isCurrent(ticket)) return;
       clearRecommendationPresentation();
@@ -1017,9 +1021,9 @@ export const HoidScreen: React.FC<{
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.recommendationTitle}>RETOMAR Y DESCUBRIR</Text>
+            <Text style={styles.recommendationTitle}>RETOMAR LECTURA</Text>
             <Text style={styles.recommendationNote}>
-              Primero lecturas en curso; si hay varias, eliges cuál continuar. Después aparecen obras sin empezar. No establece un orden canónico.
+              Hoid solo reanuda obras que ya tienes en curso. No elegirá una obra nueva por orden bibliográfico ni por una cronología no revisada.
             </Text>
           </View>
           <TouchableOpacity
@@ -1031,7 +1035,7 @@ export const HoidScreen: React.FC<{
             ]}
             onPress={() => { void cargarRecomendaciones(); }}
           >
-            <Text style={styles.recommendationButtonText}>Explorar</Text>
+            <Text style={styles.recommendationButtonText}>Actualizar</Text>
           </TouchableOpacity>
         </View>
         {cargandoRecomendaciones && (

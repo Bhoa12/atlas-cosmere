@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
   explainEditionBoundRecommendationResult,
 } from "./editionBoundRecommendationExplanations";
 import {
   recommendEditionBoundReadingNextSteps,
 } from "./editionBoundRecommendations";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T14:00:00.000Z";
 
 type PositionFixture =
   | Readonly<{ bookId: string; chapter: number }>
+  | Readonly<{ bookId: string; cursor: HoidReadingCursor }>
   | Readonly<{ bookId: string; completed: true }>;
 
 function snapshot(positions: readonly PositionFixture[] = []) {
@@ -20,6 +20,7 @@ function snapshot(positions: readonly PositionFixture[] = []) {
     revision: positions.length === 0 ? 0 : 1,
     positions: positions.map(position => {
       if ("completed" in position) return { bookId: position.bookId, completed: true as const };
+      if ("cursor" in position) return { bookId: position.bookId, cursor: position.cursor };
       const result = createHoidReadingCursor(position.bookId, position.chapter);
       if (result.status !== "ready") throw new Error("Cursor de fixture no disponible");
       return { bookId: position.bookId, cursor: result.cursor };
@@ -57,42 +58,44 @@ describe("edition-bound recommendation explanations", () => {
     expect(explained.items[0].detail).not.toMatch(/personaje|acontecimiento|revelación|trama/i);
   });
 
-  it("explains an unread work as a metadata-only chapter-one starting point", () => {
+  it("explains why Hoid abstains when there is no active work and no approved path", () => {
     const recommendation = recommendEditionBoundReadingNextSteps(snapshot(), 1);
-    expect(recommendation.status).toBe("ready");
-    if (recommendation.status !== "ready") return;
-
-    const explained = explainEditionBoundRecommendationResult(recommendation);
-    expect(explained.status).toBe("ready");
-    if (explained.status !== "ready") return;
-
-    expect(explained.items[0]).toMatchObject({
-      sourceId: "tfe",
-      reason: "unread-source",
-      explanationCode: "start-first-numbered-chapter",
-      heading: "Empezar El Imperio Final",
+    expect(recommendation).toEqual({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 0,
     });
-    expect(explained.items[0].detail).toContain("iniciar por el capítulo 1");
+    const explained = explainEditionBoundRecommendationResult(recommendation);
+    expect(explained).toMatchObject({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: 0,
+      heading: "No hay una ruta de lectura aprobada",
+    });
+    expect(explained.status === "no-safe-next-work" ? explained.detail : "")
+      .toContain("no elegirá otra por orden bibliográfico");
   });
 
-  it("explains an unsegmented work without inventing a chapter or locator", () => {
-    const positions = HOID_SOURCE_BIBLIOGRAPHY
-      .filter(work => work.id !== "white-sand-1")
-      .map(work => ({ bookId: work.id, completed: true as const }));
-    const recommendation = recommendEditionBoundReadingNextSteps(snapshot(positions), 1);
-    expect(recommendation.status).toBe("ready");
-    if (recommendation.status !== "ready") return;
-
-    const explained = explainEditionBoundRecommendationResult(recommendation);
-    expect(explained.status).toBe("ready");
-    if (explained.status !== "ready") return;
-
-    expect(explained.items[0]).toMatchObject({
-      sourceId: "white-sand-1",
-      explanationCode: "catalog-only-unsegmented",
-      target: { kind: "catalog-only", reason: "segmentation-unverified" },
-    });
-    expect(explained.items[0].detail).toContain("no se inventa un capítulo ni una ruta de navegación");
+  it("withholds ambiguous duplicate chapter cursors before explanation", () => {
+    const manifestResult = getHoidReadingManifest("sawt");
+    expect(manifestResult.status).toBe("ready");
+    if (manifestResult.status !== "ready") return;
+    const ambiguous = manifestResult.manifest.units.find(unit => unit.chapterNumber === 12);
+    if (!ambiguous) return;
+    const recommendation = recommendEditionBoundReadingNextSteps(snapshot([{
+      bookId: "sawt",
+      cursor: {
+        schemaVersion: 1,
+        manifestId: manifestResult.manifest.manifestId,
+        bookId: "sawt",
+        unitId: ambiguous.id,
+        ordinal: ambiguous.ordinal,
+        chapterNumber: ambiguous.chapterNumber,
+      },
+    }]), 1);
+    expect(recommendation).toEqual({ status: "unavailable", reason: "invalid-progress" });
+    expect(explainEditionBoundRecommendationResult(recommendation))
+      .toEqual({ status: "unavailable", reason: "invalid-progress" });
   });
 
   it("presents an explicit choice when several works are active", () => {
@@ -202,31 +205,20 @@ describe("edition-bound recommendation explanations", () => {
     })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
   });
 
-  it("rejects multiple resume items and discovery entries outside bibliography order", () => {
-    const first = recommendEditionBoundReadingNextSteps(
-      snapshot([{ bookId: "tfe", chapter: 8 }]),
-      1,
-    );
-    const second = recommendEditionBoundReadingNextSteps(
-      snapshot([{ bookId: "elantris", chapter: 3 }]),
-      1,
-    );
+  it("rejects multiple resume items and legacy unread-source recommendations", () => {
+    const first = recommendEditionBoundReadingNextSteps(snapshot([{ bookId: "tfe", chapter: 8 }]), 1);
+    const second = recommendEditionBoundReadingNextSteps(snapshot([{ bookId: "elantris", chapter: 3 }]), 1);
     expect(first.status).toBe("ready");
     expect(second.status).toBe("ready");
     if (first.status !== "ready" || second.status !== "ready") return;
-
     expect(explainEditionBoundRecommendationResult({
       status: "ready",
       progressRevision: 1,
       items: [...first.items, ...second.items],
     })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
-
-    const discovery = recommendEditionBoundReadingNextSteps(snapshot(), 2);
-    expect(discovery.status).toBe("ready");
-    if (discovery.status !== "ready") return;
     expect(explainEditionBoundRecommendationResult({
-      ...discovery,
-      items: [...discovery.items].reverse(),
+      ...first,
+      items: [{ ...first.items[0], reason: "unread-source" }],
     })).toEqual({ status: "unavailable", reason: "invalid-recommendation" });
   });
 

@@ -39,6 +39,11 @@ export type HoidEditionRecommendationDisplayProjection =
       heading: string;
       detail: string;
       choices: readonly HoidEditionRecommendationDisplayChoice[];
+    }>
+  | Readonly<{
+      status: "no-safe-next-work";
+      heading: string;
+      detail: string;
     }>;
 
 export type HoidTopicRecommendationDisplayCitation = Readonly<{
@@ -168,16 +173,8 @@ function canonicalNavigationAvailability(
   );
   if (!record) return null;
 
-  if (record.kind === "catalog-only") {
-    if (
-      recommendationReason !== "unread-source" ||
-      !hasExactKeys(record, ["kind", "reason"]) ||
-      (record.reason !== "segmentation-unverified" && record.reason !== "unit-not-found")
-    ) return null;
-    return "catalog-only";
-  }
-
-  if (record.kind !== "edition-cursor") return null;
+  if (record.kind === "catalog-only") return null;
+  if (record.kind !== "edition-cursor" || recommendationReason !== "resume-current-work") return null;
   const hasLocator = Object.prototype.hasOwnProperty.call(record, "locatorId");
   const expectedKeys = hasLocator
     ? ["kind", "cursor", "editionId", "navigationSha256", "locatorStatus", "locatorId"]
@@ -201,7 +198,6 @@ function canonicalNavigationAvailability(
   );
   if (!unit) return null;
 
-  if (recommendationReason === "unread-source" && cursor.chapterNumber !== 1) return null;
   if (unit.locatorId) {
     if (
       !hasLocator ||
@@ -229,7 +225,7 @@ export function projectHoidEditionRecommendationsForDisplay(
 ): HoidEditionRecommendationDisplayProjection | null {
   const record = canonicalRecord(
     value,
-    ["status", "progressRevision", "items", "choices", "heading", "detail", "progressFingerprint"],
+    ["status", "reason", "progressRevision", "items", "choices", "heading", "detail", "progressFingerprint"],
     ["status", "progressRevision", "progressFingerprint"],
   );
   if (
@@ -239,6 +235,22 @@ export function projectHoidEditionRecommendationsForDisplay(
     typeof record.progressFingerprint !== "string" ||
     !SHA256_PATTERN.test(record.progressFingerprint)
   ) return null;
+
+  if (record.status === "no-safe-next-work") {
+    if (
+      !hasExactKeys(record, [
+        "status", "reason", "progressRevision", "heading", "detail", "progressFingerprint",
+      ]) ||
+      record.reason !== "no-active-work" ||
+      !safeText(record.heading, 512) ||
+      !safeText(record.detail, 2_000)
+    ) return null;
+    return Object.freeze({
+      status: "no-safe-next-work",
+      heading: record.heading,
+      detail: record.detail,
+    });
+  }
 
   if (record.status === "ready") {
     if (
@@ -260,13 +272,8 @@ export function projectHoidEditionRecommendationsForDisplay(
         seen.has(item.sourceId) ||
         typeof item.title !== "string" ||
         WORKS.get(item.sourceId)?.title !== item.title ||
-        (item.reason !== "resume-current-work" && item.reason !== "unread-source") ||
-        ![
-          "resume-current-cursor",
-          "start-first-numbered-chapter",
-          "catalog-only-unsegmented",
-          "catalog-only-unit-missing",
-        ].includes(String(item.explanationCode)) ||
+        item.reason !== "resume-current-work" ||
+        item.explanationCode !== "resume-current-cursor" ||
         !safeText(item.heading, 512) ||
         !safeText(item.detail, 2_000)
       ) return null;
@@ -276,18 +283,8 @@ export function projectHoidEditionRecommendationsForDisplay(
         item.sourceId,
         item.reason,
       );
-      if (
-        !navigation ||
-        (navigation === "catalog-only" &&
-          item.explanationCode !== "catalog-only-unsegmented" &&
-          item.explanationCode !== "catalog-only-unit-missing") ||
-        (navigation !== "catalog-only" &&
-          item.explanationCode !== (
-            item.reason === "resume-current-work"
-              ? "resume-current-cursor"
-              : "start-first-numbered-chapter"
-          ))
-      ) return null;
+      if (!navigation || navigation === "catalog-only" ||
+        item.explanationCode !== "resume-current-cursor") return null;
       seen.add(item.sourceId);
       items.push(Object.freeze({
         sourceId: item.sourceId,

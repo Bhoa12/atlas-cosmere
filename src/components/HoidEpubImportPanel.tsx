@@ -379,6 +379,7 @@ export const HoidEpubImportPanel: React.FC<{
           if (!lifecycleRef.current.isCurrent(operation)) return;
           if (receiptResult.status === "saved" || receiptResult.status === "unchanged") {
             await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
+            if (!lifecycleRef.current.isCurrent(operation)) return;
             setMessage(
               receiptResult.status === "saved"
                 ? `Recibo del capítulo ${result.candidate.chapterNumber} guardado localmente. No contiene texto; requiere volver a seleccionar la fuente antes de cualquier revisión editorial.`
@@ -386,9 +387,11 @@ export const HoidEpubImportPanel: React.FC<{
             );
           } else if (receiptResult.status === "receipt-conflict") {
             await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
+            if (!lifecycleRef.current.isCurrent(operation)) return;
             setMessage("Ya existe un recibo local distinto para este capítulo. Se conserva el anterior y no se sobrescribe.");
           } else if (receiptResult.status === "write-conflict") {
             await refreshLocalReviewQueue(() => lifecycleRef.current.isCurrent(operation));
+            if (!lifecycleRef.current.isCurrent(operation)) return;
             setMessage("El registro local cambió durante la escritura. Se ha conservado el estado persistido; vuelve a intentar la inspección después de actualizar la lista.");
           } else {
             setReceiptStoreStatus("unavailable");

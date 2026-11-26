@@ -97,6 +97,21 @@ function progress(bookId = "tfe", chapter = 3, revision = 1) {
   });
 }
 
+function progressAcrossWorks(revision = 1) {
+  const tfe = createHoidReadingCursor("tfe", 3);
+  const twok = createHoidReadingCursor("twok", 3);
+  if (tfe.status !== "ready" || twok.status !== "ready") throw new Error("Expected multi-work cursors");
+  return Object.freeze({
+    schemaVersion: 2,
+    revision,
+    positions: Object.freeze([
+      Object.freeze({ bookId: "tfe", cursor: tfe.cursor }),
+      Object.freeze({ bookId: "twok", cursor: twok.cursor }),
+    ]),
+    updatedAt: NOW,
+  });
+}
+
 function fixture(options: Readonly<{
   claims?: readonly HoidApprovedClaim[];
   knowledge?: readonly HoidKnowledgeEntry[];
@@ -235,6 +250,70 @@ describe("Hoid entity dossier conversation adapter", () => {
       depth: "comparative",
     });
     expect(result).toEqual({ status: "unavailable", reason: "budget-exceeded" });
+  });
+
+  it("requires one claim segment to carry evidence from at least two works for comparative depth", async () => {
+    const entity = makeEntry("entity.vin", "Vin", "tfe");
+    const supporting = makeEntry("evidence.context", "Contexto", "twok", "concept");
+    const knowledge = Object.freeze([entity, supporting]);
+    const snapshot = progressAcrossWorks();
+    const scope = Object.freeze({
+      mode: "cross-work" as const,
+      bookIds: Object.freeze(["tfe", "twok"]),
+    });
+
+    const singleWorkClaim = approvedClaim(
+      "claim.context.single-source",
+      "Afirmación sintética sobre el contexto.",
+      knowledge,
+      [supporting.id],
+      [entity.id],
+    );
+    const singleWorkGateway = createHoidEntityDossierGateway({
+      knowledge,
+      claims: [singleWorkClaim],
+      aliasEvidence: [aliasRecord(entity)],
+      getCurrentProgress: () => snapshot,
+    });
+    if (!singleWorkGateway) throw new Error("Expected gateway");
+    const singleWorkAdapter = createHoidEntityDossierConversationAdapter({
+      gateway: singleWorkGateway,
+      refreshCurrentProgress: async () => snapshot,
+    });
+    if (!singleWorkAdapter) throw new Error("Expected adapter");
+    expect(await singleWorkAdapter.answer({
+      question: "¿Quién es Vin?",
+      progress: snapshot,
+      bookScope: scope,
+      depth: "comparative",
+    })).toEqual({ status: "unavailable", reason: "budget-exceeded" });
+
+    const crossWorkClaim = approvedClaim(
+      "claim.context.cross-source",
+      "Afirmación sintética respaldada por dos obras.",
+      knowledge,
+      [entity.id, supporting.id],
+      [entity.id],
+    );
+    const crossWorkGateway = createHoidEntityDossierGateway({
+      knowledge,
+      claims: [crossWorkClaim],
+      aliasEvidence: [aliasRecord(entity)],
+      getCurrentProgress: () => snapshot,
+    });
+    if (!crossWorkGateway) throw new Error("Expected gateway");
+    const crossWorkAdapter = createHoidEntityDossierConversationAdapter({
+      gateway: crossWorkGateway,
+      refreshCurrentProgress: async () => snapshot,
+    });
+    if (!crossWorkAdapter) throw new Error("Expected adapter");
+    const result = await crossWorkAdapter.answer({
+      question: "¿Quién es Vin?",
+      progress: snapshot,
+      bookScope: scope,
+      depth: "comparative",
+    });
+    expect(result.status).toBe("ready");
   });
 
   it("discards the dossier if durable progress changes after projection", async () => {

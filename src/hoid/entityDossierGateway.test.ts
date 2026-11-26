@@ -450,6 +450,39 @@ describe("Hoid progress-bound entity dossier", () => {
     expect(crossWork.dossier.claims).toHaveLength(1);
   });
 
+  it("does not disclose an alias whose mandatory disclosure evidence is outside the selected scope", () => {
+    const entity = makeEntry("entity.vin", "Vin", "tfe");
+    const aliasSource = makeEntry("alias.source.vin", "Vin", "twok");
+    const rawAlias = aliasRecord(aliasSource);
+    const crossWorkAlias = Object.freeze({
+      ...rawAlias,
+      id: "alias.vin.cross-work",
+      entityId: entity.id,
+    });
+    const snapshot = progress([
+      { bookId: "tfe", chapter: 3 },
+      { bookId: "twok", chapter: 3 },
+    ]);
+
+    const singleWork = buildHoidAuthorizedEntityDossier(
+      [entity],
+      [],
+      [crossWorkAlias],
+      snapshot,
+      { text: "Vin", bookScope: { mode: "single-work", bookIds: ["tfe"] } },
+    );
+    expect(singleWork.status).toBe("not-found");
+
+    const crossWork = buildHoidAuthorizedEntityDossier(
+      [entity],
+      [],
+      [crossWorkAlias],
+      snapshot,
+      { text: "Vin", bookScope: { mode: "cross-work", bookIds: ["tfe", "twok"] } },
+    );
+    expect(crossWork.status).toBe("ready");
+  });
+
   it("rejects unknown and malformed work scopes", () => {
     const fixture = baseFixture();
     const snapshot = progress([{ bookId: "tfe", chapter: 3 }]);

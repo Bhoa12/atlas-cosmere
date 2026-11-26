@@ -581,7 +581,7 @@ export class HoidTrustedExactUnitAnswerHost {
       const reason: HoidTrustedAnswerBlockReason =
         result.reason === "progress-unavailable" ? "progress-unavailable" :
         result.reason === "progress-changed" ? "progress-changed" :
-        result.reason === "evidence-locked" ? "evidence-locked" : "answer-unavailable";
+        (result.reason === "evidence-locked" || result.reason === "spoiler-dependency-locked" || result.reason === "invalid-spoiler-dependencies") ? "evidence-locked" : "answer-unavailable";
       return Object.freeze({ status: "blocked", reason, runtimeReason: result.reason });
     }
 
@@ -710,7 +710,7 @@ export class HoidTrustedExactUnitAnswerHost {
       const reason: HoidTrustedAnswerBlockReason =
         result.reason === "progress-unavailable" ? "progress-unavailable" :
         result.reason === "progress-changed" ? "progress-changed" :
-        result.reason === "evidence-locked" ? "evidence-locked" : "answer-unavailable";
+        (result.reason === "evidence-locked" || result.reason === "spoiler-dependency-locked" || result.reason === "invalid-spoiler-dependencies") ? "evidence-locked" : "answer-unavailable";
       return Object.freeze({ status: "blocked", reason, runtimeReason: result.reason });
     }
 

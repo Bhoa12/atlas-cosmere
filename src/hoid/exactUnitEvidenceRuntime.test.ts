@@ -267,6 +267,40 @@ describe("Hoid exact-unit evidence runtime v2", () => {
       : [])).toEqual(new Set(["twok", "edgedancer", "warbreaker"]));
   });
 
+  it("withholds a cross-work claim before provider egress when one exact prerequisite remains open", async () => {
+    const crossPolicy: HoidExactUnitEvidencePolicy = Object.freeze({
+      schemaVersion: 2,
+      evidenceId: evidence.id,
+      source: reference("twok", 2),
+      firstSafeAppearance: reference("edgedancer", 3),
+      unlock: reference("warbreaker", 2),
+    });
+    const store = new MemoryStore();
+    store.value = snapshot([
+      { bookId: "twok", chapterNumber: 3 },
+      { bookId: "edgedancer", chapterNumber: 4 },
+    ]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const coordinator = new HoidUnitProgressCoordinator(store, fixedNow);
+    const runtime = createHoidExactUnitEvidenceRuntime({
+      coordinator,
+      packages: [packageFor(crossPolicy)],
+      selector: { selectClaims: selector },
+    });
+    expect(runtime).not.toBeNull();
+    const result = await runtime!.answer({
+      question: "Explica una relación entre varias obras.",
+      intent: "explain",
+      depth: "detailed",
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "spoiler-dependency-locked" });
+    expect(selector).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed requests and accessor-backed fields without invoking getters", async () => {
     const store = new MemoryStore();
     store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);

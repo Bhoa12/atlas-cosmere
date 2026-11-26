@@ -28,6 +28,11 @@ import { invokeWithProviderDeadline } from "./providerTimeout";
 import { sha256Hex } from "./sha256";
 import type { HoidAnswerSelectionBudget } from "./types";
 import { isKnownHoidSource } from "./bibliography";
+import {
+  buildHoidExactUnitSpoilerDependencySet,
+  evaluateHoidExactUnitSpoilerDependencies,
+  type HoidExactUnitSpoilerDependencySet,
+} from "./exactUnitSpoilerDependencyGate";
 
 export type HoidExactClaimPackage = Readonly<{
   claim: HoidExactApprovedClaim;
@@ -117,7 +122,9 @@ export type HoidExactEvidenceRuntimeResult =
         | "invalid-selection"
         | "too-many-candidates"
         | "depth-budget-exceeded"
-        | "comparison-provenance-required";
+        | "comparison-provenance-required"
+        | "spoiler-dependency-locked"
+        | "invalid-spoiler-dependencies";
     }>;
 
 export type HoidExactPresentationReceipt = Readonly<{
@@ -159,6 +166,7 @@ type CanonicalPackage = Readonly<{
   claim: HoidExactApprovedClaim;
   evidence: readonly HoidExactEvidenceRecord[];
   policies: readonly HoidExactUnitEvidencePolicy[];
+  spoilerDependencies: HoidExactUnitSpoilerDependencySet;
 }>;
 
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
@@ -437,10 +445,16 @@ function canonicalPackage(value: unknown): CanonicalPackage | null {
 
   const attestation = validateHoidExactApprovedClaimAttestation(record.claim, evidence, policies);
   if (attestation.status !== "valid") return null;
+  const dependencyBuild = buildHoidExactUnitSpoilerDependencySet({
+    claimId: attestation.claim.id,
+    policies,
+  });
+  if (dependencyBuild.status !== "ready") return null;
   return Object.freeze({
     claim: attestation.claim,
     evidence: Object.freeze(evidence),
     policies: Object.freeze(policies),
+    spoilerDependencies: dependencyBuild.dependencySet,
   });
 }
 
@@ -656,6 +670,7 @@ export class HoidExactUnitEvidenceRuntime {
 
     const candidates: HoidExactClaimSelectionCandidate[] = [];
     const candidatePackages = new Map<string, CanonicalPackage>();
+    let withheldBySpoilerDependencies = false;
     for (const item of this.packages) {
       if (item.claim.intent !== request.intent) continue;
       if (
@@ -674,6 +689,16 @@ export class HoidExactUnitEvidenceRuntime {
         request.chapterScope!.some(reference => sameChapterIdentity(policy.source, reference))
       )) continue;
 
+      const dependencyDecision = evaluateHoidExactUnitSpoilerDependencies(
+        item.spoilerDependencies,
+        initial.snapshot,
+      );
+      if (dependencyDecision.status === "invalid") return unavailable("invalid-spoiler-dependencies");
+      if (dependencyDecision.status === "withheld") {
+        withheldBySpoilerDependencies = true;
+        continue;
+      }
+
       const authorized = item.policies.every(policy =>
         authorizeHoidExactUnitEvidence(initial.snapshot, policy).status === "authorized"
       );
@@ -688,7 +713,9 @@ export class HoidExactUnitEvidenceRuntime {
     }
 
     candidates.sort((left, right) => left.id.localeCompare(right.id));
-    if (candidates.length === 0) return unavailable("no-authorized-claims");
+    if (candidates.length === 0) {
+      return unavailable(withheldBySpoilerDependencies ? "spoiler-dependency-locked" : "no-authorized-claims");
+    }
     if (candidates.length > MAX_CANDIDATES) return unavailable("too-many-candidates");
 
     const selectionSchemaVersion = request.conversationContext ? 3 : 2;
@@ -708,6 +735,12 @@ export class HoidExactUnitEvidenceRuntime {
         text: candidate.text,
         evidenceIds: [...candidate.evidenceIds],
       })),
+      // The opaque request digest commits to exact-unit dependencies without exporting
+      // chapter identities, progress positions or unlock thresholds to the provider.
+      spoilerDependencyFingerprints: candidates.map(candidate => [
+        candidate.id,
+        candidatePackages.get(candidate.id)!.spoilerDependencies.fingerprint,
+      ]),
     }));
     const selectionRequest: HoidExactClaimSelectionRequest = Object.freeze({
       schemaVersion: selectionSchemaVersion,
@@ -790,6 +823,12 @@ export class HoidExactUnitEvidenceRuntime {
       ) return unavailable("comparison-provenance-required");
 
       for (const item of selectedPackages) {
+        const dependencyDecision = evaluateHoidExactUnitSpoilerDependencies(
+          item.spoilerDependencies,
+          fresh.snapshot,
+        );
+        if (dependencyDecision.status === "invalid") return unavailable("invalid-spoiler-dependencies");
+        if (dependencyDecision.status === "withheld") return unavailable("spoiler-dependency-locked");
         for (const policy of item.policies) {
           if (authorizeHoidExactUnitEvidence(fresh.snapshot, policy).status !== "authorized") {
             return unavailable("evidence-locked");

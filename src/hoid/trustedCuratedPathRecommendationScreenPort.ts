@@ -239,6 +239,8 @@ export function createHoidTrustedCuratedPathRecommendationScreenPort(
         return withheld("trust-anchor-unavailable");
       }
       if (revisionCheck.status !== "ready") return withheld("trust-anchor-unavailable");
+      if (disposed) return withheld("port-disposed");
+      if (signal?.aborted || currentGeneration !== generation) return withheld("cancelled");
 
       let rawMaterial: unknown;
       try {

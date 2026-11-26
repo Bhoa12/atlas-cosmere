@@ -11,6 +11,7 @@ import {
 import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
 import { createHoidUnitProgressCursor } from "./unitProgressCursor";
 import type { HoidUnitProgressSnapshot } from "./unitProgressLedger";
+import { projectHoidCuratedPathRecommendationsForDisplay } from "./curatedPathRecommendationDisplayProjection";
 import {
   buildHoidCuratedReadingPathCatalogue,
   buildHoidReadingPathApprovalSigningMessage,
@@ -882,6 +883,123 @@ describe("Hoid curated reading path recommendations", () => {
       plan: hostile,
     });
     expect(result).toEqual({ status: "invalid", reason: "invalid-plan" });
+    expect(invoked).toBe(false);
+  });
+});
+
+
+describe("Hoid curated path recommendation display boundary", () => {
+  it("projects only safe display metadata after revalidating signed evidence and live progress", async () => {
+    const catalogue = makeCatalogue();
+    const progress = makeProgress({ kind: "cursor", bookId: "twok", chapterNumber: 3 });
+    const input = evaluationInput(progress, catalogue);
+    const evaluated = await evaluateHoidCuratedReadingPathRecommendations(input);
+    expect(evaluated.status).toBe("ready");
+    if (evaluated.status !== "ready") return;
+
+    const projection = await projectHoidCuratedPathRecommendationsForDisplay({
+      ...input,
+      plan: evaluated.plan,
+    });
+    expect(projection).toMatchObject({
+      status: "ready",
+      items: [{
+        key: "synthetic-roshar-path.continue-wor",
+        pathTitle: "Ruta sintética de pruebas",
+        workId: "wor",
+        workTitle: "Palabras radiantes",
+        whyNow: "Paso posterior de una ruta sintética, sujeto a progreso.",
+        selection: "manual-reader-selection-required",
+        rationaleAuthority: "signed-editorial-catalogue",
+      }],
+    });
+    if (projection.status !== "ready") return;
+    const item = projection.items[0];
+    for (const forbidden of [
+      "chapterNumber",
+      "ordinal",
+      "unitId",
+      "identityFingerprint",
+      "locatorId",
+      "progressRevision",
+      "progressFingerprint",
+      "registryRevision",
+      "rationaleEvidenceFingerprint",
+      "pathFingerprint",
+      "fingerprint",
+      "evidenceId",
+      "claimId",
+    ]) {
+      expect(item).not.toHaveProperty(forbidden);
+    }
+  });
+
+  it("withholds a saved display plan when live progress has changed", async () => {
+    const catalogue = makeCatalogue();
+    const originalProgress = makeProgress({
+      kind: "cursor",
+      bookId: "twok",
+      chapterNumber: 3,
+    });
+    const input = evaluationInput(originalProgress, catalogue);
+    const evaluated = await evaluateHoidCuratedReadingPathRecommendations(input);
+    expect(evaluated.status).toBe("ready");
+    if (evaluated.status !== "ready") return;
+
+    const changedProgress = makeProgress({
+      kind: "cursor",
+      bookId: "twok",
+      chapterNumber: 2,
+    }, 2);
+    const projection = await projectHoidCuratedPathRecommendationsForDisplay({
+      ...evaluationInput(changedProgress, catalogue),
+      plan: evaluated.plan,
+    });
+    expect(projection).toEqual({
+      status: "withheld",
+      reason: "plan-revalidation-failed",
+    });
+  });
+
+  it("withholds a rationale when its signed exact-unit evidence package is absent", async () => {
+    const catalogue = makeCatalogue();
+    const progress = makeProgress({
+      kind: "cursor",
+      bookId: "twok",
+      chapterNumber: 3,
+    });
+    const input = evaluationInput(progress, catalogue);
+    const evaluated = await evaluateHoidCuratedReadingPathRecommendations(input);
+    expect(evaluated.status).toBe("ready");
+    if (evaluated.status !== "ready") return;
+
+    const projection = await projectHoidCuratedPathRecommendationsForDisplay({
+      ...input,
+      plan: evaluated.plan,
+      evidencePackages: [],
+    });
+    expect(projection).toEqual({
+      status: "withheld",
+      reason: "plan-revalidation-failed",
+    });
+  });
+
+  it("rejects accessor-backed orchestration input without invoking getters", async () => {
+    const catalogue = makeCatalogue();
+    const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
+    let invoked = false;
+    const hostile = { ...input, plan: null };
+    Object.defineProperty(hostile, "plan", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        return null;
+      },
+    });
+    expect(await projectHoidCuratedPathRecommendationsForDisplay(hostile)).toEqual({
+      status: "withheld",
+      reason: "invalid-input",
+    });
     expect(invoked).toBe(false);
   });
 });

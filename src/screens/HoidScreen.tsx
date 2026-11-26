@@ -5,6 +5,9 @@ import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../h
 import { createHoidCursorEvidenceRuntime, projectHoidCursorProgressSnapshot } from '../hoid/cursorEvidenceRuntime';
 import { fingerprintHoidCursorProgressProjection } from '../hoid/knowledgeGraph';
 import { createHoidConversationGateway } from '../hoid/conversationGateway';
+import { createProductionHoidEntityDossierGateway } from '../hoid/entityDossierGateway';
+import { classifyHoidEntityDossierIntent } from '../hoid/entityDossierIntent';
+import { createHoidEntityDossierConversationAdapter } from '../hoid/entityDossierConversation';
 import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
@@ -167,6 +170,15 @@ export const HoidScreen: React.FC<{
         getCurrentProgress: () => progressReaderRef.current(),
         refreshCurrentProgress: () => progressRefreshRef.current(),
         subscribeToProgressChanges: listener => progressSubscriptionRef.current(listener),
+      })
+    : null;
+  const entityDossierGateway = createProductionHoidEntityDossierGateway(
+    () => progressReaderRef.current(),
+  );
+  const entityDossierConversation = entityDossierGateway
+    ? createHoidEntityDossierConversationAdapter({
+        gateway: entityDossierGateway,
+        refreshCurrentProgress: () => progressRefreshRef.current(),
       })
     : null;
   const topicInterestGateway = createHoidTopicInterestRecommendationGateway({
@@ -502,6 +514,7 @@ export const HoidScreen: React.FC<{
         fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
       };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
+      const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
       const answerScopeSelection = resolveHoidReadingFocusConversationScope({
         progress: currentProgress,
         answerScopeMode,
@@ -522,6 +535,16 @@ export const HoidScreen: React.FC<{
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
+      } else if (dossierIntent.status === 'invalid') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'No he podido validar el nombre solicitado. No enviaré esta consulta a ningún proveedor.';
+      } else if (dossierIntent.status === 'needs-name') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'Indica el nombre exacto del personaje, lugar, organización, objeto o concepto que quieres consultar.';
       } else if (intentPlan.mode === 'reread-request') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
@@ -662,6 +685,55 @@ export const HoidScreen: React.FC<{
               : answerScopeSelection.reason === 'invalid-scope'
                 ? 'El ámbito de lectura no es válido. Comprueba la selección de una obra o de dos a cuatro obras activas.'
                 : 'No puedo verificar el progreso y el foco de lectura. La respuesta queda bloqueada para evitar spoilers.';
+      } else if (dossierIntent.status === 'ready') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        if (!entityDossierConversation) {
+          responseScope = requestScope;
+          respuesta = 'Los expedientes narrativos no están disponibles en este momento. No recurriré a un proveedor alternativo.';
+        } else {
+          const dossierResult = await entityDossierConversation.answer({
+            question: textoUsuario,
+            progress: currentProgress,
+            bookScope: answerScopeSelection.scope,
+            depth: explanationDepth,
+          }, { signal: ticket.signal });
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+          if (dossierResult.status === 'ready') {
+            responseScope = {
+              revision: dossierResult.progressRevision,
+              fingerprint: dossierResult.progressFingerprint,
+            };
+            respuesta = dossierResult.presentation.text;
+            citas = dossierResult.presentation.citations;
+            segmentos = dossierResult.presentation.segments;
+            formato = dossierResult.presentation.layout;
+          } else if (dossierResult.status === 'not-found') {
+            responseScope = requestScope;
+            respuesta = 'No hay un expediente aprobado que pueda mostrar para ese nombre y tu foco de lectura. No puedo confirmar si el dato no existe o si todavía no está desbloqueado.';
+          } else if (dossierResult.status === 'unavailable') {
+            responseScope = requestScope;
+            respuesta = dossierResult.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado mientras preparaba el expediente. He descartado el resultado; vuelve a formular la consulta.'
+              : dossierResult.reason === 'cancelled'
+                ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
+                : dossierResult.reason === 'invalid-progress'
+                  ? 'No puedo verificar el progreso actual. El expediente queda bloqueado para evitar spoilers.'
+                  : dossierResult.reason === 'invalid-scope'
+                    ? 'El foco de lectura no es válido. No mostraré información fuera de las obras seleccionadas.'
+                    : dossierResult.reason === 'budget-exceeded'
+                      ? 'El expediente supera el presupuesto de detalle seleccionado. No recortaré afirmaciones ni evidencias dependientes.'
+                      : 'No hay un expediente narrativo verificable para esta consulta. No recurriré a un proveedor ni completaré datos mediante suposiciones.';
+          } else if (dossierResult.status === 'needs-name') {
+            responseScope = requestScope;
+            respuesta = 'Indica el nombre exacto de la entidad que quieres consultar.';
+          } else {
+            responseScope = requestScope;
+            respuesta = 'No he podido validar la consulta de expediente. No la enviaré a ningún proveedor.';
+          }
+        }
       } else if (!trustedConversationPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;

@@ -4,6 +4,7 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { getHoidSourceIngestionPlan } from "./sourceIngestionPlan";
 import {
   createHoidEmptySourceInspectionReceiptLedger,
+  createHoidSourceInspectionReceiptFromCandidate,
   recordHoidSourceInspectionReceipt,
   type HoidSourceInspectionReceiptLedger,
 } from "./sourceInspectionReceipts";
@@ -135,6 +136,35 @@ class FakeSqliteDatabase implements HoidSqliteDatabasePort {
   }
 }
 
+function receiptFor(workId: string, documentSha256: string) {
+  const task = getHoidSourceIngestionPlan().tasks.find(item => item.workId === workId);
+  const manifest = getHoidReadingManifest(workId);
+  if (!task || manifest.status !== "ready") throw new Error("Missing fixture task/manifest");
+  const created = createHoidSourceInspectionReceiptFromCandidate({
+    schemaVersion: 1,
+    status: "candidate-only",
+    workId: task.workId,
+    title: task.title,
+    chapterNumber: task.chapterNumber,
+    editionId: task.editionId,
+    sourceGroup: task.sourceGroup,
+    locatorId: task.locatorId,
+    navigationHref: task.navigationHref,
+    byteLength: 512,
+    documentSha256,
+    navigationSha256: manifest.manifest.navigationSha256,
+    packageSourceFingerprint: "b".repeat(64),
+    candidateFingerprint: "c".repeat(64),
+    minimumReaderChapter: task.minimumReaderChapter,
+    authorizationEffect: "none",
+    editorialEffect: "none",
+    summaryCreated: false,
+    productionWritePerformed: false,
+  }, "2026-11-26T14:30:00.000Z");
+  if (created.status !== "ready") throw new Error("Could not create fixture receipt");
+  return created.receipt;
+}
+
 function nextLedger(revision: number): HoidSourceInspectionReceiptLedger {
   const empty = createHoidEmptySourceInspectionReceiptLedger();
   if (revision === 0) return empty;
@@ -260,6 +290,37 @@ describe("Expo SQLite Hoid source inspection receipt store", () => {
     expect(await store.read()).toMatchObject({ invalidStoredSourceInspectionReceipts: true });
     expect(await store.compareAndSwap(0, nextLedger(1))).toBe("unavailable");
     expect(database.inspect()?.schema_version).toBe(99);
+  });
+
+  it("rejects a valid replacement ledger that drops or changes an existing receipt", async () => {
+    const database = new FakeSqliteDatabase();
+    const store = new ExpoSqliteHoidSourceInspectionReceiptStore(database);
+    await store.read();
+
+    const current = recordHoidSourceInspectionReceipt(
+      createHoidEmptySourceInspectionReceiptLedger(),
+      receiptFor("tfe", "a".repeat(64)),
+    );
+    if (current.status !== "added") throw new Error("Expected initial receipt");
+    expect(await store.compareAndSwap(0, current.ledger)).toBe("saved");
+
+    const unrelatedFirst = recordHoidSourceInspectionReceipt(
+      createHoidEmptySourceInspectionReceiptLedger(),
+      receiptFor("twok", "b".repeat(64)),
+    );
+    if (unrelatedFirst.status !== "added") throw new Error("Expected alternate first receipt");
+    const replacement = recordHoidSourceInspectionReceipt(
+      unrelatedFirst.ledger,
+      receiptFor("tfe", "d".repeat(64)),
+    );
+    if (replacement.status !== "added") throw new Error("Expected alternate second receipt");
+
+    expect(replacement.ledger.revision).toBe(2);
+    expect(await store.compareAndSwap(1, replacement.ledger)).toBe("unavailable");
+    const stored = await store.read() as HoidSourceInspectionReceiptLedger;
+    expect(stored.receipts).toHaveLength(1);
+    expect(stored.receipts[0].workId).toBe("tfe");
+    expect(stored.receipts[0].documentSha256).toBe("a".repeat(64));
   });
 
   it("maps SQLite lock contention to a retryable conflict", async () => {

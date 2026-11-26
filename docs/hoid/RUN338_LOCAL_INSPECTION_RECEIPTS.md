@@ -18,7 +18,7 @@ Preserve the result of an explicit local EPUB chapter inspection across app sess
 
 It deliberately excludes source text, XHTML, EPUB bytes, display filename, local URI, archive path, navigation locator, package source fingerprint, provider payload, conversation text and summary prose.
 
-The ledger is device-local and uses a monotonic revision plus a canonical SHA-256 fingerprint. SQLite compare-and-swap runs inside an exclusive transaction on Atlas's existing shared `atlas-cosmere-hoid.db` connection. No second connection is opened.
+The ledger is device-local and uses a monotonic revision plus a canonical SHA-256 fingerprint. SQLite compare-and-swap runs inside an exclusive transaction on Atlas's existing shared `atlas-cosmere-hoid.db` connection. The adapter enforces strict append-only evolution: a caller cannot replace, delete or mutate a previously stored receipt through a valid-looking next revision. No second connection is opened.
 
 ## UI behavior
 
@@ -31,7 +31,7 @@ The ledger is device-local and uses a monotonic revision plus a canonical SHA-25
 5. Prevents repeating the same current chapter task once a receipt exists.
 6. Preserves the candidate-only state if local persistence is unavailable.
 
-A different digest for the same work, edition and chapter is a conflict. The previous receipt is preserved; it is never silently overwritten.
+A different digest for the same work, edition and chapter is a receipt conflict. The previous receipt is preserved; it is never silently overwritten. A concurrent compare-and-swap race is reported separately and reloads the persisted ledger before the UI decides whether the chapter is already recorded.
 
 ## Deliberate separation from production
 

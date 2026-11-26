@@ -19,6 +19,11 @@ import {
   isHoidTrustedConversationScreenPort,
   type HoidTrustedConversationScreenPort,
 } from '../hoid/trustedConversationScreenPort';
+import {
+  isHoidTrustedCuratedPathRecommendationScreenPort,
+  type HoidTrustedCuratedPathRecommendationScreenPort,
+  type HoidTrustedCuratedPathRecommendationScreenResult,
+} from '../hoid/trustedCuratedPathRecommendationScreenPort';
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 
@@ -100,9 +105,12 @@ function formatHoidCitationLocation(
 export const HoidScreen: React.FC<{
   trustedAnswerPort?: HoidTrustedScreenAnswerPort | null;
   trustedConversationPort?: HoidTrustedConversationScreenPort | null;
+  /** Host-owned, branded port; each presentation reloads and revalidates its complete signed route context. */
+  trustedCuratedPathRecommendationPort?: HoidTrustedCuratedPathRecommendationScreenPort | null;
 }> = ({
   trustedAnswerPort: trustedAnswerPortInput = null,
   trustedConversationPort: trustedConversationPortInput = null,
+  trustedCuratedPathRecommendationPort: curatedPathRecommendationPortInput = null,
 }) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
   // The signed presenter capability gates topic recommendations; the exact-unit
@@ -113,6 +121,10 @@ export const HoidScreen: React.FC<{
   const trustedConversationPort = isHoidTrustedConversationScreenPort(trustedConversationPortInput)
     ? trustedConversationPortInput
     : null;
+  const trustedCuratedPathRecommendationPort =
+    isHoidTrustedCuratedPathRecommendationScreenPort(curatedPathRecommendationPortInput)
+      ? curatedPathRecommendationPortInput
+      : null;
   const {
     getHoidCursorProgressSnapshot,
     refreshHoidCursorProgressSnapshot,
@@ -210,6 +222,12 @@ export const HoidScreen: React.FC<{
   const [readerOpening, setReaderOpening] = useState(false);
   const [readerMessage, setReaderMessage] = useState('');
   const readerAbortControllerRef = useRef<AbortController | null>(null);
+  const [curatedPathProjection, setCuratedPathProjection] =
+    useState<HoidTrustedCuratedPathRecommendationScreenResult | null>(null);
+  const [curatedPathLoading, setCuratedPathLoading] = useState(false);
+  const [curatedPathMessage, setCuratedPathMessage] = useState('');
+  const curatedPathAbortControllerRef = useRef<AbortController | null>(null);
+  const curatedPathRequestGenerationRef = useRef(0);
   const handleReaderPortChange = useCallback((
     port: HoidRecommendationReaderPort | null,
     workId: string | null,
@@ -248,6 +266,20 @@ export const HoidScreen: React.FC<{
     : null;
 
   useEffect(() => {
+    curatedPathRequestGenerationRef.current += 1;
+    curatedPathAbortControllerRef.current?.abort();
+    curatedPathAbortControllerRef.current = null;
+    setCuratedPathProjection(null);
+    setCuratedPathLoading(false);
+    setCuratedPathMessage('');
+  }, [
+    liveProgressScope?.revision,
+    liveProgressScope?.fingerprint,
+    progresoPersistenciaEstado,
+    trustedCuratedPathRecommendationPort,
+  ]);
+
+  useEffect(() => {
     conversationTurnSession.invalidate();
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
@@ -275,6 +307,9 @@ export const HoidScreen: React.FC<{
     recommendationDisplayProjectionRef.current = null;
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
+    curatedPathRequestGenerationRef.current += 1;
+    curatedPathAbortControllerRef.current?.abort();
+    curatedPathAbortControllerRef.current = null;
   }, []);
 
   useEffect(() => () => {
@@ -987,6 +1022,69 @@ export const HoidScreen: React.FC<{
     setReaderMessage('Apertura cancelada. No se ha modificado el progreso.');
   };
 
+  const cargarItinerariosCurados = async () => {
+    if (curatedPathLoading) return;
+    if (!trustedCuratedPathRecommendationPort) {
+      setCuratedPathProjection(null);
+      setCuratedPathMessage(
+        'Los itinerarios editoriales no están conectados. Hoid no inventará un orden de lectura.',
+      );
+      return;
+    }
+    if (progresoPersistenciaEstado !== 'ready' || liveProgressScope === null) {
+      setCuratedPathProjection(null);
+      setCuratedPathMessage(
+        'No se puede validar el progreso actual. Los itinerarios permanecen ocultos.',
+      );
+      return;
+    }
+
+    curatedPathAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    curatedPathAbortControllerRef.current = controller;
+    const generation = ++curatedPathRequestGenerationRef.current;
+    setCuratedPathLoading(true);
+    setCuratedPathProjection(null);
+    setCuratedPathMessage('');
+
+    try {
+      // The branded host port loads a fresh validation context itself. The UI
+      // cannot supply a catalogue, progress cursor, signatures or evidence IDs.
+      const result = await trustedCuratedPathRecommendationPort.present(controller.signal);
+      if (
+        controller.signal.aborted ||
+        generation !== curatedPathRequestGenerationRef.current
+      ) return;
+      setCuratedPathProjection(result);
+      setCuratedPathMessage(result.status === 'ready'
+        ? 'Itinerarios revalidados. La elección de una obra sigue siendo manual.'
+        : 'No hay un itinerario que pueda mostrarse con seguridad. No se ha abierto ninguna obra.');
+    } catch {
+      if (
+        controller.signal.aborted ||
+        generation !== curatedPathRequestGenerationRef.current
+      ) return;
+      setCuratedPathProjection(null);
+      setCuratedPathMessage(
+        'No se pudo verificar el catálogo editorial. Las recomendaciones permanecen ocultas.',
+      );
+    } finally {
+      if (generation === curatedPathRequestGenerationRef.current) {
+        curatedPathAbortControllerRef.current = null;
+        setCuratedPathLoading(false);
+      }
+    }
+  };
+
+  const cancelarItinerariosCurados = () => {
+    curatedPathRequestGenerationRef.current += 1;
+    curatedPathAbortControllerRef.current?.abort();
+    curatedPathAbortControllerRef.current = null;
+    setCuratedPathLoading(false);
+    setCuratedPathProjection(null);
+    setCuratedPathMessage('Consulta cancelada. No se ha modificado el progreso.');
+  };
+
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
   const topicRecommendationBinding = topicRecommendationBindingRef.current;
   const topicRecommendationsAreCurrent =
@@ -1123,6 +1221,73 @@ export const HoidScreen: React.FC<{
         ))}
       </View>
 
+
+      <View style={styles.curatedPathPanel}>
+        <Text style={styles.recommendationTitle}>ITINERARIOS EDITORIALES DEL COSMERE</Text>
+        <Text style={styles.recommendationNote}>
+          Solo se mostrarán rutas con dos revisiones independientes, evidencias firmadas y dependencias compatibles con tu progreso.
+        </Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Consultar itinerarios editoriales seguros"
+          accessibilityState={{
+            disabled: !trustedCuratedPathRecommendationPort ||
+              progresoPersistenciaEstado !== 'ready' ||
+              curatedPathLoading,
+          }}
+          disabled={!trustedCuratedPathRecommendationPort ||
+            progresoPersistenciaEstado !== 'ready' ||
+            curatedPathLoading}
+          onPress={() => { void cargarItinerariosCurados(); }}
+          style={[
+            styles.recommendationButton,
+            (!trustedCuratedPathRecommendationPort ||
+              progresoPersistenciaEstado !== 'ready' ||
+              curatedPathLoading) && styles.disabledButton,
+          ]}
+        >
+          <Text style={styles.recommendationButtonText}>
+            {curatedPathLoading ? 'Verificando…' : 'Consultar rutas aprobadas'}
+          </Text>
+        </TouchableOpacity>
+        {!trustedCuratedPathRecommendationPort && (
+          <Text style={styles.recommendationMessage}>
+            Itinerarios no disponibles: falta conectar la autoridad editorial de rutas. No se utilizará el orden de la bibliografía como sustituto.
+          </Text>
+        )}
+        {curatedPathMessage.length > 0 && (
+          <Text style={styles.recommendationMessage}>{curatedPathMessage}</Text>
+        )}
+        {curatedPathLoading && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            <ActivityIndicator color="#818cf8" style={{ marginRight: 10 }} />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Cancelar consulta de itinerarios"
+              onPress={cancelarItinerariosCurados}
+              style={styles.readerCancelButton}
+            >
+              <Text style={styles.readerCancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {curatedPathProjection?.status === 'withheld' && (
+          <Text style={styles.recommendationNote}>
+            La validación ha fallado de forma cerrada. No se ha mostrado ninguna ruta parcial.
+          </Text>
+        )}
+        {curatedPathProjection?.status === 'ready' &&
+          curatedPathProjection.items.map(item => (
+            <View key={item.key} style={styles.curatedPathItem}>
+              <Text style={styles.recommendationItemText}>{item.workTitle}</Text>
+              <Text style={styles.recommendationItemMeta}>{item.pathTitle}</Text>
+              <Text style={styles.bubbleText}>{item.whyNow}</Text>
+              <Text style={styles.recommendationNote}>
+                Selección manual requerida en Atlas. Esta recomendación no abre capítulos ni modifica el progreso.
+              </Text>
+            </View>
+          ))}
+      </View>
 
       <View style={styles.answerScopePanel}>
         <Text style={styles.recommendationTitle}>ÁMBITO DE RESPUESTA NARRATIVA</Text>
@@ -1421,6 +1586,8 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#f8fafc', fontSize: 14, fontWeight: '900', letterSpacing: 1.5 },
   headerSub: { color: '#818cf8', fontSize: 11, marginTop: 2 },
   recommendationPanel: { padding: 12, backgroundColor: '#101a2e', borderBottomWidth: 1, borderColor: '#1e293b' },
+  curatedPathPanel: { padding: 12, backgroundColor: '#101827', borderBottomWidth: 1, borderColor: '#334155' },
+  curatedPathItem: { paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#334155', marginTop: 8 },
   recommendationHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   recommendationTitle: { color: '#e2e8f0', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
   recommendationNote: { color: '#94a3b8', fontSize: 10, marginTop: 3 },

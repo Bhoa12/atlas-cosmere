@@ -9,6 +9,7 @@ import {
 import { HoidScreen } from "./HoidScreen";
 import type { HoidTrustedApplicationBootstrap } from "../hoid/trustedApplicationBootstrap";
 import { projectHoidTrustedApplicationScreen } from "../hoid/trustedApplicationScreenProjection";
+import type { HoidTrustedCuratedPathRecommendationScreenPort } from "../hoid/trustedCuratedPathRecommendationScreenPort";
 
 export type HoidTrustedScreenHostProps = Readonly<{
   /**
@@ -16,6 +17,8 @@ export type HoidTrustedScreenHostProps = Readonly<{
    * The host owns and disposes the returned instance on unmount.
    */
   createBootstrap: (() => HoidTrustedApplicationBootstrap | null) | null;
+  /** Optional host-owned route authority; HoidScreen checks its private runtime brand. */
+  curatedPathRecommendationPort?: HoidTrustedCuratedPathRecommendationScreenPort | null;
 }>;
 
 function statusMessage(
@@ -49,6 +52,7 @@ function statusMessage(
 
 export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
   createBootstrap,
+  curatedPathRecommendationPort = null,
 }) => {
   const [bootstrap, setBootstrap] = useState<HoidTrustedApplicationBootstrap | null>(null);
   const [, setRevision] = useState(0);
@@ -124,6 +128,7 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
       <HoidScreen
         trustedAnswerPort={null}
         trustedConversationPort={screenPort}
+        trustedCuratedPathRecommendationPort={curatedPathRecommendationPort}
       />
     </View>
   );

@@ -19,6 +19,7 @@ import {
   type HoidExactClaimSelector,
 } from "./exactUnitEvidenceRuntime";
 import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
+import { buildHoidExactUnitSpoilerDependencySet } from "./exactUnitSpoilerDependencyGate";
 import { sha256Hex } from "./sha256";
 
 const fixedNow = () => "2026-11-24T18:10:00.000Z";
@@ -165,6 +166,41 @@ describe("Hoid exact-unit evidence runtime v2", () => {
     expect(JSON.stringify(providerRequest)).not.toContain("progressRevision");
     expect(result.answer.sources[0].source.bookId).toBe("twok");
     expect(result.answer.sources[0].unlock.ordinal).toBe(3);
+  });
+
+  it("withholds a cross-work claim before provider egress when any exact-unit prerequisite is missing", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([
+      { bookId: "twok", chapterNumber: 4 },
+      { bookId: "warbreaker", chapterNumber: 3 },
+    ]);
+    const selector = vi.fn(async (request: HoidExactClaimSelectionRequest) => ({
+      schemaVersion: request.schemaVersion,
+      requestFingerprint: request.requestFingerprint,
+      claimIds: ["claim.alpha"],
+    }));
+    const policy: HoidExactUnitEvidencePolicy = Object.freeze({
+      schemaVersion: 2,
+      evidenceId: evidence.id,
+      source: reference("twok", 2),
+      firstSafeAppearance: reference("warbreaker", 2),
+      unlock: reference("edgedancer", 3),
+    });
+    const coordinator = new HoidUnitProgressCoordinator(store, fixedNow);
+    const runtime = createHoidExactUnitEvidenceRuntime({
+      coordinator,
+      packages: [packageFor(policy)],
+      selector: selectorFor(selector),
+    });
+    expect(runtime).toBeDefined();
+    if (!runtime) return;
+
+    expect(await runtime.answer({
+      question: "Explícame esta conexión entre obras.",
+      intent: "explain",
+      depth: "brief",
+    })).toEqual({ status: "unavailable", reason: "spoiler-dependency-locked" });
+    expect(selector).not.toHaveBeenCalled();
   });
 
   it("blocks a locked entity alias before invoking the selector", async () => {
@@ -437,7 +473,7 @@ describe("Hoid exact-unit evidence runtime v2", () => {
   });
 
 
-  it("preserves the original v2 selector fingerprint when no conversation context is supplied", async () => {
+  it("binds exact-unit spoiler dependencies into the v2 selector fingerprint without exposing their references", async () => {
     const store = new MemoryStore();
     store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
     let providerRequest: HoidExactClaimSelectionRequest | undefined;
@@ -454,6 +490,15 @@ describe("Hoid exact-unit evidence runtime v2", () => {
     const request = providerRequest!;
     expect(request.schemaVersion).toBe(2);
     expect(request.conversationContext).toBeUndefined();
+    // The opaque digest commits to exact-unit dependencies while their references
+    // and progress thresholds remain local to Hoid.
+    const sourcePackage = packageFor();
+    const dependencyBuild = buildHoidExactUnitSpoilerDependencySet({
+      claimId: sourcePackage.claim.id,
+      policies: sourcePackage.policies,
+    });
+    expect(dependencyBuild.status).toBe("ready");
+    if (dependencyBuild.status !== "ready") return;
     expect(request.requestFingerprint).toBe(sha256Hex(JSON.stringify({
       protocol: "hoid.exact-claim-selection.v2",
       schemaVersion: 2,
@@ -467,7 +512,12 @@ describe("Hoid exact-unit evidence runtime v2", () => {
         text: candidate.text,
         evidenceIds: [...candidate.evidenceIds],
       })),
+      spoilerDependencyFingerprints: [[
+        sourcePackage.claim.id,
+        dependencyBuild.dependencySet.fingerprint,
+      ]],
     })));
+    expect(JSON.stringify(request)).not.toMatch(/chapterNumber|unitId|completedThroughChapter|navigationSha256/u);
   });
 
 
@@ -599,7 +649,7 @@ describe("Hoid exact-unit evidence runtime v2", () => {
       intent: "explain",
       bookScope: { mode: "single-work", bookIds: ["twok"] },
       chapterScope: [reference("twok", 2)],
-    })).toEqual({ status: "unavailable", reason: "no-authorized-claims" });
+    })).toEqual({ status: "unavailable", reason: "spoiler-dependency-locked" });
     expect(selector).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { recommendEditionBoundReadingNextSteps } from "./editionBoundRecommendations";
+import { getHoidReadingManifest, type HoidReadingCursor } from "./readingManifest";
 import { createHoidReadingCursor, validateHoidReadingCursor } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T14:00:00.000Z";
@@ -12,6 +13,7 @@ function cursor(bookId: string, chapterNumber: number) {
 
 type PositionFixture =
   | Readonly<{ bookId: string; chapter: number }>
+  | Readonly<{ bookId: string; cursor: HoidReadingCursor }>
   | Readonly<{ bookId: string; completed: true }>;
 
 function snapshot(positions: readonly PositionFixture[] = []) {
@@ -21,7 +23,9 @@ function snapshot(positions: readonly PositionFixture[] = []) {
     positions: positions.map(position =>
       "completed" in position
         ? { bookId: position.bookId, completed: true as const }
-        : { bookId: position.bookId, cursor: cursor(position.bookId, position.chapter) },
+        : "cursor" in position
+          ? { bookId: position.bookId, cursor: position.cursor }
+          : { bookId: position.bookId, cursor: cursor(position.bookId, position.chapter) },
     ),
     updatedAt: positions.length === 0 ? null : UPDATED_AT,
   };
@@ -99,18 +103,20 @@ describe("edition-bound reading recommendation targets", () => {
     if (result.status !== "selection-required") return;
 
     expect(result.progressRevision).toBe(1);
-    expect(result.choices).toEqual([
+    expect(result.choices).toMatchObject([
       {
         sourceId: "tfe",
         title: "El Imperio Final",
         currentChapter: 8,
         completedThroughChapter: 7,
+        cursor: { bookId: "tfe", chapterNumber: 8 },
       },
       {
         sourceId: "elantris",
         title: "Elantris",
         currentChapter: 3,
         completedThroughChapter: 2,
+        cursor: { bookId: "elantris", chapterNumber: 3 },
       },
     ]);
     expect(Object.isFrozen(result.choices)).toBe(true);
@@ -161,6 +167,33 @@ describe("edition-bound reading recommendation targets", () => {
     if (result.items[0].target.kind === "edition-cursor") {
       expect(result.items[0].target.cursor.chapterNumber).toBe(38);
     }
+  });
+
+  it("preserves the exact ordinal for duplicate visible chapter labels", () => {
+    const manifestResult = getHoidReadingManifest("sawt");
+    expect(manifestResult.status).toBe("ready");
+    if (manifestResult.status !== "ready") return;
+    const duplicates = manifestResult.manifest.units.filter(unit => unit.chapterNumber === 12);
+    expect(duplicates).toHaveLength(2);
+    const second = duplicates[1];
+    if (!second) return;
+    const cursor = Object.freeze({
+      schemaVersion: 1 as const,
+      manifestId: manifestResult.manifest.manifestId,
+      bookId: "sawt",
+      unitId: second.id,
+      ordinal: second.ordinal,
+      chapterNumber: second.chapterNumber,
+    });
+    const result = recommendEditionBoundReadingNextSteps(snapshot([{ bookId: "sawt", cursor }]), 1);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.items[0].target).toMatchObject({
+      kind: "edition-cursor",
+      cursor: { unitId: second.id, ordinal: second.ordinal, chapterNumber: 12 },
+    });
+    const previous = manifestResult.manifest.units.find(unit => unit.ordinal === second.ordinal - 1);
+    expect(result.items[0].completedThroughChapter).toBe(previous?.chapterNumber ?? null);
   });
 
   it("rejects malformed or stale cursor progress instead of producing navigation targets", () => {

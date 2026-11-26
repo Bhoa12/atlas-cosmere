@@ -5,12 +5,13 @@ import {
 import {
   recommendEditionBoundReadingNextSteps,
 } from "./editionBoundRecommendations";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest, type HoidReadingCursor } from "./readingManifest";
 
 const UPDATED_AT = "2026-11-22T14:00:00.000Z";
 
 type PositionFixture =
   | Readonly<{ bookId: string; chapter: number }>
+  | Readonly<{ bookId: string; cursor: HoidReadingCursor }>
   | Readonly<{ bookId: string; completed: true }>;
 
 function snapshot(positions: readonly PositionFixture[] = []) {
@@ -19,6 +20,7 @@ function snapshot(positions: readonly PositionFixture[] = []) {
     revision: positions.length === 0 ? 0 : 1,
     positions: positions.map(position => {
       if ("completed" in position) return { bookId: position.bookId, completed: true as const };
+      if ("cursor" in position) return { bookId: position.bookId, cursor: position.cursor };
       const result = createHoidReadingCursor(position.bookId, position.chapter);
       if (result.status !== "ready") throw new Error("Cursor de fixture no disponible");
       return { bookId: position.bookId, cursor: result.cursor };
@@ -72,6 +74,38 @@ describe("edition-bound recommendation explanations", () => {
     });
     expect(explained.status === "no-safe-next-work" ? explained.detail : "")
       .toContain("no elegirá otra por orden bibliográfico");
+  });
+
+  it("preserves an exact duplicate chapter cursor through explanation canonicalization", () => {
+    const manifestResult = getHoidReadingManifest("sawt");
+    expect(manifestResult.status).toBe("ready");
+    if (manifestResult.status !== "ready") return;
+    const duplicates = manifestResult.manifest.units.filter(unit => unit.chapterNumber === 12);
+    const second = duplicates[1];
+    if (!second) return;
+    const cursor = Object.freeze({
+      schemaVersion: 1 as const,
+      manifestId: manifestResult.manifest.manifestId,
+      bookId: "sawt",
+      unitId: second.id,
+      ordinal: second.ordinal,
+      chapterNumber: second.chapterNumber,
+    });
+    const recommendation = recommendEditionBoundReadingNextSteps(
+      snapshot([{ bookId: "sawt", cursor }]),
+      1,
+    );
+    expect(recommendation.status).toBe("ready");
+    if (recommendation.status !== "ready") return;
+    const explained = explainEditionBoundRecommendationResult(recommendation);
+    expect(explained.status).toBe("ready");
+    if (explained.status !== "ready") return;
+    expect(explained.items[0].target).toMatchObject({
+      kind: "edition-cursor",
+      cursor: { unitId: second.id, ordinal: second.ordinal, chapterNumber: 12 },
+    });
+    const previous = manifestResult.manifest.units.find(unit => unit.ordinal === second.ordinal - 1);
+    expect(explained.items[0].completedThroughChapter).toBe(previous?.chapterNumber ?? null);
   });
 
   it("presents an explicit choice when several works are active", () => {

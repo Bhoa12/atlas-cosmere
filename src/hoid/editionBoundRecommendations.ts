@@ -4,8 +4,7 @@ import {
   type HoidCursorProgressPosition,
 } from "./cursorProgressLedger";
 import {
-  createHoidReadingCursor,
-  getHoidReadingManifest,
+  validateHoidReadingCursor,
   type HoidReadingCursor,
 } from "./readingManifest";
 
@@ -37,6 +36,8 @@ export type HoidResumeSelectionChoice = Readonly<{
   title: string;
   currentChapter: number;
   completedThroughChapter: number | null;
+  /** Exact cursor identity keeps duplicate visible chapter labels distinct. */
+  cursor: HoidReadingCursor;
 }>;
 
 export type HoidEditionBoundRecommendationResult =
@@ -49,42 +50,40 @@ const MAX_LIMIT = 1;
 const TITLES = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
 type PartialPosition = Extract<HoidCursorProgressPosition, { cursor: HoidReadingCursor }>;
 
-function targetForChapter(
+function completedThroughForCursor(
   sourceId: string,
-  chapterNumber: number,
+  cursor: HoidReadingCursor,
+): number | null | undefined {
+  const validation = validateHoidReadingCursor(cursor);
+  if (validation.status !== "valid" || validation.cursor.bookId !== sourceId) return undefined;
+  const index = validation.manifest.units.findIndex(unit =>
+    unit.id === validation.cursor.unitId &&
+    unit.ordinal === validation.cursor.ordinal &&
+    unit.chapterNumber === validation.cursor.chapterNumber
+  );
+  if (index < 0) return undefined;
+  return index === 0 ? null : validation.manifest.units[index - 1]?.chapterNumber ?? null;
+}
+
+function targetForCursor(
+  sourceId: string,
+  cursor: HoidReadingCursor,
 ): HoidRecommendationNavigationTarget {
-  const manifestResult = getHoidReadingManifest(sourceId);
-  if (manifestResult.status !== "ready") {
-    return Object.freeze({
-      kind: "catalog-only",
-      reason: manifestResult.reason === "segmentation-unverified"
-        ? "segmentation-unverified"
-        : "unit-not-found",
-    });
-  }
-
-  const manifest = manifestResult.manifest;
-  const unit = manifest.units.find(candidate => candidate.chapterNumber === chapterNumber);
-  if (!unit) {
+  const validation = validateHoidReadingCursor(cursor);
+  if (validation.status !== "valid" || validation.cursor.bookId !== sourceId) {
     return Object.freeze({ kind: "catalog-only", reason: "unit-not-found" });
   }
-
-  const cursorResult = createHoidReadingCursor(sourceId, chapterNumber);
-  if (
-    cursorResult.status !== "ready" ||
-    cursorResult.cursor.manifestId !== manifest.manifestId ||
-    cursorResult.cursor.unitId !== unit.id ||
-    cursorResult.cursor.ordinal !== unit.ordinal ||
-    cursorResult.cursor.chapterNumber !== unit.chapterNumber
-  ) {
-    return Object.freeze({ kind: "catalog-only", reason: "unit-not-found" });
-  }
-
+  const unit = validation.manifest.units.find(candidate =>
+    candidate.id === validation.cursor.unitId &&
+    candidate.ordinal === validation.cursor.ordinal &&
+    candidate.chapterNumber === validation.cursor.chapterNumber
+  );
+  if (!unit) return Object.freeze({ kind: "catalog-only", reason: "unit-not-found" });
   return Object.freeze({
     kind: "edition-cursor",
-    cursor: cursorResult.cursor,
-    editionId: manifest.editionId,
-    navigationSha256: manifest.navigationSha256,
+    cursor: validation.cursor,
+    editionId: validation.manifest.editionId,
+    navigationSha256: validation.manifest.navigationSha256,
     locatorStatus: unit.locatorId ? "verified" : "cursor-only",
     ...(unit.locatorId ? { locatorId: unit.locatorId } : {}),
   });
@@ -92,8 +91,9 @@ function targetForChapter(
 
 /**
  * Convert a validated cursor-native v2 snapshot into exact edition-bound
- * recommendation targets. A cursor identifies the chapter currently open;
- * the completed-through watermark is therefore chapterNumber - 1.
+ * recommendation targets. The exact cursor (unit ID and ordinal) is preserved;
+ * the completed-through watermark comes from the previous manifest unit, not
+ * arithmetic on the visible chapter number (which may be duplicated).
  *
  * If several works are in progress, this returns an explicit selection
  * requirement instead of silently replacing the reader's active work with
@@ -138,17 +138,22 @@ export function recommendEditionBoundReadingNextSteps(
   } else if (inProgress.length === 1) {
     activePosition = inProgress[0];
   } else if (inProgress.length > 1) {
-    const choices: HoidResumeSelectionChoice[] = HOID_SOURCE_BIBLIOGRAPHY.flatMap(work => {
+    const choices: HoidResumeSelectionChoice[] = [];
+    for (const work of HOID_SOURCE_BIBLIOGRAPHY) {
       const position = inProgress.find(candidate => candidate.bookId === work.id);
-      if (!position) return [];
-      const currentChapter = position.cursor.chapterNumber;
-      return [Object.freeze({
+      if (!position) continue;
+      const completedThroughChapter = completedThroughForCursor(work.id, position.cursor);
+      if (completedThroughChapter === undefined) {
+        return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+      }
+      choices.push(Object.freeze({
         sourceId: work.id,
         title: work.title,
-        currentChapter,
-        completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
-      })];
-    });
+        currentChapter: position.cursor.chapterNumber,
+        completedThroughChapter,
+        cursor: position.cursor,
+      }));
+    }
     return Object.freeze({
       status: "selection-required",
       choices: Object.freeze(choices),
@@ -164,21 +169,20 @@ export function recommendEditionBoundReadingNextSteps(
 
   const items: HoidEditionBoundRecommendation[] = [];
   if (safeLimit > 0 && activePosition) {
-    const currentChapter = activePosition.cursor.chapterNumber;
-    // Capture the narrowed identifier before the callback; TypeScript cannot
-    // preserve narrowing of a mutable optional variable inside closures.
-    const activeSourceId = activePosition.bookId;
-    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === activeSourceId);
-    if (!source) {
+    const source = HOID_SOURCE_BIBLIOGRAPHY.find(work => work.id === activePosition.bookId);
+    if (!source) return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
+    const completedThroughChapter = completedThroughForCursor(source.id, activePosition.cursor);
+    const target = targetForCursor(source.id, activePosition.cursor);
+    if (completedThroughChapter === undefined || target.kind !== "edition-cursor") {
       return Object.freeze({ status: "unavailable", reason: "invalid-progress" });
     }
     items.push(Object.freeze({
       sourceId: source.id,
       title: source.title,
       reason: "resume-current-work",
-      currentChapter,
-      completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
-      target: targetForChapter(source.id, currentChapter),
+      currentChapter: activePosition.cursor.chapterNumber,
+      completedThroughChapter,
+      target,
     }));
   }
 

@@ -1,7 +1,8 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import {
-  createHoidReadingCursor,
   getHoidReadingManifest,
+  validateHoidReadingCursor,
+  type HoidReadingCursor,
 } from "./readingManifest";
 import type {
   HoidEditionBoundRecommendation,
@@ -143,38 +144,40 @@ function validRevision(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
+function canonicalCursor(value: unknown): HoidReadingCursor | null {
+  const record = canonicalRecord(value, CURSOR_KEYS);
+  if (!record || !hasExactKeys(record, CURSOR_KEYS)) return null;
+  const candidate = Object.freeze({
+    schemaVersion: record.schemaVersion,
+    manifestId: record.manifestId,
+    bookId: record.bookId,
+    unitId: record.unitId,
+    ordinal: record.ordinal,
+    chapterNumber: record.chapterNumber,
+  });
+  const validation = validateHoidReadingCursor(candidate);
+  return validation.status === "valid" ? validation.cursor : null;
+}
+
 function expectedTarget(
   sourceId: string,
-  chapterNumber: number,
+  cursor: HoidReadingCursor,
 ): HoidRecommendationNavigationTarget {
-  const manifestResult = getHoidReadingManifest(sourceId);
-  if (manifestResult.status !== "ready") {
-    return Object.freeze({
-      kind: "catalog-only",
-      reason: manifestResult.reason === "segmentation-unverified"
-        ? "segmentation-unverified"
-        : "unit-not-found",
-    });
+  const validation = validateHoidReadingCursor(cursor);
+  if (validation.status !== "valid" || validation.cursor.bookId !== sourceId) {
+    return Object.freeze({ kind: "catalog-only", reason: "unit-not-found" });
   }
-
-  const manifest = manifestResult.manifest;
-  const unit = manifest.units.find(candidate => candidate.chapterNumber === chapterNumber);
+  const unit = validation.manifest.units.find(candidate =>
+    candidate.id === validation.cursor.unitId &&
+    candidate.ordinal === validation.cursor.ordinal &&
+    candidate.chapterNumber === validation.cursor.chapterNumber
+  );
   if (!unit) return Object.freeze({ kind: "catalog-only", reason: "unit-not-found" });
-
-  const cursorResult = createHoidReadingCursor(sourceId, chapterNumber);
-  if (
-    cursorResult.status !== "ready" ||
-    cursorResult.cursor.manifestId !== manifest.manifestId ||
-    cursorResult.cursor.unitId !== unit.id ||
-    cursorResult.cursor.ordinal !== unit.ordinal ||
-    cursorResult.cursor.chapterNumber !== unit.chapterNumber
-  ) return Object.freeze({ kind: "catalog-only", reason: "unit-not-found" });
-
   return Object.freeze({
     kind: "edition-cursor",
-    cursor: cursorResult.cursor,
-    editionId: manifest.editionId,
-    navigationSha256: manifest.navigationSha256,
+    cursor: validation.cursor,
+    editionId: validation.manifest.editionId,
+    navigationSha256: validation.manifest.navigationSha256,
     locatorStatus: unit.locatorId ? "verified" : "cursor-only",
     ...(unit.locatorId ? { locatorId: unit.locatorId } : {}),
   });
@@ -226,15 +229,17 @@ function canonicalTarget(
 
 function expectedCompletedThroughChapter(
   sourceId: string,
-  currentChapter: number,
+  cursor: HoidReadingCursor,
 ): number | null | undefined {
-  const manifestResult = getHoidReadingManifest(sourceId);
-  if (manifestResult.status !== "ready") return undefined;
-  const index = manifestResult.manifest.units.findIndex(
-    unit => unit.chapterNumber === currentChapter,
+  const validation = validateHoidReadingCursor(cursor);
+  if (validation.status !== "valid" || validation.cursor.bookId !== sourceId) return undefined;
+  const index = validation.manifest.units.findIndex(unit =>
+    unit.id === validation.cursor.unitId &&
+    unit.ordinal === validation.cursor.ordinal &&
+    unit.chapterNumber === validation.cursor.chapterNumber
   );
   if (index < 0) return undefined;
-  return index === 0 ? null : manifestResult.manifest.units[index - 1]?.chapterNumber ?? null;
+  return index === 0 ? null : validation.manifest.units[index - 1]?.chapterNumber ?? null;
 }
 
 function canonicalResumeItem(
@@ -263,17 +268,18 @@ function canonicalResumeItem(
     currentChapter < 1
   ) return null;
 
-  const expectedCompleted = expectedCompletedThroughChapter(sourceId, currentChapter);
-  if (
-    expectedCompleted === undefined ||
-    record.completedThroughChapter !== expectedCompleted
-  ) return null;
+  const rawTarget = canonicalRecord(record.target, [
+    "kind", "cursor", "editionId", "navigationSha256", "locatorStatus", "locatorId",
+  ]);
+  if (!rawTarget || rawTarget.kind !== "edition-cursor") return null;
+  const cursor = canonicalCursor(rawTarget.cursor);
+  if (!cursor || cursor.bookId !== sourceId || cursor.chapterNumber !== currentChapter) return null;
 
-  const target = expectedTarget(sourceId, currentChapter);
-  if (
-    target.kind !== "edition-cursor" ||
-    !canonicalTarget(record.target, target)
-  ) return null;
+  const expectedCompleted = expectedCompletedThroughChapter(sourceId, cursor);
+  if (expectedCompleted === undefined || record.completedThroughChapter !== expectedCompleted) return null;
+
+  const target = expectedTarget(sourceId, cursor);
+  if (target.kind !== "edition-cursor" || !canonicalTarget(record.target, target)) return null;
 
   return Object.freeze({
     sourceId,
@@ -288,7 +294,7 @@ function canonicalResumeItem(
 function canonicalResumeChoice(
   value: unknown,
 ): HoidResumeSelectionChoice | null {
-  const keys = ["sourceId", "title", "currentChapter", "completedThroughChapter"];
+  const keys = ["sourceId", "title", "currentChapter", "completedThroughChapter", "cursor"];
   const record = canonicalRecord(value, keys);
   if (!record || !hasExactKeys(record, keys)) return null;
 
@@ -304,17 +310,17 @@ function canonicalResumeChoice(
     currentChapter < 1
   ) return null;
 
-  const expectedCompleted = expectedCompletedThroughChapter(sourceId, currentChapter);
-  if (
-    expectedCompleted === undefined ||
-    record.completedThroughChapter !== expectedCompleted
-  ) return null;
+  const cursor = canonicalCursor(record.cursor);
+  if (!cursor || cursor.bookId !== sourceId || cursor.chapterNumber !== currentChapter) return null;
+  const expectedCompleted = expectedCompletedThroughChapter(sourceId, cursor);
+  if (expectedCompleted === undefined || record.completedThroughChapter !== expectedCompleted) return null;
 
   return Object.freeze({
     sourceId,
     title,
     currentChapter,
     completedThroughChapter: expectedCompleted,
+    cursor,
   });
 }
 

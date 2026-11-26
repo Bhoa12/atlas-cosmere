@@ -1,0 +1,65 @@
+name: Hoid Run 324 exact-unit spoiler runtime regression guard
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/exactUnitSpoilerDependencyGate.ts"
+      - "src/hoid/exactUnitSpoilerDependencyGate.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimIntegrity.test.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.test.ts"
+      - "docs/hoid/RUN324_EXACT_UNIT_SPOILER_RUNTIME_REGRESSION.md"
+      - ".github/workflows/hoid-run324-exact-unit-spoiler-runtime.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run324"
+    paths:
+      - "src/hoid/exactUnitSpoilerDependencyGate.ts"
+      - "src/hoid/exactUnitSpoilerDependencyGate.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimIntegrity.test.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.ts"
+      - "src/hoid/trustedExactUnitAnswerHost.test.ts"
+      - "docs/hoid/RUN324_EXACT_UNIT_SPOILER_RUNTIME_REGRESSION.md"
+      - ".github/workflows/hoid-run324-exact-unit-spoiler-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-unit-spoiler-runtime-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test exact-unit spoiler gate, provider boundary and trusted host
+        run: >-
+          npx vitest run
+          src/hoid/exactUnitSpoilerDependencyGate.test.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/trustedExactUnitAnswerHost.test.ts
+      - name: Strict type-check exact-unit spoiler runtime
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/exactUnitSpoilerDependencyGate.ts
+          src/hoid/exactUnitSpoilerDependencyGate.test.ts
+          src/hoid/exactUnitEvidenceRuntime.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/trustedExactUnitAnswerHost.ts

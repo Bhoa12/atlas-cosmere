@@ -23,21 +23,14 @@ export type HoidRecommendationNavigationTarget =
       reason: "segmentation-unverified" | "unit-not-found";
     }>;
 
-export type HoidEditionBoundRecommendation =
-  | Readonly<{
-      sourceId: string;
-      title: string;
-      reason: "resume-current-work";
-      currentChapter: number;
-      completedThroughChapter: number | null;
-      target: HoidRecommendationNavigationTarget;
-    }>
-  | Readonly<{
-      sourceId: string;
-      title: string;
-      reason: "unread-source";
-      target: HoidRecommendationNavigationTarget;
-    }>;
+export type HoidEditionBoundRecommendation = Readonly<{
+  sourceId: string;
+  title: string;
+  reason: "resume-current-work";
+  currentChapter: number;
+  completedThroughChapter: number | null;
+  target: HoidRecommendationNavigationTarget;
+}>;
 
 export type HoidResumeSelectionChoice = Readonly<{
   sourceId: string;
@@ -47,22 +40,12 @@ export type HoidResumeSelectionChoice = Readonly<{
 }>;
 
 export type HoidEditionBoundRecommendationResult =
-  | Readonly<{
-      status: "ready";
-      items: readonly HoidEditionBoundRecommendation[];
-      progressRevision: number;
-    }>
-  | Readonly<{
-      status: "selection-required";
-      choices: readonly HoidResumeSelectionChoice[];
-      progressRevision: number;
-    }>
-  | Readonly<{
-      status: "unavailable";
-      reason: "invalid-progress" | "invalid-limit" | "invalid-active-work";
-    }>;
+  | Readonly<{ status: "ready"; items: readonly HoidEditionBoundRecommendation[]; progressRevision: number }>
+  | Readonly<{ status: "selection-required"; choices: readonly HoidResumeSelectionChoice[]; progressRevision: number }>
+  | Readonly<{ status: "no-safe-next-work"; reason: "no-active-work"; progressRevision: number }>
+  | Readonly<{ status: "unavailable"; reason: "invalid-progress" | "invalid-limit" | "invalid-active-work" }>;
 
-const MAX_LIMIT = HOID_SOURCE_BIBLIOGRAPHY.length;
+const MAX_LIMIT = 1;
 const TITLES = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
 type PartialPosition = Extract<HoidCursorProgressPosition, { cursor: HoidReadingCursor }>;
 
@@ -144,18 +127,14 @@ export function recommendEditionBoundReadingNextSteps(
   }
 
   const safeLimit = Math.min(MAX_LIMIT, Math.max(0, Math.floor(limit)));
-  const positions = validation.snapshot.positions;
-  const startedIds = new Set(positions.map(position => position.bookId));
-  const inProgress = positions.filter(
+  const inProgress = validation.snapshot.positions.filter(
     (position): position is PartialPosition => "cursor" in position,
   );
 
   let activePosition: PartialPosition | undefined;
   if (typeof activeBookId === "string") {
     activePosition = inProgress.find(position => position.bookId === activeBookId);
-    if (!activePosition) {
-      return Object.freeze({ status: "unavailable", reason: "invalid-active-work" });
-    }
+    if (!activePosition) return Object.freeze({ status: "unavailable", reason: "invalid-active-work" });
   } else if (inProgress.length === 1) {
     activePosition = inProgress[0];
   } else if (inProgress.length > 1) {
@@ -170,15 +149,20 @@ export function recommendEditionBoundReadingNextSteps(
         completedThroughChapter: currentChapter > 1 ? currentChapter - 1 : null,
       })];
     });
-
     return Object.freeze({
       status: "selection-required",
       choices: Object.freeze(choices),
       progressRevision: validation.snapshot.revision,
     });
+  } else {
+    return Object.freeze({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: validation.snapshot.revision,
+    });
   }
 
-  const items: HoidEditionBoundRecommendation[] = [];
+  const items: HoidEditionBoundRecommendation[] = [];  const items: HoidEditionBoundRecommendation[] = [];
   if (safeLimit > 0 && activePosition) {
     const currentChapter = activePosition.cursor.chapterNumber;
     // Capture the narrowed identifier before the callback; TypeScript cannot
@@ -198,16 +182,7 @@ export function recommendEditionBoundReadingNextSteps(
     }));
   }
 
-  for (const source of HOID_SOURCE_BIBLIOGRAPHY) {
-    if (items.length >= safeLimit) break;
-    if (startedIds.has(source.id)) continue;
-    items.push(Object.freeze({
-      sourceId: source.id,
-      title: source.title,
-      reason: "unread-source",
-      target: targetForChapter(source.id, 1),
-    }));
-  }
+
 
   return Object.freeze({
     status: "ready",

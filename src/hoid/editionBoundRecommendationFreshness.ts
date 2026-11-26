@@ -18,6 +18,14 @@ const SELECTION_KEYS = [
   "choices",
   "progressFingerprint",
 ] as const;
+const NO_SAFE_NEXT_WORK_KEYS = [
+  "status",
+  "reason",
+  "progressRevision",
+  "heading",
+  "detail",
+  "progressFingerprint",
+] as const;
 const MAX_RECOMMENDATIONS = HOID_SOURCE_BIBLIOGRAPHY.length;
 
 /**
@@ -117,6 +125,7 @@ export function validateHoidEditionBoundRecommendationFreshness(
     "heading",
     "detail",
     "choices",
+    "reason",
   ]);
   if (!record || typeof record.status !== "string") return "invalid-presentation";
 
@@ -124,7 +133,9 @@ export function validateHoidEditionBoundRecommendationFreshness(
     ? READY_KEYS
     : record.status === "selection-required"
       ? SELECTION_KEYS
-      : null;
+      : record.status === "no-safe-next-work"
+        ? NO_SAFE_NEXT_WORK_KEYS
+        : null;
   if (!expectedKeys || !hasExactKeys(record, expectedKeys)) return "invalid-presentation";
 
   if (
@@ -136,14 +147,20 @@ export function validateHoidEditionBoundRecommendationFreshness(
   ) return "invalid-presentation";
 
   if (record.status === "ready") {
-    if (!isDenseDataArray(record.items, MAX_RECOMMENDATIONS)) {
-      return "invalid-presentation";
-    }
-  } else if (
-    typeof record.heading !== "string" ||
-    typeof record.detail !== "string" ||
-    !isDenseDataArray(record.choices, MAX_RECOMMENDATIONS, 2)
-  ) {
+    if (!isDenseDataArray(record.items, MAX_RECOMMENDATIONS)) return "invalid-presentation";
+  } else if (record.status === "selection-required") {
+    if (
+      typeof record.heading !== "string" ||
+      typeof record.detail !== "string" ||
+      !isDenseDataArray(record.choices, MAX_RECOMMENDATIONS, 2)
+    ) return "invalid-presentation";
+  } else if (record.status === "no-safe-next-work") {
+    if (
+      record.reason !== "no-active-work" ||
+      typeof record.heading !== "string" ||
+      typeof record.detail !== "string"
+    ) return "invalid-presentation";
+  } else {
     return "invalid-presentation";
   }
 

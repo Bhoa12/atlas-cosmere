@@ -10,11 +10,7 @@ import type {
   HoidResumeSelectionChoice,
 } from "./editionBoundRecommendations";
 
-export type HoidRecommendationExplanationCode =
-  | "resume-current-cursor"
-  | "start-first-numbered-chapter"
-  | "catalog-only-unsegmented"
-  | "catalog-only-unit-missing";
+export type HoidRecommendationExplanationCode = "resume-current-cursor";
 
 export type HoidExplainedRecommendation = Readonly<{
   sourceId: string;
@@ -48,6 +44,13 @@ export type HoidExplainedRecommendationResult =
       choices: readonly HoidExplainedResumeChoice[];
     }>
   | Readonly<{
+      status: "no-safe-next-work";
+      reason: "no-active-work";
+      progressRevision: number;
+      heading: string;
+      detail: string;
+    }>
+  | Readonly<{
       status: "unavailable";
       reason:
         | "invalid-progress"
@@ -57,7 +60,6 @@ export type HoidExplainedRecommendationResult =
     }>;
 
 const CATALOG = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work.title]));
-const CATALOG_INDEX = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [work.id, index]));
 const CURSOR_KEYS = [
   "schemaVersion",
   "manifestId",
@@ -283,32 +285,6 @@ function canonicalResumeItem(
   });
 }
 
-function canonicalUnreadItem(
-  record: Record<string, unknown>,
-): HoidEditionBoundRecommendation | null {
-  const keys = ["sourceId", "title", "reason", "target"];
-  if (!hasExactKeys(record, keys)) return null;
-
-  const sourceId = record.sourceId;
-  const title = record.title;
-  if (
-    typeof sourceId !== "string" ||
-    typeof title !== "string" ||
-    CATALOG.get(sourceId) !== title ||
-    record.reason !== "unread-source"
-  ) return null;
-
-  const target = expectedTarget(sourceId, 1);
-  if (!canonicalTarget(record.target, target)) return null;
-
-  return Object.freeze({
-    sourceId,
-    title,
-    reason: "unread-source",
-    target,
-  });
-}
-
 function canonicalResumeChoice(
   value: unknown,
 ): HoidResumeSelectionChoice | null {
@@ -345,94 +321,59 @@ function canonicalResumeChoice(
 function canonicalRecommendationResult(
   value: unknown,
 ): HoidEditionBoundRecommendationResult | null {
-  const record = canonicalRecord(
-    value,
-    ["status", "reason", "progressRevision", "items", "choices"],
-  );
+  const record = canonicalRecord(value, ["status", "reason", "progressRevision", "items", "choices"]);
   if (!record || typeof record.status !== "string") return null;
-
   if (record.status === "unavailable") {
-    if (
-      !hasExactKeys(record, ["status", "reason"]) ||
-      (record.reason !== "invalid-progress" &&
-        record.reason !== "invalid-limit" &&
-        record.reason !== "invalid-active-work")
-    ) return null;
+    if (!hasExactKeys(record, ["status", "reason"]) ||
+      (record.reason !== "invalid-progress" && record.reason !== "invalid-limit" &&
+        record.reason !== "invalid-active-work")) return null;
     return Object.freeze({ status: "unavailable", reason: record.reason });
   }
-
+  if (record.status === "no-safe-next-work") {
+    if (!hasExactKeys(record, ["status", "reason", "progressRevision"]) ||
+      record.reason !== "no-active-work" || !validRevision(record.progressRevision)) return null;
+    return Object.freeze({
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: record.progressRevision,
+    });
+  }
   if (!validRevision(record.progressRevision)) return null;
-
   if (record.status === "selection-required") {
     if (!hasExactKeys(record, ["status", "progressRevision", "choices"])) return null;
     const rawChoices = canonicalDenseArray(record.choices, HOID_SOURCE_BIBLIOGRAPHY.length);
     if (!rawChoices || rawChoices.length < 2) return null;
-
     const choices: HoidResumeSelectionChoice[] = [];
     const seen = new Set<string>();
     let previousIndex = -1;
     for (const rawChoice of rawChoices) {
       const choice = canonicalResumeChoice(rawChoice);
       if (!choice || seen.has(choice.sourceId)) return null;
-      const catalogIndex = CATALOG_INDEX.get(choice.sourceId);
-      if (catalogIndex === undefined || catalogIndex <= previousIndex) return null;
-      previousIndex = catalogIndex;
+      const index = HOID_SOURCE_BIBLIOGRAPHY.findIndex(work => work.id === choice.sourceId);
+      if (index < 0 || index <= previousIndex) return null;
+      previousIndex = index;
       seen.add(choice.sourceId);
       choices.push(choice);
     }
-
     return Object.freeze({
       status: "selection-required",
       progressRevision: record.progressRevision,
       choices: Object.freeze(choices),
     });
   }
-
-  if (record.status !== "ready" || !hasExactKeys(record, ["status", "progressRevision", "items"])) {
-    return null;
-  }
-  const rawItems = canonicalDenseArray(record.items, HOID_SOURCE_BIBLIOGRAPHY.length);
-  if (!rawItems) return null;
-
+  if (record.status !== "ready" || !hasExactKeys(record, ["status", "progressRevision", "items"])) return null;
+  const rawItems = canonicalDenseArray(record.items, 1);
+  if (!rawItems || rawItems.length > 1) return null;
   const items: HoidEditionBoundRecommendation[] = [];
-  const seen = new Set<string>();
-  let previousUnreadIndex = -1;
-  let unreadStarted = false;
-  let resumeSeen = false;
-
   for (const rawItem of rawItems) {
     const itemRecord = canonicalRecord(rawItem, [
-      "sourceId",
-      "title",
-      "reason",
-      "currentChapter",
-      "completedThroughChapter",
-      "target",
+      "sourceId", "title", "reason", "currentChapter", "completedThroughChapter", "target",
     ]);
     if (!itemRecord) return null;
-
-    let item: HoidEditionBoundRecommendation | null = null;
-    if (itemRecord.reason === "resume-current-work") {
-      if (resumeSeen || unreadStarted || items.length !== 0) return null;
-      item = canonicalResumeItem(itemRecord);
-      resumeSeen = true;
-    } else if (itemRecord.reason === "unread-source") {
-      unreadStarted = true;
-      item = canonicalUnreadItem(itemRecord);
-      if (item) {
-        const catalogIndex = CATALOG_INDEX.get(item.sourceId);
-        if (catalogIndex === undefined || catalogIndex <= previousUnreadIndex) return null;
-        previousUnreadIndex = catalogIndex;
-      }
-    } else {
-      return null;
-    }
-
-    if (!item || seen.has(item.sourceId)) return null;
-    seen.add(item.sourceId);
+    const item = canonicalResumeItem(itemRecord);
+    if (!item) return null;
     items.push(item);
   }
-
   return Object.freeze({
     status: "ready",
     progressRevision: record.progressRevision,
@@ -457,43 +398,16 @@ function explainTarget(target: HoidRecommendationNavigationTarget): string {
 function explainRecommendation(
   item: HoidEditionBoundRecommendation,
 ): HoidExplainedRecommendation {
-  if (item.reason === "resume-current-work") {
-    const progressDetail = item.completedThroughChapter === null
-      ? `No hay capítulos numerados completados; el cursor validado señala el capítulo ${item.currentChapter}.`
-      : `El cursor validado señala el capítulo ${item.currentChapter}. El progreso registrado llega hasta el capítulo ${item.completedThroughChapter}.`;
-
-    return Object.freeze({
-      sourceId: item.sourceId,
-      title: item.title,
-      reason: item.reason,
-      explanationCode: "resume-current-cursor",
-      heading: `Reanudar ${item.title}`,
-      detail: `${progressDetail} ${explainTarget(item.target)}`,
-      target: item.target,
-    });
-  }
-
-  if (item.target.kind === "catalog-only") {
-    return Object.freeze({
-      sourceId: item.sourceId,
-      title: item.title,
-      reason: item.reason,
-      explanationCode: item.target.reason === "segmentation-unverified"
-        ? "catalog-only-unsegmented"
-        : "catalog-only-unit-missing",
-      heading: `Consultar ${item.title} en el catálogo`,
-      detail: explainTarget(item.target),
-      target: item.target,
-    });
-  }
-
+  const progressDetail = item.completedThroughChapter === null
+    ? `No hay capítulos numerados completados; el cursor validado señala el capítulo ${item.currentChapter}.`
+    : `El cursor validado señala el capítulo ${item.currentChapter}. El progreso registrado llega hasta el capítulo ${item.completedThroughChapter}.`;
   return Object.freeze({
     sourceId: item.sourceId,
     title: item.title,
     reason: item.reason,
-    explanationCode: "start-first-numbered-chapter",
-    heading: `Empezar ${item.title}`,
-    detail: `No hay progreso registrado para esta obra. El manifiesto de la edición permite iniciar por el capítulo 1. ${explainTarget(item.target)}`,
+    explanationCode: "resume-current-cursor",
+    heading: `Reanudar ${item.title}`,
+    detail: `${progressDetail} ${explainTarget(item.target)}`,
     target: item.target,
   });
 }
@@ -528,17 +442,19 @@ export function explainEditionBoundRecommendationResult(
   resultInput: unknown,
 ): HoidExplainedRecommendationResult {
   const result = canonicalRecommendationResult(resultInput);
-  if (!result) {
-    return Object.freeze({ status: "unavailable", reason: "invalid-recommendation" });
-  }
-
+  if (!result) return Object.freeze({ status: "unavailable", reason: "invalid-recommendation" });
   if (result.status === "unavailable") {
+    return Object.freeze({ status: "unavailable", reason: result.reason });
+  }
+  if (result.status === "no-safe-next-work") {
     return Object.freeze({
-      status: "unavailable",
-      reason: result.reason,
+      status: "no-safe-next-work",
+      reason: "no-active-work",
+      progressRevision: result.progressRevision,
+      heading: "No hay una ruta de lectura aprobada",
+      detail: "No tienes una obra en curso. Hoid no elegirá otra por orden bibliográfico ni por una cronología inferida. Hasta que exista una ruta de lectura revisada y autorizada, elige manualmente la obra que quieras empezar desde el Atlas.",
     });
   }
-
   if (result.status === "selection-required") {
     return Object.freeze({
       status: "selection-required",
@@ -548,7 +464,6 @@ export function explainEditionBoundRecommendationResult(
       choices: Object.freeze(result.choices.map(explainResumeChoice)),
     });
   }
-
   return Object.freeze({
     status: "ready",
     progressRevision: result.progressRevision,

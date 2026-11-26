@@ -1,0 +1,85 @@
+name: Hoid Run 326 — no uncurated cross-work discovery
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.ts"
+      - "src/hoid/recommendationDisplayProjection.ts"
+      - "src/hoid/editionBoundRecommendations.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.test.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.test.ts"
+      - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/readingRecommendationPlanner.ts"
+      - "src/hoid/exactUnitSpoilerDependencyGate.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN326_NO_UNCURATED_NEXT_WORK.md"
+      - ".github/workflows/hoid-run326-safe-reading-paths.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run326"
+    paths:
+      - "src/hoid/editionBoundRecommendations.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.ts"
+      - "src/hoid/recommendationDisplayProjection.ts"
+      - "src/hoid/editionBoundRecommendations.test.ts"
+      - "src/hoid/editionBoundRecommendationExplanations.test.ts"
+      - "src/hoid/editionBoundRecommendationPresentation.test.ts"
+      - "src/hoid/editionBoundRecommendationFreshness.test.ts"
+      - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/readingRecommendationPlanner.ts"
+      - "src/hoid/exactUnitSpoilerDependencyGate.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN326_NO_UNCURATED_NEXT_WORK.md"
+      - ".github/workflows/hoid-run326-safe-reading-paths.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  safe-reading-recommendations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test recommendation, freshness and spoiler boundaries
+        run: >-
+          npx vitest run
+          src/hoid/editionBoundRecommendations.test.ts
+          src/hoid/editionBoundRecommendationExplanations.test.ts
+          src/hoid/editionBoundRecommendationPresentation.test.ts
+          src/hoid/editionBoundRecommendationFreshness.test.ts
+          src/hoid/recommendationDisplayProjection.test.ts
+          src/hoid/readingRecommendationPlanner.test.ts
+          src/hoid/exactUnitSpoilerDependencyGate.test.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+      - name: Strict type-check recommendation and screen contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --jsx react-native
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/editionBoundRecommendations.ts
+          src/hoid/editionBoundRecommendationExplanations.ts
+          src/hoid/editionBoundRecommendationPresentation.ts
+          src/hoid/editionBoundRecommendationFreshness.ts
+          src/hoid/recommendationDisplayProjection.ts
+          src/screens/HoidScreen.tsx

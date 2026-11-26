@@ -6,6 +6,9 @@ on:
       - "feat/hoid-ia-core-run*"
     paths:
       - "src/screens/HoidScreen.tsx"
+      - "src/hoid/readingFocus.ts"
+      - "src/hoid/readingFocusConversationScope.ts"
+      - "src/hoid/readingFocusConversationScope.test.ts"
       - "src/hoid/answerScope.ts"
       - "src/hoid/answerScope.test.ts"
       - "src/hoid/answerScopeSelection.ts"
@@ -31,6 +34,9 @@ on:
   pull_request:
     paths:
       - "src/screens/HoidScreen.tsx"
+      - "src/hoid/readingFocus.ts"
+      - "src/hoid/readingFocusConversationScope.ts"
+      - "src/hoid/readingFocusConversationScope.test.ts"
       - "src/hoid/answerScope.ts"
       - "src/hoid/answerScope.test.ts"
       - "src/hoid/answerScopeSelection.ts"
@@ -72,6 +78,8 @@ jobs:
       - name: Test screen scope, gateway and evidence boundaries
         run: >-
           npx vitest run
+          src/hoid/readingFocusConversationScope.test.ts
+          src/hoid/readingFocus.test.ts
           src/hoid/answerScope.test.ts
           src/hoid/answerScopeSelection.test.ts
           src/hoid/answerScopePresentation.test.ts
@@ -85,6 +93,8 @@ jobs:
           --moduleResolution node --skipLibCheck --jsx react-native
           --esModuleInterop
           src/screens/HoidScreen.tsx
+          src/hoid/readingFocusConversationScope.ts
+          src/hoid/readingFocus.ts
           src/hoid/answerScopePresentation.ts
           src/hoid/crossBookEvidence.ts
           src/hoid/answerPresentation.ts

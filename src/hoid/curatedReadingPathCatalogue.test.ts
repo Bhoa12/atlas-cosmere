@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHoidChapterReference } from "./chapterReference";
+import {
+  createHoidExactApprovedClaimAttestation,
+  type HoidExactEvidenceRecord,
+} from "./exactUnitClaimIntegrity";
+import {
+  buildHoidExactUnitClaimReviewSigningMessage,
+  type HoidSignedExactUnitClaimPackage,
+} from "./exactUnitClaimSignatures";
+import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
 import { createHoidUnitProgressCursor } from "./unitProgressCursor";
 import type { HoidUnitProgressSnapshot } from "./unitProgressLedger";
 import {
@@ -14,6 +23,18 @@ import {
 
 const NOW = "2026-11-26T05:00:00.000Z";
 const REPOSITORY = "Bhoa12/atlas-cosmere";
+const EVIDENCE_REVIEW_CONTEXT = Object.freeze({
+  schemaVersion: 1 as const,
+  repositoryFullName: REPOSITORY,
+  pullRequestNumber: 220,
+  baseRef: "feat/hoid-ia-core-run326",
+  baseSha: "34150676fe0d2ea9861cbb0f72139403f700ae73",
+  headRef: "feat/hoid-ia-core-run327",
+  headSha: "168baba86c5cc8b7e33a7135aa4d8149237e2e49",
+  promotionManifestPath: "editorial/promotion-manifest.json",
+  promotionPlanFingerprint: "b".repeat(64),
+  reviewBundleFingerprint: "c".repeat(64),
+});
 
 function reference(bookId: string, chapterNumber: number) {
   const result = createHoidChapterReference(bookId, { chapterNumber });
@@ -21,7 +42,83 @@ function reference(bookId: string, chapterNumber: number) {
   return result.reference;
 }
 
-function makeCatalogue() {
+const ROUTE_EVIDENCE: HoidExactEvidenceRecord = Object.freeze({
+  id: "test-evidence-one",
+  aliases: Object.freeze(["Entidad sintética"]),
+  kind: "character",
+  provenance: "verified",
+  summary: "Evidencia editorial sintética para pruebas; no contiene canon.",
+});
+
+function signedRouteEvidencePackage(
+  overrides: Partial<{
+    source: ReturnType<typeof reference>;
+    firstSafeAppearance: ReturnType<typeof reference>;
+    unlock: ReturnType<typeof reference>;
+    summary: string;
+    extraEvidence: HoidExactEvidenceRecord;
+  }> = {},
+): HoidSignedExactUnitClaimPackage {
+  const evidence = Object.freeze([
+    Object.freeze({
+      ...ROUTE_EVIDENCE,
+      ...(overrides.summary === undefined ? {} : { summary: overrides.summary }),
+    }),
+    ...(overrides.extraEvidence ? [overrides.extraEvidence] : []),
+  ]);
+  const policies: readonly HoidExactUnitEvidencePolicy[] = Object.freeze([
+    Object.freeze({
+      schemaVersion: 2 as const,
+      evidenceId: ROUTE_EVIDENCE.id,
+      source: overrides.source ?? reference("twok", 1),
+      firstSafeAppearance: overrides.firstSafeAppearance ?? reference("twok", 1),
+      unlock: overrides.unlock ?? reference("twok", 1),
+    }),
+    ...(overrides.extraEvidence ? [Object.freeze({
+      schemaVersion: 2 as const,
+      evidenceId: overrides.extraEvidence.id,
+      source: reference("twok", 1),
+      firstSafeAppearance: reference("twok", 1),
+      unlock: reference("twok", 1),
+    })] : []),
+  ]);
+  const core = Object.freeze({
+    id: "claim.route-rationale",
+    text: "Afirmación de apoyo sintética para una ruta de lectura.",
+    intent: "recommend" as const,
+    evidenceIds: Object.freeze(evidence.map(item => item.id)),
+  });
+  const attestation = createHoidExactApprovedClaimAttestation(
+    core,
+    evidence,
+    policies,
+    Object.freeze({ reviewerId: "reviewer-one", reviewedAt: NOW }),
+  );
+  if (attestation.status !== "valid") throw new Error("Synthetic route evidence attestation failed");
+  const claim = Object.freeze({
+    ...core,
+    integrity: attestation.integrity,
+    review: attestation.review,
+  });
+  const unsigned = Object.freeze({ claim, evidence, policies });
+  const message = buildHoidExactUnitClaimReviewSigningMessage(
+    unsigned,
+    EVIDENCE_REVIEW_CONTEXT,
+    "reviewer-key-one",
+  );
+  if (!message) throw new Error("Synthetic route evidence signing message invalid");
+  return Object.freeze({
+    ...unsigned,
+    signature: Object.freeze({
+      schemaVersion: 2 as const,
+      algorithm: "Ed25519" as const,
+      keyId: "reviewer-key-one",
+      signatureHex: "1".repeat(128),
+    }),
+  });
+}
+
+function makeCatalogue(claimId = "claim.route-rationale") {
   const through = reference("twok", 2);
   const evidence = reference("twok", 1);
   const result = buildHoidCuratedReadingPathCatalogue({
@@ -44,7 +141,11 @@ function makeCatalogue() {
           workId: "wor",
           rationale: "Paso posterior de una ruta sintética, sujeto a progreso.",
           prerequisites: [{ stepId: "start-twok", through }],
-          rationaleEvidence: [{ evidenceId: "test-evidence-one", reference: evidence }],
+          rationaleEvidence: [{
+            claimId,
+            evidenceId: "test-evidence-one",
+            reference: evidence,
+          }],
         },
       ],
     }],
@@ -214,9 +315,13 @@ function evaluationInput(
   catalogue = makeCatalogue(),
   decisions: "approve" | "reject" = "approve",
 ) {
+  const requiresEvidence = catalogue.paths.some(path =>
+    path.steps.some(step => step.rationaleEvidence.length > 0));
   return {
     ...approvalInput(catalogue, decisions),
     progressSnapshot,
+    evidencePackages: requiresEvidence ? [signedRouteEvidencePackage()] : [],
+    evidenceContext: EVIDENCE_REVIEW_CONTEXT,
   };
 }
 
@@ -275,7 +380,11 @@ describe("Hoid curated reading path catalogue", () => {
             workId: "wor",
             rationale: "Second",
             prerequisites: [{ stepId: "first", through }],
-            rationaleEvidence: [{ evidenceId: "evidence", reference: reference("twok", 1) }],
+            rationaleEvidence: [{
+              claimId: "claim.synthetic-evidence",
+              evidenceId: "evidence",
+              reference: reference("twok", 1),
+            }],
           },
         ],
       }],
@@ -304,7 +413,11 @@ describe("Hoid curated reading path catalogue", () => {
             workId: "wor",
             rationale: "Second",
             prerequisites: [{ stepId: "first", through: reference("twok", 2) }],
-            rationaleEvidence: [{ evidenceId: "too-late", reference: reference("twok", 3) }],
+            rationaleEvidence: [{
+              claimId: "claim.too-late",
+              evidenceId: "too-late",
+              reference: reference("twok", 3),
+            }],
           },
         ],
       }],
@@ -356,7 +469,11 @@ describe("Hoid curated reading path catalogue", () => {
             workId: "twok",
             rationale: "Two",
             prerequisites: [{ stepId: "one", through: reference("twok", 1) }],
-            rationaleEvidence: [{ evidenceId: "evidence", reference: reference("twok", 1) }],
+            rationaleEvidence: [{
+              claimId: "claim.synthetic-evidence",
+              evidenceId: "evidence",
+              reference: reference("twok", 1),
+            }],
           },
         ],
       }],
@@ -535,6 +652,8 @@ describe("Hoid curated reading path recommendations", () => {
       catalogue: HOID_CURATED_READING_PATH_CATALOGUE,
       progressSnapshot: makeProgress({ kind: "empty" }),
       verifier: { verify },
+      evidencePackages: [],
+      evidenceContext: EVIDENCE_REVIEW_CONTEXT,
     });
     expect(result).toMatchObject({ status: "no-curated-paths" });
     expect(verify).not.toHaveBeenCalled();
@@ -557,6 +676,94 @@ describe("Hoid curated reading path recommendations", () => {
     expect(result.plan.recommendations[0]).not.toHaveProperty("reference");
     expect(result.plan.recommendations[0]).not.toHaveProperty("chapterNumber");
     expect(result.plan.recommendations[0]).not.toHaveProperty("locatorId");
+  });
+
+  it("blocks a route when its rationale evidence ID has no signed exact-unit package", async () => {
+    const catalogue = makeCatalogue();
+    const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
+    const result = await evaluateHoidCuratedReadingPathRecommendations({
+      ...input,
+      evidencePackages: [],
+    });
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("does not let a different signed claim reuse the route's evidence ID", async () => {
+    const catalogue = makeCatalogue("claim.not-signed");
+    const result = await evaluateHoidCuratedReadingPathRecommendations(
+      evaluationInput(makeProgress({ kind: "empty" }), catalogue),
+    );
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("requires the route evidence reference to equal the signed policy source exactly", async () => {
+    const catalogue = makeCatalogue();
+    const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
+    const result = await evaluateHoidCuratedReadingPathRecommendations({
+      ...input,
+      evidencePackages: [signedRouteEvidencePackage({
+        source: reference("twok", 2),
+        unlock: reference("twok", 2),
+      })],
+    });
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("does not reveal a rationale before the signed evidence unlock boundary", async () => {
+    const catalogue = makeCatalogue();
+    const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
+    const result = await evaluateHoidCuratedReadingPathRecommendations({
+      ...input,
+      evidencePackages: [signedRouteEvidencePackage({ unlock: reference("twok", 3) })],
+    });
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("requires first-safe-appearance requirements from every work to be explicit prerequisites", async () => {
+    const catalogue = makeCatalogue();
+    const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
+    const result = await evaluateHoidCuratedReadingPathRecommendations({
+      ...input,
+      evidencePackages: [signedRouteEvidencePackage({
+        firstSafeAppearance: reference("wor", 1),
+      })],
+    });
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("requires every evidence ID in a signed claim to be declared by the route step", async () => {
+    const catalogue = makeCatalogue();
+    const input = evaluationInput(makeProgress({ kind: "empty" }), catalogue);
+    const result = await evaluateHoidCuratedReadingPathRecommendations({
+      ...input,
+      evidencePackages: [signedRouteEvidencePackage({
+        extraEvidence: Object.freeze({
+          id: "test-evidence-two",
+          aliases: Object.freeze(["Otra entidad sintética"]),
+          kind: "concept",
+          provenance: "verified",
+          summary: "Segunda evidencia sintética.",
+        }),
+      })],
+    });
+    expect(result).toMatchObject({ status: "blocked", reason: "evidence-unverified" });
+  });
+
+  it("binds a saved plan to the exact signed rationale evidence package", async () => {
+    const catalogue = makeCatalogue();
+    const progress = makeProgress({ kind: "cursor", bookId: "twok", chapterNumber: 3 });
+    const input = evaluationInput(progress, catalogue);
+    const evaluated = await evaluateHoidCuratedReadingPathRecommendations(input);
+    expect(evaluated.status).toBe("ready");
+    if (evaluated.status !== "ready") return;
+
+    const changedEvidence = signedRouteEvidencePackage({ summary: "Texto de evidencia sintética distinto." });
+    const changed = await validateHoidCuratedReadingPathRecommendationPlan({
+      ...input,
+      evidencePackages: [changedEvidence],
+      plan: evaluated.plan,
+    });
+    expect(changed).toEqual({ status: "invalid", reason: "stale-or-tampered-plan" });
   });
 
   it("does not recommend a later step until the exact prerequisite chapter is completed", async () => {

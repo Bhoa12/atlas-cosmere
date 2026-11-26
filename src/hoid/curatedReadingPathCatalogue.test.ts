@@ -423,6 +423,16 @@ describe("Hoid curated reading path approval quorum", () => {
     expect(message).toContain("hoid-curated-reading-path-catalogue-approval-ed25519-v1");
     expect(message).toContain(catalogue.fingerprint);
     expect(buildHoidReadingPathApprovalSigningMessage({
+      repositoryFullName: "another-owner/another-repo",
+      catalogueId: catalogue.catalogueId,
+      revision: catalogue.revision,
+      catalogueFingerprint: catalogue.fingerprint,
+      reviewerId: "reviewer-one",
+      decision: "approve",
+      reviewedAt: NOW,
+      keyId: "reviewer-key-one",
+    })).not.toBe(message);
+    expect(buildHoidReadingPathApprovalSigningMessage({
       repositoryFullName: REPOSITORY,
       catalogueId: catalogue.catalogueId,
       revision: catalogue.revision,

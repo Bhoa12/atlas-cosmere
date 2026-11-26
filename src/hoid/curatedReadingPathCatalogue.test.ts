@@ -411,6 +411,7 @@ describe("Hoid curated reading path approval quorum", () => {
   it("builds a domain-separated signature message bound to the exact catalogue revision", () => {
     const catalogue = makeCatalogue();
     const message = buildHoidReadingPathApprovalSigningMessage({
+      repositoryFullName: REPOSITORY,
       catalogueId: catalogue.catalogueId,
       revision: catalogue.revision,
       catalogueFingerprint: catalogue.fingerprint,
@@ -422,6 +423,7 @@ describe("Hoid curated reading path approval quorum", () => {
     expect(message).toContain("hoid-curated-reading-path-catalogue-approval-ed25519-v1");
     expect(message).toContain(catalogue.fingerprint);
     expect(buildHoidReadingPathApprovalSigningMessage({
+      repositoryFullName: REPOSITORY,
       catalogueId: catalogue.catalogueId,
       revision: catalogue.revision,
       catalogueFingerprint: "0".repeat(64),

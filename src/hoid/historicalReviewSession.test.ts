@@ -549,6 +549,7 @@ describe("Hoid session-bound historical review workspace", () => {
     const controller = createHoidHistoricalReviewSessionController();
     expect(Object.keys(controller).sort()).toEqual([
       "beginSession",
+      "buildAtomicClaimCandidate",
       "buildReviewPacket",
       "discardDraft",
       "getDraft",

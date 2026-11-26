@@ -67,6 +67,8 @@ The candidate explicitly sets:
 
 SHA-256 binds the candidate to the packet, local receipt, claim digest and claim-review packet. It detects mutation; it does not authenticate the local reviewer.
 
+The bridge validates the packet and receipt structure, but it cannot prove that the local packet originated from a live session controller: the local receipt fingerprint and reviewer label are not signed. The static verified-document digest check supplies the independent source-document constraint. The resulting candidate is still untrusted and must pass the existing independent claim-review and signed promotion path.
+
 ## Limitations
 
 - The bridge is a domain adapter and is not yet exposed as a new UI action.

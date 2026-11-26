@@ -375,8 +375,14 @@ export function validateHoidSourceInspectionReceiptLedger(
   if (!Array.isArray(raw.receipts) || raw.receipts.length > MAX_RECEIPTS) {
     return Object.freeze({ status: "invalid", reason: "invalid-receipts" });
   }
+  if (raw.revision < raw.receipts.length) {
+    return Object.freeze({ status: "invalid", reason: "invalid-revision" });
+  }
 
   try {
+    if (Object.getPrototypeOf(raw.receipts) !== Array.prototype) {
+      return Object.freeze({ status: "invalid", reason: "invalid-receipts" });
+    }
     const keys = Reflect.ownKeys(raw.receipts);
     if (keys.length !== raw.receipts.length + 1 || !keys.includes("length")) {
       return Object.freeze({ status: "invalid", reason: "invalid-receipts" });

@@ -58,6 +58,24 @@ describe("Hoid entity relationship intent", () => {
     )).toEqual({ status: "invalid" });
   });
 
+  it("supports the broader Spanish relationship cues with or without diacritics", () => {
+    expect(classifyHoidEntityRelationshipIntent("Que conexion hay entre Alfa y Beta"))
+      .toEqual({ status: "ready", leftEntityName: "Alfa", rightEntityName: "Beta" });
+    expect(classifyHoidEntityRelationshipIntent("Qué relación tiene Alfa con Beta"))
+      .toEqual({ status: "ready", leftEntityName: "Alfa", rightEntityName: "Beta" });
+    expect(classifyHoidEntityRelationshipIntent("Qué une a Alfa y Beta"))
+      .toEqual({ status: "ready", leftEntityName: "Alfa", rightEntityName: "Beta" });
+    expect(classifyHoidEntityRelationshipIntent("Como estan relacionados Alfa y Beta"))
+      .toEqual({ status: "ready", leftEntityName: "Alfa", rightEntityName: "Beta" });
+    expect(classifyHoidEntityRelationshipIntent("Qué tienen en común Alfa y Beta"))
+      .toEqual({ status: "ready", leftEntityName: "Alfa", rightEntityName: "Beta" });
+  });
+
+  it("supports the English related form", () => {
+    expect(classifyHoidEntityRelationshipIntent("How are Alpha and Beta related?"))
+      .toEqual({ status: "ready", leftEntityName: "Alpha", rightEntityName: "Beta" });
+  });
+
   it("does not classify ordinary entity or narrative questions as relationships", () => {
     expect(classifyHoidEntityRelationshipIntent("¿Quién es Vin?"))
       .toEqual({ status: "not-relationship" });

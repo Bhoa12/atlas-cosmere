@@ -824,15 +824,18 @@ function buildPresentation(
   return projectHoidAnswerForDisplay(presentation);
 }
 
-const FOLLOW_UP_QUESTION_PREFIX: Readonly<Record<HoidCharacterEvolutionDimension, string>> = Object.freeze({
-  perspective: "¿Qué perspectivas de ",
-  knowledge: "¿Qué conocimientos de ",
-  capability: "¿Qué capacidades de ",
-  affiliation: "¿Qué afiliaciones de ",
-  relationship: "¿Qué relaciones de ",
-  status: "¿Qué estados o circunstancias de ",
-  motivation: "¿Qué motivaciones de ",
-  cause: "¿Qué causas de los cambios de ",
+const FOLLOW_UP_QUESTION: Readonly<Record<
+  HoidCharacterEvolutionDimension,
+  (characterLabel: string) => string
+>> = Object.freeze({
+  perspective: name => "¿Qué perspectivas de " + name + " están documentadas hasta donde has leído?",
+  knowledge: name => "¿Qué conocimientos de " + name + " están documentados hasta donde has leído?",
+  capability: name => "¿Qué capacidades de " + name + " están documentadas hasta donde has leído?",
+  affiliation: name => "¿Qué afiliaciones de " + name + " están documentadas hasta donde has leído?",
+  relationship: name => "¿Qué relaciones de " + name + " están documentadas hasta donde has leído?",
+  status: name => "¿Qué sabemos sobre el estado de " + name + " y sus circunstancias documentadas hasta donde has leído?",
+  motivation: name => "¿Qué motivaciones de " + name + " están documentadas hasta donde has leído?",
+  cause: name => "¿Qué causas de los cambios de " + name + " están documentadas hasta donde has leído?",
 });
 
 /**
@@ -853,8 +856,7 @@ function buildInvestigationSuggestions(
 
   for (const dimension of dimensions) {
     if (suggestions.length >= 3) break;
-    const question = FOLLOW_UP_QUESTION_PREFIX[dimension] +
-      characterLabel + " están documentadas hasta donde has leído?";
+    const question = FOLLOW_UP_QUESTION[dimension](characterLabel);
     const projection = buildPresentation(facts.filter(item => item.annotation.dimension === dimension));
     if (!projection) return null;
     const citationCharacters = projection.citations.reduce(

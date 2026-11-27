@@ -57,24 +57,26 @@ function emptyProgress() {
 
 function createStore(
   initial: unknown = getDefaultHoidEditorialReviewReceiptSnapshot(),
-  compareAndSwap = vi.fn(async (
+  behavior?: (
+    expectedRevision: number,
+    next: HoidEditorialReviewReceiptSnapshot,
+    current: unknown,
+  ) => Promise<"saved" | "conflict" | "unavailable">,
+) {
+  let stored = initial;
+  const compareAndSwap = vi.fn(async (
     expectedRevision: number,
     next: HoidEditorialReviewReceiptSnapshot,
   ): Promise<"saved" | "conflict" | "unavailable"> => {
-    const current = validateHoidEditorialReviewReceiptSnapshot(initial);
+    if (behavior) return behavior(expectedRevision, next, stored);
+    const current = validateHoidEditorialReviewReceiptSnapshot(stored);
     if (current.status !== "valid" || current.snapshot.revision !== expectedRevision) return "conflict";
     stored = next;
     return "saved";
-  }),
-) {
-  let stored = initial;
+  });
   const store: HoidEditorialReviewReceiptStorePort = {
     read: vi.fn(async () => stored),
-    compareAndSwap: async (expectedRevision, next) => {
-      const result = await compareAndSwap(expectedRevision, next);
-      if (result === "saved" && compareAndSwap.mock.calls.length > 0) stored = next;
-      return result;
-    },
+    compareAndSwap,
   };
   return { store, compareAndSwap, getStored: () => stored };
 }
@@ -210,8 +212,11 @@ describe("Hoid progress-scoped editorial review workflow", () => {
   });
 
   it("returns conflict rather than overwriting a concurrent receipt update", async () => {
-    const compareAndSwap = vi.fn(async () => "conflict" as const);
-    const fake = createStore(getDefaultHoidEditorialReviewReceiptSnapshot(), compareAndSwap);
+    const fake = createStore(
+      getDefaultHoidEditorialReviewReceiptSnapshot(),
+      async () => "conflict",
+    );
+    const compareAndSwap = fake.compareAndSwap;
     const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     const result = await port.submit({
       packetId: packet.packetId,

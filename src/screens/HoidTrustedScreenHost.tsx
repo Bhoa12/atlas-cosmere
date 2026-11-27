@@ -15,6 +15,10 @@ import type { HoidReaderRecommendationPreferencesStorePort } from "../hoid/reade
 import type { HoidReaderPreferencesStoreStatus } from "../components/HoidReaderPreferencesEditor";
 import { getExpoHoidEditorialReviewReceiptStore } from "../hoid/expoEditorialReviewReceiptStore";
 import { validateHoidEditorialReviewReceiptSnapshot } from "../hoid/editorialReviewReceiptStore";
+import {
+  createHoidEditorialReviewSubmissionPort,
+  type HoidEditorialReviewSubmissionPort,
+} from "../hoid/editorialReviewWorkflow";
 
 export type HoidTrustedScreenHostProps = Readonly<{
   /**
@@ -68,7 +72,7 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
   >(() => Object.freeze({ status: "loading" }));
   const [editorialReviewReceiptState, setEditorialReviewReceiptState] = useState<
     | Readonly<{ status: "loading" }>
-    | Readonly<{ status: "ready"; receipts: readonly unknown[] }>
+    | Readonly<{ status: "ready"; receipts: readonly unknown[]; reviewPort: HoidEditorialReviewSubmissionPort }>
     | Readonly<{ status: "unavailable" }>
   >(() => Object.freeze({ status: "loading" }));
 
@@ -91,9 +95,22 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
         const validation = validateHoidEditorialReviewReceiptSnapshot(await store.read());
         if (!active) return;
         if (validation.status === "valid") {
+          const reviewPort = createHoidEditorialReviewSubmissionPort({
+            store,
+            onSnapshot: snapshot => {
+              if (active) {
+                setEditorialReviewReceiptState(current =>
+                  current.status === "ready"
+                    ? Object.freeze({ ...current, receipts: snapshot.receipts })
+                    : current,
+                );
+              }
+            },
+          });
           setEditorialReviewReceiptState(Object.freeze({
             status: "ready",
             receipts: validation.snapshot.receipts,
+            reviewPort,
           }));
         } else {
           setEditorialReviewReceiptState(Object.freeze({ status: "unavailable" }));
@@ -185,6 +202,9 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
           ? editorialReviewReceiptState.receipts
           : null}
         editorialReviewReceiptStatus={editorialReviewReceiptState.status}
+        editorialReviewSubmissionPort={editorialReviewReceiptState.status === "ready"
+          ? editorialReviewReceiptState.reviewPort
+          : null}
       />
     </View>
   );

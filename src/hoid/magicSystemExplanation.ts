@@ -545,7 +545,7 @@ export function createHoidMagicSystemFactIndex(
   for (const item of raw) {
     const annotation = canonicalAnnotation(item);
     const claimKey = annotation
-      ? annotation.magicSystemId + "\\n" + annotation.claimId
+      ? annotation.magicSystemId + ":" + annotation.claimId
       : "";
     if (
       !annotation ||

@@ -55,6 +55,12 @@ The adapter accepts only a branded local dossier gateway and a branded fact inde
 
 It has no provider port, network client, persistence API, graph mutation, progress write, navigation, source-file reader, claim promotion or automatic spoiler authorization. Cancellation and durable-progress freshness are checked around the full operation.
 
+## Conversation route
+
+`HoidScreen` classifies recognized magic-system questions before the generic conversation fallback and sends them only to this local adapter. Missing names are handled locally. Unknown, locked, invalid or unavailable results never fall through to a language provider. The current empty production registry therefore produces the same neutral unavailable/not-found behavior until reviewed facts are promoted.
+
+The fact index is an opaque branded capability. Its annotations remain in a private `WeakMap`; review digests and internal source identifiers are not copied into React message state. Only the system label, original claim wording and projected book/chapter citations reach the presentation layer.
+
 ## Production status
 
 `HOID_MAGIC_SYSTEM_FACT_ANNOTATIONS` is intentionally empty. The adapter and synthetic tests are staging infrastructure, not evidence that any real magic-system rules have been reviewed or approved. No real Cosmere magic-system fact or chronology is asserted by this run.
@@ -63,4 +69,4 @@ Production use requires original editorial summaries and claims checked against 
 
 ## Tests
 
-Synthetic tests cover deterministic Spanish/English intent parsing, exact-name routing, magic-kind enforcement, cited output, UI projection, unknown/locked equivalence, recommendation exclusion, annotation digest drift, stale progress, cancellation, provider-bearing configuration and empty production registry behavior.
+Fourteen synthetic tests cover deterministic Spanish/English intent parsing, exact-name routing, magic-kind enforcement, cited output, UI projection, unknown/locked equivalence, facet isolation, comparative-depth requirements, recommendation exclusion, alias-stable annotation digests, annotation digest drift, stale progress, cancellation, provider-bearing configuration and empty production registry behavior.

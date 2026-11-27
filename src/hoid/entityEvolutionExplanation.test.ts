@@ -399,6 +399,22 @@ describe("Hoid progress-bound character evolution", () => {
       Object.freeze({ ...state.core, review: state.review }),
       Object.freeze({ ...state.core, review: state.review }),
     ])).toBeNull();
+    if (!state.dossierClaim || !state.review) throw new Error("Expected a reviewed base claim");
+    const alternateCore = Object.freeze({
+      ...state.core,
+      id: "evolution.fact.alternate",
+      dimension: "capability" as const,
+    });
+    const alternateReview = createHoidCharacterEvolutionReview(
+      alternateCore,
+      state.dossierClaim,
+      { reviewerId: "reviewer.alpha", reviewedAt: NOW },
+    );
+    if (!alternateReview) throw new Error("Expected a second synthetic review");
+    expect(createHoidCharacterEvolutionIndex([
+      Object.freeze({ ...state.core, review: state.review }),
+      Object.freeze({ ...alternateCore, review: alternateReview }),
+    ])).toBeNull();
   });
 
   it("rejects review digest drift at query time", async () => {

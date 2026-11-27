@@ -455,7 +455,18 @@ function canonicalReview(value: unknown): HoidMagicSystemFactReview | null {
 }
 
 function claimDigest(claim: CanonicalClaim): string {
-  return sha256Hex(JSON.stringify(claim));
+  // Bind stable participant identity, not the alias selected by the reader.
+  // The dossier gateway separately authorizes every displayed participant label.
+  return sha256Hex(JSON.stringify({
+    claimId: claim.claimId,
+    intent: claim.intent,
+    text: claim.text,
+    participants: claim.participants.map(item => ({
+      id: item.id,
+      kind: item.kind,
+    })),
+    sources: claim.sources,
+  }));
 }
 
 function annotationDigest(

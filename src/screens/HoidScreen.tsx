@@ -892,7 +892,7 @@ export const HoidScreen: React.FC<{
               fingerprint: evolutionResult.progressFingerprint,
             };
             respuesta = 'Evolución documental de ' + evolutionResult.characterLabel
-              + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\\n\\n'
+              + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\n\n'
               + evolutionResult.presentation.text;
             citas = evolutionResult.presentation.citations;
             segmentos = evolutionResult.presentation.segments;

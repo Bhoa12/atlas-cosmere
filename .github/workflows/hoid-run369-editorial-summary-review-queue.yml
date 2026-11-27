@@ -1,0 +1,63 @@
+name: Hoid Run 369 — progress-bound editorial summary review queue
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run369"
+    paths:
+      - "src/hoid/editorialSummaryReviewQueue.ts"
+      - "src/hoid/editorialSummaryReviewQueue.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/components/HoidEditorialSummaryReviewQueuePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN369_PROGRESS_BOUND_EDITORIAL_SUMMARY_REVIEW_QUEUE.md"
+      - ".github/workflows/hoid-run369-editorial-summary-review-queue.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editorialSummaryReviewQueue.ts"
+      - "src/hoid/editorialSummaryReviewQueue.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/components/HoidEditorialSummaryReviewQueuePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN369_PROGRESS_BOUND_EDITORIAL_SUMMARY_REVIEW_QUEUE.md"
+      - ".github/workflows/hoid-run369-editorial-summary-review-queue.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  editorial-summary-review-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run progress-bound editorial queue regressions
+        run: >-
+          npx vitest run
+          src/hoid/editorialSummaryReviewQueue.test.ts
+          src/hoid/editorialReviewPackets.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+          src/hoid/chapterKnowledgeReadiness.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/editorialSummaryReviewQueue.ts
+          src/hoid/editorialSummaryReviewQueue.test.ts
+          src/components/HoidEditorialSummaryReviewQueuePanel.tsx
+          src/screens/HoidScreen.tsx

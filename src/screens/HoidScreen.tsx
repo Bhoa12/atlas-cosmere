@@ -91,6 +91,7 @@ import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAns
 import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
 import { HoidEpubEditorialSourceAccessPanel } from '../components/HoidEpubEditorialSourceAccessPanel';
 import { HoidSourceCoveragePanel } from '../components/HoidSourceCoveragePanel';
+import { HoidEditorialSummaryReviewQueuePanel } from '../components/HoidEditorialSummaryReviewQueuePanel';
 import type { HoidEditorialSourceDocumentAccessPort } from '../hoid/editorialClaimPromotionPreflight';
 import {
   openHoidRecommendationChapter,
@@ -1874,6 +1875,8 @@ export const HoidScreen: React.FC<{
               : null
         }
       />
+
+      <HoidEditorialSummaryReviewQueuePanel progressSnapshot={liveProgress} />
 
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>

@@ -873,7 +873,7 @@ export const HoidScreen: React.FC<{
               revision: magicResult.progressRevision,
               fingerprint: magicResult.progressFingerprint,
             };
-            respuesta = 'Sistema de magia: ' + magicResult.systemLabel + '\\n\\n' + magicResult.presentation.text;
+            respuesta = 'Sistema de magia: ' + magicResult.systemLabel + '\n\n' + magicResult.presentation.text;
             citas = magicResult.presentation.citations;
             segmentos = magicResult.presentation.segments;
             formato = magicResult.presentation.layout;

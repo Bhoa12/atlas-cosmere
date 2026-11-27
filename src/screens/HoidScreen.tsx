@@ -32,6 +32,12 @@ import {
   type HoidInvestigationTopic,
 } from '../hoid/investigationSession';
 import {
+  createProductionHoidInvestigationContextConversationAdapter,
+} from '../hoid/investigationContextConversation';
+import type {
+  HoidPresentedInvestigationContextLink,
+} from '../hoid/investigationContextPresentation';
+import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
   type HoidDisplaySegment,
@@ -130,6 +136,7 @@ interface Mensaje {
   formato?: HoidNarrativeLayout;
   evidenciaTransversal?: HoidDisplayCrossBookEvidenceSummary;
   preguntasSugeridas?: readonly HoidCharacterInvestigationSuggestion[];
+  contextLinks?: readonly HoidPresentedInvestigationContextLink[];
 }
 
 function formatHoidCitationLocation(
@@ -182,6 +189,11 @@ export const HoidScreen: React.FC<{
   progressRefreshRef.current = refreshHoidCursorProgressSnapshot;
   const progressSubscriptionRef = useRef(subscribeHoidCursorProgressChanges);
   progressSubscriptionRef.current = subscribeHoidCursorProgressChanges;
+  const [investigationContextConversation] = useState(() =>
+    createProductionHoidInvestigationContextConversationAdapter(
+      () => progressReaderRef.current(),
+    ),
+  );
   // Ephemeral ID-only context: never persisted to SQLite, messages or providers.
   const conversationContextRef = useRef<HoidConversationContext | null>(null);
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
@@ -603,6 +615,7 @@ export const HoidScreen: React.FC<{
       let formato: HoidNarrativeLayout | undefined;
       let evidenciaTransversal: HoidDisplayCrossBookEvidenceSummary | undefined;
       let preguntasSugeridas: readonly HoidCharacterInvestigationSuggestion[] | undefined;
+      let contextLinks: readonly HoidPresentedInvestigationContextLink[] | undefined;
       // Even neutral fallback text is scoped to the request snapshot. Stale
       // results and cancelled work explicitly clear this scope below.
       let responseScope: HoidConversationProgressScope | null = requestScope;
@@ -1224,6 +1237,16 @@ export const HoidScreen: React.FC<{
         } else if (!recorded) {
           preguntasSugeridas = undefined;
         }
+        if (recorded && investigationContextConversation) {
+          const contextPresentation = investigationContextConversation.present({
+            progress: latestProgress,
+            history: investigationSession.getHistory(),
+            bookScope: investigationBookScope,
+          });
+          if (contextPresentation.status === 'ready' && contextPresentation.links.length > 0) {
+            contextLinks = contextPresentation.links;
+          }
+        }
       }
 
       setMensajes(prev => [...prev, {
@@ -1235,6 +1258,7 @@ export const HoidScreen: React.FC<{
         ...(segmentos && formato ? { segmentos, formato } : {}),
         ...(evidenciaTransversal ? { evidenciaTransversal } : {}),
         ...(preguntasSugeridas && preguntasSugeridas.length > 0 ? { preguntasSugeridas } : {}),
+        ...(contextLinks && contextLinks.length > 0 ? { contextLinks } : {}),
       }]);
     } catch {
       if (!conversationTurnSession.isCurrent(ticket)) return;
@@ -2262,6 +2286,50 @@ export const HoidScreen: React.FC<{
                     ))}
                   </View>
                 ))}
+              </View>
+            )}
+            {item.contextLinks && item.contextLinks.length > 0 && (
+              <View style={styles.citationBlock}>
+                <Text style={styles.citationHeading}>CONEXIONES ENTRE INVESTIGACIONES</Text>
+                {item.contextLinks.map((link, linkIndex) => {
+                  const contextIsCurrent = item.progressScope !== undefined &&
+                    liveProgressScope !== null &&
+                    item.progressScope.revision === liveProgressScope.revision &&
+                    item.progressScope.fingerprint === liveProgressScope.fingerprint;
+                  return (
+                    <View key={link.leftLabel + ':' + link.rightLabel + ':' + linkIndex} style={{ marginBottom: 12 }}>
+                      <Text style={styles.provenanceHeading}>
+                        {link.leftLabel} ↔ {link.rightLabel}
+                      </Text>
+                      <Text style={styles.bubbleText}>{link.explanation}</Text>
+                      {link.sources.map((source, sourceIndex) => (
+                        <Text
+                          key={source.bookId + ':' + source.chapter + ':' + source.role + ':' + sourceIndex}
+                          style={styles.citationText}
+                        >
+                          {source.bookTitle} · capítulo {source.chapter} · {source.role === 'relationship' ? 'evidencia de relación' : 'evidencia del nombre'}
+                        </Text>
+                      ))}
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Preparar pregunta sobre la conexión entre ${link.leftLabel} y ${link.rightLabel}`}
+                        accessibilityHint="Rellena el cuadro de texto sin enviar la pregunta."
+                        disabled={!contextIsCurrent || cargando || progresoPersistenciaEstado !== 'ready'}
+                        onPress={() => {
+                          if (!contextIsCurrent || cargando || progresoPersistenciaEstado !== 'ready') return;
+                          setInput(link.followUpQuestion);
+                        }}
+                        style={[
+                          styles.followUpSuggestion,
+                          (!contextIsCurrent || cargando || progresoPersistenciaEstado !== 'ready') && styles.disabledButton,
+                        ]}
+                      >
+                        <Text style={styles.followUpSuggestionText}>{link.followUpQuestion}</Text>
+                        <Text style={styles.followUpSuggestionHint}>PREPARAR PREGUNTA</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
               </View>
             )}
             {(!item.segmentos || item.segmentos.length === 0) && item.citas && item.citas.length > 0 && (

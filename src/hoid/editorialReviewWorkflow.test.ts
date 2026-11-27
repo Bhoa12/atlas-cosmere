@@ -122,6 +122,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
     const onSnapshot = vi.fn();
     const port = createHoidEditorialReviewSubmissionPort({
       store: fake.store,
+      getFreshProgress: async () => completedProgress(packet.unlock.bookId),
       onSnapshot,
       now: () => new Date("2026-11-27T22:00:00.000Z"),
     });
@@ -131,7 +132,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved",
       checklist: ALL_CHECKS,
       noteCodes: ["no-issues"],
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     });
 
     expect(result).toBe("saved");
@@ -171,7 +171,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved",
       checklist: FACTUAL_ISSUE,
       noteCodes: ["no-issues"],
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     });
 
     expect(result).toBe("invalid");
@@ -189,7 +188,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "revision-required",
       checklist: FACTUAL_ISSUE,
       noteCodes,
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     });
     expect(result).toBe("saved");
     const stored = fake.getStored() as HoidEditorialReviewReceiptSnapshot;
@@ -205,7 +203,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved",
       checklist: ALL_CHECKS,
       noteCodes: ["no-issues"],
-      progressSnapshot: emptyProgress(),
     });
 
     expect(result).toBe("not-eligible");
@@ -221,7 +218,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved",
       checklist: ALL_CHECKS,
       noteCodes: ["no-issues"],
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     });
 
     expect(result).toBe("conflict");
@@ -236,7 +232,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved",
       checklist: ALL_CHECKS,
       noteCodes: ["no-issues"],
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     });
 
     expect(result).toBe("unavailable");
@@ -251,7 +246,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved",
       checklist: ALL_CHECKS,
       noteCodes: ["no-issues"],
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     };
     Object.defineProperty(input, "packetId", {
       enumerable: true,
@@ -275,7 +269,6 @@ describe("Hoid progress-scoped editorial review workflow", () => {
       decision: "approved" as const,
       checklist: ALL_CHECKS,
       noteCodes: ["no-issues"] as const,
-      progressSnapshot: completedProgress(packet.unlock.bookId),
     };
     expect(await port.submit(submission)).toBe("saved");
     expect(await port.submit(submission)).toBe("not-eligible");

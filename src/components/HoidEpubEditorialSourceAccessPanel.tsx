@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "../hoid/bibliography";
 import type { HoidEditorialSourceDocumentAccessPort } from "../hoid/editorialClaimPromotionPreflight";
+import { getHoidChapterKnowledgeReadiness } from "../hoid/chapterKnowledgeReadiness";
 import {
   auditHoidEpubEditorialSourceCoverage,
   type HoidEpubEditorialSourceCoverageAuditProgress,
@@ -86,6 +87,10 @@ export const HoidEpubEditorialSourceAccessPanel: React.FC<{
     setView({ status: "idle" });
   };
 
+  const readiness = view.status === "completed"
+    ? getHoidChapterKnowledgeReadiness(view.result.workId, view.result)
+    : null;
+
   return (
     <View style={styles.panel}>
       <Text style={styles.heading}>INTEGRIDAD DE LA FUENTE EPUB ACTIVA</Text>
@@ -132,6 +137,23 @@ export const HoidEpubEditorialSourceAccessPanel: React.FC<{
                 : "No se ha podido completar la comprobación. La fuente no se considerará verificada."}
             </Text>
           ) : null}
+          {readiness?.status === "ready" ? (
+            <View style={styles.readiness}>
+              <Text style={styles.readinessHeading}>COBERTURA EDITORIAL POR CAPÍTULO</Text>
+              <Text style={styles.readinessText}>
+                Navegación verificada: {readiness.report.counts.navigationVerifiedUnitCount} · Identidad ambigua: {readiness.report.counts.identityOnlyUnitCount}
+              </Text>
+              <Text style={styles.readinessText}>
+                Huella de cuerpo registrada: {readiness.report.counts.bodyDigestRegisteredUnitCount} · Disponibles ahora: {readiness.report.counts.currentlyAvailableUnitCount}
+              </Text>
+              <Text style={styles.readinessText}>
+                Resúmenes pendientes de revisión: {readiness.report.counts.pendingReviewSummaryCount} · Entradas en producción: {readiness.report.counts.productionKnowledgeEntryCount} · Referencias de afirmaciones aprobadas: {readiness.report.counts.approvedClaimReferenceCount}
+              </Text>
+              <Text style={styles.readinessNote}>
+                Son etapas independientes: una coincidencia local no equivale a revisión editorial ni autoriza respuestas o spoilers.
+              </Text>
+            </View>
+          ) : null}
         </>
       )}
       <Text style={styles.privacy}>
@@ -160,4 +182,8 @@ const styles = StyleSheet.create({
   result: { color: "#a7f3d0", fontSize: 11, lineHeight: 16 },
   warning: { color: "#fbbf24", fontSize: 11, lineHeight: 16 },
   privacy: { color: "#64748b", fontSize: 10, lineHeight: 15 },
+  readiness: { backgroundColor: "#111827", borderRadius: 8, padding: 9, gap: 5 },
+  readinessHeading: { color: "#cbd5e1", fontSize: 10, fontWeight: "900", letterSpacing: 0.7 },
+  readinessText: { color: "#a5b4fc", fontSize: 10, lineHeight: 15 },
+  readinessNote: { color: "#94a3b8", fontSize: 10, lineHeight: 15 },
 });

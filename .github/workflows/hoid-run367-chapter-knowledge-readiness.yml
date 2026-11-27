@@ -1,0 +1,78 @@
+name: Hoid Run 367 — chapter knowledge readiness
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run367"
+    paths:
+      - "src/hoid/chapterKnowledgeReadiness.ts"
+      - "src/hoid/chapterKnowledgeReadiness.test.ts"
+      - "src/hoid/epubEditorialSourceCoverageAudit.ts"
+      - "src/hoid/epubEditorialSourceCoverageAudit.test.ts"
+      - "src/hoid/sourceCoverage.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/components/HoidEpubEditorialSourceAccessPanel.tsx"
+      - "docs/hoid/RUN367_CHAPTER_KNOWLEDGE_READINESS.md"
+      - ".github/workflows/hoid-run367-chapter-knowledge-readiness.yml"
+  pull_request:
+    paths:
+      - "src/hoid/chapterKnowledgeReadiness.ts"
+      - "src/hoid/chapterKnowledgeReadiness.test.ts"
+      - "src/hoid/epubEditorialSourceCoverageAudit.ts"
+      - "src/hoid/epubEditorialSourceCoverageAudit.test.ts"
+      - "src/hoid/sourceCoverage.ts"
+      - "src/hoid/sourceCoverage.test.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.ts"
+      - "src/hoid/sourceCoverageDisplayProjection.test.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialRegistry.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "src/components/HoidEpubEditorialSourceAccessPanel.tsx"
+      - "docs/hoid/RUN367_CHAPTER_KNOWLEDGE_READINESS.md"
+      - ".github/workflows/hoid-run367-chapter-knowledge-readiness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  chapter-knowledge-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run chapter readiness and coverage regressions
+        run: >-
+          npx vitest run
+          src/hoid/chapterKnowledgeReadiness.test.ts
+          src/hoid/epubEditorialSourceCoverageAudit.test.ts
+          src/hoid/sourceCoverage.test.ts
+          src/hoid/sourceCoverageDisplayProjection.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/chapterKnowledgeReadiness.ts
+          src/hoid/chapterKnowledgeReadiness.test.ts
+          src/hoid/epubEditorialSourceCoverageAudit.ts
+          src/hoid/epubEditorialSourceCoverageAudit.test.ts
+          src/components/HoidEpubEditorialSourceAccessPanel.tsx

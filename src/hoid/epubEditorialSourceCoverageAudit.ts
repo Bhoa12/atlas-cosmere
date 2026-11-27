@@ -22,6 +22,9 @@ export type HoidEpubEditorialSourceCoverageAuditResult =
   | Readonly<{
       status: "completed";
       workId: string;
+      editionId: string;
+      navigationSha256: string;
+      manifestId: string;
       scope: "registered-digest-chapters-only";
       totalAllowlistedChapterCount: number;
       checkedChapterCount: number;
@@ -38,6 +41,9 @@ export type HoidEpubEditorialSourceCoverageAuditResult =
   | Readonly<{
       status: "cancelled";
       workId: string;
+      editionId: string;
+      navigationSha256: string;
+      manifestId: string;
       checkedChapterCount: number;
     }>;
 
@@ -158,12 +164,26 @@ export async function auditHoidEpubEditorialSourceCoverage(
   });
 
   if (isAborted(signal)) {
-    return Object.freeze({ status: "cancelled", workId: workIdInput, checkedChapterCount: checked });
+    return Object.freeze({
+      status: "cancelled",
+      workId: workIdInput,
+      editionId: manifest.editionId,
+      navigationSha256: manifest.navigationSha256,
+      manifestId: manifest.manifestId,
+      checkedChapterCount: checked,
+    });
   }
 
   for (const chapterNumber of chapterNumbers) {
     if (isAborted(signal)) {
-      return Object.freeze({ status: "cancelled", workId: workIdInput, checkedChapterCount: checked });
+      return Object.freeze({
+      status: "cancelled",
+      workId: workIdInput,
+      editionId: manifest.editionId,
+      navigationSha256: manifest.navigationSha256,
+      manifestId: manifest.manifestId,
+      checkedChapterCount: checked,
+    });
     }
 
     const expectedDigest = getVerifiedChapterDocumentSha256(
@@ -210,7 +230,14 @@ export async function auditHoidEpubEditorialSourceCoverage(
     }
 
     if (isAborted(signal)) {
-      return Object.freeze({ status: "cancelled", workId: workIdInput, checkedChapterCount: checked });
+      return Object.freeze({
+      status: "cancelled",
+      workId: workIdInput,
+      editionId: manifest.editionId,
+      navigationSha256: manifest.navigationSha256,
+      manifestId: manifest.manifestId,
+      checkedChapterCount: checked,
+    });
     }
 
     if (exactAvailableDigest(response, expectedDigest)) available.push(chapterNumber);
@@ -223,6 +250,9 @@ export async function auditHoidEpubEditorialSourceCoverage(
   return Object.freeze({
     status: "completed",
     workId: workIdInput,
+    editionId: manifest.editionId,
+    navigationSha256: manifest.navigationSha256,
+    manifestId: manifest.manifestId,
     scope: "registered-digest-chapters-only",
     totalAllowlistedChapterCount: chapterNumbers.length,
     checkedChapterCount: checked,

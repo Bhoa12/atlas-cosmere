@@ -7,17 +7,55 @@ export type HoidEntityRelationshipIntent =
 const MAX_QUESTION_LENGTH = 4_000;
 const MAX_ENTITY_NAME_LENGTH = 256;
 
-const PREFIXES: readonly Readonly<{ pattern: RegExp; separator: RegExp; suffix?: RegExp }>[] = Object.freeze([
+type RelationshipForm = Readonly<{
+  pattern: RegExp;
+  separator: RegExp;
+  suffix?: RegExp;
+}>;
+
+const PREFIXES: readonly RelationshipForm[] = Object.freeze([
   Object.freeze({
-    pattern: /^(?:¿\s*)?qué\s+relación\s+hay\s+entre\b\s*/iu,
+    pattern: /^(?:¿\s*)?qu[eé]\s+relaci[oó]n\s+(?:hay|existe)\s+entre\b\s*/iu,
     separator: /\s+(?:y|e)\s+/giu,
   }),
   Object.freeze({
-    pattern: /^(?:¿\s*)?cómo\s+se\s+relacionan\b\s*/iu,
+    pattern: /^(?:¿\s*)?qu[eé]\s+conexi[oó]n\s+(?:hay|existe)\s+entre\b\s*/iu,
     separator: /\s+(?:y|e)\s+/giu,
   }),
   Object.freeze({
-    pattern: /^(?:¿\s*)?relación\s+entre\b\s*/iu,
+    pattern: /^(?:¿\s*)?conexi[oó]n\s+entre\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?v[ií]nculo\s+(?:hay\s+)?entre\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?c[oó]mo\s+se\s+relacionan\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?c[oó]mo\s+est[aá]n\s+relacionad[oa]s\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?en\s+qu[eé]\s+se\s+relacionan\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?qu[eé]\s+relaci[oó]n\s+tiene\b\s*/iu,
+    separator: /\s+con\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?qu[eé]\s+une\s+a\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?qu[eé]\s+tienen\s+en\s+com[uú]n\b\s*/iu,
+    separator: /\s+(?:y|e)\s+/giu,
+  }),
+  Object.freeze({
+    pattern: /^(?:¿\s*)?relaci[oó]n\s+entre\b\s*/iu,
     separator: /\s+(?:y|e)\s+/giu,
   }),
   Object.freeze({
@@ -27,7 +65,11 @@ const PREFIXES: readonly Readonly<{ pattern: RegExp; separator: RegExp; suffix?:
   Object.freeze({
     pattern: /^(?:\s*)?how\s+are\b\s*/iu,
     separator: /\s+and\s+/giu,
-    suffix: /\s+connected[?!.]*$/iu,
+    suffix: /\s+(?:connected|related)[?!.]*$/iu,
+  }),
+  Object.freeze({
+    pattern: /^(?:\s*)?what\s+unites\b\s*/iu,
+    separator: /\s+and\s+/giu,
   }),
 ]);
 
@@ -45,14 +87,15 @@ function canonicalQuestion(value: unknown): string | null {
 function canonicalName(value: string): string {
   return value
     .replace(/[?!¡¿.,;:…]+$/u, "")
-    .replace(/^[\"'“”«»]+|[\"'“”«»]+$/gu, "")
+    .replace(/^["'“”«»]+|["'“”«»]+$/gu, "")
     .trim();
 }
 
 /**
- * Recognizes only explicit two-entity relationship questions.
+ * Recognizes explicit two-entity relationship questions.
  * Names remain exact lookup keys; ambiguous conjunctions are rejected rather
- * than guessed, and a recognized request never falls through to a provider.
+ * than guessed, and a recognized relationship request never falls through
+ * to a generic language provider.
  */
 export function classifyHoidEntityRelationshipIntent(value: unknown): HoidEntityRelationshipIntent {
   const question = canonicalQuestion(value);

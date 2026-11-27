@@ -8,7 +8,11 @@ import {
   claimEvidenceMatchesHoidBookScope,
   type HoidAnswerBookScope,
 } from "./answerScope";
-import { canonicalEvidenceScope, type HoidEvidenceCitation } from "./evidenceScope";
+import {
+  canonicalEvidenceScope,
+  isEvidenceUnlocked,
+  type HoidEvidenceCitation,
+} from "./evidenceScope";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
@@ -325,13 +329,7 @@ function canonicalSource(
     !SHA_PATTERN.test(source.documentSha256)
   )) return null;
 
-  const position = reading.find(item => item.bookId === source.unlockBookId);
-  if (!position || !(
-    position.completed === true ||
-    (typeof position.chapter === "number" && position.chapter >= source.unlockChapter)
-  )) return null;
-
-  return Object.freeze({
+  const citation: HoidEvidenceCitation = Object.freeze({
     evidenceId: source.evidenceId,
     sourceBookId: source.sourceBookId,
     sourceChapter: source.sourceChapter,
@@ -339,6 +337,7 @@ function canonicalSource(
     unlockBookId: source.unlockBookId,
     unlockChapter: source.unlockChapter,
   });
+  return isEvidenceUnlocked(citation, reading) ? citation : null;
 }
 
 function sameSource(left: HoidEvidenceCitation, right: HoidEvidenceCitation): boolean {

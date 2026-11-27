@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { getHoidChapterKnowledgeCoverageReport } from "../hoid/chapterKnowledgeCoverage";
 import { getHoidSourceCoverageDisplayProjection } from "../hoid/sourceCoverageDisplayProjection";
 
 function navigationLabel(kind: string, status: string): string {
@@ -21,14 +22,14 @@ function manifestLabel(
 ): string {
   if (manifest.status === "unavailable") return "Estructura de capítulos no verificada";
   return manifest.coverage === "verified-numeric-chapters"
-    ? `Manifiesto numerado verificado · ${manifest.unitCount} unidades`
-    : `Prefijo seguro verificado · ${manifest.unitCount} unidades antes de la numeración ambigua`;
+    ? "Manifiesto numerado verificado · " + manifest.unitCount + " unidades"
+    : "Prefijo seguro verificado · " + manifest.unitCount + " unidades antes de la numeración ambigua";
 }
 
 function formatChapterNumbers(numbers: readonly number[]): string {
   if (numbers.length === 0) return "ninguno";
   const contiguous = numbers.every((number, index) => number === index + 1);
-  if (contiguous) return numbers.length === 1 ? "capítulo 1" : `capítulos 1–${numbers[numbers.length - 1]}`;
+  if (contiguous) return numbers.length === 1 ? "capítulo 1" : "capítulos 1–" + numbers[numbers.length - 1];
   return numbers.map(number => String(number)).join(", ");
 }
 
@@ -36,7 +37,12 @@ export const HoidSourceCoveragePanel: React.FC<{
   selectedBookId?: string | null;
 }> = ({ selectedBookId = null }) => {
   const [expanded, setExpanded] = useState(false);
-  const projection = getHoidSourceCoverageDisplayProjection(selectedBookId);
+  const projection = useMemo(
+    () => getHoidSourceCoverageDisplayProjection(selectedBookId),
+    [selectedBookId],
+  );
+  const knowledge = useMemo(() => getHoidChapterKnowledgeCoverageReport(), []);
+  const selectedKnowledge = knowledge.works.find(work => work.workId === selectedBookId);
 
   return (
     <View style={styles.panel}>
@@ -53,13 +59,22 @@ export const HoidSourceCoveragePanel: React.FC<{
       <Text style={styles.metric}>
         Editorial: {projection.editorial.stagedSummaryCount} resúmenes en borrador · {projection.editorial.pendingReviewSummaryCount} pendientes de revisión · {projection.editorial.approvedClaimCount} afirmaciones aprobadas.
       </Text>
-      {projection.integrity === "inconsistent" ? (
+      <Text style={styles.metric}>
+        Preparación por capítulo: {knowledge.coverage.manifestReadyWorkCount} de {knowledge.catalogue.totalWorks} obras con manifiesto verificable · {knowledge.coverage.totalReadingUnitCount.toLocaleString("es-ES")} unidades.
+      </Text>
+      <Text style={styles.metric}>
+        Etapas de conocimiento: {knowledge.coverage.navigationVerifiedUnitCount.toLocaleString("es-ES")} unidades con navegación verificada · {knowledge.coverage.bodyDigestRegisteredUnitCount.toLocaleString("es-ES")} con huella de cuerpo · {knowledge.coverage.pendingReviewSummaryCount} resúmenes pendientes.
+      </Text>
+      <Text style={styles.metric}>
+        Producción: {knowledge.coverage.productionKnowledgeEntryCount} entradas · {knowledge.coverage.approvedClaimReferenceCount} referencias de afirmaciones aprobadas · {knowledge.coverage.manifestUnavailableWorkCount} obras sin manifiesto utilizable.
+      </Text>
+      {projection.integrity === "inconsistent" || knowledge.integrity === "inconsistent" ? (
         <Text style={styles.warning}>
-          La auditoría de cobertura detecta inconsistencias. Estos datos no autorizan respuestas narrativas.
+          La auditoría detecta inconsistencias. Estos datos no autorizan respuestas narrativas.
         </Text>
       ) : null}
       <Text style={styles.disclaimer}>
-        El catálogo y los índices no confirman que el EPUB esté accesible ahora. Las huellas de capítulos no contienen sus textos y los borradores no son conocimiento aprobado. La autorización narrativa sigue dependiendo de evidencias editoriales verificadas.
+        El catálogo y los índices no confirman que el EPUB esté accesible ahora. El resumen global de conocimiento no audita disponibilidad local; las huellas no contienen texto y los borradores no son conocimiento aprobado. La autorización narrativa sigue dependiendo de evidencias editoriales verificadas.
       </Text>
 
       <TouchableOpacity
@@ -98,6 +113,20 @@ export const HoidSourceCoveragePanel: React.FC<{
               <Text style={styles.detailText}>
                 Entradas de conocimiento de producción para esta obra: {projection.selectedWork.productionKnowledgeEntryCount}.
               </Text>
+              {selectedKnowledge?.status === "ready" ? (
+                <Text style={styles.detailText}>
+                  Preparación editorial por unidad: {selectedKnowledge.counts?.totalReadingUnits ?? 0} unidades · {selectedKnowledge.counts?.navigationVerifiedUnitCount ?? 0} con navegación verificada · {selectedKnowledge.counts?.identityOnlyUnitCount ?? 0} con identidad ambigua · {selectedKnowledge.counts?.bodyDigestRegisteredUnitCount ?? 0} con huella de cuerpo.
+                </Text>
+              ) : selectedKnowledge ? (
+                <Text style={styles.detailText}>
+                  Preparación editorial por unidad no disponible: {selectedKnowledge.reason}.
+                </Text>
+              ) : null}
+              {selectedKnowledge?.status === "ready" && selectedKnowledge.counts ? (
+                <Text style={styles.detailText}>
+                  Revisión y producción: {selectedKnowledge.counts.pendingReviewSummaryCount} resúmenes pendientes · {selectedKnowledge.counts.productionKnowledgeEntryCount} entradas de producción · {selectedKnowledge.counts.approvedClaimReferenceCount} referencias aprobadas.
+                </Text>
+              ) : null}
             </>
           ) : projection.selectedWorkStatus === "unknown-work" ? (
             <Text style={styles.detailText}>La obra solicitada no pertenece al catálogo bibliográfico validado.</Text>
@@ -108,7 +137,7 @@ export const HoidSourceCoveragePanel: React.FC<{
             Registro de producción: {projection.editorial.productionRegistryStatus === "empty" ? "vacío" : "con entradas"} · {projection.editorial.productionKnowledgeEntryCount} entradas de conocimiento · {projection.editorial.approvedClaimCount} afirmaciones aprobadas.
           </Text>
           <Text style={styles.detailText}>
-            Acceso a bytes de origen: {projection.catalogue.accessStatus === "not-asserted" ? "no afirmado por este informe" : "estado no disponible"}.
+            Disponibilidad de EPUB en esta vista global: no auditada.
           </Text>
         </View>
       ) : null}

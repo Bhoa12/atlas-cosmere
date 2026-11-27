@@ -14,7 +14,7 @@ A character-evolution annotation references one existing approved entity-dossier
 - one editorial evidence kind: state or transition;
 - a review record bound to the canonical claim and annotation digests.
 
-No annotation carries free-standing narrative text. The adapter displays the original approved claim wording and its existing chapter citations.
+No annotation carries free-standing narrative text. Each character/claim pair has one editorial dimension and evidence kind so a single claim cannot be duplicated across presentation segments. The adapter displays the original approved claim wording and its existing chapter citations.
 
 A transition label is an explicit editorial classification. It is not inferred from chapter order or from two unrelated state claims. A cause annotation additionally requires a transition classification and an approved explain claim. A relationship annotation requires at least two verified participants. Recommendation claims are never evolution facts.
 

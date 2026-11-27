@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getHoidChapterKnowledgeCoverageReport } from "../hoid/chapterKnowledgeCoverage";
 import { getHoidSourceCoverageDisplayProjection } from "../hoid/sourceCoverageDisplayProjection";
@@ -37,8 +37,11 @@ export const HoidSourceCoveragePanel: React.FC<{
   selectedBookId?: string | null;
 }> = ({ selectedBookId = null }) => {
   const [expanded, setExpanded] = useState(false);
-  const projection = getHoidSourceCoverageDisplayProjection(selectedBookId);
-  const knowledge = getHoidChapterKnowledgeCoverageReport();
+  const projection = useMemo(
+    () => getHoidSourceCoverageDisplayProjection(selectedBookId),
+    [selectedBookId],
+  );
+  const knowledge = useMemo(() => getHoidChapterKnowledgeCoverageReport(), []);
   const selectedKnowledge = knowledge.works.find(work => work.workId === selectedBookId);
 
   return (

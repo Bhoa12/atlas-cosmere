@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import {
   buildHoidEditorialReviewPackets,
+  validateHoidEditorialReviewReceipt,
   type HoidEditorialReviewChecklist,
 } from "./editorialReviewPackets";
 import {
@@ -163,6 +164,12 @@ describe("Hoid progress-scoped editorial review workflow", () => {
     expect(JSON.stringify(stored)).not.toContain(packet.summary);
     expect(JSON.stringify(stored)).not.toContain(packet.source.locatorId);
     expect(JSON.stringify(stored)).not.toContain("sourceText");
+    const validatedReceipt = validateHoidEditorialReviewReceipt(packet, stored.receipts[0]);
+    expect(validatedReceipt.status).toBe("valid");
+    if (validatedReceipt.status === "valid") {
+      expect(validatedReceipt.outcome).toBe("approved-awaiting-source-promotion");
+      expect(validatedReceipt.promotionAllowed).toBe(false);
+    }
   });
 
   it("rejects approval when any checklist item is false", async () => {
@@ -240,6 +247,26 @@ describe("Hoid progress-scoped editorial review workflow", () => {
     });
 
     expect(result).toBe("unavailable");
+    expect(fake.compareAndSwap).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the live progress reader is unavailable", async () => {
+    const fake = createStore();
+    const getFreshProgress = vi.fn(async () => null);
+    const port = createHoidEditorialReviewSubmissionPort({
+      store: fake.store,
+      getFreshProgress,
+    });
+    const result = await port.submit({
+      packetId: packet.packetId,
+      decision: "approved",
+      checklist: ALL_CHECKS,
+      noteCodes: ["no-issues"],
+    });
+
+    expect(result).toBe("unavailable");
+    expect(getFreshProgress).toHaveBeenCalledTimes(1);
+    expect(fake.store.read).not.toHaveBeenCalled();
     expect(fake.compareAndSwap).not.toHaveBeenCalled();
   });
 

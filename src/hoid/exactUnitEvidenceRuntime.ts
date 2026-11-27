@@ -1,5 +1,11 @@
 import { isHoidKnowledgeKind, type HoidKnowledgeKind } from "./knowledgeKinds";
-import { validateHoidExactApprovedClaimAttestation, type HoidExactApprovedClaim, type HoidExactEvidenceRecord } from "./exactUnitClaimIntegrity";
+import {
+  validateHoidExactApprovedClaimAttestation,
+  type HoidExactApprovedClaim,
+  type HoidExactApprovedClaimIntent,
+  type HoidExactEvidenceRecord,
+} from "./exactUnitClaimIntegrity";
+import type { HoidEditorialClaimAssertionKind } from "./editorialClaimDrafts";
 import {
   canonicalizeHoidExactUnitEvidencePolicy,
   authorizeHoidExactUnitEvidence,
@@ -87,6 +93,8 @@ export type HoidExactEvidenceAnswerSegment = Readonly<{
   text: string;
   evidenceIds: readonly string[];
   sources: readonly HoidExactEvidenceCitation[];
+  intent?: HoidExactApprovedClaimIntent;
+  assertionKind?: HoidEditorialClaimAssertionKind;
 }>;
 
 export type HoidExactEvidenceAnswer = Readonly<{
@@ -853,6 +861,8 @@ export class HoidExactUnitEvidenceRuntime {
           text: item.claim.text,
           evidenceIds: Object.freeze([...item.claim.evidenceIds]),
           sources: Object.freeze(sources),
+          intent: item.claim.intent,
+          ...(item.claim.assertionKind ? { assertionKind: item.claim.assertionKind } : {}),
         });
       });
 

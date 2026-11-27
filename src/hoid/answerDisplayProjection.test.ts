@@ -10,7 +10,11 @@ import {
 } from "./answerDisplayProjection";
 import { createHoidChapterReference } from "./chapterReference";
 import { composeHoidNarrative } from "./narrativeComposition";
-import type { HoidExactEvidenceAnswer, HoidExactEvidenceCitation } from "./exactUnitEvidenceRuntime";
+import type {
+  HoidExactEvidenceAnswer,
+  HoidExactEvidenceAnswerSegment,
+  HoidExactEvidenceCitation,
+} from "./exactUnitEvidenceRuntime";
 
 const elantrisManifest = getHoidReadingManifest("elantris");
 if (elantrisManifest.status !== "ready") throw new Error("Elantris manifest fixture unavailable");
@@ -286,6 +290,7 @@ function exactCitation(
 function exactAnswer(
   citations: readonly HoidExactEvidenceCitation[],
   layout: "plain" | "grouped" = "plain",
+  metadata: Partial<Pick<HoidExactEvidenceAnswerSegment, "intent" | "assertionKind">> = {},
 ): HoidExactEvidenceAnswer {
   const claimId = "claim.exact-display";
   const evidenceIds = Object.freeze(citations.map(item => item.evidenceId));
@@ -294,6 +299,7 @@ function exactAnswer(
     text: "Afirmación editorial sintética para la proyección.",
     evidenceIds,
     sources: citations,
+    ...metadata,
   })]);
   const composition = composeHoidNarrative({
     segments: Object.freeze([Object.freeze({
@@ -374,6 +380,56 @@ describe("Hoid exact-unit answer display projection", () => {
     });
     expect(JSON.stringify(summary)).not.toContain("evidence.exact");
     expect(JSON.stringify(summary)).not.toContain("identityFingerprint");
+  });
+
+  it("projects an editorial interpretation label from claim-hash-bound metadata", () => {
+    const answer = exactAnswer(
+      [exactCitation("evidence.exact-one", "elantris", 4)],
+      "plain",
+      { intent: "explain", assertionKind: "interpretation" },
+    );
+    const display = projectHoidExactUnitAnswerForDisplay(answer);
+    expect(display?.segments?.[0].epistemicKind).toBe("editorial-interpretation");
+    expect(display?.segments?.[0].epistemicLabel).toBe("INTERPRETACIÓN EDITORIAL");
+    expect(JSON.stringify(display)).not.toContain("assertionKind");
+  });
+
+  it("labels recommendations separately from explanatory assertions", () => {
+    const answer = exactAnswer(
+      [exactCitation("evidence.exact-one", "elantris", 4)],
+      "plain",
+      { intent: "recommend" },
+    );
+    const display = projectHoidExactUnitAnswerForDisplay(answer);
+    expect(display?.segments?.[0].epistemicKind).toBe("reader-recommendation");
+    expect(display?.segments?.[0].epistemicLabel).toBe("RECOMENDACIÓN PARA EL LECTOR");
+  });
+
+  it("marks legacy claims without assertionKind as unclassified rather than factual", () => {
+    const answer = exactAnswer(
+      [exactCitation("evidence.exact-one", "elantris", 4)],
+      "plain",
+      { intent: "explain" },
+    );
+    const display = projectHoidExactUnitAnswerForDisplay(answer);
+    expect(display?.segments?.[0].epistemicKind).toBe("unclassified");
+    expect(display?.segments?.[0].epistemicLabel).toBe("TIPO DE AFIRMACIÓN SIN CLASIFICAR");
+  });
+
+  it("rejects invalid epistemic metadata instead of displaying an arbitrary label", () => {
+    const answer = exactAnswer(
+      [exactCitation("evidence.exact-one", "elantris", 4)],
+      "plain",
+      { intent: "explain" },
+    );
+    const hostile = Object.freeze({
+      ...answer,
+      segments: Object.freeze([Object.freeze({
+        ...answer.segments[0],
+        assertionKind: "rumour",
+      })]),
+    });
+    expect(projectHoidExactUnitAnswerForDisplay(hostile)).toBeNull();
   });
 
   it("rejects altered narrative text and evidence/source mismatches", () => {

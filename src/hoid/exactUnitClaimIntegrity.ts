@@ -10,6 +10,7 @@ import {
   type HoidExactUnitEvidencePolicy,
 } from "./unitEvidenceAuthorizationV2";
 import { sha256Hex } from "./sha256";
+import type { HoidEditorialClaimAssertionKind } from "./editorialClaimDrafts";
 
 export type HoidExactEvidenceRecord = Readonly<{
   id: string;
@@ -27,6 +28,8 @@ export type HoidExactApprovedClaimCore = Readonly<{
   intent: HoidExactApprovedClaimIntent;
   evidenceIds: readonly string[];
   entityIds?: readonly string[];
+  /** Optional, claim-hash-bound epistemic category copied from the reviewed atomic draft. */
+  assertionKind?: HoidEditorialClaimAssertionKind;
 }>;
 
 export type HoidExactApprovedClaimReview = Readonly<{
@@ -75,10 +78,13 @@ export type HoidExactApprovedClaimValidationResult =
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 const INTENTS = new Set<HoidExactApprovedClaimIntent>(["explain", "recommend", "context"]);
+const ASSERTION_KINDS = new Set<HoidEditorialClaimAssertionKind>([
+  "identity", "appearance", "ability", "limitation", "relationship", "event", "location", "interpretation",
+]);
 const MAX_EVIDENCE = 16;
 const MAX_ENTITIES = 8;
 const MAX_TEXT = 4_000;
-const CORE_KEYS = ["id", "text", "intent", "evidenceIds", "entityIds"] as const;
+const CORE_KEYS = ["id", "text", "intent", "evidenceIds", "entityIds", "assertionKind"] as const;
 const CLAIM_KEYS = new Set([...CORE_KEYS, "integrity", "review"]);
 const EVIDENCE_KEYS = new Set(["id", "aliases", "kind", "provenance", "summary"]);
 const REVIEWER_KEYS = new Set(["reviewerId", "reviewedAt"]);
@@ -202,6 +208,15 @@ function canonicalCore(value: unknown): HoidExactApprovedClaimCore | null {
     !evidenceIds
   ) return null;
 
+  let assertionKind: HoidEditorialClaimAssertionKind | undefined;
+  const hasAssertionKind = Object.prototype.hasOwnProperty.call(record, "assertionKind");
+  if (hasAssertionKind) {
+    if (typeof record.assertionKind !== "string" || !ASSERTION_KINDS.has(record.assertionKind as HoidEditorialClaimAssertionKind)) {
+      return null;
+    }
+    assertionKind = record.assertionKind as HoidEditorialClaimAssertionKind;
+  }
+
   let entityIds: readonly string[] | undefined;
   if (Object.prototype.hasOwnProperty.call(record, "entityIds")) {
     const parsed = canonicalIds(record.entityIds, 1, MAX_ENTITIES);
@@ -214,6 +229,7 @@ function canonicalCore(value: unknown): HoidExactApprovedClaimCore | null {
     intent: intent as HoidExactApprovedClaimIntent,
     evidenceIds,
     ...(entityIds ? { entityIds } : {}),
+    ...(hasAssertionKind && assertionKind ? { assertionKind } : {}),
   });
 }
 

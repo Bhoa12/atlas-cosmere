@@ -1,0 +1,72 @@
+name: Hoid Run 362 — epistemic claim presentation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run362"
+    paths:
+      - "src/hoid/claimEpistemicKind.ts"
+      - "src/hoid/claimEpistemicKind.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimIntegrity.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN362_EPISTEMIC_CLAIM_PRESENTATION.md"
+      - ".github/workflows/hoid-run362-epistemic-claim-presentation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/claimEpistemicKind.ts"
+      - "src/hoid/claimEpistemicKind.test.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/exactUnitClaimIntegrity.test.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.ts"
+      - "src/hoid/exactUnitEvidenceRuntime.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN362_EPISTEMIC_CLAIM_PRESENTATION.md"
+      - ".github/workflows/hoid-run362-epistemic-claim-presentation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  epistemic-claim-presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run epistemic and spoiler regressions
+        run: >-
+          npx vitest run
+          src/hoid/claimEpistemicKind.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/exactUnitEvidenceRuntime.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+          src/hoid/exactUnitSpoilerDependencyGate.test.ts
+          src/hoid/trustedConversationScreenPort.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/claimEpistemicKind.ts
+          src/hoid/claimEpistemicKind.test.ts
+          src/hoid/exactUnitClaimIntegrity.ts
+          src/hoid/exactUnitEvidenceRuntime.ts
+          src/hoid/answerDisplayProjection.ts
+          src/hoid/answerDisplayProjection.test.ts
+          src/screens/HoidScreen.tsx

@@ -13,6 +13,11 @@ import { validateHoidChapterReference, type HoidChapterReference } from "./chapt
 import type { HoidExactEvidenceAnswer } from "./exactUnitEvidenceRuntime";
 import { composeHoidNarrative } from "./narrativeComposition";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import {
+  classifyHoidClaimEpistemicKind,
+  labelHoidClaimEpistemicKind,
+  type HoidClaimEpistemicKind,
+} from "./claimEpistemicKind";
 
 /**
  * Minimal citation metadata retained by the chat UI after the trusted
@@ -33,6 +38,8 @@ export type HoidDisplaySegment = Readonly<{
   claimId: string;
   text: string;
   citations: readonly HoidDisplayCitation[];
+  epistemicKind?: HoidClaimEpistemicKind;
+  epistemicLabel?: string;
 }>;
 
 export type HoidDisplayCrossBookWorkEvidence = Readonly<{
@@ -193,18 +200,23 @@ type CanonicalExactCitation = Readonly<{
   unlock: HoidChapterReference;
 }>;
 
-function exactDataRecord(value: unknown, keys: readonly string[]): Record<string, unknown> | null {
+function exactDataRecord(
+  value: unknown,
+  keys: readonly string[],
+  requiredKeys: readonly string[] = keys,
+): Record<string, unknown> | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) return null;
     const ownKeys = Reflect.ownKeys(value);
     if (
-      ownKeys.length !== keys.length ||
-      ownKeys.some(key => typeof key !== "string" || !keys.includes(key))
+      ownKeys.some(key => typeof key !== "string" || !keys.includes(key)) ||
+      requiredKeys.some(key => !ownKeys.includes(key))
     ) return null;
     const result = Object.create(null) as Record<string, unknown>;
-    for (const key of keys) {
+    for (const key of ownKeys) {
+      if (typeof key !== "string") return null;
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (
         !descriptor ||
@@ -402,12 +414,11 @@ export function projectHoidExactUnitAnswerForDisplay(
   const narrativeSegments: { claimId: string; text: string; evidenceIds: readonly string[] }[] = [];
   const referencedEvidenceIds = new Set<string>();
   for (let index = 0; index < rawSegments.length; index += 1) {
-    const segment = exactDataRecord(rawSegments[index], [
-      "claimId",
-      "text",
-      "evidenceIds",
-      "sources",
-    ]);
+    const segment = exactDataRecord(
+      rawSegments[index],
+      ["claimId", "text", "evidenceIds", "sources", "intent", "assertionKind"],
+      ["claimId", "text", "evidenceIds", "sources"],
+    );
     if (
       !segment ||
       segment.claimId !== claimIds[index] ||
@@ -444,10 +455,23 @@ export function projectHoidExactUnitAnswerForDisplay(
     }))) return null;
 
     for (const evidenceId of segmentEvidenceIds) referencedEvidenceIds.add(evidenceId);
+    const hasIntent = Object.prototype.hasOwnProperty.call(segment, "intent");
+    const hasAssertionKind = Object.prototype.hasOwnProperty.call(segment, "assertionKind");
+    if ((hasIntent && segment.intent === undefined) || (hasAssertionKind && segment.assertionKind === undefined)) {
+      return null;
+    }
+    const epistemicKind = hasIntent || hasAssertionKind
+      ? classifyHoidClaimEpistemicKind(segment.intent, segment.assertionKind)
+      : null;
+    if ((hasIntent || hasAssertionKind) && epistemicKind === null) return null;
     segments.push(Object.freeze({
       claimId: segment.claimId as string,
       text: segment.text,
       citations: Object.freeze(segmentCitations),
+      ...(epistemicKind ? {
+        epistemicKind,
+        epistemicLabel: labelHoidClaimEpistemicKind(epistemicKind),
+      } : {}),
     }));
     narrativeSegments.push(Object.freeze({
       claimId: segment.claimId as string,

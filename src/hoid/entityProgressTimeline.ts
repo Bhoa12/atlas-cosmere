@@ -403,6 +403,7 @@ function canonicalDossier(
       sourceIds.add(source.evidenceId);
       sources.push(source);
     }
+    if (!sourceIds.has(entity.id)) return null;
     sources.sort((left, right) =>
       left.sourceBookId < right.sourceBookId ? -1 :
       left.sourceBookId > right.sourceBookId ? 1 :
@@ -601,7 +602,7 @@ function buildTimeline(
 
   const lines: string[] = [
     "Recorrido documental de " + dossier.entity.label,
-    "Ordenado por disponibilidad de evidencias dentro de cada obra. No representa una cronología canónica de acontecimientos. Las afirmaciones que requieren varias obras se muestran aparte, sin imponer un orden global.",
+    "Ordenado por disponibilidad de evidencias dentro de cada obra. No representa una cronología canónica ni afirma cambios de personaje que no estén expresamente respaldados. Las afirmaciones que requieren varias obras se muestran aparte, sin imponer un orden global.",
     "Contexto autorizado: " + dossier.summary.text,
   ];
 
@@ -624,7 +625,7 @@ function buildTimeline(
 
   if (sortedTracks.length === 0 && projectedCrossWorkItems.length === 0) {
     lines.push("");
-    lines.push("Todavía no hay afirmaciones de evolución aprobadas y desbloqueadas para este ámbito.");
+    lines.push("Todavía no hay afirmaciones aprobadas y desbloqueadas que puedan situarse en este recorrido.");
   }
 
   const text = lines.join("\n");

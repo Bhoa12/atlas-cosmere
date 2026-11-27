@@ -21,6 +21,7 @@ on:
     paths:
       - "src/hoid/editorialSummaryPromotionPreflight.ts"
       - "src/hoid/editorialSummaryPromotionPreflight.test.ts"
+      - "src/hoid/editorialSourceDocumentAccess.ts"
       - "src/hoid/editorialSummaryReviewQueue.ts"
       - "src/hoid/editorialReviewWorkflow.ts"
       - "src/hoid/editorialReviewReceiptStore.ts"
@@ -50,7 +51,6 @@ jobs:
         run: >-
           npx vitest run
           src/hoid/editorialSummaryPromotionPreflight.test.ts
-          src/hoid/editorialSourceDocumentAccess.ts
           src/hoid/editorialReviewWorkflow.test.ts
           src/hoid/editorialSummaryReviewQueue.test.ts
           src/hoid/editorialReviewPackets.test.ts

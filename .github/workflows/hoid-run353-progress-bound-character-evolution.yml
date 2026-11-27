@@ -1,0 +1,96 @@
+name: Hoid Run 353 — progress-bound character evolution
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run353"
+    paths:
+      - "src/hoid/entityEvolutionExplanation.ts"
+      - "src/hoid/entityEvolutionExplanation.test.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/hoid/magicSystemExplanation.ts"
+      - "src/hoid/magicSystemExplanationIntent.ts"
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN353_PROGRESS_BOUND_CHARACTER_EVOLUTION.md"
+      - ".github/workflows/hoid-run353-progress-bound-character-evolution.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityEvolutionExplanation.ts"
+      - "src/hoid/entityEvolutionExplanation.test.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/hoid/magicSystemExplanation.ts"
+      - "src/hoid/magicSystemExplanationIntent.ts"
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN353_PROGRESS_BOUND_CHARACTER_EVOLUTION.md"
+      - ".github/workflows/hoid-run353-progress-bound-character-evolution.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  character-evolution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run character-evolution and inherited Hoid regressions
+        run: >-
+          npx vitest run
+          src/hoid/entityEvolutionExplanation.test.ts
+          src/hoid/magicSystemExplanation.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+          src/hoid/conversationTurnSession.test.ts
+          src/hoid/conversationGatewayProgressRace.test.ts
+      - name: Strict TypeScript check — evolution, magic and Hoid screen
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/entityEvolutionExplanation.ts
+          src/hoid/entityEvolutionExplanation.test.ts
+          src/hoid/entityEvolutionExplanationIntent.ts
+          src/hoid/magicSystemExplanation.ts
+          src/hoid/magicSystemExplanationIntent.ts
+          src/hoid/conversationIntent.ts
+          src/screens/HoidScreen.tsx

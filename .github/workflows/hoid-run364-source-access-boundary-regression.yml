@@ -1,0 +1,68 @@
+name: Hoid Run 364 — source access boundary regressions
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run364"
+    paths:
+      - "src/hoid/editorialClaimPromotionPreflight.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
+      - "docs/hoid/RUN363_CLAIM_PROMOTION_PARITY_PREFLIGHT.md"
+      - "docs/hoid/RUN364_SOURCE_ACCESS_BOUNDARY_REGRESSION.md"
+      - ".github/workflows/hoid-run364-source-access-boundary-regression.yml"
+  pull_request:
+    paths:
+      - "src/hoid/editorialClaimPromotionPreflight.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.test.ts"
+      - "src/hoid/editorialClaimDrafts.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
+      - "docs/hoid/RUN363_CLAIM_PROMOTION_PARITY_PREFLIGHT.md"
+      - "docs/hoid/RUN364_SOURCE_ACCESS_BOUNDARY_REGRESSION.md"
+      - ".github/workflows/hoid-run364-source-access-boundary-regression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-access-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run source boundary and protected-promotion regressions
+        run: >-
+          npx vitest run
+          src/hoid/editorialClaimPromotionPreflight.test.ts
+          src/hoid/editorialClaimReviewPackets.test.ts
+          src/hoid/editorialReviewBundle.test.ts
+          src/hoid/editorialReviewKit.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/signedEditorialBundlePromotionAuthority.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/editorialClaimPromotionPreflight.ts
+          src/hoid/editorialClaimPromotionPreflight.test.ts

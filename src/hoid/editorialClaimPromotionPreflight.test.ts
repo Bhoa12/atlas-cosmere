@@ -37,6 +37,7 @@ const knowledgeResult = buildHoidEditorialKnowledgeBundle(sourceInput);
 if (knowledgeResult.status !== "ready-for-review") throw new Error("Knowledge fixture unavailable");
 const reviewResult = buildHoidEditorialReviewBundle(knowledgeResult.manifest, sourceInput);
 if (reviewResult.status !== "ready-for-review") throw new Error("Review fixture unavailable");
+const reviewManifest = reviewResult.manifest;
 const packets = reviewResult.packets;
 
 function progressSnapshot(revision = 17) {
@@ -55,7 +56,7 @@ function progressSnapshot(revision = 17) {
 function approvedReceipts() {
   return Object.freeze({
     schemaVersion: 1,
-    reviewBundleFingerprint: reviewResult.manifest.fingerprint,
+    reviewBundleFingerprint: reviewManifest.fingerprint,
     summaries: Object.freeze(packets.summaries.map(packet => ({
       schemaVersion: 1,
       packetId: packet.packetId,

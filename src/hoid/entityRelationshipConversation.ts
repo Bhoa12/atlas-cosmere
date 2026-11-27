@@ -232,6 +232,7 @@ function canonicalCitation(
     source.locatorId.length < 1 ||
     source.locatorId.length > 256 ||
     /[\u0000-\u001F\u007F]/u.test(source.locatorId) ||
+    typeof source.unlockBookId !== "string" ||
     source.unlockBookId !== source.sourceBookId ||
     typeof source.unlockChapter !== "number" ||
     !Number.isSafeInteger(source.unlockChapter) ||

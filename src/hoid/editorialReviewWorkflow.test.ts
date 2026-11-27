@@ -165,7 +165,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
 
   it("rejects approval when any checklist item is false", async () => {
     const fake = createStore();
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     const result = await port.submit({
       packetId: packet.packetId,
       decision: "approved",
@@ -179,7 +179,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
 
   it("stores a revision request with issue codes derived from unchecked criteria", async () => {
     const fake = createStore();
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     const noteCodes = getHoidEditorialReviewChecklistNoteCodes(FACTUAL_ISSUE);
     expect(noteCodes).toEqual(["factual-issue"]);
 
@@ -197,7 +197,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
 
   it("refuses to review a packet after the progress ceiling moves backwards", async () => {
     const fake = createStore();
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => emptyProgress() });
     const result = await port.submit({
       packetId: packet.packetId,
       decision: "approved",
@@ -212,7 +212,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
   it("returns conflict rather than overwriting a concurrent receipt update", async () => {
     const compareAndSwap = vi.fn(async () => "conflict" as const);
     const fake = createStore(getDefaultHoidEditorialReviewReceiptSnapshot(), compareAndSwap);
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     const result = await port.submit({
       packetId: packet.packetId,
       decision: "approved",
@@ -226,7 +226,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
 
   it("fails closed when the stored receipt snapshot is corrupt", async () => {
     const fake = createStore({ schemaVersion: 99, revision: 0, receipts: [] });
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     const result = await port.submit({
       packetId: packet.packetId,
       decision: "approved",
@@ -240,7 +240,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
 
   it("does not call the persistence port for accessor-bearing submissions", async () => {
     const fake = createStore();
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     let invoked = false;
     const input = {
       decision: "approved",
@@ -263,7 +263,7 @@ describe("Hoid progress-scoped editorial review workflow", () => {
 
   it("does not create a second receipt for a packet already reviewed", async () => {
     const fake = createStore();
-    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store });
+    const port = createHoidEditorialReviewSubmissionPort({ store: fake.store, getFreshProgress: async () => completedProgress(packet.unlock.bookId) });
     const submission = {
       packetId: packet.packetId,
       decision: "approved" as const,

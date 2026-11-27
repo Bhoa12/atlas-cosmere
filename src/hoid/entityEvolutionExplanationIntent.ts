@@ -27,6 +27,25 @@ type Prefix = Readonly<{
 const MAX_QUESTION_LENGTH = 4_000;
 const MAX_CHARACTER_NAME_LENGTH = 256;
 
+/**
+ * Exact, punctuation-tolerant forms that express an evolution intent but
+ * contain no entity name. Keep these separate from the extraction prefixes:
+ * punctuation must not be mistaken for a character name.
+ */
+const EMPTY_NAME_PATTERNS: readonly RegExp[] = Object.freeze([
+  /^(?:¿\s*)?cómo\s+ha\s+(?:evolucionado|cambiado)(?:\s+el\s+personaje\s+de)?[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?evolución\s+(?:del\s+personaje\s+de|de)[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?desarrollo\s+(?:del\s+personaje\s+de|de)[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?qué\s+cambios\s+conocemos\s+de[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?cambios?\s+(?:conocidos?\s+)?(?:en|de)[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?(?:perspectiva|conocimientos?|capacidades?|afiliaciones?|relaciones?|estado|motivaciones?|causas?)\s+de[?!.,;:…]*$/iu,
+  /^how\s+has[?!.,;:…]*$/iu,
+  /^evolution\s+of[?!.,;:…]*$/iu,
+  /^character\s+development\s+of[?!.,;:…]*$/iu,
+  /^changes?\s+(?:for|in)[?!.,;:…]*$/iu,
+  /^(?:perspective|knowledge|abilities|capabilities|affiliations?|relationships?|status|motivations?|causes?)\s+of[?!.,;:…]*$/iu,
+]);
+
 const PREFIXES: readonly Prefix[] = Object.freeze([
   { pattern: /^(?:¿\s*)?cómo\s+ha\s+evolucionado(?:\s+el\s+personaje\s+de)?(?:\s+|$)/iu },
   { pattern: /^(?:¿\s*)?evolución\s+(?:del\s+personaje\s+de|de)(?:\s+|$)/iu },
@@ -89,6 +108,9 @@ export function classifyHoidCharacterEvolutionIntent(
 ): HoidCharacterEvolutionIntent {
   const question = canonicalQuestion(value);
   if (!question) return Object.freeze({ status: "invalid" });
+  if (EMPTY_NAME_PATTERNS.some(pattern => pattern.test(question))) {
+    return Object.freeze({ status: "needs-name" });
+  }
 
   for (const prefix of PREFIXES) {
     const match = prefix.pattern.exec(question);

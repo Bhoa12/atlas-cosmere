@@ -33,17 +33,17 @@ const MAX_CHARACTER_NAME_LENGTH = 256;
  * punctuation must not be mistaken for a character name.
  */
 const EMPTY_NAME_PATTERNS: readonly RegExp[] = Object.freeze([
-  /^(?:¿\\s*)?cómo\\s+ha\\s+(?:evolucionado|cambiado)(?:\\s+el\\s+personaje\\s+de)?[?!.,;:…]*$/iu,
-  /^(?:¿\\s*)?evolución\\s+(?:del\\s+personaje\\s+de|de)[?!.,;:…]*$/iu,
-  /^(?:¿\\s*)?desarrollo\\s+(?:del\\s+personaje\\s+de|de)[?!.,;:…]*$/iu,
-  /^(?:¿\\s*)?qué\\s+cambios\\s+conocemos\\s+de[?!.,;:…]*$/iu,
-  /^(?:¿\\s*)?cambios?\\s+(?:conocidos?\\s+)?(?:en|de)[?!.,;:…]*$/iu,
-  /^(?:¿\\s*)?(?:perspectiva|conocimientos?|capacidades?|afiliaciones?|relaciones?|estado|motivaciones?|causas?)\\s+de[?!.,;:…]*$/iu,
-  /^how\\s+has[?!.,;:…]*$/iu,
-  /^evolution\\s+of[?!.,;:…]*$/iu,
-  /^character\\s+development\\s+of[?!.,;:…]*$/iu,
-  /^changes?\\s+(?:for|in)[?!.,;:…]*$/iu,
-  /^(?:perspective|knowledge|abilities|capabilities|affiliations?|relationships?|status|motivations?|causes?)\\s+of[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?cómo\s+ha\s+(?:evolucionado|cambiado)(?:\s+el\s+personaje\s+de)?[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?evolución\s+(?:del\s+personaje\s+de|de)[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?desarrollo\s+(?:del\s+personaje\s+de|de)[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?qué\s+cambios\s+conocemos\s+de[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?cambios?\s+(?:conocidos?\s+)?(?:en|de)[?!.,;:…]*$/iu,
+  /^(?:¿\s*)?(?:perspectiva|conocimientos?|capacidades?|afiliaciones?|relaciones?|estado|motivaciones?|causas?)\s+de[?!.,;:…]*$/iu,
+  /^how\s+has[?!.,;:…]*$/iu,
+  /^evolution\s+of[?!.,;:…]*$/iu,
+  /^character\s+development\s+of[?!.,;:…]*$/iu,
+  /^changes?\s+(?:for|in)[?!.,;:…]*$/iu,
+  /^(?:perspective|knowledge|abilities|capabilities|affiliations?|relationships?|status|motivations?|causes?)\s+of[?!.,;:…]*$/iu,
 ]);
 
 const PREFIXES: readonly Prefix[] = Object.freeze([

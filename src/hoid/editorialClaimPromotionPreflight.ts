@@ -1,3 +1,7 @@
+import type {
+  HoidEditorialSourceDocumentAccessPort,
+  HoidEditorialSourceDocumentAccessRequest,
+} from "./editorialSourceDocumentAccess";
 import {
   validateHoidEditorialClaimDraft,
   type HoidEditorialClaimDraft,
@@ -29,26 +33,6 @@ const MAX_EVIDENCE_PER_CLAIM = 8;
 const SOURCE_CHECK_TIMEOUT_MS = 8_000;
 const SHA_PATTERN = /^[a-f0-9]{64}$/u;
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
-
-export type HoidEditorialSourceDocumentAccessRequest = Readonly<{
-  bookId: string;
-  editionId: string;
-  navigationSha256: string;
-  chapterNumber: number;
-  locatorId: string;
-  expectedDocumentSha256: string;
-}>;
-
-export type HoidEditorialSourceDocumentAccessPort = Readonly<{
-  /**
-   * Host-local availability check. It returns only a digest and must never
-   * return EPUB bytes, XHTML, extracted text, titles or private file paths.
-   */
-  inspectChapter(
-    request: HoidEditorialSourceDocumentAccessRequest,
-    options: Readonly<{ signal: AbortSignal }>,
-  ): Promise<unknown>;
-}>;
 
 export type HoidEditorialClaimEvidenceBinding = Readonly<{
   draftEvidenceIndex: number;

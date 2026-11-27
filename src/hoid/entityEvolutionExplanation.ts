@@ -75,6 +75,13 @@ export type HoidCharacterEvolutionIndex = Readonly<{
   schemaVersion: 1;
 }>;
 
+export type HoidCharacterInvestigationSuggestion = Readonly<{
+  dimension: HoidCharacterEvolutionDimension;
+  question: string;
+  /** Only chapter metadata already projected from unlocked, reviewed evidence. */
+  citations: HoidAnswerDisplayProjection["citations"];
+}>;
+
 export type HoidCharacterEvolutionResult =
   | Readonly<{ status: "not-evolution" }>
   | Readonly<{ status: "needs-name" }>
@@ -84,6 +91,8 @@ export type HoidCharacterEvolutionResult =
       characterLabel: string;
       semantics: "reading-order-evidence";
       presentation: HoidAnswerDisplayProjection;
+      /** Follow-up questions are generated only for dimensions with visible reviewed claims. */
+      followUpQuestions: readonly HoidCharacterInvestigationSuggestion[];
       progressRevision: number;
       progressFingerprint: string;
     }>
@@ -815,6 +824,55 @@ function buildPresentation(
   return projectHoidAnswerForDisplay(presentation);
 }
 
+const FOLLOW_UP_QUESTION_PREFIX: Readonly<Record<HoidCharacterEvolutionDimension, string>> = Object.freeze({
+  perspective: "¿Qué perspectivas de ",
+  knowledge: "¿Qué conocimientos de ",
+  capability: "¿Qué capacidades de ",
+  affiliation: "¿Qué afiliaciones de ",
+  relationship: "¿Qué relaciones de ",
+  status: "¿Qué estados o circunstancias de ",
+  motivation: "¿Qué motivaciones de ",
+  cause: "¿Qué causas de los cambios de ",
+});
+
+/**
+ * Build question prompts only from dimensions represented by claims that have
+ * already passed dossier, source, scope, unlock and editorial-review checks.
+ * The prompt contains no new narrative fact; its citations are projected again
+ * through the same UI-safe chapter boundary as the answer.
+ */
+function buildInvestigationSuggestions(
+  facts: readonly SelectedFact[],
+  characterLabel: string,
+  remainingCharacters: number,
+): readonly HoidCharacterInvestigationSuggestion[] | null {
+  const dimensions = [...new Set(facts.map(item => item.annotation.dimension))]
+    .sort((left, right) => DIMENSION_ORDER.get(left)! - DIMENSION_ORDER.get(right)!);
+  const suggestions: HoidCharacterInvestigationSuggestion[] = [];
+  let usedCharacters = 0;
+
+  for (const dimension of dimensions) {
+    if (suggestions.length >= 3) break;
+    const question = FOLLOW_UP_QUESTION_PREFIX[dimension] +
+      characterLabel + " están documentadas hasta donde has leído?";
+    const projection = buildPresentation(facts.filter(item => item.annotation.dimension === dimension));
+    if (!projection) return null;
+    const citationCharacters = projection.citations.reduce(
+      (total, citation) => total + citation.title.length + 24,
+      0,
+    );
+    const cost = question.length + citationCharacters;
+    if (usedCharacters + cost > remainingCharacters) continue;
+    usedCharacters += cost;
+    suggestions.push(Object.freeze({
+      dimension,
+      question,
+      citations: projection.citations,
+    }));
+  }
+  return Object.freeze(suggestions);
+}
+
 function unavailable(
   reason: Extract<HoidCharacterEvolutionResult, { status: "unavailable" }>["reason"],
 ): HoidCharacterEvolutionResult {
@@ -995,6 +1053,20 @@ export function createHoidCharacterEvolutionExplanationAdapter(
       const presentation = buildPresentation(selected);
       if (!presentation) return unavailable("invalid-dossier");
       if (presentation.text.length > budget.maxCharacters) return unavailable("budget-exceeded");
+      const followUpQuestions = buildInvestigationSuggestions(
+        selected,
+        dossier.entity.label,
+        budget.maxCharacters - presentation.text.length,
+      );
+      if (!followUpQuestions) return unavailable("invalid-dossier");
+      const followUpCharacters = followUpQuestions.reduce(
+        (total, suggestion) => total + suggestion.question.length +
+          suggestion.citations.reduce((sum, citation) => sum + citation.title.length + 24, 0),
+        0,
+      );
+      if (presentation.text.length + followUpCharacters > budget.maxCharacters) {
+        return unavailable("budget-exceeded");
+      }
 
       let afterSnapshot: unknown;
       try {
@@ -1012,6 +1084,7 @@ export function createHoidCharacterEvolutionExplanationAdapter(
         characterLabel: dossier.entity.label,
         semantics: "reading-order-evidence",
         presentation,
+        followUpQuestions,
         progressRevision: after.revision,
         progressFingerprint: after.fingerprint,
       });

@@ -182,7 +182,7 @@ function validText(value: unknown, maximum: number): value is string {
     value.length >= 1 &&
     value.length <= maximum &&
     value === value.trim() &&
-    !/[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(value);
+    !/[\u0000-\u001F\u007F\p{Cf}]/u.test(value);
 }
 
 function progressIdentity(value: unknown): ProgressIdentity | null {
@@ -231,7 +231,7 @@ function canonicalCitation(
     typeof source.locatorId !== "string" ||
     source.locatorId.length < 1 ||
     source.locatorId.length > 256 ||
-    /[\\u0000-\\u001F\\u007F]/u.test(source.locatorId) ||
+    /[\u0000-\u001F\u007F]/u.test(source.locatorId) ||
     source.unlockBookId !== source.sourceBookId ||
     typeof source.unlockChapter !== "number" ||
     !Number.isSafeInteger(source.unlockChapter) ||

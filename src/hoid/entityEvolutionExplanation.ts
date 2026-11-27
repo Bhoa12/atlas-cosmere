@@ -274,7 +274,7 @@ function validText(value: unknown, maximum = MAX_TEXT): value is string {
     value === value.trim() &&
     value.length >= 1 &&
     value.length <= maximum &&
-    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(value);
+    !/[\u0000-\u001F\u007F\p{Cf}]/u.test(value);
 }
 
 function validTimestamp(value: unknown): value is string {

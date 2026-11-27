@@ -504,6 +504,7 @@ function projectCitations(
 
 function buildTimeline(
   dossier: CanonicalDossier,
+  progress: ProgressIdentity,
 ): HoidEntityProgressTimelineResult {
   const tracks = new Map<string, InternalTimelineItem[]>();
   const crossWorkItems: Readonly<{
@@ -743,7 +744,7 @@ export function createHoidEntityProgressTimelineAdapter(
       const normalized = normalizeGatewayResult(raw, scope, before);
       if (normalized.status === "unavailable") return unavailable(normalized.reason);
       if (normalized.status !== "ready") return Object.freeze({ status: "not-found" });
-      return buildTimeline(normalized.dossier);
+      return buildTimeline(normalized.dossier, before);
     },
   });
 }

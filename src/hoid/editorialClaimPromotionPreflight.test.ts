@@ -255,12 +255,18 @@ function trustedHostInput(kit = reviewKit): HoidTrustedHostPromotionInput {
 }
 
 function sourcePort(
-  inspect?: (request: HoidEditorialSourceDocumentAccessRequest) => unknown,
+  inspect?: (
+    request: HoidEditorialSourceDocumentAccessRequest,
+    options: Readonly<{ signal: AbortSignal }>,
+  ) => unknown,
 ) {
   return Object.freeze({
-    async inspectChapter(request: HoidEditorialSourceDocumentAccessRequest) {
+    async inspectChapter(
+      request: HoidEditorialSourceDocumentAccessRequest,
+      options: Readonly<{ signal: AbortSignal }>,
+    ) {
       return inspect
-        ? inspect(request)
+        ? inspect(request, options)
         : Object.freeze({
             status: "available",
             documentSha256: request.expectedDocumentSha256,
@@ -513,6 +519,72 @@ describe("Hoid claim promotion parity preflight", () => {
     });
     expect(inspect).not.toHaveBeenCalled();
     expect(authorizer).not.toHaveBeenCalled();
+  });
+
+
+  it("rejects source-port responses that attempt to return EPUB bytes, extracted text or private paths", async () => {
+    const authorizer = vi.fn(async () => hostReady);
+    const adapter = createHoidTrustedHostClaimPromotionAdapter(
+      sourcePort(request => ({
+        status: "available",
+        documentSha256: request.expectedDocumentSha256,
+        bytes: new Uint8Array([1, 2, 3]),
+        text: "must-not-escape",
+        privatePath: "/private/cosmere.epub",
+      })),
+      authorizer,
+    );
+    const result = await adapter.authorize({
+      trustedHostInput: trustedHostInput(),
+      reviewKit,
+      claimBindings: [claimBinding()],
+    });
+
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "claim-parity-preflight-blocked",
+      parityAudit: { status: "blocked", reason: "source-access-failed" },
+      promotionAllowed: false,
+      productionWritePerformed: false,
+    });
+    expect(JSON.stringify(result)).not.toContain("must-not-escape");
+    expect(JSON.stringify(result)).not.toContain("/private/cosmere.epub");
+    expect(authorizer).not.toHaveBeenCalled();
+  });
+
+  it("aborts a source inspection that exceeds its deadline and never delegates to the trusted host", async () => {
+    vi.useFakeTimers();
+    try {
+      let observedSignal: AbortSignal | undefined;
+      const authorizer = vi.fn(async () => hostReady);
+      const adapter = createHoidTrustedHostClaimPromotionAdapter(
+        sourcePort((_request, options) => {
+          observedSignal = options.signal;
+          return new Promise(() => undefined);
+        }),
+        authorizer,
+      );
+      const pending = adapter.authorize({
+        trustedHostInput: trustedHostInput(),
+        reviewKit,
+        claimBindings: [claimBinding()],
+      });
+
+      await vi.advanceTimersByTimeAsync(8_001);
+      const result = await pending;
+
+      expect(result).toMatchObject({
+        status: "blocked",
+        reason: "claim-parity-preflight-blocked",
+        parityAudit: { status: "blocked", reason: "source-access-timeout" },
+        promotionAllowed: false,
+        productionWritePerformed: false,
+      });
+      expect(observedSignal?.aborted).toBe(true);
+      expect(authorizer).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("sends metadata and expected digest to the source port, never passage text or EPUB bytes", async () => {

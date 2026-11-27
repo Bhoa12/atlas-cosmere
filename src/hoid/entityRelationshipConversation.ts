@@ -580,18 +580,21 @@ function normalizeGatewayResult(
 ): Readonly<{ status: "ready"; dossier: CanonicalDossier }> |
    Readonly<{ status: "not-found" }> |
    Readonly<{ status: "unavailable"; reason: "invalid-progress" | "progress-changed" | "invalid-dossier" }> {
-  if (value.status === "not-found" || value.status === "ambiguous") {
-    return Object.freeze({ status: "not-found" });
-  }
-  if (value.status === "unavailable") {
-    return Object.freeze({
-      status: "unavailable",
-      reason: value.reason === "invalid-progress"
-        ? "invalid-progress"
-        : value.reason === "progress-changed"
-          ? "progress-changed"
-          : "invalid-dossier",
-    });
+  if (value.status !== "ready") {
+    if (value.status === "not-found" || value.status === "ambiguous") {
+      return Object.freeze({ status: "not-found" });
+    }
+    if (value.status === "unavailable") {
+      return Object.freeze({
+        status: "unavailable",
+        reason: value.reason === "invalid-progress"
+          ? "invalid-progress"
+          : value.reason === "progress-changed"
+            ? "progress-changed"
+            : "invalid-dossier",
+      });
+    }
+    return Object.freeze({ status: "unavailable", reason: "invalid-dossier" });
   }
   if (
     value.progressRevision !== progress.revision ||

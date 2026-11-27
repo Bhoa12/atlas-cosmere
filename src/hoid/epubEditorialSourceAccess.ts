@@ -1,7 +1,7 @@
 import type {
   HoidEditorialSourceDocumentAccessPort,
   HoidEditorialSourceDocumentAccessRequest,
-} from "./editorialClaimPromotionPreflight";
+} from "./editorialSourceDocumentAccess";
 import {
   HOID_EPUB_INGESTION_LIMITS,
   type HoidEpubPackageInspectionCandidate,

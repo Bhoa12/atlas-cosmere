@@ -16,6 +16,12 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { createHoidEvidenceRuntime } from "./evidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
+import {
+  canonicalizeHoidAnswerBookScope,
+  claimEvidenceMatchesHoidBookScope,
+  type HoidAnswerBookScope,
+} from "./answerScope";
+import { fingerprintHoidInvestigationSubject } from "./investigationIdentity";
 
 const KNOWLEDGE_KEYS = [
   "id", "aliases", "kind", "firstSafeAppearance",
@@ -863,5 +869,189 @@ export function resolveHoidAuthorizedEntityIds(
     aliasEvidenceInput,
     progressInput,
     entityIdsInput,
+  );
+}
+
+
+export type HoidResolvedEntityAliasDisclosure = Readonly<{
+  entityId: string;
+  kind: HoidKnowledgeKind;
+  fingerprint: string;
+  label: string;
+  sources: readonly Readonly<{ sourceBookId: string; chapter: number }>[];
+}>;
+
+export type HoidEntityAliasDisclosureResult =
+  | Readonly<{
+      status: "ready";
+      progressRevision: number;
+      progressFingerprint: string;
+      aliases: readonly HoidResolvedEntityAliasDisclosure[];
+    }>
+  | Readonly<{
+      status: "unavailable";
+      reason:
+        | "invalid-request"
+        | "invalid-knowledge"
+        | "invalid-progress"
+        | "invalid-scope"
+        | "locked-or-ambiguous-alias";
+    }>;
+
+const AUTHORIZED_ENTITY_ALIAS_DISCLOSURES = new WeakSet<object>();
+
+export function isHoidAuthorizedEntityAliasDisclosureResult(
+  value: unknown,
+): value is Extract<HoidEntityAliasDisclosureResult, { status: "ready" }> {
+  return value !== null &&
+    typeof value === "object" &&
+    AUTHORIZED_ENTITY_ALIAS_DISCLOSURES.has(value as object);
+}
+
+function unavailableAliasDisclosure(
+  reason: Extract<HoidEntityAliasDisclosureResult, { status: "unavailable" }>["reason"],
+): HoidEntityAliasDisclosureResult {
+  return Object.freeze({ status: "unavailable", reason });
+}
+
+/**
+ * Projects only independently reviewed aliases whose complete disclosure
+ * evidence, entity source and selected-work scope are unlocked at one exact
+ * progress snapshot. A hidden or ambiguous alias is never returned.
+ */
+export function resolveHoidAuthorizedEntityAliasDisclosures(
+  knowledgeInput: unknown,
+  aliasEvidenceInput: unknown,
+  progressInput: unknown,
+  entityIdsInput: unknown,
+  bookScopeInput: unknown,
+): HoidEntityAliasDisclosureResult {
+  const rawIds = canonicalDenseArray(entityIdsInput, 1, MAX_ENTRIES);
+  if (!rawIds) return unavailableAliasDisclosure("invalid-request");
+  const requestedIds: string[] = [];
+  const requested = new Set<string>();
+  for (const rawId of rawIds) {
+    if (typeof rawId !== "string" || !ID_PATTERN.test(rawId) || requested.has(rawId)) {
+      return unavailableAliasDisclosure("invalid-request");
+    }
+    requested.add(rawId);
+    requestedIds.push(rawId);
+  }
+
+  const scope: HoidAnswerBookScope | null = canonicalizeHoidAnswerBookScope(bookScopeInput);
+  if (!scope) return unavailableAliasDisclosure("invalid-scope");
+
+  const knowledge = canonicalKnowledge(knowledgeInput);
+  if (!knowledge) return unavailableAliasDisclosure("invalid-knowledge");
+  const aliasRecords = canonicalAliasRecords(aliasEvidenceInput, knowledge);
+  if (!aliasRecords) return unavailableAliasDisclosure("invalid-knowledge");
+
+  const projection = projectHoidCursorProgressSnapshot(progressInput);
+  if (projection.status !== "ready") return unavailableAliasDisclosure("invalid-progress");
+  const reading = [...projection.reading];
+  const catalog = new HoidKnowledgeCatalog([...knowledge]);
+  const safeEntries = catalog.entriesForContext(reading)
+    .filter(entry => isEvidenceUnlocked(entry, reading));
+  const safeById = new Map(safeEntries.map(entry => [entry.id, entry]));
+
+  for (const entityId of requestedIds) {
+    if (!safeById.has(entityId)) {
+      return unavailableAliasDisclosure("locked-or-ambiguous-alias");
+    }
+  }
+
+  const entitySources = new Map<string, HoidResolvedEntitySource>();
+  const candidateAliases: HoidResolvedEntityAliasDisclosure[] = [];
+  const aliasOwners = new Map<string, Set<string>>();
+
+  for (const record of aliasRecords) {
+    const entity = safeById.get(record.entityId);
+    if (!entity || !record.evidence.every(item => aliasEvidenceIsUnlocked(item, reading))) continue;
+
+    let entitySource = entitySources.get(entity.id);
+    if (!entitySource) {
+      const resolved = sourceForEntry(entity);
+      if (!resolved) return unavailableAliasDisclosure("invalid-knowledge");
+      entitySource = resolved;
+      entitySources.set(entity.id, resolved);
+    }
+
+    const sourceBookIds = [
+      entitySource.sourceBookId,
+      ...record.evidence.map(item => item.source.sourceBookId),
+    ];
+    if (!claimEvidenceMatchesHoidBookScope(sourceBookIds, scope)) continue;
+
+    const fingerprint = fingerprintHoidInvestigationSubject(record.alias);
+    if (!fingerprint) return unavailableAliasDisclosure("invalid-knowledge");
+
+    const sourcesByKey = new Map<string, Readonly<{ sourceBookId: string; chapter: number }>>();
+    const entitySourceKey = entitySource.sourceBookId + ":" + entitySource.sourceChapter;
+    sourcesByKey.set(entitySourceKey, Object.freeze({
+      sourceBookId: entitySource.sourceBookId,
+      chapter: entitySource.sourceChapter,
+    }));
+    for (const item of record.evidence) {
+      const key = item.source.sourceBookId + ":" + item.source.sourceChapter;
+      sourcesByKey.set(key, Object.freeze({
+        sourceBookId: item.source.sourceBookId,
+        chapter: item.source.sourceChapter,
+      }));
+    }
+    const sources = Object.freeze([...sourcesByKey.values()].sort((left, right) =>
+      left.sourceBookId < right.sourceBookId ? -1 :
+      left.sourceBookId > right.sourceBookId ? 1 :
+      left.chapter - right.chapter
+    ));
+
+    candidateAliases.push(Object.freeze({
+      entityId: entity.id,
+      kind: entity.kind,
+      fingerprint,
+      label: record.alias,
+      sources,
+    }));
+    const owners = aliasOwners.get(fingerprint) ?? new Set<string>();
+    owners.add(entity.id);
+    aliasOwners.set(fingerprint, owners);
+  }
+
+  const visibleAliases = candidateAliases
+    .filter(alias => requested.has(alias.entityId) && aliasOwners.get(alias.fingerprint)?.size === 1)
+    .sort((left, right) =>
+      left.entityId < right.entityId ? -1 :
+      left.entityId > right.entityId ? 1 :
+      left.label < right.label ? -1 :
+      left.label > right.label ? 1 : 0
+    );
+
+  for (const entityId of requestedIds) {
+    if (!visibleAliases.some(alias => alias.entityId === entityId)) {
+      return unavailableAliasDisclosure("locked-or-ambiguous-alias");
+    }
+  }
+
+  const result: Extract<HoidEntityAliasDisclosureResult, { status: "ready" }> = Object.freeze({
+    status: "ready",
+    progressRevision: projection.revision,
+    progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
+    aliases: Object.freeze(visibleAliases),
+  });
+  AUTHORIZED_ENTITY_ALIAS_DISCLOSURES.add(result);
+  return result;
+}
+
+/** Production disclosure projection bound to source-controlled registries. */
+export function resolveProductionHoidEntityAliasDisclosures(
+  progressInput: unknown,
+  entityIdsInput: unknown,
+  bookScopeInput: unknown,
+): HoidEntityAliasDisclosureResult {
+  return resolveHoidAuthorizedEntityAliasDisclosures(
+    HOID_EDITORIAL_KNOWLEDGE,
+    HOID_ENTITY_ALIAS_EVIDENCE,
+    progressInput,
+    entityIdsInput,
+    bookScopeInput,
   );
 }

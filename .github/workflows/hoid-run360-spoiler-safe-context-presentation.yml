@@ -1,0 +1,76 @@
+name: Hoid Run 360 — spoiler-safe context presentation
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run360"
+    paths:
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/investigationContextPresentation.ts"
+      - "src/hoid/investigationContextPresentation.test.ts"
+      - "src/hoid/investigationContext.ts"
+      - "src/hoid/investigationContext.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "docs/hoid/RUN360_SPOILER_SAFE_CONTEXT_PRESENTATION.md"
+      - ".github/workflows/hoid-run360-spoiler-safe-context-presentation.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/investigationContextPresentation.ts"
+      - "src/hoid/investigationContextPresentation.test.ts"
+      - "src/hoid/investigationContext.ts"
+      - "src/hoid/investigationContext.test.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/knowledgeGraph.test.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "docs/hoid/RUN360_SPOILER_SAFE_CONTEXT_PRESENTATION.md"
+      - ".github/workflows/hoid-run360-spoiler-safe-context-presentation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  spoiler-safe-context-presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run alias, graph, context and presentation regressions
+        run: >-
+          npx vitest run
+          src/hoid/investigationIdentity.test.ts
+          src/hoid/investigationSession.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/knowledgeGraph.test.ts
+          src/hoid/investigationContext.test.ts
+          src/hoid/investigationContextPresentation.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/entityResolver.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/investigationContext.ts
+          src/hoid/investigationContext.test.ts
+          src/hoid/investigationContextPresentation.ts
+          src/hoid/investigationContextPresentation.test.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/knowledgeGraph.test.ts
+          src/screens/HoidScreen.tsx

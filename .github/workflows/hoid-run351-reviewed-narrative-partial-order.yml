@@ -1,0 +1,65 @@
+name: Hoid Run 351 — reviewed narrative temporal partial order
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run351"
+    paths:
+      - "src/hoid/narrativeTemporalRelations.ts"
+      - "src/hoid/narrativeTemporalRelations.test.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "docs/hoid/RUN351_REVIEWED_NARRATIVE_PARTIAL_ORDER.md"
+      - ".github/workflows/hoid-run351-reviewed-narrative-partial-order.yml"
+  pull_request:
+    paths:
+      - "src/hoid/narrativeTemporalRelations.ts"
+      - "src/hoid/narrativeTemporalRelations.test.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "docs/hoid/RUN351_REVIEWED_NARRATIVE_PARTIAL_ORDER.md"
+      - ".github/workflows/hoid-run351-reviewed-narrative-partial-order.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reviewed-narrative-partial-order:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run temporal and inherited provenance regressions
+        run: >-
+          npx vitest run
+          src/hoid/narrativeTemporalRelations.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check — temporal contracts and provenance
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/narrativeTemporalRelations.ts
+          src/hoid/narrativeTemporalRelations.test.ts

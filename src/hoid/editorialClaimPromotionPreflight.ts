@@ -526,11 +526,11 @@ async function verifyDraftEvidenceSources(
       locatorId: sourceEvidence.source.locatorId,
       expectedDocumentSha256: expectedDigest,
     }));
-    if (inspection.status === "timeout") return blocked("source-access-timeout", draft.id);
-    if (inspection.status === "failed" || inspection.status === "invalid") {
+    if (inspection.status !== "available") {
+      if (inspection.status === "timeout") return blocked("source-access-timeout", draft.id);
+      if (inspection.status === "unavailable") return blocked("source-unavailable", draft.id);
       return blocked("source-access-failed", draft.id);
     }
-    if (inspection.status === "unavailable") return blocked("source-unavailable", draft.id);
     if (inspection.documentSha256 !== expectedDigest) return blocked("source-digest-mismatch", draft.id);
 
     cache.set(cacheKey, expectedDigest);

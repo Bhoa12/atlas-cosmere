@@ -260,6 +260,23 @@ describe("Hoid progress-bound character evolution", () => {
     expect(result.presentation.citations.map(item => item.chapter)).toEqual([1, 2]);
     expect(result.presentation.citations[0]).not.toHaveProperty("locatorId");
     expect(result.presentation.citations[0]).not.toHaveProperty("evidenceId");
+    expect(result.followUpQuestions).toHaveLength(1);
+    expect(result.followUpQuestions[0].dimension).toBe("knowledge");
+    expect(result.followUpQuestions[0].question).toBe(
+      "¿Qué conocimientos de Personaje Alfa están documentadas hasta donde has leído?",
+    );
+    expect(result.followUpQuestions[0].citations.map(item => item.chapter)).toEqual([1, 2]);
+    expect(JSON.stringify(result.followUpQuestions[0])).not.toMatch(/evidenceId|locatorId|unlock/i);
+  });
+
+  it("does not suggest a dimension without an already-unlocked reviewed claim", async () => {
+    const state = fixture();
+    const result = await state.adapter.answer({
+      question: "Capacidades de Personaje Alfa",
+      progress: state.current,
+      bookScope: SINGLE_SCOPE,
+    });
+    expect(result.status).toBe("not-found");
   });
 
   it("supports a reviewed transition without inventing its wording", async () => {

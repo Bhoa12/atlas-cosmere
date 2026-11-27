@@ -303,6 +303,7 @@ function canonicalSource(
     !Number.isSafeInteger(source.sourceChapter) ||
     source.sourceChapter < 1 ||
     !validText(source.locatorId, 256) ||
+    typeof source.unlockBookId !== "string" ||
     source.unlockBookId !== source.sourceBookId ||
     typeof source.unlockChapter !== "number" ||
     !Number.isSafeInteger(source.unlockChapter) ||
@@ -395,6 +396,7 @@ function canonicalClaim(value: unknown): CanonicalClaim | null {
       !Number.isSafeInteger(source.sourceChapter) ||
       source.sourceChapter < 1 ||
       !validText(source.locatorId, 256) ||
+      typeof source.unlockBookId !== "string" ||
       source.unlockBookId !== source.sourceBookId ||
       typeof source.unlockChapter !== "number" ||
       !Number.isSafeInteger(source.unlockChapter) ||

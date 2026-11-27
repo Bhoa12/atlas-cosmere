@@ -348,6 +348,33 @@ describe("Hoid local EPUB editorial source access router", () => {
     });
   });
 
+  it("rejects accessor-backed session arrays without invoking index getters", () => {
+    const value = fixture();
+    let invoked = false;
+    const hostile = new Array(1);
+    Object.defineProperty(hostile, "0", {
+      enumerable: true,
+      get() {
+        invoked = true;
+        return value.session;
+      },
+    });
+
+    expect(createHoidEpubEditorialSourceAccessRouter(hostile)).toMatchObject({
+      status: "unavailable",
+      reason: "invalid-sessions",
+    });
+    expect(invoked).toBe(false);
+    expect(value.inspectChapterDocument).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes an empty active-source set from a malformed one", () => {
+    expect(createHoidEpubEditorialSourceAccessRouter([])).toEqual({
+      status: "unavailable",
+      reason: "empty-sessions",
+    });
+  });
+
   it("rejects accessor-backed sessions without invoking getters", () => {
     const value = fixture();
     let invoked = false;

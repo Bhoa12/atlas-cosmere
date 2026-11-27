@@ -92,6 +92,8 @@ import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
 import { HoidEpubEditorialSourceAccessPanel } from '../components/HoidEpubEditorialSourceAccessPanel';
 import { HoidSourceCoveragePanel } from '../components/HoidSourceCoveragePanel';
 import { HoidEditorialSummaryReviewQueuePanel } from '../components/HoidEditorialSummaryReviewQueuePanel';
+import { HoidEditorialReviewWorkspacePanel } from '../components/HoidEditorialReviewWorkspacePanel';
+import type { HoidEditorialReviewSubmissionPort } from '../hoid/editorialReviewWorkflow';
 import type { HoidEditorialSourceDocumentAccessPort } from '../hoid/editorialClaimPromotionPreflight';
 import {
   openHoidRecommendationChapter,
@@ -162,6 +164,7 @@ export const HoidScreen: React.FC<{
   readerPreferencesStoreStatus?: HoidReaderPreferencesStoreStatus;
   editorialReviewReceipts?: readonly unknown[] | null;
   editorialReviewReceiptStatus?: "loading" | "ready" | "unavailable";
+  editorialReviewSubmissionPort?: HoidEditorialReviewSubmissionPort | null;
 }> = ({
   trustedAnswerPort: trustedAnswerPortInput = null,
   trustedConversationPort: trustedConversationPortInput = null,
@@ -170,6 +173,7 @@ export const HoidScreen: React.FC<{
   readerPreferencesStoreStatus = 'unavailable',
   editorialReviewReceipts = null,
   editorialReviewReceiptStatus = "unavailable",
+  editorialReviewSubmissionPort = null,
 }) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
   // The signed presenter capability gates topic recommendations; the exact-unit
@@ -196,6 +200,13 @@ export const HoidScreen: React.FC<{
   progressRefreshRef.current = refreshHoidCursorProgressSnapshot;
   const progressSubscriptionRef = useRef(subscribeHoidCursorProgressChanges);
   progressSubscriptionRef.current = subscribeHoidCursorProgressChanges;
+  const refreshEditorialReviewProgress = useCallback(async () => {
+    try {
+      return await progressRefreshRef.current();
+    } catch {
+      return null;
+    }
+  }, []);
   const [investigationContextConversation] = useState(() =>
     createProductionHoidInvestigationContextConversationAdapter(
       () => progressReaderRef.current(),
@@ -1884,6 +1895,14 @@ export const HoidScreen: React.FC<{
         progressSnapshot={liveProgress}
         receipts={editorialReviewReceipts ?? []}
         receiptsStatus={editorialReviewReceiptStatus}
+      />
+
+      <HoidEditorialReviewWorkspacePanel
+        progressSnapshot={liveProgress}
+        receipts={editorialReviewReceipts ?? []}
+        receiptsStatus={editorialReviewReceiptStatus}
+        reviewPort={editorialReviewSubmissionPort}
+        refreshProgress={refreshEditorialReviewProgress}
       />
 
       <View style={styles.recommendationPanel}>

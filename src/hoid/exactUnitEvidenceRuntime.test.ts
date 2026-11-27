@@ -662,7 +662,7 @@ describe("Hoid exact-unit evidence runtime v2", () => {
     expect(selector).not.toHaveBeenCalled();
   });
 
-  it("carries signed epistemic metadata into the final answer segment", async () => {
+  it("carries claim-hash-bound epistemic metadata into the final answer segment", async () => {
     const store = new MemoryStore();
     store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
     const { runtime } = createRuntime(store, selectorFor(), "interpretation");

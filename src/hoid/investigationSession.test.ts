@@ -72,7 +72,7 @@ describe("Hoid session-scoped investigation history", () => {
       suggestions: suggestions(),
     });
 
-    expect(visible.map(item => item.dimension)).toEqual(["relationship", "capability"]);
+    expect(visible.map(item => "dimension" in item ? item.dimension : item.topic)).toEqual(["relationship", "capability"]);
   });
 
   it("does not suppress suggestions after the progress or selected book scope changes", () => {
@@ -210,4 +210,76 @@ describe("Hoid session-scoped investigation history", () => {
     expect(history[0].sequence).toBe(2);
     expect(history[history.length - 1].sequence).toBe(HOID_INVESTIGATION_SESSION_LIMIT + 1);
   });
+
+  it("keeps magic-system facets separate from character dimensions for the same subject", () => {
+    const session = createHoidInvestigationSession();
+    const ticket = session.begin();
+    const magicContext = context({
+      subjectLabel: "Sistema Alfa",
+      domain: "magic-system",
+      topic: "rule",
+    });
+    expect(session.recordCompleted(ticket, magicContext)).toBe(true);
+    expect(session.hasCompleted(magicContext)).toBe(true);
+    expect(session.hasCompleted(context({
+      subjectLabel: "Sistema Alfa",
+      domain: "magic-system",
+      topic: "principle",
+    }))).toBe(false);
+    expect(session.hasCompleted(context({
+      subjectLabel: "Sistema Alfa",
+      domain: "character-evolution",
+      topic: "knowledge",
+    }))).toBe(false);
+  });
+
+  it("records dossier, relationship and timeline investigations in separate domains", () => {
+    const session = createHoidInvestigationSession();
+    const ticket = session.begin();
+    const cases = [
+      { subjectLabel: "Entidad Alfa", domain: "entity-dossier", topic: "overview" },
+      { subjectLabel: "Entidad Alfa ↔ Entidad Beta", domain: "entity-relationship", topic: "relationship" },
+      { subjectLabel: "Entidad Alfa", domain: "entity-timeline", topic: "timeline" },
+    ] as const;
+    for (const item of cases) {
+      expect(session.recordCompleted(ticket, context(item))).toBe(true);
+      expect(session.hasCompleted(context(item))).toBe(true);
+    }
+    expect(session.getHistory().map(item => item.domain)).toEqual([
+      "entity-dossier", "entity-relationship", "entity-timeline",
+    ]);
+    expect(session.getHistory().map(item => item.topic)).toEqual([
+      "overview", "relationship", "timeline",
+    ]);
+  });
+
+  it("filters generic topic suggestions only within the matching domain and subject", () => {
+    const session = createHoidInvestigationSession();
+    const ticket = session.begin();
+    const shared = {
+      subjectLabel: "Sistema Alfa",
+      domain: "magic-system" as const,
+      progressRevision: 7,
+      progressFingerprint: FINGERPRINT_A,
+      bookScope: SINGLE_SCOPE,
+    };
+    expect(session.recordCompleted(ticket, { ...shared, topic: "rule" })).toBe(true);
+    const visible = session.filterSuggestions(ticket, {
+      ...shared,
+      suggestions: [
+        { topic: "rule", question: "¿Qué reglas están documentadas?", citations: [{ title: "Obra", chapter: 2 }] },
+        { topic: "limitation", question: "¿Qué limitaciones están documentadas?", citations: [{ title: "Obra", chapter: 3 }] },
+      ],
+    });
+    expect(visible.map(item => "topic" in item ? item.topic : item.dimension)).toEqual(["limitation"]);
+  });
+
+  it("rejects domains paired with topics outside their own taxonomy", () => {
+    const session = createHoidInvestigationSession();
+    const ticket = session.begin();
+    expect(session.recordCompleted(ticket, context({ domain: "magic-system", topic: "relationship" }))).toBe(false);
+    expect(session.recordCompleted(ticket, context({ domain: "entity-timeline", topic: "knowledge" }))).toBe(false);
+    expect(session.recordCompleted(ticket, context({ domain: "unknown-domain", topic: "overview" }))).toBe(false);
+  });
+
 });

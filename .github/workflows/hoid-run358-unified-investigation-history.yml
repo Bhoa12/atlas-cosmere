@@ -1,0 +1,95 @@
+name: Hoid Run 358 — unified progress-scoped investigation history
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run358"
+    paths:
+      - "src/hoid/investigationSession.ts"
+      - "src/hoid/investigationSession.test.ts"
+      - "src/hoid/entityEvolutionExplanation.ts"
+      - "src/hoid/entityEvolutionExplanation.test.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.test.ts"
+      - "src/hoid/entityDossierConversation.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/entityRelationshipConversation.ts"
+      - "src/hoid/entityRelationshipConversation.test.ts"
+      - "src/hoid/entityProgressTimeline.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/magicSystemExplanation.ts"
+      - "src/hoid/magicSystemExplanation.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN358_UNIFIED_INVESTIGATION_HISTORY.md"
+      - ".github/workflows/hoid-run358-unified-investigation-history.yml"
+  pull_request:
+    paths:
+      - "src/hoid/investigationSession.ts"
+      - "src/hoid/investigationSession.test.ts"
+      - "src/hoid/entityEvolutionExplanation.ts"
+      - "src/hoid/entityEvolutionExplanation.test.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.test.ts"
+      - "src/hoid/entityDossierConversation.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/entityRelationshipConversation.ts"
+      - "src/hoid/entityRelationshipConversation.test.ts"
+      - "src/hoid/entityProgressTimeline.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/magicSystemExplanation.ts"
+      - "src/hoid/magicSystemExplanation.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN358_UNIFIED_INVESTIGATION_HISTORY.md"
+      - ".github/workflows/hoid-run358-unified-investigation-history.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unified-investigation-history:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run investigation and adjacent regression suites
+        run: >-
+          npx vitest run
+          src/hoid/investigationSession.test.ts
+          src/hoid/entityEvolutionExplanation.test.ts
+          src/hoid/entityEvolutionExplanationIntent.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/magicSystemExplanation.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/investigationSession.ts
+          src/hoid/investigationSession.test.ts
+          src/hoid/entityEvolutionExplanation.ts
+          src/hoid/entityEvolutionExplanation.test.ts
+          src/hoid/entityEvolutionExplanationIntent.ts
+          src/hoid/entityEvolutionExplanationIntent.test.ts
+          src/hoid/entityDossierConversation.ts
+          src/hoid/entityRelationshipConversation.ts
+          src/hoid/entityProgressTimeline.ts
+          src/hoid/magicSystemExplanation.ts
+          src/hoid/answerDisplayProjection.ts
+          src/screens/HoidScreen.tsx

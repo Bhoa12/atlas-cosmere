@@ -8,13 +8,13 @@ const MAX_QUESTION_LENGTH = 4_000;
 const MAX_ENTITY_NAME_LENGTH = 256;
 
 const PREFIXES: readonly RegExp[] = Object.freeze([
-  /^(?:¿\\s*)?(?:cu[aá]l\\s+es\\s+la\\s+)?(?:evoluci[oó]n|cronolog[ií]a|trayectoria)\\s+(?:de\\s+la|del|de)\\s*/iu,
-  /^(?:¿\\s*)?c[oó]mo\\s+(?:ha\\s+cambiado|evoluciona|ha\\s+evolucionado)\\s*/iu,
-  /^(?:¿\\s*)?c[oó]mo\\s+ha\\s+sido\\s+la\\s+evoluci[oó]n\\s+de\\s*/iu,
-  /^(?:¿\\s*)?what(?:\\s+is)?\\s+the\\s+(?:timeline|evolution|character\\s+arc)\\s+of\\s*/iu,
-  /^(?:\\s*)?timeline\\s+of\\s*/iu,
-  /^(?:\\s*)?evolution\\s+of\\s*/iu,
-  /^(?:\\s*)?character\\s+arc\\s+of\\s*/iu,
+  /^(?:¿\s*)?(?:cu[aá]l\s+es\s+la\s+)?(?:evoluci[oó]n|cronolog[ií]a|trayectoria)\s+(?:de\s+la|del|de)\s*/iu,
+  /^(?:¿\s*)?c[oó]mo\s+(?:ha\s+cambiado|evoluciona|ha\s+evolucionado)\s*/iu,
+  /^(?:¿\s*)?c[oó]mo\s+ha\s+sido\s+la\s+evoluci[oó]n\s+de\s*/iu,
+  /^(?:¿\s*)?what(?:\s+is)?\s+the\s+(?:timeline|evolution|character\s+arc)\s+of\s*/iu,
+  /^(?:\s*)?timeline\s+of\s*/iu,
+  /^(?:\s*)?evolution\s+of\s*/iu,
+  /^(?:\s*)?character\s+arc\s+of\s*/iu,
 ]);
 
 function canonicalQuestion(value: unknown): string | null {
@@ -23,7 +23,7 @@ function canonicalQuestion(value: unknown): string | null {
     value.length < 1 ||
     value.length > MAX_QUESTION_LENGTH ||
     value !== value.trim() ||
-    /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(value)
+    /[\u0000-\u001F\u007F\p{Cf}]/u.test(value)
   ) return null;
   return value;
 }
@@ -54,7 +54,7 @@ export function classifyHoidEntityProgressTimelineIntent(
     if (!entityName) return Object.freeze({ status: "needs-name" });
     if (
       entityName.length > MAX_ENTITY_NAME_LENGTH ||
-      /[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(entityName)
+      /[\u0000-\u001F\u007F\p{Cf}]/u.test(entityName)
     ) return Object.freeze({ status: "invalid" });
     return Object.freeze({ status: "ready", entityName });
   }

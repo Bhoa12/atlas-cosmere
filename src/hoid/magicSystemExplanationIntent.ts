@@ -21,6 +21,7 @@ type Prefix = Readonly<{ pattern: RegExp; facet?: HoidMagicSystemFacet }>;
 const PREFIXES: readonly Prefix[] = Object.freeze([
   { pattern: /^(?:¿\s*)?(?:c[oó]mo\s+(?:funciona|opera)\s+)(?:el\s+)?(?:sistema\s+de\s+magia\s+(?:de\s+)?)?/iu, facet: "principle" },
   { pattern: /^(?:¿\s*)?expl[ií]came\s+(?:el\s+)?(?:sistema\s+de\s+magia\s+(?:de\s+)?)?/iu },
+  { pattern: /^(?:¿\s*)?reglas\s+de(?:\s+|$)/iu, facet: "rule" },
   { pattern: /^(?:¿\s*)?(?:cu[aá]les\s+son\s+las?\s+)?reglas\s+de\s+/iu, facet: "rule" },
   { pattern: /^(?:¿\s*)?limitaciones\s+de\s+/iu, facet: "limitation" },
   { pattern: /^(?:¿\s*)?costes?\s+de\s+/iu, facet: "cost" },
@@ -53,7 +54,7 @@ function canonicalQuestion(value: unknown): string | null {
 function canonicalSystemName(value: string): string {
   return value
     .replace(/[?!¡¿.,;:…]+$/u, "")
-    .replace(/^[\"'“”«»]+|[\"'“”«»]+$/gu, "")
+    .replace(/^["'“”«»]+|["'“”«»]+$/gu, "")
     .replace(/\s+(?:magic|system)$/iu, "")
     .trim();
 }

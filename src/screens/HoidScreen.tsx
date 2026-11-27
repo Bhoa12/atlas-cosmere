@@ -19,6 +19,12 @@ import {
 } from '../hoid/magicSystemExplanation';
 import { classifyHoidMagicSystemExplanationIntent } from '../hoid/magicSystemExplanationIntent';
 import {
+  createHoidCharacterEvolutionExplanationAdapter,
+  createHoidCharacterEvolutionIndex,
+  HOID_CHARACTER_EVOLUTION_ANNOTATIONS,
+} from '../hoid/entityEvolutionExplanation';
+import { classifyHoidCharacterEvolutionIntent } from '../hoid/entityEvolutionExplanationIntent';
+import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
   type HoidDisplaySegment,
@@ -210,6 +216,16 @@ export const HoidScreen: React.FC<{
     ? createHoidMagicSystemExplanationAdapter({
         gateway: entityDossierGateway,
         factIndex: magicSystemFactIndex,
+        refreshCurrentProgress: () => progressRefreshRef.current(),
+      })
+    : null;
+  const characterEvolutionIndex = createHoidCharacterEvolutionIndex(
+    HOID_CHARACTER_EVOLUTION_ANNOTATIONS,
+  );
+  const characterEvolutionExplanation = entityDossierGateway && characterEvolutionIndex
+    ? createHoidCharacterEvolutionExplanationAdapter({
+        gateway: entityDossierGateway,
+        index: characterEvolutionIndex,
         refreshCurrentProgress: () => progressRefreshRef.current(),
       })
     : null;
@@ -546,10 +562,12 @@ export const HoidScreen: React.FC<{
         fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
       };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
+      const intentMode = intentPlan.status === 'ready' ? intentPlan.mode : null;
       const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
       const relationshipIntent = classifyHoidEntityRelationshipIntent(textoUsuario);
       const timelineIntent = classifyHoidEntityProgressTimelineIntent(textoUsuario);
       const magicSystemIntent = classifyHoidMagicSystemExplanationIntent(textoUsuario);
+      const characterEvolutionIntent = classifyHoidCharacterEvolutionIntent(textoUsuario);
       const answerScopeSelection = resolveHoidReadingFocusConversationScope({
         progress: currentProgress,
         answerScopeMode,
@@ -565,7 +583,7 @@ export const HoidScreen: React.FC<{
       // results and cancelled work explicitly clear this scope below.
       let responseScope: HoidConversationProgressScope | null = requestScope;
 
-      if (intentPlan.status !== 'ready' && magicSystemIntent.status === 'not-magic') {
+      if (intentPlan.status !== 'ready' && magicSystemIntent.status === 'not-magic' && characterEvolutionIntent.status === 'not-evolution') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -601,14 +619,14 @@ export const HoidScreen: React.FC<{
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica el nombre exacto del personaje o entidad cuya evolución documental quieres consultar.';
       } else if (
-        intentPlan.mode === 'relationship-explanation' &&
+        intentMode === 'relationship-explanation' &&
         relationshipIntent.status === 'not-relationship'
       ) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'He detectado una pregunta sobre relaciones, pero no puedo separar dos nombres exactos. Reformúlala como «Relación entre A y B». No la enviaré a ningún proveedor.';
-      } else if (intentPlan.mode === 'reread-request') {
+      } else if (intentMode === 'reread-request') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -638,7 +656,7 @@ export const HoidScreen: React.FC<{
         } else {
           respuesta = 'No he podido validar la solicitud de relectura. No la enviaré a ningún proveedor.';
         }
-      } else if (intentPlan.mode === 'curated-discovery') {
+      } else if (intentMode === 'curated-discovery') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -667,7 +685,7 @@ export const HoidScreen: React.FC<{
             respuesta = 'No hay una recomendación de descubrimiento que pueda mostrarse con seguridad. La validación editorial o de progreso no ha autorizado ningún resultado.';
           }
         }
-      } else if (intentPlan.mode === 'reading-progress') {
+      } else if (intentMode === 'reading-progress') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -697,7 +715,7 @@ export const HoidScreen: React.FC<{
               : 'No puedo verificar el progreso actual. No mostraré una posición de lectura estimada.';
           }
         }
-      } else if (intentPlan.mode === 'catalogue-recommendation') {
+      } else if (intentMode === 'catalogue-recommendation') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -843,6 +861,67 @@ export const HoidScreen: React.FC<{
           }
         }
       } else if (
+        characterEvolutionIntent.status === 'ready' ||
+        characterEvolutionIntent.status === 'needs-name' ||
+        characterEvolutionIntent.status === 'invalid'
+      ) {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        if (characterEvolutionIntent.status === 'needs-name') {
+          responseScope = requestScope;
+          respuesta = 'Indica el nombre exacto del personaje cuya evolución documental quieres consultar.';
+        } else if (characterEvolutionIntent.status === 'invalid') {
+          responseScope = requestScope;
+          respuesta = 'No puedo validar esa consulta de evolución. No enviaré la pregunta a ningún proveedor.';
+        } else if (!characterEvolutionExplanation) {
+          responseScope = requestScope;
+          respuesta = 'Los expedientes de evolución de personajes no están disponibles. No recurriré a un proveedor alternativo.';
+        } else {
+          const evolutionResult = await characterEvolutionExplanation.answer({
+            question: textoUsuario,
+            progress: currentProgress,
+            bookScope: answerScopeSelection.scope,
+            depth: explanationDepth,
+          }, { signal: ticket.signal });
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+          if (evolutionResult.status === 'ready') {
+            responseScope = {
+              revision: evolutionResult.progressRevision,
+              fingerprint: evolutionResult.progressFingerprint,
+            };
+            respuesta = 'Evolución documental de ' + evolutionResult.characterLabel
+              + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\n\n'
+              + evolutionResult.presentation.text;
+            citas = evolutionResult.presentation.citations;
+            segmentos = evolutionResult.presentation.segments;
+            formato = evolutionResult.presentation.layout;
+          } else if (evolutionResult.status === 'not-found') {
+            responseScope = requestScope;
+            respuesta = 'No hay un expediente de evolución aprobado que pueda mostrar para ese personaje y tu foco de lectura. No confirmaré si faltan datos o si alguna evidencia todavía está bloqueada.';
+          } else if (evolutionResult.status === 'unavailable') {
+            responseScope = requestScope;
+            respuesta = evolutionResult.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado mientras preparaba la evolución. He descartado el resultado; vuelve a preguntarme.'
+              : evolutionResult.reason === 'cancelled'
+                ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
+                : evolutionResult.reason === 'invalid-progress'
+                  ? 'No puedo verificar tu progreso actual. La explicación queda bloqueada para evitar spoilers.'
+                  : evolutionResult.reason === 'invalid-scope'
+                    ? 'El foco de lectura no es válido. No mostraré información fuera de las obras seleccionadas.'
+                    : evolutionResult.reason === 'budget-exceeded'
+                      ? 'La evolución supera el presupuesto seguro de evidencias. No recortaré afirmaciones ni fuentes.'
+                      : 'No hay una evolución verificable para esta consulta. No recurriré a un proveedor ni inferiré cambios.';
+          } else if (evolutionResult.status === 'needs-name') {
+            responseScope = requestScope;
+            respuesta = 'Indica el nombre exacto del personaje cuya evolución quieres consultar.';
+          } else {
+            responseScope = requestScope;
+            respuesta = 'No he podido validar la consulta de evolución. No enviaré esta pregunta a ningún proveedor.';
+          }
+        }
+      } else if (
         magicSystemIntent.status === 'ready' ||
         magicSystemIntent.status === 'needs-name' ||
         magicSystemIntent.status === 'invalid'
@@ -950,6 +1029,12 @@ export const HoidScreen: React.FC<{
             respuesta = 'No he podido validar la consulta de expediente. No la enviaré a ningún proveedor.';
           }
         }
+      } else if (intentPlan.status !== 'ready') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        responseScope = requestScope;
+        respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
       } else if (!trustedConversationPort) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;

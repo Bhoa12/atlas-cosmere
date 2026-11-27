@@ -8,6 +8,8 @@ import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import { createProductionHoidEntityDossierGateway } from '../hoid/entityDossierGateway';
 import { classifyHoidEntityDossierIntent } from '../hoid/entityDossierIntent';
 import { createHoidEntityDossierConversationAdapter } from '../hoid/entityDossierConversation';
+import { createHoidEntityRelationshipConversationAdapter } from '../hoid/entityRelationshipConversation';
+import { classifyHoidEntityRelationshipIntent } from '../hoid/entityRelationshipIntent';
 import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
@@ -177,6 +179,12 @@ export const HoidScreen: React.FC<{
   );
   const entityDossierConversation = entityDossierGateway
     ? createHoidEntityDossierConversationAdapter({
+        gateway: entityDossierGateway,
+        refreshCurrentProgress: () => progressRefreshRef.current(),
+      })
+    : null;
+  const entityRelationshipConversation = entityDossierGateway
+    ? createHoidEntityRelationshipConversationAdapter({
         gateway: entityDossierGateway,
         refreshCurrentProgress: () => progressRefreshRef.current(),
       })
@@ -515,6 +523,7 @@ export const HoidScreen: React.FC<{
       };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
+      const relationshipIntent = classifyHoidEntityRelationshipIntent(textoUsuario);
       const answerScopeSelection = resolveHoidReadingFocusConversationScope({
         progress: currentProgress,
         answerScopeMode,
@@ -545,6 +554,16 @@ export const HoidScreen: React.FC<{
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica el nombre exacto del personaje, lugar, organización, objeto o concepto que quieres consultar.';
+      } else if (relationshipIntent.status === 'invalid') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'No he podido separar de forma inequívoca los dos nombres. No enviaré esta consulta a ningún proveedor.';
+      } else if (relationshipIntent.status === 'needs-names') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'Indica los dos nombres exactos cuya relación quieres consultar.';
       } else if (intentPlan.mode === 'reread-request') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
@@ -685,6 +704,52 @@ export const HoidScreen: React.FC<{
               : answerScopeSelection.reason === 'invalid-scope'
                 ? 'El ámbito de lectura no es válido. Comprueba la selección de una obra o de dos a cuatro obras activas.'
                 : 'No puedo verificar el progreso y el foco de lectura. La respuesta queda bloqueada para evitar spoilers.';
+      } else if (relationshipIntent.status === 'ready') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        if (!entityRelationshipConversation) {
+          responseScope = requestScope;
+          respuesta = 'Las explicaciones de relaciones entre entidades no están disponibles. No recurriré a un proveedor alternativo.';
+        } else {
+          const relationshipResult = await entityRelationshipConversation.answer({
+            question: textoUsuario,
+            progress: currentProgress,
+            bookScope: answerScopeSelection.scope,
+            depth: explanationDepth,
+          }, { signal: ticket.signal });
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+          if (relationshipResult.status === 'ready') {
+            responseScope = {
+              revision: relationshipResult.progressRevision,
+              fingerprint: relationshipResult.progressFingerprint,
+            };
+            respuesta = relationshipResult.presentation.text;
+            citas = relationshipResult.presentation.citations;
+            segmentos = relationshipResult.presentation.segments;
+            formato = relationshipResult.presentation.layout;
+          } else if (relationshipResult.status === 'not-found') {
+            responseScope = requestScope;
+            respuesta = 'No hay una relación editorial aprobada que pueda mostrar para esos nombres y tu foco de lectura. No confirmaré si la relación no existe o si alguna evidencia todavía está bloqueada.';
+          } else if (relationshipResult.status === 'unavailable') {
+            responseScope = requestScope;
+            respuesta = relationshipResult.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado mientras verificaba la relación. He descartado el resultado; vuelve a formular la consulta.'
+              : relationshipResult.reason === 'cancelled'
+                ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
+                : relationshipResult.reason === 'invalid-progress'
+                  ? 'No puedo verificar el progreso actual. La explicación de la relación queda bloqueada.'
+                  : relationshipResult.reason === 'invalid-scope'
+                    ? 'El foco de lectura no es válido. No mostraré relaciones fuera de las obras seleccionadas.'
+                    : relationshipResult.reason === 'budget-exceeded'
+                      ? 'La explicación supera el presupuesto de detalle seleccionado. No recortaré afirmaciones ni evidencias.'
+                      : 'No hay una explicación de relación verificable para esta consulta. No recurriré a un proveedor ni inferiré conexiones.';
+          } else {
+            responseScope = requestScope;
+            respuesta = 'No he podido validar la consulta de relación. No la enviaré a ningún proveedor.';
+          }
+        }
       } else if (dossierIntent.status === 'ready') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;

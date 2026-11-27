@@ -13,7 +13,6 @@ import { getHoidReadingManifest } from "./readingManifest";
 import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { sha256Hex } from "./sha256";
 import type {
-  HoidEditorialSourceDocumentAccessPort,
   HoidEditorialSourceDocumentAccessRequest,
 } from "./editorialClaimPromotionPreflight";
 

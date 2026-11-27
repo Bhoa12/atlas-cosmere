@@ -580,18 +580,21 @@ function normalizeGatewayResult(
 ): Readonly<{ status: "ready"; dossier: CanonicalDossier }> |
    Readonly<{ status: "not-found" }> |
    Readonly<{ status: "unavailable"; reason: "invalid-progress" | "progress-changed" | "invalid-dossier" }> {
-  if (value.status === "not-found" || value.status === "ambiguous") {
-    return Object.freeze({ status: "not-found" });
-  }
-  if (value.status === "unavailable") {
-    return Object.freeze({
-      status: "unavailable",
-      reason: value.reason === "invalid-progress"
-        ? "invalid-progress"
-        : value.reason === "progress-changed"
-          ? "progress-changed"
-          : "invalid-dossier",
-    });
+  if (value.status !== "ready") {
+    if (value.status === "not-found" || value.status === "ambiguous") {
+      return Object.freeze({ status: "not-found" });
+    }
+    if (value.status === "unavailable") {
+      return Object.freeze({
+        status: "unavailable",
+        reason: value.reason === "invalid-progress"
+          ? "invalid-progress"
+          : value.reason === "progress-changed"
+            ? "progress-changed"
+            : "invalid-dossier",
+      });
+    }
+    return Object.freeze({ status: "unavailable", reason: "invalid-dossier" });
   }
   if (
     value.progressRevision !== progress.revision ||
@@ -681,18 +684,12 @@ export function createHoidEntityRelationshipConversationAdapter(
 
       const left = normalizeGatewayResult(leftRaw, scope, before);
       const right = normalizeGatewayResult(rightRaw, scope, before);
-      if (left.status === "unavailable" || right.status === "unavailable") {
-        return unavailable(
-          left.reason === "progress-changed" || right.reason === "progress-changed"
-            ? "progress-changed"
-            : left.reason === "invalid-progress" || right.reason === "invalid-progress"
-              ? "invalid-progress"
-              : "invalid-dossier",
-        );
-      }
-      if (left.status === "not-found" || right.status === "not-found") {
-        return Object.freeze({ status: "not-found" });
-      }
+      if (left.status === "unavailable") return unavailable(left.reason);
+      if (right.status === "unavailable") return unavailable(right.reason);
+      if (left.status === "not-found") return Object.freeze({ status: "not-found" });
+      if (right.status === "not-found") return Object.freeze({ status: "not-found" });
+      if (left.status !== "ready") return unavailable("invalid-dossier");
+      if (right.status !== "ready") return unavailable("invalid-dossier");
 
       const projected = buildRelationshipPresentation(left.dossier, right.dossier, scope, depth);
       if (projected.status !== "ready") return projected;

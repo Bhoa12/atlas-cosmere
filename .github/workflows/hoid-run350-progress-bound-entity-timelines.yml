@@ -1,0 +1,88 @@
+name: Hoid Run 350 — progress-bound entity timelines
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run350"
+    paths:
+      - "src/hoid/entityProgressTimeline.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/entityProgressTimelineIntent.ts"
+      - "src/hoid/entityProgressTimelineIntent.test.ts"
+      - "src/hoid/entityRelationshipConversation.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN350_PROGRESS_BOUND_ENTITY_TIMELINES.md"
+      - ".github/workflows/hoid-run350-progress-bound-entity-timelines.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityProgressTimeline.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/entityProgressTimelineIntent.ts"
+      - "src/hoid/entityProgressTimelineIntent.test.ts"
+      - "src/hoid/entityRelationshipConversation.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN350_PROGRESS_BOUND_ENTITY_TIMELINES.md"
+      - ".github/workflows/hoid-run350-progress-bound-entity-timelines.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  progress-bound-entity-timelines:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run timeline and inherited relationship/dossier regression suites
+        run: >-
+          npx vitest run
+          src/hoid/entityProgressTimelineIntent.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/entityRelationshipIntent.test.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityDossierIntent.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/knowledgeGraph.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check — timelines, relationships and HoidScreen
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/entityProgressTimelineIntent.ts
+          src/hoid/entityProgressTimelineIntent.test.ts
+          src/hoid/entityProgressTimeline.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/entityRelationshipIntent.ts
+          src/hoid/entityRelationshipIntent.test.ts
+          src/hoid/entityRelationshipConversation.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityDossierIntent.ts
+          src/hoid/entityDossierConversation.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityDossierGateway.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/hoid/entityResolver.ts
+          src/hoid/approvedClaimIntegrity.ts
+          src/hoid/evidenceRuntime.ts
+          src/hoid/knowledgeGraph.ts
+          src/hoid/answerDisplayProjection.ts
+          src/hoid/cursorEvidenceRuntime.ts
+          src/hoid/readingManifest.ts
+          src/screens/HoidScreen.tsx

@@ -10,6 +10,8 @@ import { classifyHoidEntityDossierIntent } from '../hoid/entityDossierIntent';
 import { createHoidEntityDossierConversationAdapter } from '../hoid/entityDossierConversation';
 import { createHoidEntityRelationshipConversationAdapter } from '../hoid/entityRelationshipConversation';
 import { classifyHoidEntityRelationshipIntent } from '../hoid/entityRelationshipIntent';
+import { createHoidEntityProgressTimelineAdapter } from '../hoid/entityProgressTimeline';
+import { classifyHoidEntityProgressTimelineIntent } from '../hoid/entityProgressTimelineIntent';
 import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
@@ -185,6 +187,12 @@ export const HoidScreen: React.FC<{
     : null;
   const entityRelationshipConversation = entityDossierGateway
     ? createHoidEntityRelationshipConversationAdapter({
+        gateway: entityDossierGateway,
+        refreshCurrentProgress: () => progressRefreshRef.current(),
+      })
+    : null;
+  const entityProgressTimeline = entityDossierGateway
+    ? createHoidEntityProgressTimelineAdapter({
         gateway: entityDossierGateway,
         refreshCurrentProgress: () => progressRefreshRef.current(),
       })
@@ -524,6 +532,7 @@ export const HoidScreen: React.FC<{
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
       const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
       const relationshipIntent = classifyHoidEntityRelationshipIntent(textoUsuario);
+      const timelineIntent = classifyHoidEntityProgressTimelineIntent(textoUsuario);
       const answerScopeSelection = resolveHoidReadingFocusConversationScope({
         progress: currentProgress,
         answerScopeMode,
@@ -564,6 +573,16 @@ export const HoidScreen: React.FC<{
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica los dos nombres exactos cuya relación quieres consultar.';
+      } else if (timelineIntent.status === 'invalid') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'No he podido validar el nombre de la entidad para su recorrido de lectura. No enviaré esta consulta a ningún proveedor.';
+      } else if (timelineIntent.status === 'needs-name') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'Indica el nombre exacto del personaje o entidad cuya evolución documental quieres consultar.';
       } else if (
         intentPlan.mode === 'relationship-explanation' &&
         relationshipIntent.status === 'not-relationship'
@@ -756,6 +775,54 @@ export const HoidScreen: React.FC<{
           } else {
             responseScope = requestScope;
             respuesta = 'No he podido validar la consulta de relación. No la enviaré a ningún proveedor.';
+          }
+        }
+      } else if (timelineIntent.status === 'ready') {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        if (!entityProgressTimeline) {
+          responseScope = requestScope;
+          respuesta = 'Los recorridos progresivos de entidades no están disponibles. No recurriré a un proveedor alternativo.';
+        } else {
+          const timelineResult = await entityProgressTimeline.answer({
+            question: textoUsuario,
+            progress: currentProgress,
+            bookScope: answerScopeSelection.scope,
+          }, { signal: ticket.signal });
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+          if (timelineResult.status === 'ready') {
+            responseScope = {
+              revision: timelineResult.progressRevision,
+              fingerprint: timelineResult.progressFingerprint,
+            };
+            respuesta = timelineResult.presentation.text;
+            citas = timelineResult.presentation.citations;
+            segmentos = timelineResult.presentation.segments;
+            formato = timelineResult.presentation.layout;
+          } else if (timelineResult.status === 'not-found') {
+            responseScope = requestScope;
+            respuesta = 'No hay un recorrido editorial aprobado que pueda mostrar para esa entidad y tu foco de lectura. No confirmaré si faltan datos o si alguna evidencia todavía está bloqueada.';
+          } else if (timelineResult.status === 'unavailable') {
+            responseScope = requestScope;
+            respuesta = timelineResult.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado mientras preparaba el recorrido. He descartado el resultado; vuelve a preguntarme.'
+              : timelineResult.reason === 'cancelled'
+                ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
+                : timelineResult.reason === 'invalid-progress'
+                  ? 'No puedo verificar el progreso actual. El recorrido queda bloqueado para evitar spoilers.'
+                  : timelineResult.reason === 'invalid-scope'
+                    ? 'El foco de lectura no es válido. No mostraré información fuera de las obras seleccionadas.'
+                    : timelineResult.reason === 'budget-exceeded'
+                      ? 'El recorrido supera el presupuesto seguro de evidencias. No recortaré afirmaciones ni fuentes.'
+                      : 'No hay un recorrido verificable para esta consulta. No recurriré a un proveedor ni inferiré una cronología.';
+          } else if (timelineResult.status === 'needs-name') {
+            responseScope = requestScope;
+            respuesta = 'Indica el nombre exacto de la entidad que quieres consultar.';
+          } else {
+            responseScope = requestScope;
+            respuesta = 'No he podido validar el recorrido. No enviaré esta consulta a ningún proveedor.';
           }
         }
       } else if (dossierIntent.status === 'ready') {

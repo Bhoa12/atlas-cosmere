@@ -14,7 +14,7 @@ import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { sha256Hex } from "./sha256";
 import type {
   HoidEditorialSourceDocumentAccessRequest,
-} from "./editorialClaimPromotionPreflight";
+} from "./editorialSourceDocumentAccess";
 
 const DEFAULT_SOURCE_TIMEOUT_MS = 8_000;
 const MAX_SOURCE_TIMEOUT_MS = 8_000;

@@ -1,0 +1,83 @@
+name: Hoid Run 371 — progress-gated editorial review workspace
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/editorialReviewWorkflow.ts"
+      - "src/hoid/editorialReviewWorkflow.test.ts"
+      - "src/hoid/editorialReviewReceiptStore.ts"
+      - "src/hoid/sqliteEditorialReviewReceiptStore.ts"
+      - "src/hoid/expoEditorialReviewReceiptStore.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialSummaryReviewQueue.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/components/HoidEditorialReviewWorkspacePanel.tsx"
+      - "src/components/HoidEditorialSummaryReviewQueuePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "docs/hoid/RUN371_PROGRESS_GATED_EDITORIAL_REVIEW.md"
+      - ".github/workflows/hoid-run371-progress-gated-editorial-review.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run371"
+    paths:
+      - "src/hoid/editorialReviewWorkflow.ts"
+      - "src/hoid/editorialReviewWorkflow.test.ts"
+      - "src/hoid/editorialReviewReceiptStore.ts"
+      - "src/hoid/sqliteEditorialReviewReceiptStore.ts"
+      - "src/hoid/expoEditorialReviewReceiptStore.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/editorialSummaryReviewQueue.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/components/HoidEditorialReviewWorkspacePanel.tsx"
+      - "src/components/HoidEditorialSummaryReviewQueuePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "docs/hoid/RUN371_PROGRESS_GATED_EDITORIAL_REVIEW.md"
+      - ".github/workflows/hoid-run371-progress-gated-editorial-review.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  progress-gated-editorial-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test progress-gated editorial review and persistence
+        run: >-
+          npx vitest run
+          src/hoid/editorialReviewWorkflow.test.ts
+          src/hoid/sqliteEditorialReviewReceiptStore.test.ts
+          src/hoid/editorialSummaryReviewQueue.test.ts
+          src/hoid/editorialReviewPackets.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/editorialReviewWorkflow.ts
+          src/hoid/editorialReviewWorkflow.test.ts
+          src/hoid/editorialReviewReceiptStore.ts
+          src/hoid/sqliteEditorialReviewReceiptStore.ts
+          src/hoid/expoEditorialReviewReceiptStore.ts
+          src/components/HoidEditorialReviewWorkspacePanel.tsx
+          src/components/HoidEditorialSummaryReviewQueuePanel.tsx
+          src/screens/HoidScreen.tsx
+          src/screens/HoidTrustedScreenHost.tsx

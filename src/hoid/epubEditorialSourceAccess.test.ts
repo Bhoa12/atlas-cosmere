@@ -147,7 +147,7 @@ describe("Hoid local EPUB editorial source access router", () => {
       { signal: new AbortController().signal },
     );
 
-    expect(Object.keys(result).sort()).toEqual(["documentSha256", "status"]);
+    expect(Object.keys(result as Record<string, unknown>).sort()).toEqual(["documentSha256", "status"]);
     expect(JSON.stringify(result)).not.toContain("bytes");
     expect(JSON.stringify(result)).not.toContain("text");
     expect(JSON.stringify(result)).not.toContain("epub-source-1");

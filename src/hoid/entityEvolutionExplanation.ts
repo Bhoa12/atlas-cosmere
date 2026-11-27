@@ -607,12 +607,9 @@ export function createHoidCharacterEvolutionIndex(
   for (const raw of rawAnnotations) {
     const annotation = canonicalAnnotation(raw);
     if (!annotation || ids.has(annotation.id)) return null;
-    const tuple = [
-      annotation.characterId,
-      annotation.claimId,
-      annotation.dimension,
-      annotation.evidenceKind,
-    ].join("\n");
+    // One claim has one editorial dimension/evidence-kind annotation per character.
+    // Reusing the same claim ID in multiple segments would violate the composer contract.
+    const tuple = [annotation.characterId, annotation.claimId].join("\n");
     if (tuples.has(tuple)) return null;
     ids.add(annotation.id);
     tuples.add(tuple);

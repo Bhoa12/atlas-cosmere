@@ -6,6 +6,7 @@ on:
       - "feat/hoid-ia-core-run360"
     paths:
       - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
       - "src/hoid/investigationContextPresentation.ts"
       - "src/hoid/investigationContextPresentation.test.ts"
       - "src/hoid/investigationContext.ts"
@@ -18,6 +19,7 @@ on:
   pull_request:
     paths:
       - "src/hoid/entityResolver.ts"
+      - "src/hoid/entityResolver.test.ts"
       - "src/hoid/investigationContextPresentation.ts"
       - "src/hoid/investigationContextPresentation.test.ts"
       - "src/hoid/investigationContext.ts"

@@ -28,8 +28,8 @@ const MAX_QUESTION_LENGTH = 4_000;
 const MAX_CHARACTER_NAME_LENGTH = 256;
 
 const PREFIXES: readonly Prefix[] = Object.freeze([
-  { pattern: /^(?:¿\s*)?cómo\s+ha\s+evolucionado(?:\s+|$)/iu },
-  { pattern: /^(?:¿\s*)?evolución\s+de(?:\s+|$)/iu },
+  { pattern: /^(?:¿\s*)?cómo\s+ha\s+evolucionado(?:\s+el\s+personaje\s+de)?(?:\s+|$)/iu },
+  { pattern: /^(?:¿\s*)?evolución\s+(?:del\s+personaje\s+de|de)(?:\s+|$)/iu },
   { pattern: /^(?:¿\s*)?qué\s+cambios\s+conocemos\s+de\s+/iu },
   { pattern: /^(?:¿\s*)?cómo\s+ha\s+evolucionado\s+(?:el\s+personaje\s+de\s+)?/iu },
   { pattern: /^(?:¿\s*)?cómo\s+ha\s+cambiado\s+(?:el\s+personaje\s+de\s+)?/iu },

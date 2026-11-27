@@ -4,7 +4,6 @@ import type {
 } from "./editorialClaimPromotionPreflight";
 import {
   HOID_EPUB_INGESTION_LIMITS,
-  type HoidEpubIngestionService,
   type HoidEpubPackageInspectionCandidate,
 } from "./epubIngestion";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";

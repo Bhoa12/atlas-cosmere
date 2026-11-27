@@ -19,6 +19,7 @@ import {
   type HoidExactClaimSelector,
 } from "./exactUnitEvidenceRuntime";
 import type { HoidExactUnitEvidencePolicy } from "./unitEvidenceAuthorizationV2";
+import type { HoidEditorialClaimAssertionKind } from "./editorialClaimDrafts";
 import { buildHoidExactUnitSpoilerDependencySet } from "./exactUnitSpoilerDependencyGate";
 import { sha256Hex } from "./sha256";
 
@@ -83,7 +84,10 @@ const evidence: HoidExactEvidenceRecord = Object.freeze({
   summary: "Resumen editorial original y sintético para las pruebas.",
 });
 
-function packageFor(policyInput?: HoidExactUnitEvidencePolicy): HoidExactClaimPackage {
+function packageFor(
+  policyInput?: HoidExactUnitEvidencePolicy,
+  assertionKind?: HoidEditorialClaimAssertionKind,
+): HoidExactClaimPackage {
   const policy: HoidExactUnitEvidencePolicy = policyInput ?? Object.freeze({
     schemaVersion: 2,
     evidenceId: evidence.id,
@@ -97,6 +101,7 @@ function packageFor(policyInput?: HoidExactUnitEvidencePolicy): HoidExactClaimPa
     intent: "explain" as const,
     evidenceIds: Object.freeze([evidence.id]),
     entityIds: Object.freeze([evidence.id]),
+    ...(assertionKind ? { assertionKind } : {}),
   });
   const reviewer = Object.freeze({
     reviewerId: "editorial-reviewer",
@@ -125,11 +130,15 @@ function selectorFor(
   };
 }
 
-function createRuntime(store: MemoryStore, selector = selectorFor()) {
+function createRuntime(
+  store: MemoryStore,
+  selector = selectorFor(),
+  assertionKind?: HoidEditorialClaimAssertionKind,
+) {
   const coordinator = new HoidUnitProgressCoordinator(store, fixedNow);
   const runtime = createHoidExactUnitEvidenceRuntime({
     coordinator,
-    packages: [packageFor()],
+    packages: [packageFor(undefined, assertionKind)],
     selector,
   });
   if (!runtime) throw new Error("Synthetic exact runtime could not be created");
@@ -651,6 +660,23 @@ describe("Hoid exact-unit evidence runtime v2", () => {
       chapterScope: [reference("twok", 2)],
     })).toEqual({ status: "unavailable", reason: "spoiler-dependency-locked" });
     expect(selector).not.toHaveBeenCalled();
+  });
+
+  it("carries signed epistemic metadata into the final answer segment", async () => {
+    const store = new MemoryStore();
+    store.value = snapshot([{ bookId: "twok", chapterNumber: 4 }]);
+    const { runtime } = createRuntime(store, selectorFor(), "interpretation");
+    const result = await runtime.answer({
+      question: "Explica esta interpretación.",
+      intent: "explain",
+      bookScope: { mode: "single-work", bookIds: ["twok"] },
+    });
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.answer.segments[0]).toMatchObject({
+      intent: "explain",
+      assertionKind: "interpretation",
+    });
   });
 
   it("rejects sparse chapter-scope arrays", async () => {

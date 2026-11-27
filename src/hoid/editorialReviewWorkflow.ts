@@ -135,7 +135,6 @@ export type HoidEditorialReviewSubmission = Readonly<{
   decision: "approved" | "revision-required" | "rejected";
   checklist: HoidEditorialReviewChecklist;
   noteCodes: readonly HoidEditorialReviewNoteCode[];
-  progressSnapshot: unknown;
 }>;
 
 export type HoidEditorialReviewSubmissionResult =
@@ -154,7 +153,6 @@ const SUBMISSION_KEYS = new Set([
   "decision",
   "checklist",
   "noteCodes",
-  "progressSnapshot",
 ]);
 
 function canonicalSubmission(value: unknown): HoidEditorialReviewSubmission | null {
@@ -195,6 +193,7 @@ function canonicalSubmission(value: unknown): HoidEditorialReviewSubmission | nu
 
 export function createHoidEditorialReviewSubmissionPort(options: Readonly<{
   store: HoidEditorialReviewReceiptStorePort;
+  getFreshProgress: () => Promise<unknown | null>;
   onSnapshot?: (snapshot: HoidEditorialReviewReceiptSnapshot) => void;
   now?: () => Date;
 }>): HoidEditorialReviewSubmissionPort {
@@ -204,6 +203,14 @@ export function createHoidEditorialReviewSubmissionPort(options: Readonly<{
     submit: async (input: HoidEditorialReviewSubmission): Promise<HoidEditorialReviewSubmissionResult> => {
       const submission = canonicalSubmission(input);
       if (!submission) return "invalid";
+
+      let freshProgress: unknown | null;
+      try {
+        freshProgress = await options.getFreshProgress();
+      } catch {
+        return "unavailable";
+      }
+      if (freshProgress === null) return "not-eligible";
 
       let currentValue: unknown;
       try {
@@ -217,7 +224,7 @@ export function createHoidEditorialReviewSubmissionPort(options: Readonly<{
       const queueResult = projectHoidEditorialSummaryReviewQueue(
         HOID_EDITORIAL_DRAFTS,
         currentValidation.snapshot.receipts,
-        submission.progressSnapshot,
+        freshProgress,
       );
       if (
         queueResult.status !== "ready" ||

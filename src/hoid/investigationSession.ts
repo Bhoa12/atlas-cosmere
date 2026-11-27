@@ -1,6 +1,9 @@
 import { canonicalizeHoidAnswerBookScope } from "./answerScope";
 import type { HoidCharacterEvolutionDimension } from "./entityEvolutionExplanationIntent";
-import { sha256Hex } from "./sha256";
+import {
+  fingerprintHoidInvestigationScope,
+  fingerprintHoidInvestigationSubject,
+} from "./investigationIdentity";
 
 export type HoidInvestigationDomain =
   | "character-evolution"
@@ -69,7 +72,6 @@ export type HoidInvestigationSession = Readonly<{
 }>;
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
-const MAX_SUBJECT_LABEL_LENGTH = 256;
 const MAX_QUESTION_LENGTH = 4_000;
 const MAX_SUGGESTIONS = 8;
 const MAX_CITATIONS = 64;
@@ -199,15 +201,7 @@ function canonicalTopic(
 }
 
 function canonicalSubjectFingerprint(value: unknown): string | null {
-  if (!validText(value, MAX_SUBJECT_LABEL_LENGTH)) return null;
-  const normalized = value
-    .normalize("NFKD")
-    .replace(/[\p{Mn}\p{Cf}]/gu, "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-  if (!normalized) return null;
-  return sha256Hex(normalized);
+  return fingerprintHoidInvestigationSubject(value);
 }
 
 type CanonicalInvestigationContext = Readonly<{
@@ -239,12 +233,12 @@ function canonicalContext(value: unknown): CanonicalInvestigationContext | null 
   const bookScope = canonicalizeHoidAnswerBookScope(raw.bookScope);
   if (!subjectFingerprint || !bookScope) return null;
 
-  const scopeFingerprint = sha256Hex(JSON.stringify({
-    mode: bookScope.mode,
-    bookIds: bookScope.bookIds,
-    progressRevision: raw.progressRevision,
-    progressFingerprint: raw.progressFingerprint,
-  }));
+  const scopeFingerprint = fingerprintHoidInvestigationScope(
+    raw.progressRevision,
+    raw.progressFingerprint,
+    bookScope,
+  );
+  if (!scopeFingerprint) return null;
 
   return Object.freeze({
     subjectFingerprint,

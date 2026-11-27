@@ -21,6 +21,7 @@ import { getVerifiedChapterDocumentSha256 } from "./verifiedChapterDocuments";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import { sha256Hex } from "./sha256";
 import { validateHoidApprovedClaimAttestation } from "./approvedClaimIntegrity";
+import { fingerprintHoidInvestigationSubject } from "./investigationIdentity";
 
 export type HoidKnowledgeGraphPredicate =
   | "related-to"
@@ -51,6 +52,7 @@ export type HoidKnowledgeGraphDefinition = Readonly<{
 export type HoidKnowledgeGraphNode = Readonly<{
   id: string;
   kind: HoidKnowledgeKind;
+  aliasFingerprints: readonly string[];
 }>;
 
 export type HoidKnowledgeGraphSource = HoidEvidenceCitation & Readonly<{
@@ -92,6 +94,14 @@ const MAX_NODES = 512;
 const MAX_CLAIMS = 512;
 const MAX_RELATIONS = 1_024;
 const MAX_SUMMARY_LENGTH = 4_000;
+
+const AUTHORIZED_GRAPH_RESULTS = new WeakSet<object>();
+
+export function isHoidAuthorizedKnowledgeGraphResult(
+  value: unknown,
+): value is Extract<HoidKnowledgeGraphResult, { status: "ready" }> {
+  return value !== null && typeof value === "object" && AUTHORIZED_GRAPH_RESULTS.has(value as object);
+}
 
 function canonicalRecord(
   value: unknown,
@@ -238,6 +248,16 @@ function canonicalKnowledge(value: unknown): readonly HoidKnowledgeEntry[] | nul
   }
 
   return Object.freeze(entries);
+}
+
+function graphNodeFor(entry: HoidKnowledgeEntry): HoidKnowledgeGraphNode | null {
+  const aliases = [...new Set(
+    entry.aliases
+      .map(fingerprintHoidInvestigationSubject)
+      .filter((value): value is string => value !== null),
+  )].sort();
+  if (aliases.length === 0) return null;
+  return Object.freeze({ id: entry.id, kind: entry.kind, aliasFingerprints: Object.freeze(aliases) });
 }
 
 function canonicalClaims(
@@ -411,8 +431,11 @@ export function buildHoidAuthorizedKnowledgeGraph(
       }));
     }
 
-    nodesById.set(sourceNode.id, Object.freeze({ id: sourceNode.id, kind: sourceNode.kind }));
-    nodesById.set(targetNode.id, Object.freeze({ id: targetNode.id, kind: targetNode.kind }));
+    const sourceGraphNode = graphNodeFor(sourceNode);
+    const targetGraphNode = graphNodeFor(targetNode);
+    if (!sourceGraphNode || !targetGraphNode) return unavailable("invalid-knowledge");
+    nodesById.set(sourceGraphNode.id, sourceGraphNode);
+    nodesById.set(targetGraphNode.id, targetGraphNode);
     edges.push(Object.freeze({
       id: relation.id,
       sourceId: relation.subjectId,
@@ -425,13 +448,15 @@ export function buildHoidAuthorizedKnowledgeGraph(
     }));
   }
 
-  return Object.freeze({
+  const result: Extract<HoidKnowledgeGraphResult, { status: "ready" }> = Object.freeze({
     status: "ready",
     progressRevision: projection.revision,
     progressFingerprint: fingerprintHoidCursorProgressProjection(projection),
     nodes: Object.freeze([...nodesById.values()].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
     edges: Object.freeze(edges),
   });
+  AUTHORIZED_GRAPH_RESULTS.add(result);
+  return result;
 }
 
 /** Production graph definition remains empty until reviewed relations are added. */

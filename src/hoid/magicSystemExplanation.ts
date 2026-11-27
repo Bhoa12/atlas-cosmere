@@ -185,8 +185,8 @@ const FACT_INDEX_DATA = new WeakMap<object, readonly CanonicalAnnotation[]>();
  */
 export const HOID_MAGIC_SYSTEM_FACT_ANNOTATIONS: readonly unknown[] = Object.freeze([]);
 
-export function getHoidMagicSystemFactRegistryStatus(): "empty" | "ready" {
-  return HOID_MAGIC_SYSTEM_FACT_ANNOTATIONS.length > 0 ? "ready" : "empty";
+export function getHoidMagicSystemFactRegistryStatus(): "empty" | "staged" {
+  return HOID_MAGIC_SYSTEM_FACT_ANNOTATIONS.length > 0 ? "staged" : "empty";
 }
 
 function exactRecord(

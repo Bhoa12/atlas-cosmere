@@ -80,3 +80,16 @@ No se añaden EPUB, XHTML, pasajes, texto de capítulos ni rutas privadas. El ad
 ## Limitación de despliegue
 
 El repositorio aporta el contrato y la composición de producción, pero el host debe inyectar un adaptador local que abra los EPUB privados de forma segura y devuelva únicamente los digests. Si ese adaptador no está configurado o el archivo no está disponible, la promoción se bloquea. No se afirma que cosmere.epub ni todos los EPUB de Roshar estén montados en este entorno.
+
+
+## Run 364 — regresiones de la frontera de acceso local
+
+La frontera también rechaza respuestas del adaptador que añadan bytes EPUB,
+texto extraído o rutas privadas: el objeto de salida admite únicamente
+`status` y el digest documental. Una inspección que exceda el plazo aborta
+la señal cooperativa y bloquea la delegación a la autoridad del host.
+
+Estas pruebas son sintéticas y no inspeccionan archivos privados. La
+implementación concreta del lector local sigue siendo responsabilidad del
+host de despliegue; no se declara disponible ningún EPUB por el mero hecho
+de que exista una entrada bibliográfica o un digest registrado.

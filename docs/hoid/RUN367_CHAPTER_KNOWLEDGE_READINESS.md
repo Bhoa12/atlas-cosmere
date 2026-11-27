@@ -13,6 +13,7 @@ For each reading-manifest unit, the projection distinguishes:
 3. **Current local availability** — whether the selected EPUB session returned the exact registered digest during a completed audit.
 4. **Editorial summary staging** — whether an original summary is still pending review and is bound to the exact work, edition, navigation digest, chapter locator and body digest.
 5. **Production knowledge** — whether a production knowledge entry is bound to that exact chapter unit.
+6. **Approved claim references** — how many approved claims cite knowledge entries whose explicit evidence source maps to that chapter unit.
 
 These stages are deliberately non-interchangeable. In particular:
 - a TOC locator does not prove that the chapter body was inspected;
@@ -65,7 +66,7 @@ The evidence runtime remains the sole narrative authorization gate. The projecti
 After a completed local EPUB audit, `HoidEpubEditorialSourceAccessPanel` shows:
 - verified navigation units and identity-only ambiguous units;
 - registered body digests and currently available documents;
-- pending-review summaries and production knowledge entries.
+- pending-review summaries, production knowledge entries and approved-claim references.
 
 The panel explicitly explains that local availability is not editorial approval or spoiler authorization. Its existing effect clears the audit view when the selected source port or work changes.
 

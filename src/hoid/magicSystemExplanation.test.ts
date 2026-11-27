@@ -279,6 +279,26 @@ describe("Hoid progress-bound magic-system explanations", () => {
     expect(unknown).toEqual({ status: "not-found" });
   });
 
+  it("does not widen a facet query when no reviewed fact exists for that facet", async () => {
+    const { adapter } = fixture();
+    expect(await adapter.answer({
+      question: "Limitaciones de Sistema Alfa",
+      progress: progress(),
+      bookScope: SINGLE_SCOPE,
+      depth: "detailed",
+    })).toEqual({ status: "not-found" });
+  });
+
+  it("requires cross-work evidence for comparative depth and never truncates to fit", async () => {
+    const { adapter } = fixture();
+    expect(await adapter.answer({
+      question: "Reglas de Sistema Alfa",
+      progress: progress(),
+      bookScope: SINGLE_SCOPE,
+      depth: "comparative",
+    })).toEqual({ status: "unavailable", reason: "budget-exceeded" });
+  });
+
   it("requires the resolved entity to be a magic-system entity", async () => {
     const { adapter } = fixture({ kind: "character" });
     expect(await adapter.answer({

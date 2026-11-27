@@ -111,10 +111,10 @@ function exactDataRecord(
   }
 }
 
-function safeOwnFunction(
+function safeOwnFunction<T>(
   value: unknown,
   name: string,
-): ((...args: never[]) => unknown) | null {
+): T | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
     const descriptor = Object.getOwnPropertyDescriptor(value, name);
@@ -123,7 +123,33 @@ function safeOwnFunction(
       !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
       typeof descriptor.value !== "function"
     ) return null;
-    return (descriptor.value as (...args: never[]) => unknown).bind(value);
+    return descriptor.value.bind(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function denseSessionList(value: unknown): readonly unknown[] | null {
+  try {
+    if (
+      !Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Array.prototype ||
+      value.length === 0 ||
+      value.length > MAX_ACTIVE_SOURCE_SESSIONS
+    ) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== value.length + 1 || !keys.includes("length")) return null;
+    const output: unknown[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return null;
+      output.push(descriptor.value);
+    }
+    return Object.freeze(output);
   } catch {
     return null;
   }
@@ -180,9 +206,13 @@ function bindSession(value: unknown): BoundSession | null {
   if (
     packageCandidate === null ||
     typeof packageCandidate !== "object" ||
-    Array.isArray(packageCandidate) ||
-    !Object.isFrozen(packageCandidate)
+    Array.isArray(packageCandidate)
   ) return null;
+  try {
+    if (!Object.isFrozen(packageCandidate)) return null;
+  } catch {
+    return null;
+  }
   const candidate = exactDataRecord(packageCandidate, PACKAGE_CANDIDATE_KEYS);
   if (!candidate) return null;
 
@@ -210,7 +240,10 @@ function bindSession(value: unknown): BoundSession | null {
     manifestResult.manifest.navigationSha256 !== candidate.navigationDocumentSha256
   ) return null;
 
-  const inspectChapterDocument = safeOwnFunction(raw.ingestion, "inspectChapterDocument");
+  const inspectChapterDocument = safeOwnFunction<BoundSession["inspectChapterDocument"]>(
+    raw.ingestion,
+    "inspectChapterDocument",
+  );
   const isCurrentFunction = typeof raw.isCurrent === "function"
     ? raw.isCurrent as () => boolean
     : null;
@@ -388,15 +421,13 @@ async function inspectBoundSession(
 export function createHoidEpubEditorialSourceAccessRouter(
   sessionsInput: unknown,
 ): HoidEpubEditorialSourceAccessRouterResult {
-  if (!Array.isArray(sessionsInput) || sessionsInput.length > MAX_ACTIVE_SOURCE_SESSIONS) {
+  const sessionList = denseSessionList(sessionsInput);
+  if (sessionList === null) {
     return Object.freeze({ status: "unavailable", reason: "invalid-sessions" });
-  }
-  if (sessionsInput.length === 0) {
-    return Object.freeze({ status: "unavailable", reason: "empty-sessions" });
   }
 
   const sessions = new Map<string, BoundSession>();
-  for (const raw of sessionsInput) {
+  for (const raw of sessionList) {
     const session = bindSession(raw);
     if (!session) return Object.freeze({ status: "unavailable", reason: "invalid-sessions" });
     if (sessions.has(session.workId)) {

@@ -13,6 +13,12 @@ import { classifyHoidEntityRelationshipIntent } from '../hoid/entityRelationship
 import { createHoidEntityProgressTimelineAdapter } from '../hoid/entityProgressTimeline';
 import { classifyHoidEntityProgressTimelineIntent } from '../hoid/entityProgressTimelineIntent';
 import {
+  createHoidMagicSystemExplanationAdapter,
+  createHoidMagicSystemFactIndex,
+  HOID_MAGIC_SYSTEM_FACT_ANNOTATIONS,
+} from '../hoid/magicSystemExplanation';
+import { classifyHoidMagicSystemExplanationIntent } from '../hoid/magicSystemExplanationIntent';
+import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
   type HoidDisplaySegment,
@@ -194,6 +200,16 @@ export const HoidScreen: React.FC<{
   const entityProgressTimeline = entityDossierGateway
     ? createHoidEntityProgressTimelineAdapter({
         gateway: entityDossierGateway,
+        refreshCurrentProgress: () => progressRefreshRef.current(),
+      })
+    : null;
+  const magicSystemFactIndex = createHoidMagicSystemFactIndex(
+    HOID_MAGIC_SYSTEM_FACT_ANNOTATIONS,
+  );
+  const magicSystemExplanation = entityDossierGateway && magicSystemFactIndex
+    ? createHoidMagicSystemExplanationAdapter({
+        gateway: entityDossierGateway,
+        factIndex: magicSystemFactIndex,
         refreshCurrentProgress: () => progressRefreshRef.current(),
       })
     : null;
@@ -533,6 +549,7 @@ export const HoidScreen: React.FC<{
       const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
       const relationshipIntent = classifyHoidEntityRelationshipIntent(textoUsuario);
       const timelineIntent = classifyHoidEntityProgressTimelineIntent(textoUsuario);
+      const magicSystemIntent = classifyHoidMagicSystemExplanationIntent(textoUsuario);
       const answerScopeSelection = resolveHoidReadingFocusConversationScope({
         progress: currentProgress,
         answerScopeMode,
@@ -823,6 +840,65 @@ export const HoidScreen: React.FC<{
           } else {
             responseScope = requestScope;
             respuesta = 'No he podido validar el recorrido. No enviaré esta consulta a ningún proveedor.';
+          }
+        }
+      } else if (
+        magicSystemIntent.status === 'ready' ||
+        magicSystemIntent.status === 'needs-name' ||
+        magicSystemIntent.status === 'invalid'
+      ) {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        if (magicSystemIntent.status === 'needs-name') {
+          responseScope = requestScope;
+          respuesta = 'Indica el nombre exacto del sistema de magia que quieres consultar.';
+        } else if (magicSystemIntent.status === 'invalid') {
+          responseScope = requestScope;
+          respuesta = 'No puedo validar esa consulta de magia. No enviaré la pregunta a ningún proveedor.';
+        } else if (!magicSystemExplanation) {
+          responseScope = requestScope;
+          respuesta = 'Las explicaciones de sistemas de magia no están disponibles. No recurriré a un proveedor alternativo.';
+        } else {
+          const magicResult = await magicSystemExplanation.answer({
+            question: textoUsuario,
+            progress: currentProgress,
+            bookScope: answerScopeSelection.scope,
+            depth: explanationDepth,
+          }, { signal: ticket.signal });
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+          if (magicResult.status === 'ready') {
+            responseScope = {
+              revision: magicResult.progressRevision,
+              fingerprint: magicResult.progressFingerprint,
+            };
+            respuesta = 'Sistema de magia: ' + magicResult.systemLabel + '\\n\\n' + magicResult.presentation.text;
+            citas = magicResult.presentation.citations;
+            segmentos = magicResult.presentation.segments;
+            formato = magicResult.presentation.layout;
+          } else if (magicResult.status === 'not-found') {
+            responseScope = requestScope;
+            respuesta = 'No hay una explicación editorial aprobada que pueda mostrar para ese sistema y tu foco de lectura. No confirmaré si faltan datos o si alguna evidencia sigue bloqueada.';
+          } else if (magicResult.status === 'unavailable') {
+            responseScope = requestScope;
+            respuesta = magicResult.reason === 'progress-changed'
+              ? 'Tu progreso ha cambiado mientras preparaba la explicación. He descartado el resultado; vuelve a preguntarme.'
+              : magicResult.reason === 'cancelled'
+                ? 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.'
+                : magicResult.reason === 'invalid-progress'
+                  ? 'No puedo verificar tu progreso actual. La explicación queda bloqueada para evitar spoilers.'
+                  : magicResult.reason === 'invalid-scope'
+                    ? 'El foco de lectura no es válido. No mostraré información fuera de las obras seleccionadas.'
+                    : magicResult.reason === 'budget-exceeded'
+                      ? 'La explicación supera el presupuesto seguro de evidencias. No recortaré afirmaciones ni fuentes.'
+                      : 'No hay una explicación verificable para esta consulta. No recurriré a un proveedor ni inferiré reglas.';
+          } else if (magicResult.status === 'needs-name') {
+            responseScope = requestScope;
+            respuesta = 'Indica el nombre exacto del sistema de magia que quieres consultar.';
+          } else {
+            responseScope = requestScope;
+            respuesta = 'No he podido validar la consulta de magia. No enviaré la pregunta a ningún proveedor.';
           }
         }
       } else if (dossierIntent.status === 'ready') {

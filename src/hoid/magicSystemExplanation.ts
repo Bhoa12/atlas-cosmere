@@ -35,6 +35,7 @@ import {
   type HoidExplanationDepth,
 } from "./explanationDepth";
 import { sha256Hex } from "./sha256";
+import { isHoidKnowledgeKind, type HoidKnowledgeKind } from "./knowledgeKinds";
 import {
   classifyHoidMagicSystemExplanationIntent,
   type HoidMagicSystemFacet,
@@ -65,7 +66,7 @@ export type HoidMagicSystemFactAnnotation = HoidMagicSystemFactAnnotationCore & 
 
 type CanonicalParticipant = Readonly<{
   id: string;
-  kind: string;
+  kind: HoidKnowledgeKind;
   label: string;
 }>;
 
@@ -86,7 +87,7 @@ type CanonicalAnnotation = Readonly<{
 }>;
 
 export type HoidMagicSystemFactIndex = Readonly<{
-  getForMagicSystem(magicSystemId: string): readonly HoidMagicSystemFactAnnotation[];
+  schemaVersion: 1;
 }>;
 
 export type HoidMagicSystemExplanationResult =
@@ -370,7 +371,7 @@ function canonicalClaim(value: unknown): CanonicalClaim | null {
     if (
       !participant ||
       !validId(participant.id) ||
-      typeof participant.kind !== "string" ||
+      !isHoidKnowledgeKind(participant.kind) ||
       !validText(participant.label, 256) ||
       participantIds.has(participant.id)
     ) return null;
@@ -558,22 +559,9 @@ export function createHoidMagicSystemFactIndex(
     left.id.localeCompare(right.id)
   );
   const frozen = Object.freeze(annotations);
-  const index: HoidMagicSystemFactIndex = Object.freeze({
-    getForMagicSystem(magicSystemId: string): readonly HoidMagicSystemFactAnnotation[] {
-      if (!validId(magicSystemId)) return Object.freeze([]);
-      return Object.freeze(
-        frozen
-          .filter(item => item.magicSystemId === magicSystemId)
-          .map(item => Object.freeze({
-            id: item.id,
-            magicSystemId: item.magicSystemId,
-            claimId: item.claimId,
-            facet: item.facet,
-            review: item.review,
-          })),
-      );
-    },
-  });
+  // The branded index is intentionally opaque; reviewed annotations stay
+  // in a WeakMap and are never exposed to UI state or ordinary callers.
+  const index: HoidMagicSystemFactIndex = Object.freeze({ schemaVersion: 1 });
   FACT_INDEXES.add(index as object);
   FACT_INDEX_DATA.set(index as object, frozen);
   return index;

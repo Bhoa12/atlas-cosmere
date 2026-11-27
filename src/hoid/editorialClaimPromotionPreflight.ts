@@ -2,6 +2,12 @@ import type {
   HoidEditorialSourceDocumentAccessPort,
   HoidEditorialSourceDocumentAccessRequest,
 } from "./editorialSourceDocumentAccess";
+
+// Backward-compatible type exports for existing EPUB and editorial consumers.
+export type {
+  HoidEditorialSourceDocumentAccessPort,
+  HoidEditorialSourceDocumentAccessRequest,
+} from "./editorialSourceDocumentAccess";
 import {
   validateHoidEditorialClaimDraft,
   type HoidEditorialClaimDraft,

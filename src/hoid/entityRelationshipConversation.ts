@@ -456,6 +456,7 @@ function buildRelationshipPresentation(
   const rightClaims = new Map(right.claims.map(claim => [claim.claimId, claim] as const));
   const shared: CanonicalClaim[] = [];
   for (const claim of left.claims) {
+    if (claim.intent === "recommend") continue;
     const participantIds = new Set(claim.participants.map(item => item.id));
     if (!participantIds.has(left.entity.id) || !participantIds.has(right.entity.id)) continue;
     const counterpart = rightClaims.get(claim.claimId);

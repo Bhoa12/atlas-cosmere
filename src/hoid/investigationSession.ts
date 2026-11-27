@@ -55,9 +55,9 @@ export type HoidInvestigationSession = Readonly<{
   isCurrent(ticket: unknown): ticket is HoidInvestigationTurnTicket;
   /** Records only a completed, progress-validated investigation. */
   recordCompleted(ticket: unknown, input: unknown): boolean;
-  /** Checks whether one dimension has already been investigated in the exact same scope. */
+  /** Checks whether one domain/topic pair has already been investigated in the exact same scope. */
   hasCompleted(input: unknown): boolean;
-  /** Removes dimensions already completed for this subject and exact reading scope. */
+  /** Removes completed topics for this subject and exact reading scope. */
   filterSuggestions<T extends HoidInvestigationSuggestionLike>(
     ticket: unknown,
     input: unknown,

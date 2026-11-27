@@ -72,7 +72,7 @@ describe("Hoid session-scoped investigation history", () => {
       suggestions: suggestions(),
     });
 
-    expect(visible.map(item => item.dimension)).toEqual(["relationship", "capability"]);
+    expect(visible.map(item => "dimension" in item ? item.dimension : item.topic)).toEqual(["relationship", "capability"]);
   });
 
   it("does not suppress suggestions after the progress or selected book scope changes", () => {

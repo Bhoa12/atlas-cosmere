@@ -860,15 +860,15 @@ export function createHoidMagicSystemExplanationAdapter(
         return unavailable("invalid-dossier");
       }
       if (options.signal?.aborted) return unavailable("cancelled");
-      if (gatewayResult.status === "not-found" || gatewayResult.status === "ambiguous") {
-        return Object.freeze({ status: "not-found" });
-      }
       if (gatewayResult.status === "unavailable") {
         return unavailable(
           gatewayResult.reason === "progress-changed" ? "progress-changed" :
           gatewayResult.reason === "invalid-progress" ? "invalid-progress" :
           "invalid-dossier",
         );
+      }
+      if (gatewayResult.status !== "ready") {
+        return Object.freeze({ status: "not-found" });
       }
 
       const dossier = canonicalDossier(gatewayResult.dossier, scope, before);

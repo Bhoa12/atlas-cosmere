@@ -27,6 +27,7 @@ import type {
   HoidPresentedCitation,
 } from "./answerPresentation";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
+import type { ReadingPosition } from "./types";
 
 export type HoidNarrativeTemporalRelation = Readonly<{
   id: string;
@@ -88,8 +89,7 @@ export type HoidNarrativeTemporalChronologyAdapter = Readonly<{
 type ProgressIdentity = Readonly<{
   revision: number;
   fingerprint: string;
-  reading: ReturnType<typeof projectHoidCursorProgressSnapshot> extends
-    Readonly<{ status: "ready"; reading: infer T }> ? T : never;
+  reading: readonly ReadingPosition[];
 }>;
 
 type CanonicalRelation = Readonly<{

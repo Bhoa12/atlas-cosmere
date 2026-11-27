@@ -53,7 +53,7 @@ function canonicalQuestion(value: unknown): string | null {
 function canonicalSystemName(value: string): string {
   return value
     .replace(/[?!¡¿.,;:…]+$/u, "")
-    .replace(/^[\"'“”«»]+|[\"'“”«»]+$/gu, "")
+    .replace(/^["'“”«»]+|["'“”«»]+$/gu, "")
     .replace(/\s+(?:magic|system)$/iu, "")
     .trim();
 }

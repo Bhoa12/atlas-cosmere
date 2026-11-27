@@ -168,7 +168,7 @@ describe("Hoid progress-bound entity timeline", () => {
       "Afirmación sintética anterior.",
       "Afirmación sintética posterior.",
     ]);
-    expect(result.presentation.text).toContain("no representa una cronología canónica");
+    expect(result.presentation.text).toContain("No representa una cronología canónica");
     expect(result.presentation.citations.map(item => item.chapter)).toContain(4);
     expect(result.presentation.segments?.map(item => item.claimId)).toEqual([
       "claim.vin.earlier",

@@ -162,7 +162,7 @@ export const HoidEditorialReviewWorkspacePanel: React.FC<{
           setFeedback("La decisión no supera la validación editorial. No se ha guardado.");
           break;
         case "unavailable":
-          setFeedback("El almacenamiento no está disponible o no ha confirmado la escritura.");
+          setFeedback("No se pudo verificar el progreso o el almacenamiento no confirmó la escritura.");
           break;
       }
     } catch {

@@ -413,6 +413,9 @@ function canonicalClaim(value: unknown): CanonicalClaim | null {
     }));
   }
 
+  const sourceIds = new Set(sources.map(source => source.evidenceId));
+  if (participants.some(participant => !sourceIds.has(participant.id))) return null;
+
   participants.sort((left, right) => left.id.localeCompare(right.id));
   sources.sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
   return Object.freeze({

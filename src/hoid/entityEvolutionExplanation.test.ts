@@ -269,6 +269,7 @@ describe("Hoid progress-bound character evolution", () => {
       reviewedAt: NOW,
     });
     expect(review).not.toBeNull();
+    if (!review) throw new Error("Expected a reviewed transition annotation");
     const index = createHoidCharacterEvolutionIndex([Object.freeze({ ...core, review })]);
     const adapter = createHoidCharacterEvolutionExplanationAdapter({
       gateway: state.gateway,
@@ -340,10 +341,11 @@ describe("Hoid progress-bound character evolution", () => {
     });
     expect(unknown.status).toBe("not-found");
 
-    state.setCurrent(progress(2));
+    const lockedProgress = progress(2);
+    state.setCurrent(lockedProgress);
     const locked = await state.adapter.answer({
       question: "Evolución de Personaje Alfa",
-      progress: state.current,
+      progress: lockedProgress,
       bookScope: SINGLE_SCOPE,
     });
     expect(locked.status).toBe("not-found");

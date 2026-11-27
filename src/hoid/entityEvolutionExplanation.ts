@@ -1104,3 +1104,22 @@ export function isHoidCharacterEvolutionDimension(
 ): value is HoidCharacterEvolutionDimension {
   return typeof value === "string" && (DIMENSIONS as readonly string[]).includes(value);
 }
+
+/**
+ * Resolve a reviewed follow-up suggestion into an editable composer draft.
+ * It never submits the question or bypasses the normal progress-scoped answer path.
+ */
+export function resolveHoidCharacterInvestigationDraft(
+  value: unknown,
+  canEdit: boolean,
+): string | null {
+  if (!canEdit) return null;
+  const raw = exactRecord(value, ["dimension", "question", "citations"]);
+  if (
+    !raw ||
+    !isHoidCharacterEvolutionDimension(raw.dimension) ||
+    !validText(raw.question, MAX_TEXT) ||
+    !denseArray(raw.citations, 1, 64)
+  ) return null;
+  return raw.question;
+}

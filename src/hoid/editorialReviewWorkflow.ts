@@ -210,7 +210,7 @@ export function createHoidEditorialReviewSubmissionPort(options: Readonly<{
       } catch {
         return "unavailable";
       }
-      if (freshProgress === null) return "not-eligible";
+      if (freshProgress === null) return "unavailable";
 
       let currentValue: unknown;
       try {

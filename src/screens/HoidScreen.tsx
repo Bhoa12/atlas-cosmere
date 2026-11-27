@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCosmere } from '../context/CosmereContext';
 import { createHoidEditorialRuntime, getHoidEditorialRegistryStatus } from '../hoid/editorialRegistry';
@@ -93,7 +93,13 @@ import { HoidEpubEditorialSourceAccessPanel } from '../components/HoidEpubEditor
 import { HoidSourceCoveragePanel } from '../components/HoidSourceCoveragePanel';
 import { HoidEditorialSummaryReviewQueuePanel } from '../components/HoidEditorialSummaryReviewQueuePanel';
 import { HoidEditorialReviewWorkspacePanel } from '../components/HoidEditorialReviewWorkspacePanel';
-import type { HoidEditorialReviewSubmissionPort } from '../hoid/editorialReviewWorkflow';
+import {
+  createHoidEditorialReviewSubmissionPort,
+} from '../hoid/editorialReviewWorkflow';
+import type {
+  HoidEditorialReviewReceiptSnapshot,
+  HoidEditorialReviewReceiptStorePort,
+} from '../hoid/editorialReviewReceiptStore';
 import type { HoidEditorialSourceDocumentAccessPort } from '../hoid/editorialClaimPromotionPreflight';
 import {
   openHoidRecommendationChapter,
@@ -164,7 +170,8 @@ export const HoidScreen: React.FC<{
   readerPreferencesStoreStatus?: HoidReaderPreferencesStoreStatus;
   editorialReviewReceipts?: readonly unknown[] | null;
   editorialReviewReceiptStatus?: "loading" | "ready" | "unavailable";
-  editorialReviewSubmissionPort?: HoidEditorialReviewSubmissionPort | null;
+  editorialReviewReceiptStore?: HoidEditorialReviewReceiptStorePort | null;
+  onEditorialReviewReceiptSnapshot?: (snapshot: HoidEditorialReviewReceiptSnapshot) => void;
 }> = ({
   trustedAnswerPort: trustedAnswerPortInput = null,
   trustedConversationPort: trustedConversationPortInput = null,
@@ -173,7 +180,8 @@ export const HoidScreen: React.FC<{
   readerPreferencesStoreStatus = 'unavailable',
   editorialReviewReceipts = null,
   editorialReviewReceiptStatus = "unavailable",
-  editorialReviewSubmissionPort = null,
+  editorialReviewReceiptStore = null,
+  onEditorialReviewReceiptSnapshot,
 }) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
   // The signed presenter capability gates topic recommendations; the exact-unit
@@ -207,6 +215,14 @@ export const HoidScreen: React.FC<{
       return null;
     }
   }, []);
+  const editorialReviewSubmissionPort = useMemo(() => {
+    if (!editorialReviewReceiptStore) return null;
+    return createHoidEditorialReviewSubmissionPort({
+      store: editorialReviewReceiptStore,
+      getFreshProgress: refreshEditorialReviewProgress,
+      onSnapshot: onEditorialReviewReceiptSnapshot,
+    });
+  }, [editorialReviewReceiptStore, refreshEditorialReviewProgress, onEditorialReviewReceiptSnapshot]);
   const [investigationContextConversation] = useState(() =>
     createProductionHoidInvestigationContextConversationAdapter(
       () => progressReaderRef.current(),
@@ -1902,7 +1918,6 @@ export const HoidScreen: React.FC<{
         receipts={editorialReviewReceipts ?? []}
         receiptsStatus={editorialReviewReceiptStatus}
         reviewPort={editorialReviewSubmissionPort}
-        refreshProgress={refreshEditorialReviewProgress}
       />
 
       <View style={styles.recommendationPanel}>

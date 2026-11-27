@@ -10,9 +10,10 @@ import {
 } from "./answerScope";
 import {
   canonicalEvidenceScope,
-  isEvidenceUnlocked,
   type HoidEvidenceCitation,
 } from "./evidenceScope";
+import { validEditionBoundReadingPositions } from "./editionProgressValidation";
+import type { ReadingPosition } from "./types";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
@@ -125,7 +126,7 @@ export type HoidMagicSystemExplanationAdapter = Readonly<{
 type ProgressIdentity = Readonly<{
   revision: number;
   fingerprint: string;
-  reading: readonly Readonly<{ bookId: string; chapter?: number; completed?: boolean }>[];
+  reading: readonly ReadingPosition[];
 }>;
 
 type AdapterConfig = Readonly<{
@@ -339,7 +340,13 @@ function canonicalSource(
     unlockBookId: source.unlockBookId,
     unlockChapter: source.unlockChapter,
   });
-  return isEvidenceUnlocked(citation, reading) ? citation : null;
+  const canonicalReading = validEditionBoundReadingPositions(reading);
+  if (!canonicalReading) return null;
+  const position = canonicalReading.find(item => item.bookId === citation.unlockBookId);
+  return position && (
+    position.completed === true ||
+    (typeof position.chapter === "number" && position.chapter >= citation.unlockChapter)
+  ) ? citation : null;
 }
 
 function sameSource(left: HoidEvidenceCitation, right: HoidEvidenceCitation): boolean {

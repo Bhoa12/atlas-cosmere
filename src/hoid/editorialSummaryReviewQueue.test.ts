@@ -274,11 +274,19 @@ describe("Hoid progress-bound editorial summary review queue", () => {
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
     const serialized = JSON.stringify(result.queue);
+    expect(Object.keys(result.queue.items[0]).sort()).toEqual([
+      "draftId", "packetId", "workId", "title", "chapterNumber", "unlockChapter",
+      "editionId", "status", "reviewedAt", "checklistPassedCount", "reviewerTrust",
+      "noteCodes", "promotionAllowed", "productionWritePerformed",
+    ].sort());
+    expect(result.queue.items[0]).not.toHaveProperty("summary");
+    expect(result.queue.items[0]).not.toHaveProperty("sourceText");
+    expect(result.queue.items[0]).not.toHaveProperty("locatorId");
+    expect(result.queue.items[0]).not.toHaveProperty("documentSha256");
     for (const forbidden of [
       selected.summary,
       selected.evidenceSource.locatorId,
       selected.sourceIntegrity.documentSha256,
-      "summaryText",
       "summarySha256",
       "sourceDocumentSha256",
       "file://",

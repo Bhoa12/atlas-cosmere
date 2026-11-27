@@ -147,7 +147,7 @@ export const HoidEpubEditorialSourceAccessPanel: React.FC<{
                 Huella de cuerpo registrada: {readiness.report.counts.bodyDigestRegisteredUnitCount} · Disponibles ahora: {readiness.report.counts.currentlyAvailableUnitCount}
               </Text>
               <Text style={styles.readinessText}>
-                Resúmenes pendientes de revisión: {readiness.report.counts.pendingReviewSummaryCount} · Entradas de conocimiento en producción: {readiness.report.counts.productionKnowledgeEntryCount}
+                Resúmenes pendientes de revisión: {readiness.report.counts.pendingReviewSummaryCount} · Entradas en producción: {readiness.report.counts.productionKnowledgeEntryCount} · Referencias de afirmaciones aprobadas: {readiness.report.counts.approvedClaimReferenceCount}
               </Text>
               <Text style={styles.readinessNote}>
                 Son etapas independientes: una coincidencia local no equivale a revisión editorial ni autoriza respuestas o spoilers.

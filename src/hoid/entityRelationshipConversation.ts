@@ -321,7 +321,7 @@ function canonicalDossier(
   ) return null;
 
   const entitySource = canonicalCitation(entity.source, scope, progress.reading, true);
-  if (!entitySource) return null;
+  if (!entitySource || entitySource.evidenceId !== entity.id) return null;
 
   const aliasEvidence = denseArray(entity.aliasEvidence, 1, MAX_ALIAS_EVIDENCE);
   if (!aliasEvidence) return null;
@@ -461,6 +461,10 @@ function buildRelationshipPresentation(
     const counterpart = rightClaims.get(claim.claimId);
     if (!counterpart) continue;
     if (counterpart.fingerprint !== claim.fingerprint) return unavailable("invalid-dossier");
+    const evidenceIds = new Set(claim.sources.map(source => source.evidenceId));
+    if (!evidenceIds.has(left.entity.id) || !evidenceIds.has(right.entity.id)) {
+      return unavailable("invalid-dossier");
+    }
     shared.push(claim);
   }
 

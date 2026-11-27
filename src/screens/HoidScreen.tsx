@@ -799,6 +799,8 @@ export const HoidScreen: React.FC<{
             };
             respuesta = timelineResult.presentation.text;
             citas = timelineResult.presentation.citations;
+            segmentos = timelineResult.presentation.segments;
+            formato = timelineResult.presentation.layout;
           } else if (timelineResult.status === 'not-found') {
             responseScope = requestScope;
             respuesta = 'No hay un recorrido editorial aprobado que pueda mostrar para esa entidad y tu foco de lectura. No confirmaré si faltan datos o si alguna evidencia todavía está bloqueada.';

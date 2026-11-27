@@ -2,10 +2,7 @@ import {
   canonicalizeHoidAnswerBookScope,
   type HoidAnswerBookScope,
 } from "./answerScope";
-import {
-  isHoidCharacterEvolutionDimension,
-  type HoidCharacterEvolutionDimension,
-} from "./entityEvolutionExplanationIntent";
+import type { HoidCharacterEvolutionDimension } from "./entityEvolutionExplanationIntent";
 import { sha256Hex } from "./sha256";
 
 export type HoidInvestigationTopic = HoidCharacterEvolutionDimension | "overview";
@@ -57,8 +54,7 @@ const MAX_SUGGESTIONS = 8;
 const MAX_CITATIONS = 64;
 export const HOID_INVESTIGATION_SESSION_LIMIT = 64;
 
-const TOPICS: readonly HoidInvestigationTopic[] = Object.freeze([
-  "overview",
+const DIMENSIONS: readonly HoidCharacterEvolutionDimension[] = Object.freeze([
   "perspective",
   "knowledge",
   "capability",
@@ -68,6 +64,11 @@ const TOPICS: readonly HoidInvestigationTopic[] = Object.freeze([
   "motivation",
   "cause",
 ]);
+const TOPICS: readonly HoidInvestigationTopic[] = Object.freeze(["overview", ...DIMENSIONS]);
+
+function isEvolutionDimension(value: unknown): value is HoidCharacterEvolutionDimension {
+  return typeof value === "string" && (DIMENSIONS as readonly string[]).includes(value);
+}
 
 function exactRecord(
   value: unknown,
@@ -144,9 +145,7 @@ function validText(value: unknown, maximum: number): value is string {
 }
 
 function canonicalTopic(value: unknown): value is HoidInvestigationTopic {
-  return typeof value === "string" &&
-    (TOPICS as readonly string[]).includes(value) &&
-    (value === "overview" || isHoidCharacterEvolutionDimension(value));
+  return value === "overview" || isEvolutionDimension(value);
 }
 
 function canonicalSubjectFingerprint(value: unknown): string | null {
@@ -329,7 +328,7 @@ export function createHoidInvestigationSession(): HoidInvestigationSession {
         const item = exactRecord(suggestion, ["dimension", "question", "citations"]);
         if (
           !item ||
-          !isHoidCharacterEvolutionDimension(item.dimension) ||
+          !isEvolutionDimension(item.dimension) ||
           !validText(item.question, MAX_QUESTION_LENGTH) ||
           !denseArray(item.citations, 1, MAX_CITATIONS)
         ) continue;

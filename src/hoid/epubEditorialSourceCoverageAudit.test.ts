@@ -36,6 +36,9 @@ describe("Hoid local EPUB editorial source coverage audit", () => {
     expect(result).toMatchObject({
       status: "completed",
       workId,
+      editionId: expect.any(String),
+      navigationSha256: expect.any(String),
+      manifestId: expect.any(String),
       scope: "registered-digest-chapters-only",
       totalAllowlistedChapterCount: numbers.length,
       checkedChapterCount: numbers.length,
@@ -138,6 +141,9 @@ describe("Hoid local EPUB editorial source coverage audit", () => {
     expect(result).toMatchObject({
       status: "cancelled",
       workId: "edgedancer",
+      editionId: expect.any(String),
+      navigationSha256: expect.any(String),
+      manifestId: expect.any(String),
       checkedChapterCount: 0,
     });
   });

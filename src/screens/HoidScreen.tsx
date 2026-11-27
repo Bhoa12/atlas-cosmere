@@ -564,6 +564,14 @@ export const HoidScreen: React.FC<{
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica los dos nombres exactos cuya relación quieres consultar.';
+      } else if (
+        intentPlan.mode === 'relationship-explanation' &&
+        relationshipIntent.status === 'not-relationship'
+      ) {
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+        respuesta = 'He detectado una pregunta sobre relaciones, pero no puedo separar dos nombres exactos. Reformúlala como «Relación entre A y B». No la enviaré a ningún proveedor.';
       } else if (intentPlan.mode === 'reread-request') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;

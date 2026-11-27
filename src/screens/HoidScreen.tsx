@@ -2213,6 +2213,9 @@ export const HoidScreen: React.FC<{
                     {item.formato === 'grouped' && index % 3 === 0 && (
                       <Text style={styles.provenanceHeading}>Bloque {Math.floor(index / 3) + 1}</Text>
                     )}
+                    {segmento.epistemicLabel && (
+                      <Text style={styles.recommendationItemMeta}>{segmento.epistemicLabel}</Text>
+                    )}
                     <Text style={styles.bubbleText}>
                       {item.formato === 'numbered' ? `${index + 1}. ` : item.formato === 'grouped' ? '• ' : ''}
                       {segmento.text}

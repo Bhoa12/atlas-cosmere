@@ -21,8 +21,27 @@ export const HoidEditorialSummaryReviewQueuePanel: React.FC<{
   progressSnapshot: unknown;
   selectedBookId?: string | null;
   receipts?: unknown;
-}> = ({ progressSnapshot, selectedBookId = null, receipts = EMPTY_RECEIPTS }) => {
+  receiptsStatus?: "loading" | "ready" | "unavailable";
+}> = ({
+  progressSnapshot,
+  selectedBookId = null,
+  receipts = EMPTY_RECEIPTS,
+  receiptsStatus = "unavailable",
+}) => {
   const [expanded, setExpanded] = useState(false);
+
+  if (receiptsStatus !== "ready") {
+    return (
+      <View style={styles.panel}>
+        <Text style={styles.heading}>REVISIÓN EDITORIAL · PROGRESO PROTEGIDO</Text>
+        <Text style={styles.note}>
+          {receiptsStatus === "loading"
+            ? "Cargando el registro local de revisiones. La cola permanecerá oculta hasta validar su integridad."
+            : "El registro local de revisiones no está disponible o no supera la validación. La cola se oculta para no confundir revisiones existentes con borradores pendientes."}
+        </Text>
+      </View>
+    );
+  }
   const result = useMemo(
     () => projectHoidEditorialSummaryReviewQueue(
       HOID_EDITORIAL_DRAFTS,

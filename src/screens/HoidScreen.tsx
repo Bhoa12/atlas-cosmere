@@ -22,6 +22,7 @@ import {
   createHoidCharacterEvolutionExplanationAdapter,
   createHoidCharacterEvolutionIndex,
   HOID_CHARACTER_EVOLUTION_ANNOTATIONS,
+  resolveHoidCharacterInvestigationDraft,
   type HoidCharacterInvestigationSuggestion,
 } from '../hoid/entityEvolutionExplanation';
 import { classifyHoidCharacterEvolutionIntent } from '../hoid/entityEvolutionExplanationIntent';
@@ -2134,7 +2135,26 @@ export const HoidScreen: React.FC<{
                 <Text style={styles.citationHeading}>PREGUNTAS DE SEGUIMIENTO DISPONIBLES</Text>
                 {item.preguntasSugeridas.map((suggestion, suggestionIndex) => (
                   <View key={suggestion.dimension + ':' + suggestionIndex} style={{ marginBottom: 10 }}>
-                    <Text style={styles.bubbleText}>{suggestion.question}</Text>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={`Preparar pregunta para Hoid: ${suggestion.question}`}
+                      accessibilityHint="Rellena el cuadro de texto sin enviar la pregunta."
+                      disabled={cargando || progresoPersistenciaEstado !== 'ready'}
+                      onPress={() => {
+                        const draft = resolveHoidCharacterInvestigationDraft(
+                          suggestion,
+                          !cargando && progresoPersistenciaEstado === 'ready',
+                        );
+                        if (draft !== null) setInput(draft);
+                      }}
+                      style={[
+                        styles.followUpSuggestion,
+                        (cargando || progresoPersistenciaEstado !== 'ready') && styles.disabledButton,
+                      ]}
+                    >
+                      <Text style={styles.followUpSuggestionText}>{suggestion.question}</Text>
+                      <Text style={styles.followUpSuggestionHint}>PREPARAR PREGUNTA</Text>
+                    </TouchableOpacity>
                     {suggestion.citations.map((citation, citationIndex) => (
                       <Text
                         key={citation.sourceBookId + ':' + citation.chapter + ':' + citationIndex}
@@ -2289,6 +2309,9 @@ const styles = StyleSheet.create({
   citationBlock: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#3730a3' },
   citationHeading: { color: '#a5b4fc', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   citationText: { color: '#c7d2fe', fontSize: 10, lineHeight: 15, marginTop: 3 },
+  followUpSuggestion: { padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#6366f1', backgroundColor: '#171b3d', marginTop: 7 },
+  followUpSuggestionText: { color: '#e0e7ff', fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  followUpSuggestionHint: { color: '#a5b4fc', fontSize: 9, fontWeight: '800', letterSpacing: 0.7, marginTop: 5 },
   inputContainer: { flexDirection: 'column', padding: 12, backgroundColor: '#0f172a', borderTopWidth: 1, borderColor: '#1e293b' },
   depthControlHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 },
   depthLabel: { color: '#c7d2fe', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },

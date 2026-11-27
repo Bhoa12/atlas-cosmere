@@ -565,7 +565,7 @@ export const HoidScreen: React.FC<{
       // results and cancelled work explicitly clear this scope below.
       let responseScope: HoidConversationProgressScope | null = requestScope;
 
-      if (intentPlan.status !== 'ready') {
+      if (intentPlan.status !== 'ready' && magicSystemIntent.status === 'not-magic') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;

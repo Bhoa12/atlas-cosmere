@@ -1,0 +1,78 @@
+name: Hoid Run 370 — SQLite editorial review receipt persistence
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/editorialReviewReceiptStore.ts"
+      - "src/hoid/sqliteEditorialReviewReceiptStore.ts"
+      - "src/hoid/expoEditorialReviewReceiptStore.ts"
+      - "src/hoid/sqliteEditorialReviewReceiptStore.test.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/sqliteProgressStore.ts"
+      - "src/hoid/expoHoidDatabase.ts"
+      - "src/hoid/sharedSqliteDatabase.ts"
+      - "src/components/HoidEditorialSummaryReviewQueuePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "docs/hoid/RUN370_SQLITE_EDITORIAL_REVIEW_RECEIPTS.md"
+      - ".github/workflows/hoid-run370-sqlite-editorial-review-receipts.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run370"
+    paths:
+      - "src/hoid/editorialReviewReceiptStore.ts"
+      - "src/hoid/sqliteEditorialReviewReceiptStore.ts"
+      - "src/hoid/expoEditorialReviewReceiptStore.ts"
+      - "src/hoid/sqliteEditorialReviewReceiptStore.test.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialDrafts.ts"
+      - "src/hoid/sqliteProgressStore.ts"
+      - "src/hoid/expoHoidDatabase.ts"
+      - "src/hoid/sharedSqliteDatabase.ts"
+      - "src/components/HoidEditorialSummaryReviewQueuePanel.tsx"
+      - "src/screens/HoidScreen.tsx"
+      - "src/screens/HoidTrustedScreenHost.tsx"
+      - "docs/hoid/RUN370_SQLITE_EDITORIAL_REVIEW_RECEIPTS.md"
+      - ".github/workflows/hoid-run370-sqlite-editorial-review-receipts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-editorial-review-receipts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test SQLite receipt persistence and spoiler-safe queue
+        run: >-
+          npx vitest run
+          src/hoid/sqliteEditorialReviewReceiptStore.test.ts
+          src/hoid/editorialSummaryReviewQueue.test.ts
+          src/hoid/editorialReviewPackets.test.ts
+          src/hoid/cursorEvidenceRuntime.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/editorialReviewReceiptStore.ts
+          src/hoid/sqliteEditorialReviewReceiptStore.ts
+          src/hoid/expoEditorialReviewReceiptStore.ts
+          src/hoid/sqliteEditorialReviewReceiptStore.test.ts
+          src/components/HoidEditorialSummaryReviewQueuePanel.tsx
+          src/screens/HoidScreen.tsx
+          src/screens/HoidTrustedScreenHost.tsx

@@ -160,12 +160,16 @@ export const HoidScreen: React.FC<{
   trustedCuratedPathRecommendationPort?: HoidTrustedCuratedPathRecommendationScreenPort | null;
   readerPreferencesStore?: HoidReaderRecommendationPreferencesStorePort | null;
   readerPreferencesStoreStatus?: HoidReaderPreferencesStoreStatus;
+  editorialReviewReceipts?: readonly unknown[] | null;
+  editorialReviewReceiptStatus?: "loading" | "ready" | "unavailable";
 }> = ({
   trustedAnswerPort: trustedAnswerPortInput = null,
   trustedConversationPort: trustedConversationPortInput = null,
   trustedCuratedPathRecommendationPort: curatedPathRecommendationPortInput = null,
   readerPreferencesStore = null,
   readerPreferencesStoreStatus = 'unavailable',
+  editorialReviewReceipts = null,
+  editorialReviewReceiptStatus = "unavailable",
 }) => {
   // A caller-supplied object with a compatible shape is not a trust grant.
   // The signed presenter capability gates topic recommendations; the exact-unit
@@ -1876,7 +1880,11 @@ export const HoidScreen: React.FC<{
         }
       />
 
-      <HoidEditorialSummaryReviewQueuePanel progressSnapshot={liveProgress} />
+      <HoidEditorialSummaryReviewQueuePanel
+        progressSnapshot={liveProgress}
+        receipts={editorialReviewReceipts ?? []}
+        receiptsStatus={editorialReviewReceiptStatus}
+      />
 
       <View style={styles.recommendationPanel}>
         <View style={styles.recommendationHeader}>

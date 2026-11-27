@@ -1,7 +1,6 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
 import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
-import type { HoidEpubEditorialSourceCoverageAuditResult } from "./epubEditorialSourceCoverageAudit";
 import { getHoidReadingManifest } from "./readingManifest";
 import {
   getVerifiedChapterDocumentNumbers,
@@ -350,7 +349,7 @@ export function getHoidChapterKnowledgeReadiness(
     productionEntriesByUnit.set(unit.id, (productionEntriesByUnit.get(unit.id) ?? 0) + 1);
   }
 
-  const knowledgeById = new Map(HOID_EDITORIAL_KNOWLEDGE.map(entry => [entry.id, entry]));
+  const knowledgeById = new Map(HOID_EDITORIAL_KNOWLEDGE.map(entry => [entry.id, entry] as const));
   const approvedClaimsByUnit = new Map<string, Set<string>>();
   for (const claim of HOID_APPROVED_CLAIMS) {
     for (const evidenceId of claim.evidenceIds) {

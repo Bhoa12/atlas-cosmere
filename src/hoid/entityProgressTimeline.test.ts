@@ -170,6 +170,11 @@ describe("Hoid progress-bound entity timeline", () => {
     ]);
     expect(result.presentation.text).toContain("no representa una cronología canónica");
     expect(result.presentation.citations.map(item => item.chapter)).toContain(4);
+    expect(result.presentation.segments?.map(item => item.claimId)).toEqual([
+      "claim.vin.earlier",
+      "claim.vin.later",
+    ]);
+    expect(result.presentation.segments?.[0].citations.map(item => item.chapter)).toContain(2);
     expect(JSON.stringify(result)).not.toContain("evidenceId");
     expect(JSON.stringify(result)).not.toContain("locatorId");
     expect(JSON.stringify(result)).not.toContain("unlockChapter");

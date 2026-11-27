@@ -198,6 +198,15 @@ describe("Hoid magic-system explanation intent", () => {
       systemName: "Sistema Alfa",
       facet: "principle",
     });
+    expect(classifyHoidMagicSystemExplanationIntent("¿Cómo funciona el sistema de magia de Sistema Alfa?")).toEqual({
+      status: "ready",
+      systemName: "Sistema Alfa",
+      facet: "principle",
+    });
+    expect(classifyHoidMagicSystemExplanationIntent("Explícame el sistema de magia de Sistema Alfa")).toEqual({
+      status: "ready",
+      systemName: "Sistema Alfa",
+    });
     expect(classifyHoidMagicSystemExplanationIntent("Limitaciones de Sistema Alfa")).toEqual({
       status: "ready",
       systemName: "Sistema Alfa",

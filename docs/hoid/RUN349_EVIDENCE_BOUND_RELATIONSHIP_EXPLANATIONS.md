@@ -45,13 +45,16 @@ If a claim appears in only one dossier, it is not used. If the same claim ID has
 
 Supported forms are intentionally narrow:
 
-- `¿Qué relación hay entre A y B?`
-- `¿Cómo se relacionan A y B?`
+- `¿Qué relación hay/existe entre A y B?`
+- `¿Qué conexión hay/existe entre A y B?`
+- `¿Cómo se relacionan / están relacionados A y B?`
+- `¿Qué relación tiene A con B?`
+- `¿Qué une a A y B?` / `¿Qué tienen en común A y B?`
 - `Relación entre A y B`
 - `What is the relationship between A and B?`
-- `How are A and B connected?`
+- `How are A and B connected/related?`
 
-Only one conjunction is accepted. If a name itself contains an ambiguous conjunction, the parser abstains rather than guessing a split. The resulting names are exact alias lookup keys; there is no fuzzy matching or model-generated candidate list.
+Accented and unaccented Spanish forms are accepted. Only one conjunction is accepted. If a name itself contains an ambiguous conjunction, the parser abstains rather than guessing a split. Other relationship cues detected by the broader intent classifier but not covered by the exact-name grammar are also stopped locally and asked to be reformulated; they never fall through to a provider. The resulting names are exact alias lookup keys; there is no fuzzy matching or model-generated candidate list.
 
 ## Run 348 CI correction
 

@@ -134,7 +134,6 @@ function denseSessionList(value: unknown): readonly unknown[] | null {
     if (
       !Array.isArray(value) ||
       Object.getPrototypeOf(value) !== Array.prototype ||
-      value.length === 0 ||
       value.length > MAX_ACTIVE_SOURCE_SESSIONS
     ) return null;
     const keys = Reflect.ownKeys(value);
@@ -424,6 +423,9 @@ export function createHoidEpubEditorialSourceAccessRouter(
   const sessionList = denseSessionList(sessionsInput);
   if (sessionList === null) {
     return Object.freeze({ status: "unavailable", reason: "invalid-sessions" });
+  }
+  if (sessionList.length === 0) {
+    return Object.freeze({ status: "unavailable", reason: "empty-sessions" });
   }
 
   const sessions = new Map<string, BoundSession>();

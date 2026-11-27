@@ -683,9 +683,10 @@ export function createHoidEntityRelationshipConversationAdapter(
       const right = normalizeGatewayResult(rightRaw, scope, before);
       if (left.status === "unavailable") return unavailable(left.reason);
       if (right.status === "unavailable") return unavailable(right.reason);
-      if (left.status !== "ready" || right.status !== "ready") {
-        return Object.freeze({ status: "not-found" });
-      }
+      if (left.status === "not-found") return Object.freeze({ status: "not-found" });
+      if (right.status === "not-found") return Object.freeze({ status: "not-found" });
+      if (left.status !== "ready") return unavailable("invalid-dossier");
+      if (right.status !== "ready") return unavailable("invalid-dossier");
 
       const projected = buildRelationshipPresentation(left.dossier, right.dossier, scope, depth);
       if (projected.status !== "ready") return projected;

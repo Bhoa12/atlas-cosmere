@@ -251,7 +251,14 @@ describe("Hoid spoiler-safe investigation context presentation", () => {
       getCurrentProgress: () => expanded,
     });
     const result = presenter!.present({ graph: expandedGraph, history, bookScope: scope });
-    expect(result).toEqual({ status: "unavailable", reason: "locked-or-ambiguous-alias" });
+    expect(result).toEqual(expect.objectContaining({ status: "ready", links: [] }));
+    expect(resolveHoidAuthorizedEntityAliasDisclosures(
+      [fixture.a, fixture.b, duplicate],
+      aliases,
+      expanded,
+      [fixture.a.id, fixture.b.id],
+      scope,
+    )).toEqual({ status: "unavailable", reason: "locked-or-ambiguous-alias" });
   });
 
   it("invalidates the presentation if progress changes during resolution", () => {

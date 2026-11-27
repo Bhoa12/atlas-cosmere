@@ -489,9 +489,21 @@ type InternalTimelineItem = Readonly<{
   citations: readonly HoidEvidenceCitation[];
 }>;
 
+function projectCitations(
+  sources: readonly HoidEvidenceCitation[],
+): readonly HoidDisplayCitation[] | null {
+  const projected = projectHoidAnswerForDisplay(Object.freeze({
+    status: "ready",
+    text: "citation projection",
+    claimIds: Object.freeze([]),
+    evidenceIds: Object.freeze(sources.map(source => source.evidenceId)),
+    citations: Object.freeze(sources.map(source => toPresentedCitation(source))),
+  }));
+  return projected ? projected.citations : null;
+}
+
 function buildTimeline(
   dossier: CanonicalDossier,
-  progress: ProgressIdentity,
 ): HoidEntityProgressTimelineResult {
   const tracks = new Map<string, InternalTimelineItem[]>();
   const crossWorkItems: Readonly<{
@@ -501,12 +513,6 @@ function buildTimeline(
   }>[] = [];
   const evidenceById = new Map<string, HoidEvidenceCitation>();
   evidenceById.set(dossier.summary.source.evidenceId, dossier.summary.source);
-
-  const overviewCitation = toPresentedCitation(dossier.summary.source);
-  const overview: HoidEntityProgressTimelineItem = Object.freeze({
-    text: dossier.summary.text,
-    citations: Object.freeze([] as HoidDisplayCitation[]),
-  });
 
   for (const claim of dossier.claims) {
     if (claim.intent === "recommend") continue;
@@ -551,10 +557,15 @@ function buildTimeline(
       );
       const title = TITLE_BY_ID.get(bookId);
       if (!title) return null;
-      const projectedItems = items.map(item => Object.freeze({
-        text: item.text,
-        citations: Object.freeze(item.citations.map(source => toPresentedCitation(source))),
-      }));
+      const projectedItems: HoidEntityProgressTimelineItem[] = [];
+      for (const item of items) {
+        const citations = projectCitations(item.citations);
+        if (!citations) return null;
+        projectedItems.push(Object.freeze({
+          text: item.text,
+          citations,
+        }));
+      }
       return Object.freeze({
         bookId,
         title,
@@ -564,13 +575,19 @@ function buildTimeline(
     });
   if (sortedTracks.some(track => track === null)) return unavailable("invalid-dossier");
 
-  const projectedCrossWorkItems = crossWorkItems
-    .sort((left, right) => left.claimId < right.claimId ? -1 : left.claimId > right.claimId ? 1 : 0)
-    .map(item => Object.freeze({
+  const projectedCrossWorkItems: HoidEntityProgressTimelineCrossWorkItem[] = [];
+  crossWorkItems.sort((left, right) =>
+    left.claimId < right.claimId ? -1 : left.claimId > right.claimId ? 1 : 0
+  );
+  for (const item of crossWorkItems) {
+    const citations = projectCitations(item.citations);
+    if (!citations) return unavailable("invalid-dossier");
+    projectedCrossWorkItems.push(Object.freeze({
       text: item.text,
-      citations: Object.freeze(item.citations.map(source => toPresentedCitation(source))),
+      citations,
       ordering: "unordered" as const,
     }));
+  }
 
   const displayCitations = [...evidenceById.values()]
     .sort((left, right) =>
@@ -627,14 +644,8 @@ function buildTimeline(
   const projected = projectHoidAnswerForDisplay(presentation);
   if (!projected) return unavailable("invalid-dossier");
 
-  const overviewDisplayCitation = projectHoidAnswerForDisplay(Object.freeze({
-    status: "ready",
-    text: dossier.summary.text,
-    claimIds: Object.freeze([]),
-    evidenceIds: Object.freeze([dossier.summary.source.evidenceId]),
-    citations: Object.freeze([overviewCitation]),
-  }));
-  if (!overviewDisplayCitation || overviewDisplayCitation.citations.length !== 1) {
+  const overviewCitations = projectCitations([dossier.summary.source]);
+  if (!overviewCitations || overviewCitations.length !== 1) {
     return unavailable("invalid-dossier");
   }
 
@@ -648,7 +659,7 @@ function buildTimeline(
     crossWorkOrdering: "unordered",
     overview: Object.freeze({
       text: dossier.summary.text,
-      citations: overviewDisplayCitation.citations,
+      citations: overviewCitations,
     }),
     tracks: Object.freeze(sortedTracks as HoidEntityProgressTimelineTrack[]),
     crossWorkItems: Object.freeze(projectedCrossWorkItems),
@@ -732,7 +743,7 @@ export function createHoidEntityProgressTimelineAdapter(
       const normalized = normalizeGatewayResult(raw, scope, before);
       if (normalized.status === "unavailable") return unavailable(normalized.reason);
       if (normalized.status !== "ready") return Object.freeze({ status: "not-found" });
-      return buildTimeline(normalized.dossier, before);
+      return buildTimeline(normalized.dossier);
     },
   });
 }

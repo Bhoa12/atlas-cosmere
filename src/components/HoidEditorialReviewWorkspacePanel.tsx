@@ -43,13 +43,11 @@ export const HoidEditorialReviewWorkspacePanel: React.FC<{
   receipts: readonly unknown[];
   receiptsStatus: "loading" | "ready" | "unavailable";
   reviewPort: HoidEditorialReviewSubmissionPort | null;
-  refreshProgress: () => Promise<unknown | null>;
 }> = ({
   progressSnapshot,
   receipts,
   receiptsStatus,
   reviewPort,
-  refreshProgress,
 }) => {
   const [activePacketId, setActivePacketId] = useState<string | null>(null);
   const [checklists, setChecklists] = useState<Readonly<Record<string, HoidEditorialReviewChecklist>>>(
@@ -139,12 +137,6 @@ export const HoidEditorialReviewWorkspacePanel: React.FC<{
     setSaving(true);
     setFeedback(null);
     try {
-      const freshProgress = await refreshProgress();
-      if (freshProgress === null) {
-        setFeedback("No se pudo actualizar el progreso. La revisión no se ha guardado.");
-        return;
-      }
-
       const result = await reviewPort.submit({
         packetId,
         decision,
@@ -152,7 +144,6 @@ export const HoidEditorialReviewWorkspacePanel: React.FC<{
         noteCodes: decision === "approved"
           ? Object.freeze(["no-issues"] as const)
           : issues,
-        progressSnapshot: freshProgress,
       });
 
       switch (result) {

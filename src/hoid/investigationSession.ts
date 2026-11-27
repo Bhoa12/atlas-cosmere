@@ -1,7 +1,4 @@
-import {
-  canonicalizeHoidAnswerBookScope,
-  type HoidAnswerBookScope,
-} from "./answerScope";
+import { canonicalizeHoidAnswerBookScope } from "./answerScope";
 import type { HoidCharacterEvolutionDimension } from "./entityEvolutionExplanationIntent";
 import { sha256Hex } from "./sha256";
 
@@ -64,8 +61,6 @@ const DIMENSIONS: readonly HoidCharacterEvolutionDimension[] = Object.freeze([
   "motivation",
   "cause",
 ]);
-const TOPICS: readonly HoidInvestigationTopic[] = Object.freeze(["overview", ...DIMENSIONS]);
-
 function isEvolutionDimension(value: unknown): value is HoidCharacterEvolutionDimension {
   return typeof value === "string" && (DIMENSIONS as readonly string[]).includes(value);
 }

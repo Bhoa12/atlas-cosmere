@@ -1,0 +1,83 @@
+name: Hoid Run 349 — evidence-bound relationship explanations
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run349"
+    paths:
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/entityRelationshipIntent.ts"
+      - "src/hoid/entityRelationshipIntent.test.ts"
+      - "src/hoid/entityRelationshipConversation.ts"
+      - "src/hoid/entityRelationshipConversation.test.ts"
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN349_EVIDENCE_BOUND_RELATIONSHIP_EXPLANATIONS.md"
+      - ".github/workflows/hoid-run349-evidence-bound-relationship-explanations.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/entityRelationshipIntent.ts"
+      - "src/hoid/entityRelationshipIntent.test.ts"
+      - "src/hoid/entityRelationshipConversation.ts"
+      - "src/hoid/entityRelationshipConversation.test.ts"
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN349_EVIDENCE_BOUND_RELATIONSHIP_EXPLANATIONS.md"
+      - ".github/workflows/hoid-run349-evidence-bound-relationship-explanations.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-bound-relationship-explanations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run relationship, dossier and evidence regression suites
+        run: >-
+          npx vitest run
+          src/hoid/entityRelationshipIntent.test.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityDossierIntent.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/hoid/entityResolver.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/knowledgeGraph.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check — relationship and HoidScreen
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/entityRelationshipIntent.ts
+          src/hoid/entityRelationshipIntent.test.ts
+          src/hoid/entityRelationshipConversation.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityDossierIntent.ts
+          src/hoid/entityDossierConversation.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityDossierGateway.ts
+          src/hoid/entityDossierGateway.test.ts
+          src/screens/HoidScreen.tsx

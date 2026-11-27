@@ -82,7 +82,7 @@ function approvedClaim(
     reviewerId: "reviewer.alpha",
     reviewedAt: NOW,
   });
-  if (result.status !== "valid") throw new Error("Expected a valid synthetic claim attestation");
+  if (result.status !== "valid") throw new Error("Expected a valid synthetic claim attestation: " + result.reason);
   return Object.freeze({ ...core, integrity: result.integrity, review: result.review });
 }
 
@@ -254,7 +254,7 @@ describe("Hoid entity dossier conversation adapter", () => {
 
   it("requires one claim segment to carry evidence from at least two works for comparative depth", async () => {
     const entity = makeEntry("entity.vin", "Vin", "tfe");
-    const supporting = makeEntry("evidence.context", "Contexto", "twok", "concept");
+    const supporting = makeEntry("evidence.context", "Contexto", "twok", "concept", 2, 2);
     const knowledge = Object.freeze([entity, supporting]);
     const snapshot = progressAcrossWorks();
     const scope = Object.freeze({

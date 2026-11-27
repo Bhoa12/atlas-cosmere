@@ -781,9 +781,12 @@ function buildPresentation(
     const evidenceLabel = fact.annotation.evidenceKind === "transition"
       ? "cambio documentado"
       : "estado documentado";
+    const crossWorkLabel = new Set(fact.claim.sources.map(source => source.sourceBookId)).size > 1
+      ? "Evidencia transversal entre obras · "
+      : "";
     segments.push(Object.freeze({
       claimId: fact.claim.claimId,
-      text: dimensionLabel + " · " + evidenceLabel + ": " + fact.claim.text,
+      text: crossWorkLabel + dimensionLabel + " · " + evidenceLabel + ": " + fact.claim.text,
       evidenceIds: Object.freeze(fact.claim.sources.map(source => source.evidenceId)),
       citations: Object.freeze(concrete),
     }));
@@ -927,6 +930,10 @@ export function createHoidCharacterEvolutionExplanationAdapter(
         );
       }
       if (gatewayResult.status !== "ready") return Object.freeze({ status: "not-found" });
+      if (
+        gatewayResult.progressRevision !== before.revision ||
+        gatewayResult.progressFingerprint !== before.fingerprint
+      ) return unavailable("progress-changed");
 
       const dossier = canonicalDossier(gatewayResult.dossier, request.bookScope, before);
       if (!dossier) return unavailable("invalid-dossier");
@@ -990,6 +997,7 @@ export function createHoidCharacterEvolutionExplanationAdapter(
 
       const presentation = buildPresentation(selected);
       if (!presentation) return unavailable("invalid-dossier");
+      if (presentation.text.length > budget.maxCharacters) return unavailable("budget-exceeded");
 
       let afterSnapshot: unknown;
       try {

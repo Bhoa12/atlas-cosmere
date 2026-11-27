@@ -50,7 +50,7 @@ The display contract intentionally omits internal claim/evidence IDs, locators, 
 
 ## Regression repairs carried on this branch
 
-- The relationship adapter now narrows each gateway result independently before accessing `reason` or `dossier`. This fixes strict TypeScript failures in the Run 349 relationship and inherited HoidScreen workflows.
+- The relationship adapter now narrows each gateway result independently and first requires the explicit `ready` discriminant before reading `dossier`. The gateway's grouped `ambiguous | not-found` variant is handled as neutral not-found; all other non-ready variants fail closed. This fixes strict TypeScript failures inherited by relationship, dossier, recommendation, progress and presentation workflows.
 - The comparative dossier fixture now includes every declared entity ID in its attested evidence IDs and separates the single-work and cross-work support entries. The previous fixture was invalid at the attestation boundary; no production validation was weakened.
 
 ## Source and copyright policy

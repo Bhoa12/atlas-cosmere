@@ -891,9 +891,24 @@ export const HoidScreen: React.FC<{
               revision: evolutionResult.progressRevision,
               fingerprint: evolutionResult.progressFingerprint,
             };
+            const followUpText = evolutionResult.followUpQuestions.length > 0
+              ? '\n\nPreguntas de seguimiento respaldadas por evidencias ya desbloqueadas:\n'
+                + evolutionResult.followUpQuestions.map(suggestion => {
+                  const locations = suggestion.citations.map(citation =>
+                    formatHoidCitationLocation(
+                      citation.title,
+                      citation.chapter,
+                      citation.chapterOrdinal,
+                      citation.chapterLabelAmbiguous,
+                    ),
+                  ).join('; ');
+                  return '• ' + suggestion.question + ' (' + locations + ')';
+                }).join('\n')
+              : '';
             respuesta = 'Evolución documental de ' + evolutionResult.characterLabel
               + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\n\n'
-              + evolutionResult.presentation.text;
+              + evolutionResult.presentation.text
+              + followUpText;
             citas = evolutionResult.presentation.citations;
             segmentos = evolutionResult.presentation.segments;
             formato = evolutionResult.presentation.layout;

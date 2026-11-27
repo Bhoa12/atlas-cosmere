@@ -13,6 +13,8 @@ import type { HoidTrustedCuratedPathRecommendationScreenPort } from "../hoid/tru
 import { getExpoHoidReaderRecommendationPreferencesStore } from "../hoid/expoReaderRecommendationPreferencesStore";
 import type { HoidReaderRecommendationPreferencesStorePort } from "../hoid/readerRecommendationPreferences";
 import type { HoidReaderPreferencesStoreStatus } from "../components/HoidReaderPreferencesEditor";
+import { getExpoHoidEditorialReviewReceiptStore } from "../hoid/expoEditorialReviewReceiptStore";
+import { validateHoidEditorialReviewReceiptSnapshot } from "../hoid/editorialReviewReceiptStore";
 
 export type HoidTrustedScreenHostProps = Readonly<{
   /**
@@ -64,6 +66,11 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
     | Readonly<{ status: "ready"; store: HoidReaderRecommendationPreferencesStorePort }>
     | Readonly<{ status: "unavailable" }>
   >(() => Object.freeze({ status: "loading" }));
+  const [editorialReviewReceiptState, setEditorialReviewReceiptState] = useState<
+    | Readonly<{ status: "loading" }>
+    | Readonly<{ status: "ready"; receipts: readonly unknown[] }>
+    | Readonly<{ status: "unavailable" }>
+  >(() => Object.freeze({ status: "loading" }));
 
   useEffect(() => {
     let active = true;
@@ -73,6 +80,27 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
       })
       .catch(() => {
         if (active) setReaderPreferencesStoreState(Object.freeze({ status: "unavailable" }));
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void getExpoHoidEditorialReviewReceiptStore()
+      .then(async store => {
+        const validation = validateHoidEditorialReviewReceiptSnapshot(await store.read());
+        if (!active) return;
+        if (validation.status === "valid") {
+          setEditorialReviewReceiptState(Object.freeze({
+            status: "ready",
+            receipts: validation.snapshot.receipts,
+          }));
+        } else {
+          setEditorialReviewReceiptState(Object.freeze({ status: "unavailable" }));
+        }
+      })
+      .catch(() => {
+        if (active) setEditorialReviewReceiptState(Object.freeze({ status: "unavailable" }));
       });
     return () => { active = false; };
   }, []);
@@ -153,6 +181,10 @@ export const HoidTrustedScreenHost: React.FC<HoidTrustedScreenHostProps> = ({
           ? readerPreferencesStoreState.store
           : null}
         readerPreferencesStoreStatus={readerPreferencesStoreState.status as HoidReaderPreferencesStoreStatus}
+        editorialReviewReceipts={editorialReviewReceiptState.status === "ready"
+          ? editorialReviewReceiptState.receipts
+          : null}
+        editorialReviewReceiptStatus={editorialReviewReceiptState.status}
       />
     </View>
   );

@@ -75,6 +75,46 @@ describe("Hoid session-scoped investigation history", () => {
     expect(visible.map(item => item.dimension)).toEqual(["relationship", "capability"]);
   });
 
+  it("does not suppress suggestions after the progress or selected book scope changes", () => {
+    const session = createHoidInvestigationSession();
+    const ticket = session.begin();
+    expect(session.recordCompleted(ticket, context())).toBe(true);
+
+    const forNewProgress = session.filterSuggestions(ticket, {
+      subjectLabel: "Personaje Alfa",
+      progressRevision: 8,
+      progressFingerprint: FINGERPRINT_B,
+      bookScope: SINGLE_SCOPE,
+      suggestions: suggestions(),
+    });
+    const forCrossWorkScope = session.filterSuggestions(ticket, {
+      subjectLabel: "Personaje Alfa",
+      progressRevision: 7,
+      progressFingerprint: FINGERPRINT_A,
+      bookScope: CROSS_SCOPE,
+      suggestions: suggestions(),
+    });
+
+    expect(forNewProgress).toHaveLength(3);
+    expect(forCrossWorkScope).toHaveLength(3);
+  });
+
+  it("does not treat a broad overview as completion of every individual dimension", () => {
+    const session = createHoidInvestigationSession();
+    const ticket = session.begin();
+    expect(session.recordCompleted(ticket, context({ topic: "overview" }))).toBe(true);
+
+    const visible = session.filterSuggestions(ticket, {
+      subjectLabel: "Personaje Alfa",
+      progressRevision: 7,
+      progressFingerprint: FINGERPRINT_A,
+      bookScope: SINGLE_SCOPE,
+      suggestions: suggestions(),
+    });
+
+    expect(visible).toHaveLength(3);
+  });
+
   it("normalizes the canonical label without retaining the label or question text", () => {
     const session = createHoidInvestigationSession();
     const ticket = session.begin();

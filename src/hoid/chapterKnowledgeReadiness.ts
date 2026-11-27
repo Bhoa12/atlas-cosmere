@@ -1,6 +1,6 @@
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { HOID_EDITORIAL_DRAFTS } from "./editorialDrafts";
-import { HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
+import { HOID_APPROVED_CLAIMS, HOID_EDITORIAL_KNOWLEDGE } from "./editorialRegistry";
 import type { HoidEpubEditorialSourceCoverageAuditResult } from "./epubEditorialSourceCoverageAudit";
 import { getHoidReadingManifest } from "./readingManifest";
 import {
@@ -25,6 +25,7 @@ export type HoidChapterKnowledgeReadinessUnit = Readonly<{
   localSourceStatus: "not-audited" | "available" | "unavailable";
   pendingReviewSummaryCount: number;
   productionKnowledgeEntryCount: number;
+  approvedClaimReferenceCount: number;
   editorialStatus:
     | "not-staged"
     | "pending-review"
@@ -51,6 +52,7 @@ export type HoidChapterKnowledgeReadinessReport = Readonly<{
     currentlyUnavailableUnitCount: number;
     pendingReviewSummaryCount: number;
     productionKnowledgeEntryCount: number;
+    approvedClaimReferenceCount: number;
     invalidEditorialRecordCount: number;
   }>;
   units: readonly HoidChapterKnowledgeReadinessUnit[];
@@ -348,6 +350,25 @@ export function getHoidChapterKnowledgeReadiness(
     productionEntriesByUnit.set(unit.id, (productionEntriesByUnit.get(unit.id) ?? 0) + 1);
   }
 
+  const knowledgeById = new Map(HOID_EDITORIAL_KNOWLEDGE.map(entry => [entry.id, entry]));
+  const approvedClaimsByUnit = new Map<string, Set<string>>();
+  for (const claim of HOID_APPROVED_CLAIMS) {
+    for (const evidenceId of claim.evidenceIds) {
+      const entry = knowledgeById.get(evidenceId);
+      if (!entry?.evidenceSource || entry.evidenceSource.bookId !== workIdInput) continue;
+      const evidence = entry.evidenceSource;
+      const matches = unitsByChapter.get(evidence.chapter) ?? [];
+      const unit = matches.length === 1 ? matches[0] : undefined;
+      if (!unit || !unit.locatorId || unit.locatorId !== evidence.locatorId) {
+        invalidEditorialRecordCount += 1;
+        continue;
+      }
+      const claimIds = approvedClaimsByUnit.get(unit.id) ?? new Set<string>();
+      claimIds.add(claim.id);
+      approvedClaimsByUnit.set(unit.id, claimIds);
+    }
+  }
+
   let navigationVerifiedUnitCount = 0;
   let identityOnlyUnitCount = 0;
   let bodyDigestRegisteredUnitCount = 0;
@@ -355,6 +376,7 @@ export function getHoidChapterKnowledgeReadiness(
   let currentlyUnavailableUnitCount = 0;
   let pendingReviewSummaryCount = 0;
   let productionKnowledgeEntryCount = 0;
+  let approvedClaimReferenceCount = 0;
 
   const units: HoidChapterKnowledgeReadinessUnit[] = manifest.units.map(unit => {
     const sameNumberUnits = unitsByChapter.get(unit.chapterNumber) ?? [];
@@ -397,14 +419,17 @@ export function getHoidChapterKnowledgeReadiness(
 
     const pendingReviewCount = pendingDraftsByUnit.get(unit.id) ?? 0;
     const productionCount = productionEntriesByUnit.get(unit.id) ?? 0;
+    const approvedClaimCount = approvedClaimsByUnit.get(unit.id)?.size ?? 0;
     pendingReviewSummaryCount += pendingReviewCount;
     productionKnowledgeEntryCount += productionCount;
+    approvedClaimReferenceCount += approvedClaimCount;
+    const productionPresent = productionCount > 0 || approvedClaimCount > 0;
     const editorialStatus: HoidChapterKnowledgeReadinessUnit["editorialStatus"] =
-      pendingReviewCount > 0 && productionCount > 0
+      pendingReviewCount > 0 && productionPresent
         ? "pending-and-production"
         : pendingReviewCount > 0
           ? "pending-review"
-          : productionCount > 0
+          : productionPresent
             ? "production-present"
             : "not-staged";
 
@@ -417,6 +442,7 @@ export function getHoidChapterKnowledgeReadiness(
       localSourceStatus,
       pendingReviewSummaryCount: pendingReviewCount,
       productionKnowledgeEntryCount: productionCount,
+      approvedClaimReferenceCount: approvedClaimCount,
       editorialStatus,
     });
   });
@@ -440,6 +466,7 @@ export function getHoidChapterKnowledgeReadiness(
       currentlyUnavailableUnitCount,
       pendingReviewSummaryCount,
       productionKnowledgeEntryCount,
+      approvedClaimReferenceCount,
       invalidEditorialRecordCount,
     }),
     units: Object.freeze(units),

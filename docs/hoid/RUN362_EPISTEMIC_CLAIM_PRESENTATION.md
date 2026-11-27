@@ -8,6 +8,7 @@ Run 361 connected accumulated investigation context to the conversation. Run 362
 
 - The existing atomic editorial draft already carries `assertionKind`; the review packet binds it through the draft claim digest.
 - Exact-unit approved claims now preserve `assertionKind` as an optional, claim-hash-bound field.
+- The existing atomic review packet already carries `assertionKind` and binds it through the draft digest. The trusted promotion adapter must copy it when constructing an exact-unit claim; this run does not add automatic draft-to-production promotion.
 - The exact-unit runtime copies only the approved claim's `intent` and `assertionKind` into its trusted answer segment.
 - The UI projection reduces these fields to a small display classification. It does not expose internal claim IDs, evidence IDs, EPUB locators, source digests or unlock policies.
 - The provider remains a selector of approved claim IDs. It cannot supply the claim text, epistemic category or visible label.

@@ -7,7 +7,7 @@ import {
 import type { HoidEntityAliasRecord } from "./entityAliasRegistry";
 import { createHoidEntityDossierGateway } from "./entityDossierGateway";
 import { createHoidEntityRelationshipConversationAdapter } from "./entityRelationshipConversation";
-import { createHoidReadingCursor } from "./readingManifest";
+import { createHoidReadingCursor, getHoidReadingManifest } from "./readingManifest";
 
 const NOW = "2026-11-27T00:00:00.000Z";
 const CROSS_SCOPE = Object.freeze({
@@ -23,8 +23,9 @@ function makeEntry(
   unlockChapter: number,
   kind: HoidKnowledgeKind = "character",
 ): HoidKnowledgeEntry {
-  const manifest = requireManifest(bookId);
-  const unit = manifest.units.find(item => item.chapterNumber === chapter);
+  const manifestResult = getHoidReadingManifest(bookId);
+  if (manifestResult.status !== "ready") throw new Error("Expected a verified fixture manifest");
+  const unit = manifestResult.manifest.units.find(item => item.chapterNumber === chapter);
   if (!unit?.locatorId) throw new Error("Expected a verified fixture locator");
   return Object.freeze({
     id,
@@ -38,18 +39,6 @@ function makeEntry(
   });
 }
 
-function requireManifest(bookId: string) {
-  const { getHoidReadingManifest } = requireReadingManifest();
-  const result = getHoidReadingManifest(bookId);
-  if (result.status !== "ready") throw new Error("Expected a verified fixture manifest");
-  return result.manifest;
-}
-
-function requireReadingManifest() {
-  return { getHoidReadingManifest };
-}
-
-import { getHoidReadingManifest } from "./readingManifest";
 
 function aliasRecord(entry: HoidKnowledgeEntry): HoidEntityAliasRecord {
   if (!entry.evidenceSource || !entry.evidenceUnlock) throw new Error("Expected source metadata");

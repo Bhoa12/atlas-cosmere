@@ -4,7 +4,6 @@ import {
   type HoidEpubEditorialSourceAccessRouterResult,
 } from "./epubEditorialSourceAccess";
 import type {
-  HoidEpubIngestionService,
   HoidEpubPackageInspectionCandidate,
 } from "./epubIngestion";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";

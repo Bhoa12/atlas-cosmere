@@ -312,6 +312,27 @@ describe("Hoid progress-bound magic-system explanations", () => {
     )).toBeNull();
   });
 
+  it("keeps fact-review digests stable when the same authorized entity is addressed by another alias", () => {
+    const { dossierClaim, core } = fixture();
+    expect(dossierClaim).toBeDefined();
+    if (!dossierClaim) return;
+    const original = createHoidMagicSystemFactReview(core, dossierClaim, {
+      reviewerId: "reviewer.alpha",
+      reviewedAt: NOW,
+    });
+    const alternateAliasClaim = Object.freeze({
+      ...dossierClaim,
+      participants: Object.freeze(dossierClaim.participants.map(participant =>
+        Object.freeze({ ...participant, label: "Alias alternativo autorizado" })
+      )),
+    });
+    const alternate = createHoidMagicSystemFactReview(core, alternateAliasClaim, {
+      reviewerId: "reviewer.alpha",
+      reviewedAt: NOW,
+    });
+    expect(alternate).toEqual(original);
+  });
+
   it("rejects tampered annotation digests", async () => {
     const { gateway, dossierClaim, core } = fixture();
     expect(dossierClaim).toBeDefined();

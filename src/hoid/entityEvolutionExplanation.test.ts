@@ -504,7 +504,7 @@ describe("Hoid character follow-up draft action", () => {
   it("rejects control characters and oversized questions", () => {
     expect(resolveHoidCharacterInvestigationDraft({
       ...suggestion,
-      question: "Pregunta\\u0000",
+      question: "Pregunta\u0000",
     }, true)).toBeNull();
     expect(resolveHoidCharacterInvestigationDraft({
       ...suggestion,

@@ -104,7 +104,7 @@ function resolveHoidAuthorizedEntities(
   entries: readonly HoidKnowledgeEntry[],
   reading: unknown,
   query: unknown,
-  aliasEvidence = defaultAliasEvidence(entries),
+  aliasEvidence: unknown = defaultAliasEvidence(entries),
 ) {
   return resolveWithAliasEvidence(entries, aliasEvidence, reading, query);
 }

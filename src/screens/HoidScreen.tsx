@@ -89,7 +89,9 @@ import {
 } from '../hoid/topicInterestRecommendationsGateway';
 import { createHoidApprovedClaimAnswerPort } from '../hoid/topicApprovedClaimAnswerPort';
 import { HoidEpubImportPanel } from '../components/HoidEpubImportPanel';
+import { HoidEpubEditorialSourceAccessPanel } from '../components/HoidEpubEditorialSourceAccessPanel';
 import { HoidSourceCoveragePanel } from '../components/HoidSourceCoveragePanel';
+import type { HoidEditorialSourceDocumentAccessPort } from '../hoid/editorialClaimPromotionPreflight';
 import {
   openHoidRecommendationChapter,
   type HoidRecommendationReaderPort,
@@ -318,6 +320,10 @@ export const HoidScreen: React.FC<{
     port: HoidRecommendationReaderPort;
     workId: string;
   }> | null>(null);
+  const [editorialSourceAccessState, setEditorialSourceAccessState] = useState<Readonly<{
+    port: HoidEditorialSourceDocumentAccessPort;
+    workId: string;
+  }> | null>(null);
   const [readerOpening, setReaderOpening] = useState(false);
   const [readerMessage, setReaderMessage] = useState('');
   const readerAbortControllerRef = useRef<AbortController | null>(null);
@@ -341,6 +347,12 @@ export const HoidScreen: React.FC<{
       setReaderOpening(false);
       setReaderMessage('');
     }
+  }, []);
+  const handleEditorialSourceAccessPortChange = useCallback((
+    port: HoidEditorialSourceDocumentAccessPort | null,
+    workId: string | null,
+  ) => {
+    setEditorialSourceAccessState(port && workId ? Object.freeze({ port, workId }) : null);
   }, []);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
   const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendationDisplayItem[]>([]);
@@ -1765,7 +1777,14 @@ export const HoidScreen: React.FC<{
         </View>
       </View>
 
-      <HoidEpubImportPanel onReaderPortChange={handleReaderPortChange} />
+      <HoidEpubImportPanel
+        onReaderPortChange={handleReaderPortChange}
+        onEditorialSourceAccessPortChange={handleEditorialSourceAccessPortChange}
+      />
+      <HoidEpubEditorialSourceAccessPanel
+        port={editorialSourceAccessState?.port ?? null}
+        workId={editorialSourceAccessState?.workId ?? null}
+      />
 
       <HoidReaderPreferencesEditor
         store={readerPreferencesStore}

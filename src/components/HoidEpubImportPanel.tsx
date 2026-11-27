@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { createHoidExpoLocalEpubRuntime } from "../hoid/expoLocalEpubPlatform";
+import { createHoidEpubEditorialSourceAccessRouter } from "../hoid/epubEditorialSourceAccess";
+import type { HoidEditorialSourceDocumentAccessPort } from "../hoid/editorialClaimPromotionPreflight";
 import { createHoidImportLifecycleGuard } from "../hoid/epubImportLifecycle";
 import { getHoidSourceIngestionPlan } from "../hoid/sourceIngestionPlan";
 import { inspectHoidPlannedChapterCandidate, type HoidPlannedChapterInspectionCandidate } from "../hoid/sourceIngestionExecution";
@@ -122,7 +124,11 @@ type OpenedChapterView = Readonly<{
 
 export const HoidEpubImportPanel: React.FC<{
   onReaderPortChange?: (port: HoidRecommendationReaderPort | null, workId: string | null) => void;
-}> = ({ onReaderPortChange }) => {
+  onEditorialSourceAccessPortChange?: (
+    port: HoidEditorialSourceDocumentAccessPort | null,
+    workId: string | null,
+  ) => void;
+}> = ({ onReaderPortChange, onEditorialSourceAccessPortChange }) => {
   const {
     refreshHoidCursorProgressSnapshot,
     subscribeHoidCursorProgressChanges,
@@ -224,6 +230,7 @@ export const HoidEpubImportPanel: React.FC<{
     readerSessionAbortRef.current = null;
     try { controller?.abort(); } catch { /* Continue source cleanup. */ }
     onReaderPortChange?.(null, null);
+    onEditorialSourceAccessPortChange?.(null, null);
   };
 
   useEffect(() => {
@@ -289,6 +296,7 @@ export const HoidEpubImportPanel: React.FC<{
       packageCandidate === null
     ) {
       onReaderPortChange?.(null, null);
+      onEditorialSourceAccessPortChange?.(null, null);
       return;
     }
 
@@ -300,6 +308,11 @@ export const HoidEpubImportPanel: React.FC<{
     const sourceId = source.sourceId;
     const workId = choice.workId;
     const editionId = choice.editionId;
+    const isSessionCurrent = () =>
+      readerSessionActive &&
+      readerSessionEpochRef.current === readerSessionEpoch &&
+      sourceIdRef.current === sourceId &&
+      lifecycleRef.current.isActive(leaseRef.current);
     const port = createHoidLocalEpubRecommendationReaderPort({
       workId,
       editionId,
@@ -307,11 +320,7 @@ export const HoidEpubImportPanel: React.FC<{
       ingestion: epubRuntime.ingestion,
       refreshCurrentProgress: () => progressRefreshRef.current(),
       sessionSignal: sessionController.signal,
-      isCurrent: () =>
-        readerSessionActive &&
-        readerSessionEpochRef.current === readerSessionEpoch &&
-        sourceIdRef.current === sourceId &&
-        lifecycleRef.current.isActive(leaseRef.current),
+      isCurrent: isSessionCurrent,
       getProgressChangeEpoch: () => progressChangeEpochRef.current,
       onChapterOpened: (chapter, chapterNumber, progressBinding: HoidReaderProgressBinding) => {
         const manifestResult = getHoidReadingManifest(workId);
@@ -336,6 +345,18 @@ export const HoidEpubImportPanel: React.FC<{
       },
     });
 
+    const editorialSourceAccess = createHoidEpubEditorialSourceAccessRouter([
+      Object.freeze({
+        sourceId,
+        packageCandidate,
+        ingestion: epubRuntime.ingestion,
+        isCurrent: isSessionCurrent,
+      }),
+    ]);
+    onEditorialSourceAccessPortChange?.(
+      editorialSourceAccess.status === "ready" ? editorialSourceAccess.port : null,
+      editorialSourceAccess.status === "ready" ? workId : null,
+    );
     onReaderPortChange?.(port, workId);
     return () => {
       readerSessionActive = false;
@@ -347,8 +368,9 @@ export const HoidEpubImportPanel: React.FC<{
         readerSessionEpochRef.current += 1;
       }
       onReaderPortChange?.(null, null);
+      onEditorialSourceAccessPortChange?.(null, null);
     };
-  }, [pickedSource, selectedChoice, candidate, onReaderPortChange]);
+  }, [pickedSource, selectedChoice, candidate, onReaderPortChange, onEditorialSourceAccessPortChange]);
 
   const pickEpub = async () => {
     if (busy) return;

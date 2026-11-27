@@ -242,11 +242,11 @@ describe("Hoid progress-bound magic-system explanations", () => {
     expect(result.systemLabel).toBe("Sistema Alfa");
     expect(result.facet).toBe("rule");
     expect(result.presentation.text).toContain("Regla: El sistema sigue una regla sintética revisada.");
-    expect(result.presentation.citations).toEqual([expect.objectContaining({
-      sourceBookId: "tfe",
-      title: "El Imperio Final",
-      chapter: 2,
-    })]);
+    expect(result.presentation.citations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceBookId: "tfe", title: "El Imperio Final", chapter: 1 }),
+      expect.objectContaining({ sourceBookId: "tfe", title: "El Imperio Final", chapter: 2 }),
+    ]));
+    expect(result.presentation.citations).toHaveLength(2);
     expect(JSON.stringify(result)).not.toContain("locatorId");
     expect(JSON.stringify(result)).not.toContain("evidenceId");
     expect(JSON.stringify(result)).not.toContain("unlockChapter");
@@ -280,8 +280,13 @@ describe("Hoid progress-bound magic-system explanations", () => {
   });
 
   it("never promotes recommendation claims into magic-system facts", async () => {
-    const { dossierClaim } = fixture({ intent: "recommend" });
-    expect(dossierClaim).toBeUndefined();
+    const { dossierClaim, adapter } = fixture({ intent: "recommend" });
+    expect(dossierClaim).toBeDefined();
+    expect(await adapter.answer({
+      question: "Reglas de Sistema Alfa",
+      progress: progress(),
+      bookScope: SINGLE_SCOPE,
+    })).toEqual({ status: "not-found" });
     expect(createHoidMagicSystemFactReview(
       {
         id: "fact.recommend",

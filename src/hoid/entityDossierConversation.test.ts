@@ -267,7 +267,7 @@ describe("Hoid entity dossier conversation adapter", () => {
       "claim.context.single-source",
       "Afirmación sintética sobre el contexto.",
       knowledge,
-      [entity.id, supportingCrossWork.id],
+      [entity.id, supporting.id],
       [entity.id],
     );
     const singleWorkGateway = createHoidEntityDossierGateway({
@@ -293,7 +293,7 @@ describe("Hoid entity dossier conversation adapter", () => {
       "claim.context.cross-source",
       "Afirmación sintética respaldada por dos obras.",
       knowledge,
-      [entity.id, supporting.id],
+      [entity.id, supportingCrossWork.id],
       [entity.id],
     );
     const crossWorkGateway = createHoidEntityDossierGateway({

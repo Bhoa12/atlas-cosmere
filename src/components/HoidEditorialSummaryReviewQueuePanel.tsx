@@ -30,6 +30,15 @@ export const HoidEditorialSummaryReviewQueuePanel: React.FC<{
 }) => {
   const [expanded, setExpanded] = useState(false);
 
+  const result = useMemo(
+    () => projectHoidEditorialSummaryReviewQueue(
+      HOID_EDITORIAL_DRAFTS,
+      receipts,
+      progressSnapshot,
+    ),
+    [progressSnapshot, receipts],
+  );
+
   if (receiptsStatus !== "ready") {
     return (
       <View style={styles.panel}>
@@ -42,14 +51,6 @@ export const HoidEditorialSummaryReviewQueuePanel: React.FC<{
       </View>
     );
   }
-  const result = useMemo(
-    () => projectHoidEditorialSummaryReviewQueue(
-      HOID_EDITORIAL_DRAFTS,
-      receipts,
-      progressSnapshot,
-    ),
-    [progressSnapshot, receipts],
-  );
 
   if (result.status === "unavailable") {
     return (

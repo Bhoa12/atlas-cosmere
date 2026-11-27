@@ -385,7 +385,7 @@ export function getHoidChapterKnowledgeReadiness(
     if (bodyDigestStatus === "registered") bodyDigestRegisteredUnitCount += 1;
 
     let localSourceStatus: HoidChapterKnowledgeReadinessUnit["localSourceStatus"] = "not-audited";
-    if (audit.status === "completed") {
+    if (digest !== null && audit.status === "completed") {
       if (audit.available.has(unit.chapterNumber)) {
         localSourceStatus = "available";
         currentlyAvailableUnitCount += 1;

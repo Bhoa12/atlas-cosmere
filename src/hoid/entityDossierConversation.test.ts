@@ -254,8 +254,9 @@ describe("Hoid entity dossier conversation adapter", () => {
 
   it("requires one claim segment to carry evidence from at least two works for comparative depth", async () => {
     const entity = makeEntry("entity.vin", "Vin", "tfe");
-    const supporting = makeEntry("evidence.context", "Contexto", "twok", "concept", 2, 2);
-    const knowledge = Object.freeze([entity, supporting]);
+    const supporting = makeEntry("evidence.context.single", "Contexto", "tfe", "concept", 2, 2);
+    const supportingCrossWork = makeEntry("evidence.context.cross", "Contexto transversal", "twok", "concept", 2, 2);
+    const knowledge = Object.freeze([entity, supporting, supportingCrossWork]);
     const snapshot = progressAcrossWorks();
     const scope = Object.freeze({
       mode: "cross-work" as const,
@@ -266,7 +267,7 @@ describe("Hoid entity dossier conversation adapter", () => {
       "claim.context.single-source",
       "Afirmación sintética sobre el contexto.",
       knowledge,
-      [supporting.id],
+      [entity.id, supportingCrossWork.id],
       [entity.id],
     );
     const singleWorkGateway = createHoidEntityDossierGateway({

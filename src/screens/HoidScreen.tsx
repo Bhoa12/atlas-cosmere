@@ -27,6 +27,10 @@ import {
 } from '../hoid/entityEvolutionExplanation';
 import { classifyHoidCharacterEvolutionIntent } from '../hoid/entityEvolutionExplanationIntent';
 import {
+  createHoidInvestigationSession,
+  type HoidInvestigationTopic,
+} from '../hoid/investigationSession';
+import {
   type HoidDisplayCitation,
   type HoidDisplayCrossBookEvidenceSummary,
   type HoidDisplaySegment,
@@ -183,6 +187,7 @@ export const HoidScreen: React.FC<{
   const conversationScopeBindingRef = useRef<HoidConversationScopeBinding | null>(null);
   const [conversationTurnSession] = useState(() => createHoidConversationTurnSession());
   const [recommendationRequestSession] = useState(() => createHoidRecommendationRequestSession());
+  const [investigationSession] = useState(() => createHoidInvestigationSession());
   const conversationGateway = hoidRuntime
     ? createHoidConversationGateway({
         runtime: hoidRuntime,
@@ -397,6 +402,7 @@ export const HoidScreen: React.FC<{
     conversationTurnSession.invalidate();
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
+    investigationSession.reset();
     setCargandoRecomendaciones(false);
     setCanCancelAnswer(false);
     setCargando(false);
@@ -417,6 +423,7 @@ export const HoidScreen: React.FC<{
   useEffect(() => () => {
     conversationTurnSession.invalidate();
     recommendationRequestSession.invalidate();
+    investigationSession.reset();
     recommendationPresentationRef.current = null;
     recommendationDisplayProjectionRef.current = null;
     readerAbortControllerRef.current?.abort();
@@ -436,6 +443,7 @@ export const HoidScreen: React.FC<{
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado]);
 
   const resetConversationForAnswerScopeChange = () => {
+    investigationSession.reset();
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
@@ -520,6 +528,7 @@ export const HoidScreen: React.FC<{
   const enviarMensaje = async () => {
     if (!input.trim() || cargando || progresoPersistenciaEstado !== 'ready') return;
     const ticket = conversationTurnSession.begin();
+    const investigationTicket = investigationSession.begin();
     const textoUsuario = input.trim();
     const nuevoMsgUsuario: Mensaje = { id: Date.now().toString(), emisor: 'usuario', texto: textoUsuario };
     setMensajes(prev => [...prev, nuevoMsgUsuario]);
@@ -527,6 +536,12 @@ export const HoidScreen: React.FC<{
     setCargando(true);
     setCanCancelAnswer(true);
     let requestScope: HoidConversationProgressScope | null = null;
+    let completedEvolution: Readonly<{
+      subjectLabel: string;
+      topic: HoidInvestigationTopic;
+      progressRevision: number;
+      progressFingerprint: string;
+    }> | null = null;
     const commitCancelledTurn = () => {
       if (!conversationTurnSession.isCurrent(ticket)) return;
       conversationContextRef.current = null;
@@ -577,6 +592,9 @@ export const HoidScreen: React.FC<{
         answerScopeBookIds,
         ...(selectedReadingFocusBookId ? { selectedFocusBookId: selectedReadingFocusBookId } : {}),
       });
+      const investigationBookScope = answerScopeSelection.status === 'ready'
+        ? answerScopeSelection.scope
+        : null;
       let respuesta: string;
       let citas: readonly HoidDisplayCitation[] | undefined;
       let segmentos: readonly HoidDisplaySegment[] | undefined;
@@ -899,6 +917,12 @@ export const HoidScreen: React.FC<{
               + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\\n\\n'
               + evolutionResult.presentation.text;
             preguntasSugeridas = evolutionResult.followUpQuestions;
+            completedEvolution = {
+              subjectLabel: evolutionResult.characterLabel,
+              topic: characterEvolutionIntent.dimension ?? 'overview',
+              progressRevision: evolutionResult.progressRevision,
+              progressFingerprint: evolutionResult.progressFingerprint,
+            };
             citas = evolutionResult.presentation.citations;
             segmentos = evolutionResult.presentation.segments;
             formato = evolutionResult.presentation.layout;
@@ -1132,6 +1156,37 @@ export const HoidScreen: React.FC<{
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
+      }
+
+      if (
+        completedEvolution &&
+        investigationBookScope &&
+        requestScope &&
+        responseScope &&
+        latestScope &&
+        !ticket.signal.aborted &&
+        responseScope.revision === completedEvolution.progressRevision &&
+        responseScope.fingerprint === completedEvolution.progressFingerprint &&
+        canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)
+      ) {
+        const recorded = investigationSession.recordCompleted(investigationTicket, {
+          subjectLabel: completedEvolution.subjectLabel,
+          topic: completedEvolution.topic,
+          progressRevision: completedEvolution.progressRevision,
+          progressFingerprint: completedEvolution.progressFingerprint,
+          bookScope: investigationBookScope,
+        });
+        if (recorded) {
+          preguntasSugeridas = investigationSession.filterSuggestions<HoidCharacterInvestigationSuggestion>(investigationTicket, {
+            subjectLabel: completedEvolution.subjectLabel,
+            progressRevision: completedEvolution.progressRevision,
+            progressFingerprint: completedEvolution.progressFingerprint,
+            bookScope: investigationBookScope,
+            suggestions: preguntasSugeridas ?? [],
+          });
+        } else {
+          preguntasSugeridas = undefined;
+        }
       }
 
       setMensajes(prev => [...prev, {

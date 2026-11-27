@@ -46,7 +46,7 @@ describe("Hoid local EPUB editorial source coverage audit", () => {
       providerEgress: "none",
     });
     expect(inspect.inspectChapter).toHaveBeenCalledTimes(numbers.length);
-    expect(progress.at(-1)).toBe(numbers.length);
+    expect(progress[progress.length - 1]).toBe(numbers.length);
     for (const call of inspect.inspectChapter.mock.calls) {
       expect(Object.keys(call[0]).sort()).toEqual([
         "bookId",

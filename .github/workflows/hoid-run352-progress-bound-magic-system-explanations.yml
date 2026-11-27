@@ -1,0 +1,79 @@
+name: Hoid Run 352 — progress-bound magic-system explanations
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run352"
+    paths:
+      - "src/hoid/magicSystemExplanation.ts"
+      - "src/hoid/magicSystemExplanation.test.ts"
+      - "src/hoid/magicSystemExplanationIntent.ts"
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "docs/hoid/RUN352_PROGRESS_BOUND_MAGIC_SYSTEM_EXPLANATIONS.md"
+      - ".github/workflows/hoid-run352-progress-bound-magic-system-explanations.yml"
+  pull_request:
+    paths:
+      - "src/hoid/magicSystemExplanation.ts"
+      - "src/hoid/magicSystemExplanation.test.ts"
+      - "src/hoid/magicSystemExplanationIntent.ts"
+      - "src/hoid/entityDossierGateway.ts"
+      - "src/hoid/entityResolver.ts"
+      - "src/hoid/catalog.ts"
+      - "src/hoid/approvedClaimIntegrity.ts"
+      - "src/hoid/entityAliasRegistry.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/evidenceScope.ts"
+      - "src/hoid/cursorEvidenceRuntime.ts"
+      - "src/hoid/knowledgeGraph.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "src/hoid/explanationDepth.ts"
+      - "docs/hoid/RUN352_PROGRESS_BOUND_MAGIC_SYSTEM_EXPLANATIONS.md"
+      - ".github/workflows/hoid-run352-progress-bound-magic-system-explanations.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  magic-system-explanations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run magic-system and inherited dossier regressions
+        run: >-
+          npx vitest run
+          src/hoid/magicSystemExplanation.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/approvedClaimIntegrity.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+      - name: Strict TypeScript check — magic-system contracts
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          src/hoid/magicSystemExplanation.ts
+          src/hoid/magicSystemExplanationIntent.ts
+          src/hoid/magicSystemExplanation.test.ts

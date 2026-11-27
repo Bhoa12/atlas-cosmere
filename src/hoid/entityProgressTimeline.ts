@@ -15,7 +15,12 @@ import {
   type HoidAnswerDisplayProjection,
   type HoidDisplayCitation,
 } from "./answerDisplayProjection";
-import type { HoidAnswerPresentation, HoidPresentedCitation } from "./answerPresentation";
+import type {
+  HoidAnswerPresentation,
+  HoidPresentedCitation,
+  HoidPresentedSegment,
+} from "./answerPresentation";
+import { defaultHoidNarrativeLayout } from "./narrativeComposition";
 import { HOID_SOURCE_BIBLIOGRAPHY } from "./bibliography";
 import { projectHoidCursorProgressSnapshot } from "./cursorEvidenceRuntime";
 import { fingerprintHoidCursorProgressProjection } from "./knowledgeGraph";
@@ -549,6 +554,7 @@ function buildTimeline(
 
   if (evidenceById.size > MAX_PRESENTED_EVIDENCE) return unavailable("budget-exceeded");
 
+  const displaySegments: HoidPresentedSegment[] = [];
   const sortedTracks = [...tracks.entries()]
     .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
     .map(([bookId, items]) => {
@@ -566,6 +572,12 @@ function buildTimeline(
         projectedItems.push(Object.freeze({
           text: item.text,
           citations,
+        }));
+        displaySegments.push(Object.freeze({
+          claimId: item.claimId,
+          text: item.text,
+          evidenceIds: Object.freeze(item.citations.map(source => source.evidenceId)),
+          citations: Object.freeze(item.citations.map(source => toPresentedCitation(source))),
         }));
       }
       return Object.freeze({
@@ -588,6 +600,12 @@ function buildTimeline(
       text: item.text,
       citations,
       ordering: "unordered" as const,
+    }));
+    displaySegments.push(Object.freeze({
+      claimId: item.claimId,
+      text: item.text,
+      evidenceIds: Object.freeze(item.citations.map(source => source.evidenceId)),
+      citations: Object.freeze(item.citations.map(source => toPresentedCitation(source))),
     }));
   }
 
@@ -631,17 +649,20 @@ function buildTimeline(
   const text = lines.join("\n");
   if (text.length > MAX_PRESENTED_CHARACTERS) return unavailable("budget-exceeded");
 
-  const claimIds = Object.freeze(dossier.claims
-    .filter(claim => claim.intent !== "recommend")
-    .map(claim => claim.claimId)
-    .sort());
+  const claimIds = Object.freeze(displaySegments.map(segment => segment.claimId));
   const evidenceIds = Object.freeze([...evidenceById.keys()].sort());
+  const layout = displaySegments.length > 0
+    ? defaultHoidNarrativeLayout(displaySegments.length)
+    : undefined;
   const presentation: Extract<HoidAnswerPresentation, { status: "ready" }> = Object.freeze({
     status: "ready",
     text,
     claimIds,
     evidenceIds,
     citations: Object.freeze(displayCitations),
+    ...(layout && displaySegments.length > 0
+      ? { layout, segments: Object.freeze(displaySegments) }
+      : {}),
   });
   const projected = projectHoidAnswerForDisplay(presentation);
   if (!projected) return unavailable("invalid-dossier");

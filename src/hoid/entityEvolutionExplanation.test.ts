@@ -10,6 +10,7 @@ import {
   createHoidCharacterEvolutionIndex,
   createHoidCharacterEvolutionReview,
   getHoidCharacterEvolutionRegistryStatus,
+  resolveHoidCharacterInvestigationDraft,
 } from "./entityEvolutionExplanation";
 import { classifyHoidCharacterEvolutionIntent } from "./entityEvolutionExplanationIntent";
 import { createHoidEntityDossierGateway } from "./entityDossierGateway";
@@ -471,5 +472,43 @@ describe("Hoid progress-bound character evolution", () => {
 
   it("keeps the production registry empty", () => {
     expect(getHoidCharacterEvolutionRegistryStatus()).toBe("empty");
+  });
+});
+
+
+describe("Hoid character follow-up draft action", () => {
+  const question = "¿Qué conocimientos de Personaje Alfa están documentados hasta donde has leído?";
+  const suggestion = Object.freeze({
+    dimension: "knowledge" as const,
+    question,
+    citations: Object.freeze([
+      Object.freeze({ title: "El Imperio Final", chapter: 1 }),
+    ]),
+  });
+
+  it("prepares the exact reviewed question without submitting it", () => {
+    expect(resolveHoidCharacterInvestigationDraft(suggestion, true)).toBe(question);
+  });
+
+  it("does not prepare a draft while the composer or progress is unavailable", () => {
+    expect(resolveHoidCharacterInvestigationDraft(suggestion, false)).toBeNull();
+  });
+
+  it("rejects malformed, empty-source and unexpected-shape suggestions", () => {
+    expect(resolveHoidCharacterInvestigationDraft({ ...suggestion, citations: [] }, true)).toBeNull();
+    expect(resolveHoidCharacterInvestigationDraft({ ...suggestion, question: " " }, true)).toBeNull();
+    expect(resolveHoidCharacterInvestigationDraft({ ...suggestion, extra: "untrusted" }, true)).toBeNull();
+    expect(resolveHoidCharacterInvestigationDraft({ ...suggestion, dimension: "future" }, true)).toBeNull();
+  });
+
+  it("rejects control characters and oversized questions", () => {
+    expect(resolveHoidCharacterInvestigationDraft({
+      ...suggestion,
+      question: "Pregunta\u0000",
+    }, true)).toBeNull();
+    expect(resolveHoidCharacterInvestigationDraft({
+      ...suggestion,
+      question: "x".repeat(4_001),
+    }, true)).toBeNull();
   });
 });

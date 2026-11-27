@@ -214,6 +214,43 @@ describe("Hoid exact-unit approved-claim attestation v2", () => {
     expect(invoked).toBe(false);
   });
 
+  it("binds the epistemic assertion kind to the approved claim digest", () => {
+    const interpreted = attested({
+      ...core,
+      assertionKind: "interpretation",
+    });
+    const validated = validateHoidExactApprovedClaimAttestation(interpreted, evidence, [policy]);
+    expect(validated.status).toBe("valid");
+    if (validated.status !== "valid") return;
+    expect(validated.claim.assertionKind).toBe("interpretation");
+
+    expect(validateHoidExactApprovedClaimAttestation({
+      ...interpreted,
+      assertionKind: "event",
+    }, evidence, [policy])).toEqual({
+      status: "invalid",
+      reason: "integrity-mismatch",
+    });
+  });
+
+  it("keeps legacy claims without assertion metadata valid but explicitly unclassified", () => {
+    const legacy = attested();
+    const validated = validateHoidExactApprovedClaimAttestation(legacy, evidence, [policy]);
+    expect(validated.status).toBe("valid");
+    if (validated.status !== "valid") return;
+    expect(validated.claim).not.toHaveProperty("assertionKind");
+  });
+
+  it("rejects an unknown epistemic assertion kind", () => {
+    expect(createHoidExactApprovedClaimAttestation({
+      ...core,
+      assertionKind: "rumour",
+    }, evidence, [policy], reviewer)).toEqual({
+      status: "invalid",
+      reason: "invalid-claim",
+    });
+  });
+
   it("rejects malformed schema versions and extra claim properties", () => {
     const claim = attested();
     expect(validateHoidExactApprovedClaimAttestation({

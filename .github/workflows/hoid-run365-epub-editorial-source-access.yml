@@ -1,0 +1,67 @@
+name: Hoid Run 365 — local EPUB editorial source access
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run365"
+    paths:
+      - "src/hoid/epubEditorialSourceAccess.ts"
+      - "src/hoid/epubEditorialSourceAccess.test.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "docs/hoid/RUN365_LOCAL_EPUB_EDITORIAL_SOURCE_ACCESS.md"
+      - ".github/workflows/hoid-run365-epub-editorial-source-access.yml"
+  pull_request:
+    paths:
+      - "src/hoid/epubEditorialSourceAccess.ts"
+      - "src/hoid/epubEditorialSourceAccess.test.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.ts"
+      - "src/hoid/epubIngestion.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/verifiedChapterDocuments.ts"
+      - "src/hoid/verifiedChapterLocators.ts"
+      - "docs/hoid/RUN365_LOCAL_EPUB_EDITORIAL_SOURCE_ACCESS.md"
+      - ".github/workflows/hoid-run365-epub-editorial-source-access.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-epub-editorial-source-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run source access and EPUB ingestion regressions
+        run: >-
+          npx vitest run
+          src/hoid/epubEditorialSourceAccess.test.ts
+          src/hoid/editorialClaimPromotionPreflight.test.ts
+          src/hoid/epubIngestion.test.ts
+          src/hoid/epubRangeRuntimeAdapters.test.ts
+          src/hoid/sourceIngestionExecution.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/epubEditorialSourceAccess.ts
+          src/hoid/epubEditorialSourceAccess.test.ts
+          src/hoid/editorialClaimPromotionPreflight.ts
+          src/hoid/epubIngestion.ts
+          src/hoid/readingManifest.ts
+          src/hoid/verifiedChapterDocuments.ts
+          src/hoid/verifiedChapterLocators.ts

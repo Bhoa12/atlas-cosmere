@@ -57,6 +57,7 @@ describe("Hoid chapter knowledge readiness projection", () => {
     expect(result.report.counts.bodyDigestRegisteredUnitCount).toBe(11);
     expect(result.report.counts.pendingReviewSummaryCount).toBe(10);
     expect(result.report.counts.productionKnowledgeEntryCount).toBe(0);
+    expect(result.report.counts.approvedClaimReferenceCount).toBe(0);
     expect(result.report.units.every(unit => unit.localSourceStatus === "not-audited")).toBe(true);
     expect(result.report.units.find(unit => unit.chapterNumber === 10)?.editorialStatus).toBe("not-staged");
   });
@@ -150,6 +151,7 @@ describe("Hoid chapter knowledge readiness projection", () => {
       bodyDigestStatus: "registered",
       pendingReviewSummaryCount: 1,
       productionKnowledgeEntryCount: 0,
+      approvedClaimReferenceCount: 0,
       editorialStatus: "pending-review",
     });
     expect(result.report.counts.pendingReviewSummaryCount).toBe(22);

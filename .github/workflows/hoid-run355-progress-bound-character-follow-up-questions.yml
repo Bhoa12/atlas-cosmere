@@ -1,0 +1,99 @@
+name: Hoid Run 355 — progress-bound character follow-up questions
+
+on:
+  push:
+    branches:
+      - "feat/hoid-ia-core-run355"
+    paths:
+      - "src/hoid/entityEvolutionExplanation.ts"
+      - "src/hoid/entityEvolutionExplanation.test.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.test.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/entityRelationshipConversation.test.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/magicSystemExplanation.test.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/readerRecommendationPreferences.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN355_PROGRESS_BOUND_CHARACTER_FOLLOW_UP_QUESTIONS.md"
+      - ".github/workflows/hoid-run355-progress-bound-character-follow-up-questions.yml"
+  pull_request:
+    paths:
+      - "src/hoid/entityEvolutionExplanation.ts"
+      - "src/hoid/entityEvolutionExplanation.test.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.test.ts"
+      - "src/hoid/entityDossierConversation.test.ts"
+      - "src/hoid/entityRelationshipConversation.test.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/magicSystemExplanation.test.ts"
+      - "src/hoid/evidenceRuntime.test.ts"
+      - "src/hoid/answerDisplayProjection.test.ts"
+      - "src/hoid/topicRecommendations.test.ts"
+      - "src/hoid/topicInterestRecommendationsGateway.test.ts"
+      - "src/hoid/trustedTopicRecommendations.test.ts"
+      - "src/hoid/recommendationDisplayProjection.test.ts"
+      - "src/hoid/readerRecommendationPreferences.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN355_PROGRESS_BOUND_CHARACTER_FOLLOW_UP_QUESTIONS.md"
+      - ".github/workflows/hoid-run355-progress-bound-character-follow-up-questions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  character-follow-up:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run evolution and recommendation regressions
+        run: >-
+          npx vitest run
+          src/hoid/entityEvolutionExplanationIntent.test.ts
+          src/hoid/entityEvolutionExplanation.test.ts
+          src/hoid/entityDossierConversation.test.ts
+          src/hoid/entityRelationshipConversation.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/magicSystemExplanation.test.ts
+          src/hoid/evidenceRuntime.test.ts
+          src/hoid/answerDisplayProjection.test.ts
+          src/hoid/topicRecommendations.test.ts
+          src/hoid/topicInterestRecommendationsGateway.test.ts
+          src/hoid/trustedTopicRecommendations.test.ts
+          src/hoid/recommendationDisplayProjection.test.ts
+          src/hoid/readerRecommendationPreferences.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/entityEvolutionExplanation.ts
+          src/hoid/entityEvolutionExplanation.test.ts
+          src/hoid/entityEvolutionExplanationIntent.ts
+          src/hoid/entityEvolutionExplanationIntent.test.ts
+          src/hoid/topicRecommendations.ts
+          src/hoid/topicRecommendations.test.ts
+          src/hoid/trustedTopicRecommendations.ts
+          src/hoid/trustedTopicRecommendations.test.ts
+          src/hoid/recommendationDisplayProjection.ts
+          src/hoid/recommendationDisplayProjection.test.ts
+          src/hoid/readerRecommendationPreferences.ts
+          src/hoid/readerRecommendationPreferences.test.ts
+          src/screens/HoidScreen.tsx

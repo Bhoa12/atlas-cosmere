@@ -22,6 +22,7 @@ import {
   createHoidCharacterEvolutionExplanationAdapter,
   createHoidCharacterEvolutionIndex,
   HOID_CHARACTER_EVOLUTION_ANNOTATIONS,
+  type HoidCharacterInvestigationSuggestion,
 } from '../hoid/entityEvolutionExplanation';
 import { classifyHoidCharacterEvolutionIntent } from '../hoid/entityEvolutionExplanationIntent';
 import {
@@ -122,6 +123,7 @@ interface Mensaje {
   segmentos?: readonly HoidDisplaySegment[];
   formato?: HoidNarrativeLayout;
   evidenciaTransversal?: HoidDisplayCrossBookEvidenceSummary;
+  preguntasSugeridas?: readonly HoidCharacterInvestigationSuggestion[];
 }
 
 function formatHoidCitationLocation(
@@ -579,6 +581,7 @@ export const HoidScreen: React.FC<{
       let segmentos: readonly HoidDisplaySegment[] | undefined;
       let formato: HoidNarrativeLayout | undefined;
       let evidenciaTransversal: HoidDisplayCrossBookEvidenceSummary | undefined;
+      let preguntasSugeridas: readonly HoidCharacterInvestigationSuggestion[] | undefined;
       // Even neutral fallback text is scoped to the request snapshot. Stale
       // results and cancelled work explicitly clear this scope below.
       let responseScope: HoidConversationProgressScope | null = requestScope;
@@ -892,8 +895,9 @@ export const HoidScreen: React.FC<{
               fingerprint: evolutionResult.progressFingerprint,
             };
             respuesta = 'Evolución documental de ' + evolutionResult.characterLabel
-              + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\n\n'
+              + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\\n\\n'
               + evolutionResult.presentation.text;
+            preguntasSugeridas = evolutionResult.followUpQuestions;
             citas = evolutionResult.presentation.citations;
             segmentos = evolutionResult.presentation.segments;
             formato = evolutionResult.presentation.layout;
@@ -1110,6 +1114,7 @@ export const HoidScreen: React.FC<{
         segmentos = undefined;
         formato = undefined;
         evidenciaTransversal = undefined;
+        preguntasSugeridas = undefined;
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -1122,6 +1127,7 @@ export const HoidScreen: React.FC<{
         segmentos = undefined;
         formato = undefined;
         evidenciaTransversal = undefined;
+        preguntasSugeridas = undefined;
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -1135,6 +1141,7 @@ export const HoidScreen: React.FC<{
         ...(citas && citas.length > 0 ? { citas } : {}),
         ...(segmentos && formato ? { segmentos, formato } : {}),
         ...(evidenciaTransversal ? { evidenciaTransversal } : {}),
+        ...(preguntasSugeridas && preguntasSugeridas.length > 0 ? { preguntasSugeridas } : {}),
       }]);
     } catch {
       if (!conversationTurnSession.isCurrent(ticket)) return;
@@ -2121,6 +2128,29 @@ export const HoidScreen: React.FC<{
               </View>
             ) : (
               <Text style={styles.bubbleText}>{item.texto}</Text>
+            )}
+            {item.preguntasSugeridas && item.preguntasSugeridas.length > 0 && (
+              <View style={styles.citationBlock}>
+                <Text style={styles.citationHeading}>PREGUNTAS DE SEGUIMIENTO DISPONIBLES</Text>
+                {item.preguntasSugeridas.map((suggestion, suggestionIndex) => (
+                  <View key={suggestion.dimension + ':' + suggestionIndex} style={{ marginBottom: 10 }}>
+                    <Text style={styles.bubbleText}>{suggestion.question}</Text>
+                    {suggestion.citations.map((citation, citationIndex) => (
+                      <Text
+                        key={citation.sourceBookId + ':' + citation.chapter + ':' + citationIndex}
+                        style={styles.citationText}
+                      >
+                        {formatHoidCitationLocation(
+                          citation.title,
+                          citation.chapter,
+                          citation.chapterOrdinal,
+                          citation.chapterLabelAmbiguous,
+                        )}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
             )}
             {(!item.segmentos || item.segmentos.length === 0) && item.citas && item.citas.length > 0 && (
               <View style={styles.citationBlock}>

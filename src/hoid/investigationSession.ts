@@ -2,7 +2,24 @@ import { canonicalizeHoidAnswerBookScope } from "./answerScope";
 import type { HoidCharacterEvolutionDimension } from "./entityEvolutionExplanationIntent";
 import { sha256Hex } from "./sha256";
 
-export type HoidInvestigationTopic = HoidCharacterEvolutionDimension | "overview";
+export type HoidInvestigationDomain =
+  | "character-evolution"
+  | "magic-system"
+  | "entity-dossier"
+  | "entity-relationship"
+  | "entity-timeline";
+
+export type HoidInvestigationTopic =
+  | "overview"
+  | HoidCharacterEvolutionDimension
+  | "principle"
+  | "rule"
+  | "limitation"
+  | "cost"
+  | "application"
+  | "exception"
+  | "interaction"
+  | "timeline";
 
 export type HoidInvestigationTurnTicket = Readonly<{
   epoch: number;
@@ -11,6 +28,7 @@ export type HoidInvestigationTurnTicket = Readonly<{
 export type HoidInvestigationHistoryEntry = Readonly<{
   /** A one-way lookup key for the canonical subject label; the label itself is never retained. */
   subjectFingerprint: string;
+  domain: HoidInvestigationDomain;
   topic: HoidInvestigationTopic;
   progressRevision: number;
   progressFingerprint: string;
@@ -18,11 +36,17 @@ export type HoidInvestigationHistoryEntry = Readonly<{
   sequence: number;
 }>;
 
-export type HoidInvestigationSuggestionLike = Readonly<{
-  dimension: HoidCharacterEvolutionDimension;
-  question: string;
-  citations: readonly unknown[];
-}>;
+export type HoidInvestigationSuggestionLike =
+  | Readonly<{
+      dimension: HoidCharacterEvolutionDimension;
+      question: string;
+      citations: readonly unknown[];
+    }>
+  | Readonly<{
+      topic: HoidInvestigationTopic;
+      question: string;
+      citations: readonly unknown[];
+    }>;
 
 export type HoidInvestigationSession = Readonly<{
   /** Starts a new request owner while retaining completed entries for this screen session. */
@@ -68,13 +92,14 @@ function isEvolutionDimension(value: unknown): value is HoidCharacterEvolutionDi
 function exactRecord(
   value: unknown,
   expectedKeys: readonly string[],
+  requiredKeys: readonly string[] = expectedKeys,
 ): Record<string, unknown> | null {
   try {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) return null;
     const keys = Reflect.ownKeys(value);
-    if (keys.length !== expectedKeys.length) return null;
+    if (keys.length < requiredKeys.length || keys.length > expectedKeys.length) return null;
 
     const result = Object.create(null) as Record<string, unknown>;
     for (const key of keys) {
@@ -87,7 +112,7 @@ function exactRecord(
       ) return null;
       result[key] = descriptor.value;
     }
-    for (const key of expectedKeys) {
+    for (const key of requiredKeys) {
       if (!Object.prototype.hasOwnProperty.call(result, key)) return null;
     }
     return result;
@@ -139,8 +164,38 @@ function validText(value: unknown, maximum: number): value is string {
     !/[\u0000-\u001F\u007F\p{Cf}]/u.test(value);
 }
 
-function canonicalTopic(value: unknown): value is HoidInvestigationTopic {
-  return value === "overview" || isEvolutionDimension(value);
+function isInvestigationDomain(value: unknown): value is HoidInvestigationDomain {
+  return value === "character-evolution" ||
+    value === "magic-system" ||
+    value === "entity-dossier" ||
+    value === "entity-relationship" ||
+    value === "entity-timeline";
+}
+
+const MAGIC_SYSTEM_TOPICS: readonly string[] = Object.freeze([
+  "principle",
+  "rule",
+  "limitation",
+  "cost",
+  "application",
+  "exception",
+  "interaction",
+]);
+
+function canonicalTopic(
+  value: unknown,
+  domain: HoidInvestigationDomain,
+): value is HoidInvestigationTopic {
+  if (domain === "character-evolution") {
+    return value === "overview" || isEvolutionDimension(value);
+  }
+  if (domain === "magic-system") {
+    return value === "overview" ||
+      (typeof value === "string" && MAGIC_SYSTEM_TOPICS.includes(value));
+  }
+  if (domain === "entity-dossier") return value === "overview";
+  if (domain === "entity-relationship") return value === "relationship";
+  return value === "timeline";
 }
 
 function canonicalSubjectFingerprint(value: unknown): string | null {
@@ -157,18 +212,18 @@ function canonicalSubjectFingerprint(value: unknown): string | null {
 
 type CanonicalInvestigationContext = Readonly<{
   subjectFingerprint: string;
+  domain: HoidInvestigationDomain;
   progressRevision: number;
   progressFingerprint: string;
   scopeFingerprint: string;
 }>;
 
 function canonicalContext(value: unknown): CanonicalInvestigationContext | null {
-  const raw = exactRecord(value, [
-    "subjectLabel",
-    "progressRevision",
-    "progressFingerprint",
-    "bookScope",
-  ]);
+  const raw = exactRecord(
+    value,
+    ["subjectLabel", "progressRevision", "progressFingerprint", "bookScope", "domain"],
+    ["subjectLabel", "progressRevision", "progressFingerprint", "bookScope"],
+  );
   if (
     !raw ||
     typeof raw.progressRevision !== "number" ||
@@ -178,6 +233,8 @@ function canonicalContext(value: unknown): CanonicalInvestigationContext | null 
     !SHA256_PATTERN.test(raw.progressFingerprint)
   ) return null;
 
+  const domain = raw.domain === undefined ? "character-evolution" : raw.domain;
+  if (!isInvestigationDomain(domain)) return null;
   const subjectFingerprint = canonicalSubjectFingerprint(raw.subjectLabel);
   const bookScope = canonicalizeHoidAnswerBookScope(raw.bookScope);
   if (!subjectFingerprint || !bookScope) return null;
@@ -191,6 +248,7 @@ function canonicalContext(value: unknown): CanonicalInvestigationContext | null 
 
   return Object.freeze({
     subjectFingerprint,
+    domain,
     progressRevision: raw.progressRevision,
     progressFingerprint: raw.progressFingerprint,
     scopeFingerprint,
@@ -202,6 +260,7 @@ function sameEntryContext(
   context: CanonicalInvestigationContext,
 ): boolean {
   return entry.subjectFingerprint === context.subjectFingerprint &&
+    entry.domain === context.domain &&
     entry.progressRevision === context.progressRevision &&
     entry.progressFingerprint === context.progressFingerprint &&
     entry.scopeFingerprint === context.scopeFingerprint;
@@ -216,12 +275,15 @@ function sameTopicEntry(
 }
 
 /**
- * Ephemeral, provider-neutral history of successfully completed character
- * evolution investigations. It stores hashes and scope metadata only: no
- * user question, answer prose, EPUB locator, evidence ID or source text.
+ * Ephemeral, provider-neutral history of successfully completed narrative
+ * investigations across characters, magic systems, entity dossiers,
+ * relationships and timelines. It stores hashes and scope metadata only:
+ * no user question, answer prose, EPUB locator, evidence ID or source text.
  *
  * The host must call recordCompleted only after the normal answer path has
  * revalidated progress and is about to commit the corresponding safe result.
+ * The domain/topic pair is validated independently so unrelated investigation
+ * types for the same subject can never suppress one another.
  */
 export function createHoidInvestigationSession(): HoidInvestigationSession {
   let epoch = 0;
@@ -250,21 +312,20 @@ export function createHoidInvestigationSession(): HoidInvestigationSession {
 
     recordCompleted(ticket: unknown, input: unknown): boolean {
       if (!isCurrent(ticket)) return false;
-      const raw = exactRecord(input, [
-        "subjectLabel",
-        "topic",
-        "progressRevision",
-        "progressFingerprint",
-        "bookScope",
-      ]);
-      if (!raw || !canonicalTopic(raw.topic)) return false;
+      const raw = exactRecord(
+        input,
+        ["subjectLabel", "topic", "progressRevision", "progressFingerprint", "bookScope", "domain"],
+        ["subjectLabel", "topic", "progressRevision", "progressFingerprint", "bookScope"],
+      );
+      if (!raw) return false;
       const context = canonicalContext({
         subjectLabel: raw.subjectLabel,
         progressRevision: raw.progressRevision,
         progressFingerprint: raw.progressFingerprint,
         bookScope: raw.bookScope,
+        ...(raw.domain === undefined ? {} : { domain: raw.domain }),
       });
-      if (!context) return false;
+      if (!context || !canonicalTopic(raw.topic, context.domain)) return false;
       if (hasCompletedContext(context, raw.topic)) return true;
 
       sequence = sequence >= Number.MAX_SAFE_INTEGER ? 1 : sequence + 1;
@@ -279,21 +340,22 @@ export function createHoidInvestigationSession(): HoidInvestigationSession {
     },
 
     hasCompleted(input: unknown): boolean {
-      const raw = exactRecord(input, [
-        "subjectLabel",
-        "topic",
-        "progressRevision",
-        "progressFingerprint",
-        "bookScope",
-      ]);
-      if (!raw || !canonicalTopic(raw.topic)) return false;
+      const raw = exactRecord(
+        input,
+        ["subjectLabel", "topic", "progressRevision", "progressFingerprint", "bookScope", "domain"],
+        ["subjectLabel", "topic", "progressRevision", "progressFingerprint", "bookScope"],
+      );
+      if (!raw) return false;
       const context = canonicalContext({
         subjectLabel: raw.subjectLabel,
         progressRevision: raw.progressRevision,
         progressFingerprint: raw.progressFingerprint,
         bookScope: raw.bookScope,
+        ...(raw.domain === undefined ? {} : { domain: raw.domain }),
       });
-      return context ? hasCompletedContext(context, raw.topic) : false;
+      return context && canonicalTopic(raw.topic, context.domain)
+        ? hasCompletedContext(context, raw.topic)
+        : false;
     },
 
     filterSuggestions<T extends HoidInvestigationSuggestionLike>(
@@ -301,33 +363,35 @@ export function createHoidInvestigationSession(): HoidInvestigationSession {
       input: unknown,
     ): readonly T[] {
       if (!isCurrent(ticket)) return Object.freeze([]);
-      const raw = exactRecord(input, [
-        "subjectLabel",
-        "progressRevision",
-        "progressFingerprint",
-        "bookScope",
-        "suggestions",
-      ]);
+      const raw = exactRecord(
+        input,
+        ["subjectLabel", "progressRevision", "progressFingerprint", "bookScope", "suggestions", "domain"],
+        ["subjectLabel", "progressRevision", "progressFingerprint", "bookScope", "suggestions"],
+      );
       if (!raw) return Object.freeze([]);
       const context = canonicalContext({
         subjectLabel: raw.subjectLabel,
         progressRevision: raw.progressRevision,
         progressFingerprint: raw.progressFingerprint,
         bookScope: raw.bookScope,
+        ...(raw.domain === undefined ? {} : { domain: raw.domain }),
       });
       const suggestions = denseArray(raw.suggestions, 0, MAX_SUGGESTIONS);
       if (!context || !suggestions) return Object.freeze([]);
 
       const visible: T[] = [];
       for (const suggestion of suggestions) {
-        const item = exactRecord(suggestion, ["dimension", "question", "citations"]);
+        const item = context.domain === "character-evolution"
+          ? exactRecord(suggestion, ["dimension", "question", "citations"])
+          : exactRecord(suggestion, ["topic", "question", "citations"]);
         if (
           !item ||
-          !isEvolutionDimension(item.dimension) ||
           !validText(item.question, MAX_QUESTION_LENGTH) ||
           !denseArray(item.citations, 1, MAX_CITATIONS)
         ) continue;
-        if (!hasCompletedContext(context, item.dimension)) {
+        const topic = context.domain === "character-evolution" ? item.dimension : item.topic;
+        if (!canonicalTopic(topic, context.domain)) continue;
+        if (!hasCompletedContext(context, topic)) {
           visible.push(suggestion as T);
         }
       }

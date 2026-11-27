@@ -28,6 +28,7 @@ import {
 import { classifyHoidCharacterEvolutionIntent } from '../hoid/entityEvolutionExplanationIntent';
 import {
   createHoidInvestigationSession,
+  type HoidInvestigationDomain,
   type HoidInvestigationTopic,
 } from '../hoid/investigationSession';
 import {
@@ -536,8 +537,9 @@ export const HoidScreen: React.FC<{
     setCargando(true);
     setCanCancelAnswer(true);
     let requestScope: HoidConversationProgressScope | null = null;
-    let completedEvolution: Readonly<{
+    let completedInvestigation: Readonly<{
       subjectLabel: string;
+      domain: HoidInvestigationDomain;
       topic: HoidInvestigationTopic;
       progressRevision: number;
       progressFingerprint: string;
@@ -813,6 +815,15 @@ export const HoidScreen: React.FC<{
             citas = relationshipResult.presentation.citations;
             segmentos = relationshipResult.presentation.segments;
             formato = relationshipResult.presentation.layout;
+            completedInvestigation = {
+              subjectLabel: relationshipIntent.status === 'ready'
+                ? relationshipIntent.leftEntityName + ' ↔ ' + relationshipIntent.rightEntityName
+                : '',
+              domain: 'entity-relationship',
+              topic: 'relationship',
+              progressRevision: relationshipResult.progressRevision,
+              progressFingerprint: relationshipResult.progressFingerprint,
+            };
           } else if (relationshipResult.status === 'not-found') {
             responseScope = requestScope;
             respuesta = 'No hay una relación editorial aprobada que pueda mostrar para esos nombres y tu foco de lectura. No confirmaré si la relación no existe o si alguna evidencia todavía está bloqueada.';
@@ -858,6 +869,13 @@ export const HoidScreen: React.FC<{
             citas = timelineResult.presentation.citations;
             segmentos = timelineResult.presentation.segments;
             formato = timelineResult.presentation.layout;
+            completedInvestigation = {
+              subjectLabel: timelineResult.entity.label,
+              domain: 'entity-timeline',
+              topic: 'timeline',
+              progressRevision: timelineResult.progressRevision,
+              progressFingerprint: timelineResult.progressFingerprint,
+            };
           } else if (timelineResult.status === 'not-found') {
             responseScope = requestScope;
             respuesta = 'No hay un recorrido editorial aprobado que pueda mostrar para esa entidad y tu foco de lectura. No confirmaré si faltan datos o si alguna evidencia todavía está bloqueada.';
@@ -917,8 +935,9 @@ export const HoidScreen: React.FC<{
               + ' (evidencias agrupadas por obra y dimensión; el orden refleja disponibilidad de lectura, no cronología interna ni causalidad):\\n\\n'
               + evolutionResult.presentation.text;
             preguntasSugeridas = evolutionResult.followUpQuestions;
-            completedEvolution = {
+            completedInvestigation = {
               subjectLabel: evolutionResult.characterLabel,
+              domain: 'character-evolution',
               topic: characterEvolutionIntent.dimension ?? 'overview',
               progressRevision: evolutionResult.progressRevision,
               progressFingerprint: evolutionResult.progressFingerprint,
@@ -985,6 +1004,15 @@ export const HoidScreen: React.FC<{
             citas = magicResult.presentation.citations;
             segmentos = magicResult.presentation.segments;
             formato = magicResult.presentation.layout;
+            completedInvestigation = {
+              subjectLabel: magicResult.systemLabel,
+              domain: 'magic-system',
+              topic: magicSystemIntent.status === 'ready'
+                ? magicSystemIntent.facet ?? 'overview'
+                : 'overview',
+              progressRevision: magicResult.progressRevision,
+              progressFingerprint: magicResult.progressFingerprint,
+            };
           } else if (magicResult.status === 'not-found') {
             responseScope = requestScope;
             respuesta = 'No hay una explicación editorial aprobada que pueda mostrar para ese sistema y tu foco de lectura. No confirmaré si faltan datos o si alguna evidencia sigue bloqueada.';
@@ -1034,6 +1062,13 @@ export const HoidScreen: React.FC<{
             citas = dossierResult.presentation.citations;
             segmentos = dossierResult.presentation.segments;
             formato = dossierResult.presentation.layout;
+            completedInvestigation = {
+              subjectLabel: dossierIntent.entityName,
+              domain: 'entity-dossier',
+              topic: 'overview',
+              progressRevision: dossierResult.progressRevision,
+              progressFingerprint: dossierResult.progressFingerprint,
+            };
           } else if (dossierResult.status === 'not-found') {
             responseScope = requestScope;
             respuesta = 'No hay un expediente aprobado que pueda mostrar para ese nombre y tu foco de lectura. No puedo confirmar si el dato no existe o si todavía no está desbloqueado.';
@@ -1159,32 +1194,34 @@ export const HoidScreen: React.FC<{
       }
 
       if (
-        completedEvolution &&
+        completedInvestigation &&
         investigationBookScope &&
         requestScope &&
         responseScope &&
         latestScope &&
         !ticket.signal.aborted &&
-        responseScope.revision === completedEvolution.progressRevision &&
-        responseScope.fingerprint === completedEvolution.progressFingerprint &&
+        responseScope.revision === completedInvestigation.progressRevision &&
+        responseScope.fingerprint === completedInvestigation.progressFingerprint &&
         canCommitHoidProgressScopedResponse(requestScope, responseScope, latestScope)
       ) {
         const recorded = investigationSession.recordCompleted(investigationTicket, {
-          subjectLabel: completedEvolution.subjectLabel,
-          topic: completedEvolution.topic,
-          progressRevision: completedEvolution.progressRevision,
-          progressFingerprint: completedEvolution.progressFingerprint,
+          subjectLabel: completedInvestigation.subjectLabel,
+          domain: completedInvestigation.domain,
+          topic: completedInvestigation.topic,
+          progressRevision: completedInvestigation.progressRevision,
+          progressFingerprint: completedInvestigation.progressFingerprint,
           bookScope: investigationBookScope,
         });
-        if (recorded) {
+        if (recorded && completedInvestigation.domain === 'character-evolution') {
           preguntasSugeridas = investigationSession.filterSuggestions<HoidCharacterInvestigationSuggestion>(investigationTicket, {
-            subjectLabel: completedEvolution.subjectLabel,
-            progressRevision: completedEvolution.progressRevision,
-            progressFingerprint: completedEvolution.progressFingerprint,
+            subjectLabel: completedInvestigation.subjectLabel,
+            domain: completedInvestigation.domain,
+            progressRevision: completedInvestigation.progressRevision,
+            progressFingerprint: completedInvestigation.progressFingerprint,
             bookScope: investigationBookScope,
             suggestions: preguntasSugeridas ?? [],
           });
-        } else {
+        } else if (!recorded) {
           preguntasSugeridas = undefined;
         }
       }

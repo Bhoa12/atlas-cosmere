@@ -263,7 +263,7 @@ describe("Hoid progress-bound character evolution", () => {
     expect(result.followUpQuestions).toHaveLength(1);
     expect(result.followUpQuestions[0].dimension).toBe("knowledge");
     expect(result.followUpQuestions[0].question).toBe(
-      "¿Qué conocimientos de Personaje Alfa están documentadas hasta donde has leído?",
+      "¿Qué conocimientos de Personaje Alfa están documentados hasta donde has leído?",
     );
     expect(result.followUpQuestions[0].citations.map(item => item.chapter)).toEqual([1, 2]);
     expect(JSON.stringify(result.followUpQuestions[0])).not.toMatch(/evidenceId|locatorId|unlock/i);

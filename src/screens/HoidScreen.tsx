@@ -1177,7 +1177,7 @@ export const HoidScreen: React.FC<{
           bookScope: investigationBookScope,
         });
         if (recorded) {
-          preguntasSugeridas = investigationSession.filterSuggestions(investigationTicket, {
+          preguntasSugeridas = investigationSession.filterSuggestions<HoidCharacterInvestigationSuggestion>(investigationTicket, {
             subjectLabel: completedEvolution.subjectLabel,
             progressRevision: completedEvolution.progressRevision,
             progressFingerprint: completedEvolution.progressFingerprint,

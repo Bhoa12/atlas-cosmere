@@ -540,17 +540,20 @@ export function createHoidMagicSystemFactIndex(
   if (!raw) return null;
   const annotations: CanonicalAnnotation[] = [];
   const ids = new Set<string>();
-  const claims = new Set<string>();
+  const claimKeys = new Set<string>();
 
   for (const item of raw) {
     const annotation = canonicalAnnotation(item);
+    const claimKey = annotation
+      ? annotation.magicSystemId + "\\n" + annotation.claimId
+      : "";
     if (
       !annotation ||
       ids.has(annotation.id) ||
-      claims.has(annotation.claimId)
+      claimKeys.has(claimKey)
     ) return null;
     ids.add(annotation.id);
-    claims.add(annotation.claimId);
+    claimKeys.add(claimKey);
     annotations.push(annotation);
   }
 

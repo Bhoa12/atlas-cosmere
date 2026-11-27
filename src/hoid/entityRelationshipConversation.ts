@@ -681,16 +681,9 @@ export function createHoidEntityRelationshipConversationAdapter(
 
       const left = normalizeGatewayResult(leftRaw, scope, before);
       const right = normalizeGatewayResult(rightRaw, scope, before);
-      if (left.status === "unavailable" || right.status === "unavailable") {
-        return unavailable(
-          left.reason === "progress-changed" || right.reason === "progress-changed"
-            ? "progress-changed"
-            : left.reason === "invalid-progress" || right.reason === "invalid-progress"
-              ? "invalid-progress"
-              : "invalid-dossier",
-        );
-      }
-      if (left.status === "not-found" || right.status === "not-found") {
+      if (left.status === "unavailable") return unavailable(left.reason);
+      if (right.status === "unavailable") return unavailable(right.reason);
+      if (left.status !== "ready" || right.status !== "ready") {
         return Object.freeze({ status: "not-found" });
       }
 

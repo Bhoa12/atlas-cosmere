@@ -203,6 +203,14 @@ describe("Hoid character evolution intent", () => {
       status: "ready",
       characterName: "Personaje Alfa",
     });
+    expect(classifyHoidCharacterEvolutionIntent("¿Cómo ha evolucionado el personaje de Personaje Alfa?")).toEqual({
+      status: "ready",
+      characterName: "Personaje Alfa",
+    });
+    expect(classifyHoidCharacterEvolutionIntent("Evolución del personaje de Personaje Alfa")).toEqual({
+      status: "ready",
+      characterName: "Personaje Alfa",
+    });
     expect(classifyHoidCharacterEvolutionIntent("Evolución de Personaje Alfa hasta ahora")).toEqual({
       status: "ready",
       characterName: "Personaje Alfa",

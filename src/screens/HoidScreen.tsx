@@ -1211,7 +1211,7 @@ export const HoidScreen: React.FC<{
           });
           activeTrustedConversationDispatchRef.current = dispatch;
 
-          let applicationResult;
+          let applicationResult: Awaited<ReturnType<typeof trustedConversationApplicationAdapter.execute>>;
           try {
             applicationResult = await trustedConversationApplicationAdapter.execute(
               routeInput,

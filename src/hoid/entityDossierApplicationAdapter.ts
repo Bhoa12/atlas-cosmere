@@ -61,7 +61,7 @@ function validText(value: unknown, maximum: number): value is string {
     value.length > 0 &&
     value.length <= maximum &&
     value === value.trim() &&
-    !/[\\u0000-\\u001F\\u007F\\p{Cf}]/u.test(value);
+    !/[\u0000-\u001F\u007F\p{Cf}]/u.test(value);
 }
 
 function canonicalDispatch(value: unknown): HoidEntityDossierApplicationDispatch | null {

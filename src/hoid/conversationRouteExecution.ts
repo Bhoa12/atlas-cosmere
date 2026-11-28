@@ -121,7 +121,7 @@ function canonicalScopeBinding(value: unknown): CanonicalScopeBinding | null {
       (record.focus !== null && (typeof record.focus !== "object" || Array.isArray(record.focus)))
     ) return null;
     const scope = canonicalizeHoidAnswerBookScope(record.scope);
-    return scope ? Object.freeze({ status: "ready", scope }) : null;
+    return scope ? Object.freeze({ status: "ready" as const, scope }) : null;
   }
 
   if (record.status === "unavailable") {
@@ -131,8 +131,8 @@ function canonicalScopeBinding(value: unknown): CanonicalScopeBinding | null {
       !SCOPE_FAILURE_REASONS.has(record.reason)
     ) return null;
     return Object.freeze({
-      status: "unavailable",
-      resolution: Object.freeze({ status: "unavailable", reason: record.reason }) as UnavailableReadingScope,
+      status: "unavailable" as const,
+      resolution: Object.freeze({ status: "unavailable" as const, reason: record.reason }) as UnavailableReadingScope,
     });
   }
 
@@ -144,7 +144,7 @@ function canonicalScopeBinding(value: unknown): CanonicalScopeBinding | null {
       Object.getPrototypeOf(record.choices) !== Array.prototype
     ) return null;
     return Object.freeze({
-      status: "selection-required",
+      status: "selection-required" as const,
       resolution: value as RequiredReadingSelection,
     });
   }
@@ -155,7 +155,7 @@ function canonicalScopeBinding(value: unknown): CanonicalScopeBinding | null {
 function unavailable(
   reason: Extract<HoidConversationRouteExecutionResult, { status: "unavailable" }>["reason"],
 ): HoidConversationRouteExecutionResult {
-  return Object.freeze({ status: "unavailable", reason });
+  return Object.freeze({ status: "unavailable" as const, reason });
 }
 
 /**
@@ -189,47 +189,47 @@ export function resolveHoidConversationRouteExecution(
   switch (plan.route) {
     case "scope-unavailable":
       return scopeBinding.status === "unavailable"
-        ? Object.freeze({ status: "ready", route: plan.route, resolution: scopeBinding.resolution })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, resolution: scopeBinding.resolution })
         : unavailable("inconsistent-route-input");
 
     case "scope-selection-required":
       return scopeBinding.status === "selection-required"
-        ? Object.freeze({ status: "ready", route: plan.route, resolution: scopeBinding.resolution })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, resolution: scopeBinding.resolution })
         : unavailable("inconsistent-route-input");
 
     case "relationship":
       return scopeBinding.status === "ready" && request.relationshipIntent.status === "ready"
-        ? Object.freeze({ status: "ready", route: plan.route, intent: request.relationshipIntent, scope: scopeBinding.scope })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, intent: request.relationshipIntent, scope: scopeBinding.scope })
         : unavailable("inconsistent-route-input");
 
     case "timeline":
       return scopeBinding.status === "ready" && request.timelineIntent.status === "ready"
-        ? Object.freeze({ status: "ready", route: plan.route, intent: request.timelineIntent, scope: scopeBinding.scope })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, intent: request.timelineIntent, scope: scopeBinding.scope })
         : unavailable("inconsistent-route-input");
 
     case "character-evolution":
       return scopeBinding.status === "ready" && request.characterEvolutionIntent.status !== "not-evolution"
-        ? Object.freeze({ status: "ready", route: plan.route, intent: request.characterEvolutionIntent, scope: scopeBinding.scope })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, intent: request.characterEvolutionIntent, scope: scopeBinding.scope })
         : unavailable("inconsistent-route-input");
 
     case "magic-system":
       return scopeBinding.status === "ready" && request.magicSystemIntent.status !== "not-magic"
-        ? Object.freeze({ status: "ready", route: plan.route, intent: request.magicSystemIntent, scope: scopeBinding.scope })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, intent: request.magicSystemIntent, scope: scopeBinding.scope })
         : unavailable("inconsistent-route-input");
 
     case "dossier":
       return scopeBinding.status === "ready" && request.dossierIntent.status === "ready"
-        ? Object.freeze({ status: "ready", route: plan.route, intent: request.dossierIntent, scope: scopeBinding.scope })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, intent: request.dossierIntent, scope: scopeBinding.scope })
         : unavailable("inconsistent-route-input");
 
     case "conversation":
       return scopeBinding.status === "ready" &&
         request.intentPlan.status === "ready" &&
         request.trustedConversationAvailable
-        ? Object.freeze({ status: "ready", route: plan.route, intent: request.intentPlan, scope: scopeBinding.scope })
+        ? Object.freeze({ status: "ready" as const, route: plan.route, intent: request.intentPlan, scope: scopeBinding.scope })
         : unavailable("inconsistent-route-input");
 
     default:
-      return Object.freeze({ status: "ready", route: plan.route });
+      return Object.freeze({ status: "ready" as const, route: plan.route });
   }
 }

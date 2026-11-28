@@ -126,8 +126,9 @@ describe("Hoid entity dossier application adapter", () => {
   it("rejects a non-dossier route without invoking the local adapter", async () => {
     const answer = vi.fn(async () => Object.freeze({ status: "not-found" as const }));
     const dispatch = createDispatch(answer);
+    const readProgress = vi.fn(async () => progress);
     const adapter = createHoidEntityDossierApplicationAdapter({
-      readProgress: async () => progress,
+      readProgress,
       getCurrentDispatch: () => dispatch,
     });
     if (!adapter) throw new Error("Expected dossier application adapter");
@@ -140,6 +141,7 @@ describe("Hoid entity dossier application adapter", () => {
     const result = await adapter.execute(nonDossierRoute, progress);
 
     expect(result).toEqual({ status: "unavailable", reason: "invalid-request" });
+    expect(readProgress).not.toHaveBeenCalled();
     expect(answer).not.toHaveBeenCalled();
   });
 

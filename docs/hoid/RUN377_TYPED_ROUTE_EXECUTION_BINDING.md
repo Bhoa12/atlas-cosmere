@@ -14,7 +14,7 @@ It reuses `resolveHoidConversationRoutePlan` as the sole precedence policy. The 
 - Character-evolution and magic-system routes carry only their recognized ready/incomplete/invalid parser result and a canonical scope.
 - Dossier routes carry only a ready exact-name result and a canonical scope.
 - Generic conversation carries a ready intent and a canonical scope.
-- Scope-selection and scope-unavailable routes carry the corresponding typed resolution.
+- Scope-selection routes carry only the minimal reason code; the route executor deliberately drops the reader-choice list. Scope-unavailable routes carry their typed reason.
 - Metadata-only routes carry no narrative scope or entity payload.
 
 The executor does not call handlers, providers, storage, EPUB adapters or network services. It binds typed data only.

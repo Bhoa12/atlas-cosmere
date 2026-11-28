@@ -1,0 +1,75 @@
+name: Hoid Run 376 — deterministic conversation route arbitration
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/conversationRoutePlan.ts"
+      - "src/hoid/conversationRoutePlan.test.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/hoid/entityDossierIntent.ts"
+      - "src/hoid/entityRelationshipIntent.ts"
+      - "src/hoid/entityProgressTimelineIntent.ts"
+      - "src/hoid/magicSystemExplanationIntent.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN376_DETERMINISTIC_CONVERSATION_ROUTE_ARBITRATION.md"
+      - ".github/workflows/hoid-run376-conversation-route-arbitration.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run376"
+    paths:
+      - "src/hoid/conversationRoutePlan.ts"
+      - "src/hoid/conversationRoutePlan.test.ts"
+      - "src/hoid/conversationIntent.ts"
+      - "src/hoid/entityDossierIntent.ts"
+      - "src/hoid/entityRelationshipIntent.ts"
+      - "src/hoid/entityProgressTimelineIntent.ts"
+      - "src/hoid/magicSystemExplanationIntent.ts"
+      - "src/hoid/entityEvolutionExplanationIntent.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN376_DETERMINISTIC_CONVERSATION_ROUTE_ARBITRATION.md"
+      - ".github/workflows/hoid-run376-conversation-route-arbitration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-route-arbitration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run route arbitration and intent regressions
+        run: >-
+          npx vitest run
+          src/hoid/conversationRoutePlan.test.ts
+          src/hoid/conversationIntent.test.ts
+          src/hoid/entityDossierIntent.test.ts
+          src/hoid/entityRelationshipIntent.test.ts
+          src/hoid/entityProgressTimelineIntent.test.ts
+          src/hoid/magicSystemExplanationIntent.test.ts
+          src/hoid/entityEvolutionExplanationIntent.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/conversationRoutePlan.ts
+          src/hoid/conversationRoutePlan.test.ts
+          src/hoid/conversationIntent.ts
+          src/hoid/entityDossierIntent.ts
+          src/hoid/entityRelationshipIntent.ts
+          src/hoid/entityProgressTimelineIntent.ts
+          src/hoid/magicSystemExplanationIntent.ts
+          src/hoid/entityEvolutionExplanationIntent.ts
+          src/screens/HoidScreen.tsx

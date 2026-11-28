@@ -61,6 +61,7 @@ import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 
 
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
+import { resolveHoidConversationRoutePlan } from '../hoid/conversationRoutePlan';
 import { resolveHoidRereadRequest } from '../hoid/rereadRequest';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
@@ -638,7 +639,6 @@ export const HoidScreen: React.FC<{
         fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
       };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
-      const intentMode = intentPlan.status === 'ready' ? intentPlan.mode : null;
       const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
       const relationshipIntent = classifyHoidEntityRelationshipIntent(textoUsuario);
       const timelineIntent = classifyHoidEntityProgressTimelineIntent(textoUsuario);
@@ -653,6 +653,16 @@ export const HoidScreen: React.FC<{
       const investigationBookScope = answerScopeSelection.status === 'ready'
         ? answerScopeSelection.scope
         : null;
+      const routePlan = resolveHoidConversationRoutePlan({
+        intentPlan,
+        dossierIntent,
+        relationshipIntent,
+        timelineIntent,
+        magicSystemIntent,
+        characterEvolutionIntent,
+        answerScopeStatus: answerScopeSelection.status,
+        trustedConversationAvailable: trustedConversationPort !== null,
+      });
       let respuesta: string;
       let citas: readonly HoidDisplayCitation[] | undefined;
       let segmentos: readonly HoidDisplaySegment[] | undefined;
@@ -664,50 +674,49 @@ export const HoidScreen: React.FC<{
       // results and cancelled work explicitly clear this scope below.
       let responseScope: HoidConversationProgressScope | null = requestScope;
 
-      if (intentPlan.status !== 'ready' && magicSystemIntent.status === 'not-magic' && characterEvolutionIntent.status === 'not-evolution') {
+      if (routePlan.status !== 'ready' || routePlan.route === 'invalid-request') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
-      } else if (dossierIntent.status === 'invalid') {
+      } else if (routePlan.route === 'dossier-invalid') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar el nombre solicitado. No enviaré esta consulta a ningún proveedor.';
-      } else if (dossierIntent.status === 'needs-name') {
+      } else if (routePlan.route === 'dossier-needs-name') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica el nombre exacto del personaje, lugar, organización, objeto o concepto que quieres consultar.';
-      } else if (relationshipIntent.status === 'invalid') {
+      } else if (routePlan.route === 'relationship-invalid') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'No he podido separar de forma inequívoca los dos nombres. No enviaré esta consulta a ningún proveedor.';
-      } else if (relationshipIntent.status === 'needs-names') {
+      } else if (routePlan.route === 'relationship-needs-names') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica los dos nombres exactos cuya relación quieres consultar.';
-      } else if (timelineIntent.status === 'invalid') {
+      } else if (routePlan.route === 'timeline-invalid') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'No he podido validar el nombre de la entidad para su recorrido de lectura. No enviaré esta consulta a ningún proveedor.';
-      } else if (timelineIntent.status === 'needs-name') {
+      } else if (routePlan.route === 'timeline-needs-name') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'Indica el nombre exacto del personaje o entidad cuya evolución documental quieres consultar.';
       } else if (
-        intentMode === 'relationship-explanation' &&
-        relationshipIntent.status === 'not-relationship'
+        routePlan.status === 'ready' && routePlan.route === 'relationship-intent-mismatch'
       ) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         respuesta = 'He detectado una pregunta sobre relaciones, pero no puedo separar dos nombres exactos. Reformúlala como «Relación entre A y B». No la enviaré a ningún proveedor.';
-      } else if (intentMode === 'reread-request') {
+      } else if (routePlan.route === 'reread-request') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -737,7 +746,7 @@ export const HoidScreen: React.FC<{
         } else {
           respuesta = 'No he podido validar la solicitud de relectura. No la enviaré a ningún proveedor.';
         }
-      } else if (intentMode === 'curated-discovery') {
+      } else if (routePlan.route === 'curated-discovery') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -766,7 +775,7 @@ export const HoidScreen: React.FC<{
             respuesta = 'No hay una recomendación de descubrimiento que pueda mostrarse con seguridad. La validación editorial o de progreso no ha autorizado ningún resultado.';
           }
         }
-      } else if (intentMode === 'reading-progress') {
+      } else if (routePlan.route === 'reading-progress') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -796,7 +805,7 @@ export const HoidScreen: React.FC<{
               : 'No puedo verificar el progreso actual. No mostraré una posición de lectura estimada.';
           }
         }
-      } else if (intentMode === 'catalogue-recommendation') {
+      } else if (routePlan.route === 'catalogue-recommendation') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -827,13 +836,13 @@ export const HoidScreen: React.FC<{
             ? 'No puedo verificar el progreso actual. No mostraré recomendaciones.'
             : 'No puedo generar una recomendación válida con esos parámetros.';
         }
-      } else if (answerScopeSelection.status === 'selection-required') {
+      } else if (routePlan.route === 'scope-selection-required') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         responseScope = requestScope;
         respuesta = 'Tienes varias obras activas. Elige el foco en el panel «Foco de lectura» antes de una explicación narrativa. No seleccionaré por orden, recencia ni serie.';
-      } else if (answerScopeSelection.status === 'unavailable') {
+      } else if (routePlan.route === 'scope-unavailable') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -847,7 +856,7 @@ export const HoidScreen: React.FC<{
               : answerScopeSelection.reason === 'invalid-scope'
                 ? 'El ámbito de lectura no es válido. Comprueba la selección de una obra o de dos a cuatro obras activas.'
                 : 'No puedo verificar el progreso y el foco de lectura. La respuesta queda bloqueada para evitar spoilers.';
-      } else if (relationshipIntent.status === 'ready') {
+      } else if (routePlan.route === 'relationship') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -902,7 +911,7 @@ export const HoidScreen: React.FC<{
             respuesta = 'No he podido validar la consulta de relación. No la enviaré a ningún proveedor.';
           }
         }
-      } else if (timelineIntent.status === 'ready') {
+      } else if (routePlan.route === 'timeline') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -958,9 +967,7 @@ export const HoidScreen: React.FC<{
           }
         }
       } else if (
-        characterEvolutionIntent.status === 'ready' ||
-        characterEvolutionIntent.status === 'needs-name' ||
-        characterEvolutionIntent.status === 'invalid'
+        routePlan.status === 'ready' && routePlan.route === 'character-evolution'
       ) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
@@ -1027,9 +1034,7 @@ export const HoidScreen: React.FC<{
           }
         }
       } else if (
-        magicSystemIntent.status === 'ready' ||
-        magicSystemIntent.status === 'needs-name' ||
-        magicSystemIntent.status === 'invalid'
+        routePlan.status === 'ready' && routePlan.route === 'magic-system'
       ) {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
@@ -1094,7 +1099,7 @@ export const HoidScreen: React.FC<{
             respuesta = 'No he podido validar la consulta de magia. No enviaré la pregunta a ningún proveedor.';
           }
         }
-      } else if (dossierIntent.status === 'ready') {
+      } else if (routePlan.route === 'dossier') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
@@ -1150,13 +1155,13 @@ export const HoidScreen: React.FC<{
             respuesta = 'No he podido validar la consulta de expediente. No la enviaré a ningún proveedor.';
           }
         }
-      } else if (intentPlan.status !== 'ready') {
+      } else if (routePlan.route === 'invalid-intent') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
         responseScope = requestScope;
         respuesta = 'No he podido validar la pregunta. No la enviaré a ningún proveedor ni ampliaré el contexto.';
-      } else if (!trustedConversationPort) {
+      } else if (routePlan.route === 'trusted-host-unavailable') {
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;

@@ -23,6 +23,11 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).toContain("activeEntityDossierDispatchRef.current = dispatch;");
     expect(screen).toContain("entityDossierApplicationAdapter.invalidate();");
     expect(screen).not.toContain("entityDossierConversation.answer({");
+    expect(screen).toContain("createHoidEntityRelationshipApplicationAdapter({");
+    expect(screen).toContain("entityRelationshipApplicationAdapter.execute(");
+    expect(screen).toContain("activeEntityRelationshipDispatchRef.current = relationshipDispatch;");
+    expect(screen).toContain("entityRelationshipApplicationAdapter.invalidate();");
+    expect(screen).not.toContain("entityRelationshipConversation.answer({");
     expect(screen).toContain("trustedConversationPort?.resetContext");
     expect(screen).toContain("result.presentation.text");
     expect(screen).not.toContain("conversationGateway.answer(");

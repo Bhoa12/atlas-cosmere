@@ -5,6 +5,7 @@ import {
   validateHoidEditorialReviewReceipt,
 } from "./editorialReviewPackets";
 import {
+  buildHoidEditorialBundlePromotionPlan,
   validateHoidEditorialBundlePromotionPlan,
   type HoidEditorialBundlePromotionPlan,
 } from "./editorialBundlePromotionAuthority";
@@ -23,9 +24,14 @@ const CONTEXT_KEYS = ["reviewManifest", "knowledgeManifest", "source", "receipts
 const RECEIPT_BATCH_KEYS = [
   "schemaVersion", "reviewBundleFingerprint", "summaries", "claims", "entities", "relationships",
 ] as const;
+const REQUEST_KEYS = [
+  "schemaVersion", "repositoryFullName", "pullRequestNumber", "expectedBaseRef", "expectedBaseSha",
+  "expectedHeadRef", "expectedHeadSha", "promotionManifestPath", "minimumApprovals",
+  "requireCodeOwnerReview", "requireDismissStaleReviews", "requireEnforcedAdmins",
+] as const;
 const PREFLIGHT_RESULT_KEYS = [
   "status", "packetId", "draftId", "workId", "chapterNumber", "editionId",
-  "progressRevision", "receiptFingerprint", "reviewDecisionFingerprint",
+  "progressRevision", "progressFingerprint", "receiptFingerprint", "reviewDecisionFingerprint",
   "sourceDocumentVerified", "reviewerIdentity", "promotionAllowed",
   "productionWritePerformed", "answerAuthorizationEffect", "spoilerUnlockEffect",
 ] as const;
@@ -300,6 +306,7 @@ function canonicalPreflightResult(
   chapterNumber: number,
   editionId: string,
   progressRevision: number,
+  progressFingerprint: string,
   expectedDecisionFingerprint: string,
 ): Readonly<{ receiptFingerprint: string; reviewDecisionFingerprint: string }> | null {
   const raw = exactRecord(value, PREFLIGHT_RESULT_KEYS);
@@ -312,6 +319,9 @@ function canonicalPreflightResult(
     raw.chapterNumber !== chapterNumber ||
     raw.editionId !== editionId ||
     raw.progressRevision !== progressRevision ||
+    raw.progressFingerprint !== progressFingerprint ||
+    typeof raw.progressFingerprint !== "string" ||
+    !SHA256_PATTERN.test(raw.progressFingerprint) ||
     typeof raw.receiptFingerprint !== "string" ||
     !SHA256_PATTERN.test(raw.receiptFingerprint) ||
     typeof raw.reviewDecisionFingerprint !== "string" ||
@@ -377,6 +387,7 @@ async function runPreflightPass(
       draft.evidenceSource.chapter,
       draft.sourceIntegrity.editionId,
       plan.progressRevision,
+      plan.progressFingerprint,
       decisionFingerprint,
     );
     if (!verified) {
@@ -548,16 +559,19 @@ export function createHoidSourceBoundEditorialPromotionGatePort(options: Readonl
       const summaryCount = plan.packets.filter(packet => packet.category === "summary").length;
       if (summaryCount === 0) return blocked("no-summary-packets");
 
-      const request = ownDataValue(input, "request");
-      if (!hasOnlyDataProperties(request)) return blocked("invalid-input");
-      const expectedBaseSha = ownDataValue(request, "expectedBaseSha");
-      const expectedHeadSha = ownDataValue(request, "expectedHeadSha");
+      const request = exactRecord(ownDataValue(input, "request"), REQUEST_KEYS);
+      if (!request) return blocked("invalid-input");
+      const expectedBaseSha = request.expectedBaseSha;
+      const expectedHeadSha = request.expectedHeadSha;
       if (
         typeof expectedBaseSha !== "string" ||
         !COMMIT_PATTERN.test(expectedBaseSha) ||
         typeof expectedHeadSha !== "string" ||
         !COMMIT_PATTERN.test(expectedHeadSha)
       ) return blocked("invalid-input");
+      const requestFingerprint = sha256Hex(JSON.stringify(
+        REQUEST_KEYS.map(key => request[key]),
+      ));
 
       const bindings = summaryReceiptBindings(input, plan);
       if (!bindings || bindings.size !== summaryCount) return blocked("invalid-input");
@@ -580,7 +594,42 @@ export function createHoidSourceBoundEditorialPromotionGatePort(options: Readonl
       if (authorization === "blocked") return blocked("trusted-host-authorization-blocked");
       if (!authorization) return blocked("trusted-host-result-invalid");
 
-      const secondPass = await runPreflightPass(plan, bindings, audit);
+      if (!hasOnlyDataProperties(input)) return blocked("source-preflight-changed");
+      const refreshedPlanValidation = validateHoidEditorialBundlePromotionPlan(
+        ownDataValue(input, "plan"),
+      );
+      if (
+        refreshedPlanValidation.status !== "valid" ||
+        refreshedPlanValidation.plan.fingerprint !== plan.fingerprint
+      ) return blocked("source-preflight-changed");
+      const refreshedRequest = exactRecord(ownDataValue(input, "request"), REQUEST_KEYS);
+      if (
+        !refreshedRequest ||
+        sha256Hex(JSON.stringify(REQUEST_KEYS.map(key => refreshedRequest[key]))) !== requestFingerprint
+      ) return blocked("source-preflight-changed");
+      const refreshedContext = exactRecord(ownDataValue(input, "context"), CONTEXT_KEYS);
+      if (!refreshedContext) return blocked("source-preflight-changed");
+      const rebuiltPlan = buildHoidEditorialBundlePromotionPlan(
+        refreshedContext.reviewManifest,
+        refreshedContext.knowledgeManifest,
+        refreshedContext.source,
+        refreshedContext.receipts,
+        ownDataValue(input, "progressSnapshot"),
+      );
+      if (
+        rebuiltPlan.status !== "ready-for-protected-review" ||
+        rebuiltPlan.plan.fingerprint !== plan.fingerprint
+      ) return blocked("source-preflight-changed");
+      const refreshedBindings = summaryReceiptBindings(input, plan);
+      if (!refreshedBindings || refreshedBindings.size !== summaryCount) {
+        return blocked("source-preflight-changed");
+      }
+      for (const [packetId, decisionFingerprint] of bindings) {
+        if (refreshedBindings.get(packetId) !== decisionFingerprint) {
+          return blocked("source-preflight-changed");
+        }
+      }
+      const secondPass = await runPreflightPass(plan, refreshedBindings, audit);
       if (secondPass.status !== "ready") return blocked(secondPass.reason);
       if (
         firstPass.fingerprint !== secondPass.fingerprint ||

@@ -19,11 +19,12 @@ Para el plan de promoción recibido:
 2. Reconstruye cada paquete desde el catálogo editorial vigente.
 3. Valida los recibos de resumen del bundle autenticado.
 4. Ejecuta el preflight local de cada resumen, en serie y sin exponer texto.
-5. Comprueba que cada resultado corresponde al paquete, obra, capítulo, edición y revisión de progreso exactos.
+5. Comprueba que cada resultado corresponde al paquete, obra, capítulo, edición, revisión y fingerprint exactos del progreso firmado.
 6. Compara el fingerprint de decisión del recibo local con el del recibo del bundle autenticado.
 7. Delega en el host confiable existente, que vuelve a validar firmas, registro raíz, revisión monotónica, quórum independiente, Pull Request protegido y progreso autoritativo.
-8. Si la autoridad está lista para commit, repite todos los preflights locales.
-9. Rechaza el resultado si cambia la fuente, el progreso, el snapshot de recibos o la decisión editorial durante la operación.
+8. Después de la autoridad, reconstruye el plan desde el contexto y el snapshot de progreso originales, y vuelve a comprobar la solicitud y los recibos.
+9. Si la autoridad está lista para commit, repite todos los preflights locales.
+10. Rechaza el resultado si cambia la fuente, el progreso, la solicitud, el bundle o el snapshot de recibos durante la operación.
 
 ## Vinculación de recibos
 
@@ -46,7 +47,7 @@ Un resultado ready-for-maintainer-commit significa que:
 - el host confiable autenticó el bundle, sus revisores y el estado protegido del Pull Request;
 - los fingerprints de plan, bundle, recibos, progreso y HEAD coinciden.
 
-No significa que se haya realizado un commit, una escritura de producción ni una fusión.
+No significa que se haya realizado un commit, una escritura de conocimiento de producción ni una fusión. La autoridad de host confiable puede persistir de forma monotónica la revisión mínima del registro de confianza; ese control de seguridad no es una promoción de conocimiento.
 
 Todos los resultados conservan:
 

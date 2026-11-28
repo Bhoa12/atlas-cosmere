@@ -154,11 +154,12 @@ describe("Hoid source-bound editorial summary promotion preflight", () => {
     if (result.status !== "ready-for-authenticated-review") return;
     expect(Object.keys(result).sort()).toEqual([
       "status", "packetId", "draftId", "workId", "chapterNumber", "editionId",
-      "progressRevision", "receiptFingerprint", "reviewDecisionFingerprint", "sourceDocumentVerified",
+      "progressRevision", "progressFingerprint", "receiptFingerprint", "reviewDecisionFingerprint", "sourceDocumentVerified",
       "reviewerIdentity", "promotionAllowed", "productionWritePerformed",
       "answerAuthorizationEffect", "spoilerUnlockEffect",
     ].sort());
     const serialized = JSON.stringify(result);
+    expect(result.progressFingerprint).toMatch(/^[a-f0-9]{64}$/u);
     expect(result.reviewDecisionFingerprint).toBe(
       fingerprintHoidEditorialReviewDecision(receiptFor()),
     );

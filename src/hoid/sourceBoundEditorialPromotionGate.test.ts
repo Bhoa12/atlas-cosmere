@@ -135,12 +135,14 @@ const promotionInput = Object.freeze({
     receipts,
   }),
   request,
+  progressSnapshot,
 }) as unknown as HoidTrustedHostPromotionInput;
 
 function preflightResult(
   receiptFingerprint = SHA_D,
   decisionFingerprint = localDecisionFingerprint,
   progressRevision = plan.progressRevision,
+  progressFingerprint = plan.progressFingerprint,
 ) {
   return Object.freeze({
     status: "ready-for-authenticated-review" as const,
@@ -150,6 +152,7 @@ function preflightResult(
     chapterNumber: summaryDraft.evidenceSource.chapter,
     editionId: summaryDraft.sourceIntegrity.editionId,
     progressRevision,
+    progressFingerprint,
     receiptFingerprint,
     reviewDecisionFingerprint: decisionFingerprint,
     sourceDocumentVerified: true as const,
@@ -312,6 +315,53 @@ describe("Hoid source-bound signed editorial promotion gate", () => {
       reason: "source-preflight-invalid",
     });
     expect(value.authorize).not.toHaveBeenCalled();
+  });
+
+  it("rejects a different progress fingerprint even when the revision number matches", async () => {
+    const value = fixture({
+      audit: async () => preflightResult(
+        SHA_D,
+        localDecisionFingerprint,
+        plan.progressRevision,
+        SHA_C,
+      ),
+    });
+    expect(await value.port.authorize(promotionInput)).toMatchObject({
+      status: "blocked",
+      reason: "source-preflight-invalid",
+    });
+    expect(value.authorize).not.toHaveBeenCalled();
+  });
+
+  it("rebuilds the signed plan after authority to reject mutated bundle receipts", async () => {
+    const mutableReceipt = { ...bundleReceipt };
+    const mutableReceipts = { ...receipts, summaries: [mutableReceipt] };
+    const mutableInput = {
+      plan,
+      context: {
+        reviewManifest: review.manifest,
+        knowledgeManifest: knowledge.manifest,
+        source: sourceInput,
+        receipts: mutableReceipts,
+      },
+      request,
+      progressSnapshot,
+    } as unknown as HoidTrustedHostPromotionInput;
+    const audit = vi.fn(async () => preflightResult());
+    const authorize = vi.fn(async () => {
+      mutableReceipt.reviewerId = "reviewer-b";
+      return readyTrustedHostResult();
+    });
+    const port = createHoidSourceBoundEditorialPromotionGatePort({
+      sourcePreflightPort: { audit } as unknown as HoidEditorialSummaryPromotionPreflightPort,
+      trustedHostAuthority: { authorize } as unknown as HoidTrustedHostPromotionAuthorityPort,
+    });
+    expect(await port.authorize(mutableInput)).toMatchObject({
+      status: "blocked",
+      reason: "source-preflight-changed",
+    });
+    expect(audit).toHaveBeenCalledTimes(1);
+    expect(authorize).toHaveBeenCalledTimes(1);
   });
 
   it("rejects source or local-receipt changes between the two preflight passes", async () => {

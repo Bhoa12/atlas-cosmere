@@ -30,6 +30,7 @@ export type HoidEditorialSummaryPromotionPreflightResult =
       chapterNumber: number;
       editionId: string;
       progressRevision: number;
+      progressFingerprint: string;
       receiptFingerprint: string;
       reviewDecisionFingerprint: string;
       sourceDocumentVerified: true;
@@ -358,6 +359,7 @@ export function createHoidEditorialSummaryPromotionPreflightPort(options: Readon
         chapterNumber: packet.source.chapter,
         editionId: packet.source.editionId,
         progressRevision: firstProgress.revision,
+        progressFingerprint: firstProgress.fingerprint,
         receiptFingerprint: firstReceiptValidation.fingerprint,
         reviewDecisionFingerprint: fingerprintHoidEditorialReviewDecision(receiptValidation.receipt),
         sourceDocumentVerified: true,

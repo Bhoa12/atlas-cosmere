@@ -145,7 +145,8 @@ function canonicalIntent(value: unknown): HoidConversationIntentResult | null {
   if (record.status === "ready") {
     if (
       !exactKeyCount(record, 4) ||
-      !CLAIM_INTENTS.has(String(record.intent)) ||
+      typeof record.intent !== "string" ||
+      !CLAIM_INTENTS.has(record.intent) ||
       typeof record.mode !== "string" ||
       !INTENT_MODES.has(record.mode) ||
       typeof record.signal !== "string" ||
@@ -181,12 +182,15 @@ function canonicalRelationship(value: unknown): HoidEntityRelationshipIntent | n
   const record = exactRecord(value, ["status", "leftEntityName", "rightEntityName"], ["status"]);
   if (!record) return null;
   if (record.status === "ready") {
-    return exactKeyCount(record, 3) &&
-      validName(record.leftEntityName) &&
-      validName(record.rightEntityName) &&
-      record.leftEntityName !== record.rightEntityName
-      ? value as HoidEntityRelationshipIntent
-      : null;
+    const left = record.leftEntityName;
+    const right = record.rightEntityName;
+    if (
+      !exactKeyCount(record, 3) ||
+      !validName(left) ||
+      !validName(right) ||
+      left.normalize("NFKC").toLowerCase() === right.normalize("NFKC").toLowerCase()
+    ) return null;
+    return value as HoidEntityRelationshipIntent;
   }
   return exactKeyCount(record, 1) &&
     (record.status === "not-relationship" || record.status === "needs-names" || record.status === "invalid")

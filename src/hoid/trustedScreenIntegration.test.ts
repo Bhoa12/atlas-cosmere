@@ -45,6 +45,12 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).not.toContain("conversationGateway.answer(");
     expect(screen).not.toContain("trustedAnswerPort.present(");
     expect(screen).not.toContain("presentHoidExplanation(");
+    expect(screen).toContain("createHoidNarrativeAnswerEnvelope({");
+    expect(screen).toContain("answerEnvelope");
+    expect(screen).toContain("if (!answerEnvelope && hasAnyProvenance)");
+    expect(screen).not.toContain("item.segmentos");
+    expect(screen).not.toContain("item.citas");
+    expect(screen).not.toContain("item.evidenciaTransversal");
   });
 
   it("routes topic recommendations through the signed presenter and keeps trust bindings outside React state", () => {

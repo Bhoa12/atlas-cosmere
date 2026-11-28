@@ -12,6 +12,10 @@ import {
   createHoidEntityDossierApplicationAdapter,
   type HoidEntityDossierApplicationDispatch,
 } from '../hoid/entityDossierApplicationAdapter';
+import {
+  createHoidEntityRelationshipApplicationAdapter,
+  type HoidEntityRelationshipApplicationDispatch,
+} from '../hoid/entityRelationshipApplicationAdapter';
 import { createHoidEntityRelationshipConversationAdapter } from '../hoid/entityRelationshipConversation';
 import { classifyHoidEntityRelationshipIntent } from '../hoid/entityRelationshipIntent';
 import { createHoidEntityProgressTimelineAdapter } from '../hoid/entityProgressTimeline';
@@ -247,6 +251,7 @@ export const HoidScreen: React.FC<{
   const [conversationTurnSession] = useState(() => createHoidConversationTurnSession());
   const activeTrustedConversationDispatchRef = useRef<HoidTrustedConversationApplicationDispatch | null>(null);
   const activeEntityDossierDispatchRef = useRef<HoidEntityDossierApplicationDispatch | null>(null);
+  const activeEntityRelationshipDispatchRef = useRef<HoidEntityRelationshipApplicationDispatch | null>(null);
   const [entityDossierApplicationAdapter] = useState(() =>
     createHoidEntityDossierApplicationAdapter({
       readProgress: async () => {
@@ -259,6 +264,20 @@ export const HoidScreen: React.FC<{
         });
       },
       getCurrentDispatch: () => activeEntityDossierDispatchRef.current,
+    }),
+  );
+  const [entityRelationshipApplicationAdapter] = useState(() =>
+    createHoidEntityRelationshipApplicationAdapter({
+      readProgress: async () => {
+        const current = await progressRefreshRef.current();
+        const projection = current ? projectHoidCursorProgressSnapshot(current) : null;
+        if (projection?.status !== 'ready') throw new Error('Current reading progress is unavailable');
+        return Object.freeze({
+          revision: projection.revision,
+          fingerprint: fingerprintHoidCursorProgressProjection(projection),
+        });
+      },
+      getCurrentDispatch: () => activeEntityRelationshipDispatchRef.current,
     }),
   );
   const [trustedConversationApplicationAdapter] = useState(() =>
@@ -503,6 +522,8 @@ export const HoidScreen: React.FC<{
     activeTrustedConversationDispatchRef.current = null;
     entityDossierApplicationAdapter.invalidate();
     activeEntityDossierDispatchRef.current = null;
+    entityRelationshipApplicationAdapter.invalidate();
+    activeEntityRelationshipDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     investigationSession.reset();
@@ -521,7 +542,7 @@ export const HoidScreen: React.FC<{
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
-  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
@@ -529,6 +550,8 @@ export const HoidScreen: React.FC<{
     activeTrustedConversationDispatchRef.current = null;
     entityDossierApplicationAdapter.invalidate();
     activeEntityDossierDispatchRef.current = null;
+    entityRelationshipApplicationAdapter.invalidate();
+    activeEntityRelationshipDispatchRef.current = null;
     recommendationRequestSession.invalidate();
     investigationSession.reset();
     recommendationPresentationRef.current = null;
@@ -559,6 +582,8 @@ export const HoidScreen: React.FC<{
     activeTrustedConversationDispatchRef.current = null;
     entityDossierApplicationAdapter.invalidate();
     activeEntityDossierDispatchRef.current = null;
+    entityRelationshipApplicationAdapter.invalidate();
+    activeEntityRelationshipDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
@@ -918,12 +943,31 @@ export const HoidScreen: React.FC<{
           responseScope = requestScope;
           respuesta = 'Las explicaciones de relaciones entre entidades no están disponibles. No recurriré a un proveedor alternativo.';
         } else {
-          const relationshipResult = await entityRelationshipConversation.answer({
+          const relationshipDispatch: HoidEntityRelationshipApplicationDispatch = Object.freeze({
+            adapter: entityRelationshipConversation,
             question: textoUsuario,
+            leftEntityName: routeExecution.intent.leftEntityName,
+            rightEntityName: routeExecution.intent.rightEntityName,
             progress: currentProgress,
-            bookScope: routeExecution.scope,
             depth: explanationDepth,
-          }, { signal: ticket.signal });
+            isCurrent: () => conversationTurnSession.isCurrent(ticket),
+          });
+          activeEntityRelationshipDispatchRef.current = relationshipDispatch;
+          let relationshipResult: Awaited<ReturnType<typeof entityRelationshipApplicationAdapter.execute>>;
+          try {
+            relationshipResult = await entityRelationshipApplicationAdapter.execute(
+              routeInput,
+              requestScope,
+              {
+                signal: ticket.signal,
+                isCurrent: relationshipDispatch.isCurrent,
+              },
+            );
+          } finally {
+            if (activeEntityRelationshipDispatchRef.current === relationshipDispatch) {
+              activeEntityRelationshipDispatchRef.current = null;
+            }
+          }
           if (!conversationTurnSession.isCurrent(ticket)) return;
           if (ticket.signal.aborted) { commitCancelledTurn(); return; }
           if (relationshipResult.status === 'ready') {

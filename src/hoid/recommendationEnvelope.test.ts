@@ -107,6 +107,10 @@ describe("Hoid narrative recommendation envelopes", () => {
     expect(envelope?.progressScope).toEqual(progressScope);
     expect(Object.isFrozen(envelope)).toBe(true);
     expect(Object.isFrozen(envelope?.display)).toBe(true);
+    const serialized = JSON.stringify(envelope);
+    for (const privateField of ["cursor", "locatorId", "navigationSha256", "editionId", "manifestId"]) {
+      expect(serialized).not.toContain(privateField);
+    }
   });
 
   it("rejects a resume projection paired with a different progress revision or fingerprint", () => {
@@ -142,6 +146,10 @@ describe("Hoid narrative recommendation envelopes", () => {
     expect(envelope?.selectedTopicIds).toEqual([fixture.topic.id]);
     expect(envelope?.selectionFingerprint).toBe(fingerprintHoidTopicSelection([fixture.topic.id]));
     expect(envelope?.display[0]?.matches[0]?.topicLabel).toBe(fixture.topic.label);
+    const serialized = JSON.stringify(envelope);
+    for (const privateField of ["claimId", "evidenceId", "locatorId", "editionId", "manifestId"]) {
+      expect(serialized).not.toContain(privateField);
+    }
   });
 
   it("rejects topic projections without a progress binding or with a different selection", () => {

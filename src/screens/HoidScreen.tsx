@@ -8,6 +8,10 @@ import { createHoidConversationGateway } from '../hoid/conversationGateway';
 import { createProductionHoidEntityDossierGateway } from '../hoid/entityDossierGateway';
 import { classifyHoidEntityDossierIntent } from '../hoid/entityDossierIntent';
 import { createHoidEntityDossierConversationAdapter } from '../hoid/entityDossierConversation';
+import {
+  createHoidEntityDossierApplicationAdapter,
+  type HoidEntityDossierApplicationDispatch,
+} from '../hoid/entityDossierApplicationAdapter';
 import { createHoidEntityRelationshipConversationAdapter } from '../hoid/entityRelationshipConversation';
 import { classifyHoidEntityRelationshipIntent } from '../hoid/entityRelationshipIntent';
 import { createHoidEntityProgressTimelineAdapter } from '../hoid/entityProgressTimeline';
@@ -242,6 +246,21 @@ export const HoidScreen: React.FC<{
   const conversationScopeBindingRef = useRef<HoidConversationScopeBinding | null>(null);
   const [conversationTurnSession] = useState(() => createHoidConversationTurnSession());
   const activeTrustedConversationDispatchRef = useRef<HoidTrustedConversationApplicationDispatch | null>(null);
+  const activeEntityDossierDispatchRef = useRef<HoidEntityDossierApplicationDispatch | null>(null);
+  const [entityDossierApplicationAdapter] = useState(() =>
+    createHoidEntityDossierApplicationAdapter({
+      readProgress: async () => {
+        const current = await progressRefreshRef.current();
+        const projection = current ? projectHoidCursorProgressSnapshot(current) : null;
+        if (projection?.status !== 'ready') throw new Error('Current reading progress is unavailable');
+        return Object.freeze({
+          revision: projection.revision,
+          fingerprint: fingerprintHoidCursorProgressProjection(projection),
+        });
+      },
+      getCurrentDispatch: () => activeEntityDossierDispatchRef.current,
+    }),
+  );
   const [trustedConversationApplicationAdapter] = useState(() =>
     createHoidTrustedConversationApplicationAdapter({
       readProgress: async () => {
@@ -482,6 +501,8 @@ export const HoidScreen: React.FC<{
     conversationTurnSession.invalidate();
     trustedConversationApplicationAdapter.invalidate();
     activeTrustedConversationDispatchRef.current = null;
+    entityDossierApplicationAdapter.invalidate();
+    activeEntityDossierDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     investigationSession.reset();
@@ -500,12 +521,14 @@ export const HoidScreen: React.FC<{
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
-  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
     trustedConversationApplicationAdapter.invalidate();
     activeTrustedConversationDispatchRef.current = null;
+    entityDossierApplicationAdapter.invalidate();
+    activeEntityDossierDispatchRef.current = null;
     recommendationRequestSession.invalidate();
     investigationSession.reset();
     recommendationPresentationRef.current = null;
@@ -534,6 +557,8 @@ export const HoidScreen: React.FC<{
     conversationTurnSession.invalidate();
     trustedConversationApplicationAdapter.invalidate();
     activeTrustedConversationDispatchRef.current = null;
+    entityDossierApplicationAdapter.invalidate();
+    activeEntityDossierDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
@@ -1133,13 +1158,34 @@ export const HoidScreen: React.FC<{
         if (!entityDossierConversation) {
           responseScope = requestScope;
           respuesta = 'Los expedientes narrativos no están disponibles en este momento. No recurriré a un proveedor alternativo.';
+        } else if (!requestScope) {
+          responseScope = null;
+          respuesta = 'No puedo verificar el progreso actual. El expediente queda bloqueado para evitar spoilers.';
         } else {
-          const dossierResult = await entityDossierConversation.answer({
+          const dispatch: HoidEntityDossierApplicationDispatch = Object.freeze({
+            adapter: entityDossierConversation,
             question: textoUsuario,
+            entityName: routeExecution.intent.entityName,
             progress: currentProgress,
-            bookScope: routeExecution.scope,
             depth: explanationDepth,
-          }, { signal: ticket.signal });
+            isCurrent: () => conversationTurnSession.isCurrent(ticket),
+          });
+          activeEntityDossierDispatchRef.current = dispatch;
+          let dossierResult: Awaited<ReturnType<typeof entityDossierApplicationAdapter.execute>>;
+          try {
+            dossierResult = await entityDossierApplicationAdapter.execute(
+              routeInput,
+              requestScope,
+              {
+                signal: ticket.signal,
+                isCurrent: dispatch.isCurrent,
+              },
+            );
+          } finally {
+            if (activeEntityDossierDispatchRef.current === dispatch) {
+              activeEntityDossierDispatchRef.current = null;
+            }
+          }
           if (!conversationTurnSession.isCurrent(ticket)) return;
           if (ticket.signal.aborted) { commitCancelledTurn(); return; }
           if (dossierResult.status === 'ready') {

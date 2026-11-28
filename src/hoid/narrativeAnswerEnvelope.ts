@@ -88,7 +88,6 @@ const WORKS = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [
   Object.freeze({ title: work.title, order: index }),
 ] as const));
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
-const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const EPISTEMIC_KINDS = new Set<HoidClaimEpistemicKind>([
   "evidence-backed-assertion",
   "editorial-interpretation",
@@ -483,7 +482,10 @@ function canonicalCrossBookEvidence(
   }
   if (!sameWorkLists(canonicalWorks, expectedWorks)) return null;
 
-  const canonicalSegments = [];
+  const canonicalSegments: Array<Readonly<{
+    claimId: string;
+    works: readonly HoidDisplayCrossBookWorkEvidence[];
+  }>> = [];
   for (let index = 0; index < rawSegments.length; index += 1) {
     const segment = exactRecord(rawSegments[index], ["claimId", "works"]);
     const expectedSegment = segments[index];

@@ -13,7 +13,11 @@ describe("Hoid screen trusted presentation wiring", () => {
     // The typed execution branch must still require the trusted host.
     expect(screen).toContain("resolveHoidConversationRouteExecution");
     expect(screen).toContain("routeExecution.route === 'conversation' && trustedConversationPort !== null");
-    expect(screen).toContain("trustedConversationPort.send({");
+    expect(screen).toContain("createHoidTrustedConversationApplicationAdapter({");
+    expect(screen).toContain("trustedConversationApplicationAdapter.execute(");
+    expect(screen).toContain("activeTrustedConversationDispatchRef.current = dispatch;");
+    expect(screen).toContain("trustedConversationApplicationAdapter.invalidate();");
+    expect(screen).not.toContain("trustedConversationPort.send({");
     expect(screen).toContain("trustedConversationPort?.resetContext");
     expect(screen).toContain("result.presentation.text");
     expect(screen).not.toContain("conversationGateway.answer(");

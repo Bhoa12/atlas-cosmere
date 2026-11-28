@@ -76,6 +76,70 @@ const MAX_RECOMMENDATIONS = HOID_SOURCE_BIBLIOGRAPHY.length;
 const MAX_TOPIC_MATCHES = 32;
 const MAX_CITATIONS = 16;
 
+export type HoidRecommendationProgressScope = Readonly<{
+  revision: number;
+  fingerprint: string;
+}>;
+
+const EDITION_DISPLAY_PROJECTIONS = new WeakSet<object>();
+const EDITION_DISPLAY_PROGRESS = new WeakMap<object, HoidRecommendationProgressScope>();
+const TOPIC_DISPLAY_PROJECTIONS = new WeakSet<object>();
+const TOPIC_DISPLAY_PROGRESS = new WeakMap<object, HoidRecommendationProgressScope>();
+
+function canonicalRecommendationProgressScope(value: unknown): HoidRecommendationProgressScope | null {
+  const record = canonicalRecord(value, ["revision", "fingerprint"]);
+  if (
+    !record ||
+    Object.keys(record).length !== 2 ||
+    typeof record.revision !== "number" ||
+    !Number.isSafeInteger(record.revision) ||
+    record.revision < 0 ||
+    typeof record.fingerprint !== "string" ||
+    !SHA256_PATTERN.test(record.fingerprint)
+  ) return null;
+  return Object.freeze({ revision: record.revision, fingerprint: record.fingerprint });
+}
+
+function registerEditionProjection<T extends object>(
+  projection: T,
+  progressRevision: number,
+  progressFingerprint: string,
+): T {
+  EDITION_DISPLAY_PROJECTIONS.add(projection);
+  EDITION_DISPLAY_PROGRESS.set(projection, Object.freeze({
+    revision: progressRevision,
+    fingerprint: progressFingerprint,
+  }));
+  return projection;
+}
+
+export function isHoidEditionRecommendationDisplayProjection(
+  value: unknown,
+): value is HoidEditionRecommendationDisplayProjection {
+  return value !== null && typeof value === "object" &&
+    EDITION_DISPLAY_PROJECTIONS.has(value as object);
+}
+
+export function getHoidEditionRecommendationDisplayProgressScope(
+  value: unknown,
+): HoidRecommendationProgressScope | null {
+  if (!isHoidEditionRecommendationDisplayProjection(value)) return null;
+  return EDITION_DISPLAY_PROGRESS.get(value as object) ?? null;
+}
+
+export function isHoidTopicRecommendationDisplayProjection(
+  value: unknown,
+): value is readonly HoidTopicRecommendationDisplayItem[] {
+  return Array.isArray(value) && TOPIC_DISPLAY_PROJECTIONS.has(value);
+}
+
+export function getHoidTopicRecommendationDisplayProgressScope(
+  value: unknown,
+): HoidRecommendationProgressScope | null {
+  if (!isHoidTopicRecommendationDisplayProjection(value)) return null;
+  return TOPIC_DISPLAY_PROGRESS.get(value as object) ?? null;
+}
+
 function canonicalRecord(
   value: unknown,
   allowedKeys: readonly string[],
@@ -245,11 +309,11 @@ export function projectHoidEditionRecommendationsForDisplay(
       !safeText(record.heading, 512) ||
       !safeText(record.detail, 2_000)
     ) return null;
-    return Object.freeze({
+    return registerEditionProjection(Object.freeze({
       status: "no-safe-next-work",
       heading: record.heading,
       detail: record.detail,
-    });
+    }), record.progressRevision as number, record.progressFingerprint as string);
   }
 
   if (record.status === "ready") {
@@ -295,10 +359,10 @@ export function projectHoidEditionRecommendationsForDisplay(
       }));
     }
 
-    return Object.freeze({
+    return registerEditionProjection(Object.freeze({
       status: "ready",
       items: Object.freeze(items),
-    });
+    }), record.progressRevision as number, record.progressFingerprint as string);
   }
 
   if (record.status === "selection-required") {
@@ -361,12 +425,12 @@ export function projectHoidEditionRecommendationsForDisplay(
       }));
     }
 
-    return Object.freeze({
+    return registerEditionProjection(Object.freeze({
       status: "selection-required",
       heading: record.heading,
       detail: record.detail,
       choices: Object.freeze(choices),
-    });
+    }), record.progressRevision as number, record.progressFingerprint as string);
   }
 
   return null;
@@ -426,9 +490,14 @@ function canonicalTopicCitation(
  */
 export function projectHoidTopicRecommendationsForDisplay(
   value: unknown,
+  progressScopeInput?: unknown,
 ): readonly HoidTopicRecommendationDisplayItem[] | null {
   const rawItems = canonicalDenseArray(value, 0, MAX_RECOMMENDATIONS);
   if (!rawItems) return null;
+  const progressScope = progressScopeInput === undefined
+    ? null
+    : canonicalRecommendationProgressScope(progressScopeInput);
+  if (progressScopeInput !== undefined && !progressScope) return null;
 
   const seenSources = new Set<string>();
   const items: HoidTopicRecommendationDisplayItem[] = [];
@@ -500,5 +569,8 @@ export function projectHoidTopicRecommendationsForDisplay(
     }));
   }
 
-  return Object.freeze(items);
+  const projection = Object.freeze(items);
+  TOPIC_DISPLAY_PROJECTIONS.add(projection);
+  if (progressScope) TOPIC_DISPLAY_PROGRESS.set(projection, progressScope);
+  return projection;
 }

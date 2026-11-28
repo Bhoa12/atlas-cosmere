@@ -79,7 +79,6 @@ import {
 import {
   isHoidTrustedCuratedPathRecommendationScreenPort,
   type HoidTrustedCuratedPathRecommendationScreenPort,
-  type HoidTrustedCuratedPathRecommendationScreenResult,
 } from '../hoid/trustedCuratedPathRecommendationScreenPort';
 import { createHoidTrustedTopicRecommendationPresenter } from '../hoid/trustedTopicRecommendations';
 import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
@@ -141,9 +140,18 @@ import {
 import {
   projectHoidEditionRecommendationsForDisplay,
   projectHoidTopicRecommendationsForDisplay,
-  type HoidEditionRecommendationDisplayProjection,
-  type HoidTopicRecommendationDisplayItem,
 } from '../hoid/recommendationDisplayProjection';
+import {
+  createHoidCuratedPathRecommendationEnvelope,
+  createHoidRecommendationAbstentionEnvelope,
+  createHoidResumeReadingRecommendationEnvelope,
+  createHoidTopicInterestRecommendationEnvelope,
+  fingerprintHoidTopicSelection,
+  type HoidCuratedPathRecommendationEnvelope,
+  type HoidRecommendationAbstentionEnvelope,
+  type HoidResumeReadingRecommendationEnvelope,
+  type HoidTopicInterestRecommendationEnvelope,
+} from '../hoid/recommendationEnvelope';
 import {
   rankHoidCuratedPathRecommendationsForReader,
   getDefaultHoidReaderRecommendationPreferences,
@@ -442,28 +450,37 @@ export const HoidScreen: React.FC<{
   ]);
   const [input, setInput] = useState('');
   const [explanationDepth, setExplanationDepth] = useState<HoidExplanationDepth>('detailed');
-  const [recommendationPresentation, setRecommendationPresentation] = useState<HoidEditionRecommendationDisplayProjection | null>(null);
+  const [recommendationPresentation, setRecommendationPresentation] = useState<HoidResumeReadingRecommendationEnvelope | null>(null);
   // Full edition-bound targets stay outside React state. The UI receives only
   // the display projection; navigation resolves the private target from this ref
   // and revalidates it against live progress immediately before opening.
   const recommendationPresentationRef = useRef<HoidEditionBoundRecommendationPresentation | null>(null);
-  const recommendationDisplayProjectionRef = useRef<HoidEditionRecommendationDisplayProjection | null>(null);
+  const recommendationDisplayProjectionRef = useRef<HoidResumeReadingRecommendationEnvelope | null>(null);
   const clearRecommendationPresentation = () => {
     recommendationPresentationRef.current = null;
     recommendationDisplayProjectionRef.current = null;
     setRecommendationPresentation(null);
   };
   const commitRecommendationPresentation = (
-    trustedPresentation: HoidEditionBoundRecommendationPresentation,
+    trustedPresentation: Exclude<HoidEditionBoundRecommendationPresentation, { status: "unavailable" }>,
   ): boolean => {
     const display = projectHoidEditionRecommendationsForDisplay(trustedPresentation);
-    if (!display) {
+    const envelope = display
+      ? createHoidResumeReadingRecommendationEnvelope({
+          display,
+          progressScope: {
+            revision: trustedPresentation.progressRevision,
+            fingerprint: trustedPresentation.progressFingerprint,
+          },
+        })
+      : null;
+    if (!envelope) {
       clearRecommendationPresentation();
       return false;
     }
     recommendationPresentationRef.current = trustedPresentation;
-    recommendationDisplayProjectionRef.current = display;
-    setRecommendationPresentation(display);
+    recommendationDisplayProjectionRef.current = envelope;
+    setRecommendationPresentation(envelope);
     return true;
   };
   const [recommendationMessage, setRecommendationMessage] = useState('');
@@ -479,8 +496,9 @@ export const HoidScreen: React.FC<{
   const [readerOpening, setReaderOpening] = useState(false);
   const [readerMessage, setReaderMessage] = useState('');
   const readerAbortControllerRef = useRef<AbortController | null>(null);
-  const [curatedPathProjection, setCuratedPathProjection] =
-    useState<HoidTrustedCuratedPathRecommendationScreenResult | null>(null);
+  const [curatedPathProjection, setCuratedPathProjection] = useState<
+    HoidCuratedPathRecommendationEnvelope | HoidRecommendationAbstentionEnvelope | null
+  >(null);
   const [readerPreferences, setReaderPreferences] = useState<HoidReaderRecommendationPreferences>(
     getDefaultHoidReaderRecommendationPreferences(),
   );
@@ -507,7 +525,7 @@ export const HoidScreen: React.FC<{
     setEditorialSourceAccessState(port && workId ? Object.freeze({ port, workId }) : null);
   }, []);
   const [selectedTopicIds, setSelectedTopicIds] = useState<readonly HoidTopicId[]>([]);
-  const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendationDisplayItem[]>([]);
+  const [topicRecommendations, setTopicRecommendations] = useState<HoidTopicInterestRecommendationEnvelope | null>(null);
   const topicRecommendationBindingRef = useRef<Readonly<{
     revision: number;
     fingerprint: string;
@@ -604,7 +622,7 @@ export const HoidScreen: React.FC<{
     readerAbortControllerRef.current?.abort();
     readerAbortControllerRef.current = null;
     setReaderOpening(false);
-    setTopicRecommendations([]);
+    setTopicRecommendations(null);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter, characterEvolutionApplicationAdapter, magicSystemApplicationAdapter]);
@@ -1770,7 +1788,7 @@ export const HoidScreen: React.FC<{
     setSelectedTopicIds(previous => previous.includes(topicId)
       ? previous.filter(item => item !== topicId)
       : [...previous, topicId]);
-    setTopicRecommendations([]);
+    setTopicRecommendations(null);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
@@ -1786,7 +1804,7 @@ export const HoidScreen: React.FC<{
     conversationContextRef.current = null;
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
-    setTopicRecommendations([]);
+    setTopicRecommendations(null);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
     setCargandoRecomendaciones(true);
@@ -1841,7 +1859,7 @@ export const HoidScreen: React.FC<{
         }, ticket.signal);
         if (!recommendationRequestSession.isCurrent(ticket)) return;
         if (verified.status !== 'ready') {
-          setTopicRecommendations([]);
+          setTopicRecommendations(null);
           clearTopicRecommendationBinding();
           setTopicRecommendationMessage(
             verified.reason === 'progress-changed'
@@ -1864,19 +1882,35 @@ export const HoidScreen: React.FC<{
           latestProjection.revision !== result.progressRevision ||
           fingerprintHoidCursorProgressProjection(latestProjection) !== result.progressFingerprint
         ) {
-          setTopicRecommendations([]);
+          setTopicRecommendations(null);
           clearTopicRecommendationBinding();
           setTopicRecommendationMessage('Tu progreso ha cambiado. Vuelve a buscar para recalcular las autorizaciones.');
           return;
         }
-        const topicDisplayItems = projectHoidTopicRecommendationsForDisplay(verified.items);
-        if (!topicDisplayItems) {
-          setTopicRecommendations([]);
+        const topicDisplayItems = projectHoidTopicRecommendationsForDisplay(
+          verified.items,
+          {
+            revision: verified.progressRevision,
+            fingerprint: verified.progressFingerprint,
+          },
+        );
+        const topicEnvelope = topicDisplayItems
+          ? createHoidTopicInterestRecommendationEnvelope({
+              display: topicDisplayItems,
+              progressScope: {
+                revision: verified.progressRevision,
+                fingerprint: verified.progressFingerprint,
+              },
+              selectedTopicIds: selectedTopicSnapshot,
+            })
+          : null;
+        if (!topicEnvelope) {
+          setTopicRecommendations(null);
           clearTopicRecommendationBinding();
-          setTopicRecommendationMessage('No puedo reducir las recomendaciones temáticas a metadatos seguros. No mostraré resultados.');
+          setTopicRecommendationMessage('No puedo reducir las recomendaciones temáticas a un contrato de presentación seguro. No mostraré resultados.');
           return;
         }
-        setTopicRecommendations(topicDisplayItems);
+        setTopicRecommendations(topicEnvelope);
         topicRecommendationBindingRef.current = Object.freeze({
           revision: verified.progressRevision,
           fingerprint: verified.progressFingerprint,
@@ -1903,7 +1937,7 @@ export const HoidScreen: React.FC<{
       }
     } catch {
       if (!recommendationRequestSession.isCurrent(ticket)) return;
-      setTopicRecommendations([]);
+      setTopicRecommendations(null);
       clearTopicRecommendationBinding();
       setTopicRecommendationMessage('No puedo verificar las recomendaciones temáticas. No mostraré resultados alternativos.');
     } finally {
@@ -1919,7 +1953,7 @@ export const HoidScreen: React.FC<{
     clearRecommendationPresentation();
     setRecommendationSelectedBookId(null);
     setRecommendationMessage('Solicitud cancelada. No mostraré resultados parciales.');
-    setTopicRecommendations([]);
+    setTopicRecommendations(null);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
   };
@@ -1928,9 +1962,12 @@ export const HoidScreen: React.FC<{
   const privateRecommendationPresentation = recommendationPresentationRef.current;
   const recommendationsAreCurrent =
     recommendationPresentation !== null &&
+    recommendationPresentation.kind === 'resume-reading' &&
     recommendationDisplayProjectionRef.current === recommendationPresentation &&
     privateRecommendationPresentation !== null &&
     liveProjection?.status === 'ready' &&
+    recommendationPresentation.progressScope.revision === liveProjection.revision &&
+    recommendationPresentation.progressScope.fingerprint === fingerprintHoidCursorProgressProjection(liveProjection) &&
     validateHoidEditionBoundRecommendationFreshness(
       privateRecommendationPresentation,
       liveProjection,
@@ -2079,6 +2116,10 @@ export const HoidScreen: React.FC<{
       return;
     }
 
+    const requestScope = Object.freeze({
+      revision: liveProgressScope.revision,
+      fingerprint: liveProgressScope.fingerprint,
+    });
     curatedPathAbortControllerRef.current?.abort();
     const controller = new AbortController();
     curatedPathAbortControllerRef.current = controller;
@@ -2095,16 +2136,73 @@ export const HoidScreen: React.FC<{
         controller.signal.aborted ||
         generation !== curatedPathRequestGenerationRef.current
       ) return;
-      setCuratedPathProjection(result);
-      setCuratedPathMessage(result.status === 'ready'
-        ? 'Itinerarios revalidados. La elección de una obra sigue siendo manual.'
-        : 'No hay un itinerario que pueda mostrarse con seguridad. No se ha abierto ninguna obra.');
+
+      // Bind the display envelope to a second authoritative progress read.
+      const latestProgress = await awaitHoidOperationWithSignal(
+        () => progressRefreshRef.current(),
+        controller.signal,
+      );
+      if (
+        controller.signal.aborted ||
+        generation !== curatedPathRequestGenerationRef.current
+      ) return;
+      const latestProjection = latestProgress
+        ? projectHoidCursorProgressSnapshot(latestProgress)
+        : null;
+      const latestScope = latestProjection?.status === 'ready'
+        ? {
+            revision: latestProjection.revision,
+            fingerprint: fingerprintHoidCursorProgressProjection(latestProjection),
+          }
+        : null;
+      if (
+        !latestScope ||
+        latestScope.revision !== requestScope.revision ||
+        latestScope.fingerprint !== requestScope.fingerprint
+      ) {
+        setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+          kind: 'curated-path',
+          progressScope: requestScope,
+          reason: 'progress-changed',
+        }));
+        setCuratedPathMessage('Tu progreso ha cambiado. Los itinerarios anteriores se han descartado.');
+        return;
+      }
+
+      if (result.status === 'ready') {
+        const envelope = createHoidCuratedPathRecommendationEnvelope({
+          display: result,
+          progressScope: requestScope,
+        });
+        if (!envelope) {
+          setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+            kind: 'curated-path',
+            progressScope: requestScope,
+            reason: 'invalid-projection',
+          }));
+          setCuratedPathMessage('No se pudo validar la presentación firmada. No se mostrará ninguna ruta parcial.');
+          return;
+        }
+        setCuratedPathProjection(envelope);
+        setCuratedPathMessage('Itinerarios revalidados. La elección de una obra sigue siendo manual.');
+      } else {
+        setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+          kind: 'curated-path',
+          progressScope: requestScope,
+          reason: 'trust-unavailable',
+        }));
+        setCuratedPathMessage('No hay un itinerario que pueda mostrarse con seguridad. No se ha abierto ninguna obra.');
+      }
     } catch {
       if (
         controller.signal.aborted ||
         generation !== curatedPathRequestGenerationRef.current
       ) return;
-      setCuratedPathProjection(null);
+      setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+        kind: 'curated-path',
+        progressScope: requestScope,
+        reason: 'unavailable',
+      }));
       setCuratedPathMessage(
         'No se pudo verificar el catálogo editorial. Las recomendaciones permanecen ocultas.',
       );
@@ -2121,19 +2219,38 @@ export const HoidScreen: React.FC<{
     curatedPathAbortControllerRef.current?.abort();
     curatedPathAbortControllerRef.current = null;
     setCuratedPathLoading(false);
-    setCuratedPathProjection(null);
+    setCuratedPathProjection(liveProgressScope
+      ? createHoidRecommendationAbstentionEnvelope({
+          kind: 'curated-path',
+          progressScope: liveProgressScope,
+          reason: 'cancelled',
+        })
+      : null);
     setCuratedPathMessage('Consulta cancelada. No se ha modificado el progreso.');
   };
 
-  const rankedCuratedPathProjection = curatedPathProjection?.status === 'ready'
-    ? rankHoidCuratedPathRecommendationsForReader(curatedPathProjection, readerPreferences)
+  const curatedPathIsCurrent =
+    curatedPathProjection?.status === 'ready' &&
+    curatedPathProjection.kind === 'curated-path' &&
+    liveProgressScope !== null &&
+    curatedPathProjection.progressScope.revision === liveProgressScope.revision &&
+    curatedPathProjection.progressScope.fingerprint === liveProgressScope.fingerprint;
+  const rankedCuratedPathProjection = curatedPathIsCurrent && curatedPathProjection?.status === 'ready'
+    ? rankHoidCuratedPathRecommendationsForReader(curatedPathProjection.display, readerPreferences)
     : null;
   const visibleMessages = filterVisibleHoidMessages(mensajes, liveProgressScope);
   const topicRecommendationBinding = topicRecommendationBindingRef.current;
+  const currentTopicSelectionFingerprint = fingerprintHoidTopicSelection(selectedTopicIds);
   const topicRecommendationsAreCurrent =
     topicRecommendationsTrustReady &&
+    topicRecommendations?.status === 'ready' &&
+    topicRecommendations.kind === 'topic-interest' &&
+    currentTopicSelectionFingerprint !== null &&
+    topicRecommendations.selectionFingerprint === currentTopicSelectionFingerprint &&
     topicRecommendationBinding !== null &&
     liveProgressScope !== null &&
+    topicRecommendations.progressScope.revision === liveProgressScope.revision &&
+    topicRecommendations.progressScope.fingerprint === liveProgressScope.fingerprint &&
     topicRecommendationBinding.revision === liveProgressScope.revision &&
     topicRecommendationBinding.fingerprint === liveProgressScope.fingerprint &&
     topicRecommendationBinding.selectionKey === selectedTopicIds.join('\n') &&
@@ -2316,11 +2433,11 @@ export const HoidScreen: React.FC<{
             <Text style={styles.readerCancelButtonText}>Cancelar apertura</Text>
           </TouchableOpacity>
         )}
-        {recommendationsAreCurrent && recommendationPresentation?.status === 'selection-required' && (
+        {recommendationsAreCurrent && recommendationPresentation?.display.status === 'selection-required' && (
           <View style={styles.recommendationSelection}>
-            <Text style={styles.recommendationItemText}>{recommendationPresentation.heading}</Text>
-            <Text style={styles.recommendationItemMeta}>{recommendationPresentation.detail}</Text>
-            {recommendationPresentation.choices.map(choice => (
+            <Text style={styles.recommendationItemText}>{recommendationPresentation.display.heading}</Text>
+            <Text style={styles.recommendationItemMeta}>{recommendationPresentation.display.detail}</Text>
+            {recommendationPresentation.display.choices.map(choice => (
               <TouchableOpacity
                 key={choice.sourceId}
                 accessibilityRole="button"
@@ -2337,7 +2454,7 @@ export const HoidScreen: React.FC<{
             ))}
           </View>
         )}
-        {recommendationsAreCurrent && recommendationPresentation?.status === 'ready' && recommendationPresentation.items.map(item => (
+        {recommendationsAreCurrent && recommendationPresentation?.display.status === 'ready' && recommendationPresentation.display.items.map(item => (
           <View key={item.sourceId} style={styles.recommendationItem}>
             <Text style={styles.recommendationItemText}>{item.heading}</Text>
             <Text style={styles.recommendationItemMeta}>{item.detail}</Text>
@@ -2425,10 +2542,10 @@ export const HoidScreen: React.FC<{
         )}
         {curatedPathProjection?.status === 'withheld' && (
           <Text style={styles.recommendationNote}>
-            La validación ha fallado de forma cerrada. No se ha mostrado ninguna ruta parcial.
+            {curatedPathProjection.text}
           </Text>
         )}
-        {curatedPathProjection?.status === 'ready' &&
+        {curatedPathIsCurrent &&
           rankedCuratedPathProjection?.status === 'ready' &&
           rankedCuratedPathProjection.items.map(item => (
             <View key={item.key} style={styles.curatedPathItem}>
@@ -2440,7 +2557,7 @@ export const HoidScreen: React.FC<{
               </Text>
             </View>
           ))}
-        {curatedPathProjection?.status === 'ready' &&
+        {curatedPathIsCurrent &&
           rankedCuratedPathProjection?.status === 'withheld' && (
             <Text style={styles.recommendationMessage}>
               No se han podido aplicar las preferencias. Se han ocultado las recomendaciones de esta vista.
@@ -2580,7 +2697,7 @@ export const HoidScreen: React.FC<{
         {topicRecommendationMessage.length > 0 && (
           <Text style={styles.recommendationMessage}>{topicRecommendationMessage}</Text>
         )}
-        {topicRecommendationsAreCurrent && topicRecommendations.map(item => (
+        {topicRecommendationsAreCurrent && topicRecommendations?.status === 'ready' && topicRecommendations.display.map(item => (
           <View key={item.sourceId} style={styles.topicRecommendationItem}>
             <Text style={styles.recommendationItemText}>{item.title}</Text>
             {item.matches.map(match => (

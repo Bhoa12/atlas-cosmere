@@ -62,10 +62,18 @@ describe("Hoid screen trusted presentation wiring", () => {
 
     // The UI stores only the minimized projection. Freshness and presenter
     // identity remain in an ephemeral ref and are checked on every render.
-    expect(screen).toContain("const [topicRecommendations, setTopicRecommendations] = useState<readonly HoidTopicRecommendationDisplayItem[]>([]);");
+    expect(screen).toContain("const [topicRecommendations, setTopicRecommendations] = useState<HoidTopicInterestRecommendationEnvelope | null>(null);");
+    expect(screen).toContain("projectHoidTopicRecommendationsForDisplay(");
+    expect(screen).toContain("createHoidTopicInterestRecommendationEnvelope({");
+    expect(screen).toContain("setTopicRecommendations(topicEnvelope)");
+    expect(screen).toContain("topicRecommendations.progressScope.revision === liveProgressScope.revision");
+    expect(screen).toContain("topicRecommendations.selectionFingerprint === currentTopicSelectionFingerprint");
+    expect(screen).toContain("createHoidResumeReadingRecommendationEnvelope({");
+    expect(screen).toContain("createHoidCuratedPathRecommendationEnvelope({");
+    expect(screen).not.toContain("setCuratedPathProjection(result)");
     expect(screen).toContain("topicRecommendationBindingRef.current = Object.freeze({");
     expect(screen).toContain("topicRecommendationBinding.trustPort === trustedAnswerPort");
-    expect(screen).toContain("setTopicRecommendations(topicDisplayItems)");
+    expect(screen).toContain("setTopicRecommendations(topicEnvelope)");
     expect(screen).toContain("topicRecommendationBindingRef.current = null;");
     expect(screen).toContain("liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort");
     expect(screen).toContain("trustedConversationPort?.dispose");

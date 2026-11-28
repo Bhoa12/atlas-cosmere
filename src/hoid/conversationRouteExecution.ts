@@ -15,7 +15,7 @@ import {
 import type { HoidReadingFocusConversationScopeResolution } from "./readingFocusConversationScope";
 
 type UnavailableReadingScope = Extract<HoidReadingFocusConversationScopeResolution, { status: "unavailable" }>;
-type RequiredReadingSelection = Extract<HoidReadingFocusConversationScopeResolution, { status: "selection-required" }>;
+type RequiredReadingSelection = Readonly<{ status: "selection-required"; reason: "multiple-active-works" }>;
 type RoutedCharacterEvolutionIntent = Exclude<HoidCharacterEvolutionIntent, { status: "not-evolution" }>;
 type RoutedMagicSystemIntent = Exclude<HoidMagicSystemExplanationIntent, { status: "not-magic" }>;
 type DataFreeRoute = Exclude<
@@ -141,11 +141,12 @@ function canonicalScopeBinding(value: unknown): CanonicalScopeBinding | null {
       !exactKeys(record, ["status", "reason", "choices"]) ||
       record.reason !== "multiple-active-works" ||
       !Array.isArray(record.choices) ||
+      record.choices.length < 2 ||
       Object.getPrototypeOf(record.choices) !== Array.prototype
     ) return null;
     return Object.freeze({
       status: "selection-required" as const,
-      resolution: value as RequiredReadingSelection,
+      resolution: Object.freeze({ status: "selection-required" as const, reason: "multiple-active-works" as const }),
     });
   }
 

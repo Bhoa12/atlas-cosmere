@@ -168,7 +168,7 @@ describe("Hoid typed conversation route execution", () => {
     let invoked = false;
     const hostile = Object.create(null) as Record<string, unknown>;
     for (const [key, value] of Object.entries(base)) {
-      Object.defineProperty(hostile, key, { value, enumerable: true });
+      Object.defineProperty(hostile, key, { value, enumerable: true, configurable: true });
     }
     Object.defineProperty(hostile, "trustedConversationAvailable", {
       enumerable: true,

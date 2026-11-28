@@ -83,6 +83,8 @@ export type HoidNarrativeResponseEnvelope =
   | HoidNarrativeAnswerEnvelope
   | HoidNarrativeAbstentionEnvelope;
 
+const NARRATIVE_ANSWER_ENVELOPES = new WeakSet<object>();
+
 const WORKS = new Map(HOID_SOURCE_BIBLIOGRAPHY.map((work, index) => [
   work.id,
   Object.freeze({ title: work.title, order: index }),
@@ -616,7 +618,7 @@ export function createHoidNarrativeAnswerEnvelope(
     crossBookEvidence = canonical;
   }
 
-  return Object.freeze({
+  const envelope: HoidNarrativeAnswerEnvelope = Object.freeze({
     schemaVersion: 1,
     status: "ready",
     domain,
@@ -631,6 +633,13 @@ export function createHoidNarrativeAnswerEnvelope(
       byKind: epistemicCounts,
     }),
   });
+  NARRATIVE_ANSWER_ENVELOPES.add(envelope);
+  return envelope;
+}
+
+/** A runtime brand for envelopes produced by the canonical local projector. */
+export function isHoidNarrativeAnswerEnvelope(value: unknown): value is HoidNarrativeAnswerEnvelope {
+  return value !== null && typeof value === "object" && NARRATIVE_ANSWER_ENVELOPES.has(value as object);
 }
 
 /**

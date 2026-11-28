@@ -178,6 +178,47 @@ describe("Hoid conversation route plan", () => {
     expect(invoked).toBe(false);
   });
 
+  it("does not coerce hostile intent values or invoke custom stringifiers", () => {
+    let invoked = false;
+    const hostileIntent = {
+      toString() {
+        invoked = true;
+        throw new Error("coercion must not execute");
+      },
+    };
+    const result = resolveHoidConversationRoutePlan({
+      ...BASE,
+      intentPlan: Object.freeze({
+        status: "ready",
+        intent: hostileIntent,
+        mode: "explanation",
+        signal: "default-explanation",
+      }),
+    });
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-input" });
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects canonically identical relationship names", () => {
+    expect(resolveHoidConversationRoutePlan({
+      ...BASE,
+      relationshipIntent: Object.freeze({
+        status: "ready",
+        leftEntityName: "A",
+        rightEntityName: "a",
+      }),
+    })).toEqual({ status: "unavailable", reason: "invalid-input" });
+  });
+
+  it("routes missing names for evolution and magic to their specialized handlers", () => {
+    expect(route({
+      characterEvolutionIntent: Object.freeze({ status: "needs-name" }),
+    })).toBe("character-evolution");
+    expect(route({
+      magicSystemIntent: Object.freeze({ status: "needs-name" }),
+    })).toBe("magic-system");
+  });
+
   it("rejects malformed ready intents rather than guessing a route", () => {
     expect(resolveHoidConversationRoutePlan({
       ...BASE,

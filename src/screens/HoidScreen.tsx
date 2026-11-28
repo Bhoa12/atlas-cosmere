@@ -462,7 +462,7 @@ export const HoidScreen: React.FC<{
     setRecommendationPresentation(null);
   };
   const commitRecommendationPresentation = (
-    trustedPresentation: HoidEditionBoundRecommendationPresentation,
+    trustedPresentation: Exclude<HoidEditionBoundRecommendationPresentation, { status: "unavailable" }>,
   ): boolean => {
     const display = projectHoidEditionRecommendationsForDisplay(trustedPresentation);
     const envelope = display

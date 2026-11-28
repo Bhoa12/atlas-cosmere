@@ -1,0 +1,78 @@
+name: Hoid Run 375 — source-bound atomic-claim promotion gate
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/sourceBoundAtomicClaimPromotionGate.ts"
+      - "src/hoid/sourceBoundAtomicClaimPromotionGate.test.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.test.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "docs/hoid/RUN375_SOURCE_BOUND_ATOMIC_CLAIM_PROMOTION_GATE.md"
+      - ".github/workflows/hoid-run375-source-bound-atomic-claim-promotion-gate.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run375"
+    paths:
+      - "src/hoid/sourceBoundAtomicClaimPromotionGate.ts"
+      - "src/hoid/sourceBoundAtomicClaimPromotionGate.test.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.ts"
+      - "src/hoid/editorialClaimPromotionPreflight.test.ts"
+      - "src/hoid/editorialClaimReviewPackets.ts"
+      - "src/hoid/editorialReviewKit.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/exactUnitClaimIntegrity.ts"
+      - "src/hoid/unitEvidenceAuthorizationV2.ts"
+      - "docs/hoid/RUN375_SOURCE_BOUND_ATOMIC_CLAIM_PROMOTION_GATE.md"
+      - ".github/workflows/hoid-run375-source-bound-atomic-claim-promotion-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-bound-atomic-claim-promotion-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run atomic-claim source-bound regressions
+        run: >-
+          npx vitest run
+          src/hoid/sourceBoundAtomicClaimPromotionGate.test.ts
+          src/hoid/editorialClaimPromotionPreflight.test.ts
+          src/hoid/sourceBoundEditorialPromotionGate.test.ts
+          src/hoid/editorialClaimReviewPackets.test.ts
+          src/hoid/editorialReviewKit.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
+          src/hoid/exactUnitClaimIntegrity.test.ts
+          src/hoid/unitEvidenceAuthorizationV2.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/sourceBoundAtomicClaimPromotionGate.ts
+          src/hoid/sourceBoundAtomicClaimPromotionGate.test.ts
+          src/hoid/editorialClaimPromotionPreflight.ts
+          src/hoid/editorialClaimPromotionPreflight.test.ts
+          src/hoid/sourceBoundEditorialPromotionGate.ts
+          src/hoid/trustedHostPromotionAuthority.ts
+          src/hoid/trustRegistryRevisionStore.ts

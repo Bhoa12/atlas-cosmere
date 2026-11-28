@@ -1,0 +1,82 @@
+name: Hoid Run 382 — timeline application integration
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/conversationApplicationService.ts"
+      - "src/hoid/entityProgressTimeline.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/entityProgressTimelineIntent.ts"
+      - "src/hoid/entityProgressTimelineApplicationAdapter.ts"
+      - "src/hoid/entityProgressTimelineApplicationAdapter.test.ts"
+      - "src/hoid/entityProgressTimelineApplicationIntegration.test.ts"
+      - "src/hoid/conversationRouteExecution.ts"
+      - "src/hoid/conversationRouteExecution.test.ts"
+      - "src/hoid/conversationRoutePlan.ts"
+      - "src/hoid/conversationRoutePlan.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN382_TIMELINE_APPLICATION_INTEGRATION.md"
+      - ".github/workflows/hoid-run382-timeline-application-integration.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run382"
+    paths:
+      - "src/hoid/conversationApplicationService.ts"
+      - "src/hoid/entityProgressTimeline.ts"
+      - "src/hoid/entityProgressTimeline.test.ts"
+      - "src/hoid/entityProgressTimelineIntent.ts"
+      - "src/hoid/entityProgressTimelineApplicationAdapter.ts"
+      - "src/hoid/entityProgressTimelineApplicationAdapter.test.ts"
+      - "src/hoid/entityProgressTimelineApplicationIntegration.test.ts"
+      - "src/hoid/conversationRouteExecution.ts"
+      - "src/hoid/conversationRouteExecution.test.ts"
+      - "src/hoid/conversationRoutePlan.ts"
+      - "src/hoid/conversationRoutePlan.test.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN382_TIMELINE_APPLICATION_INTEGRATION.md"
+      - ".github/workflows/hoid-run382-timeline-application-integration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  timeline-application-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run timeline and application regressions
+        run: >-
+          npx vitest run
+          src/hoid/entityProgressTimelineApplicationAdapter.test.ts
+          src/hoid/entityProgressTimelineApplicationIntegration.test.ts
+          src/hoid/entityProgressTimeline.test.ts
+          src/hoid/conversationApplicationService.test.ts
+          src/hoid/conversationRouteExecution.test.ts
+          src/hoid/conversationRoutePlan.test.ts
+          src/hoid/trustedScreenIntegration.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/conversationApplicationService.ts
+          src/hoid/entityProgressTimeline.ts
+          src/hoid/entityProgressTimelineApplicationAdapter.ts
+          src/hoid/entityProgressTimelineApplicationAdapter.test.ts
+          src/hoid/entityProgressTimelineIntent.ts
+          src/hoid/conversationRouteExecution.ts
+          src/hoid/conversationRoutePlan.ts
+          src/screens/HoidScreen.tsx

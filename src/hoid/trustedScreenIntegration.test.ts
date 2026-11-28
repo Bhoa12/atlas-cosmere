@@ -9,7 +9,10 @@ const appPath = fileURLToPath(new URL("../../App.tsx", import.meta.url));
 describe("Hoid screen trusted presentation wiring", () => {
   it("requires the trusted exact-unit v3 port before dispatching narrative questions", () => {
     const screen = readFileSync(screenPath, "utf8");
-    expect(screen).toContain("if (!trustedConversationPort)");
+    // Route arbitration replaced the former early trusted-port guard.
+    // The typed execution branch must still require the trusted host.
+    expect(screen).toContain("resolveHoidConversationRouteExecution");
+    expect(screen).toContain("routeExecution.route === 'conversation' && trustedConversationPort !== null");
     expect(screen).toContain("trustedConversationPort.send({");
     expect(screen).toContain("trustedConversationPort?.resetContext");
     expect(screen).toContain("result.presentation.text");

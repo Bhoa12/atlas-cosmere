@@ -639,7 +639,6 @@ export const HoidScreen: React.FC<{
         fingerprint: fingerprintHoidCursorProgressProjection(requestProjection),
       };
       const intentPlan = classifyHoidConversationIntent(textoUsuario);
-      const intentMode = intentPlan.status === 'ready' ? intentPlan.mode : null;
       const dossierIntent = classifyHoidEntityDossierIntent(textoUsuario);
       const relationshipIntent = classifyHoidEntityRelationshipIntent(textoUsuario);
       const timelineIntent = classifyHoidEntityProgressTimelineIntent(textoUsuario);

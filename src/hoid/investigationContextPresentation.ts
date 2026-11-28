@@ -59,6 +59,11 @@ export type HoidInvestigationContextPresentationResult =
         | "stale-progress";
     }>;
 
+export type HoidInvestigationContextReadyPresentation = Extract<
+  HoidInvestigationContextPresentationResult,
+  { status: "ready" }
+>;
+
 export type HoidInvestigationContextPresenter = Readonly<{
   present(input: unknown): HoidInvestigationContextPresentationResult;
 }>;
@@ -70,6 +75,7 @@ type PresenterConfig = Readonly<{
 }>;
 
 const PRESENTERS = new WeakSet<object>();
+const CONTEXT_PRESENTATIONS = new WeakSet<object>();
 const MAX_HISTORY = 64;
 const MAX_SOURCES = 64;
 const MAX_LABEL_LENGTH = 256;
@@ -282,13 +288,15 @@ export function createHoidInvestigationContextPresenter(configInput: unknown): H
           return unavailable("invalid-progress");
         }
         if (!sameProgress(before, after)) return unavailable("stale-progress");
-        return Object.freeze({
+        const presentation: HoidInvestigationContextReadyPresentation = Object.freeze({
           status: "ready",
           progressRevision: plan.progressRevision,
           progressFingerprint: plan.progressFingerprint,
           scopeFingerprint: plan.scopeFingerprint,
           links: Object.freeze([]),
         });
+        CONTEXT_PRESENTATIONS.add(presentation);
+        return presentation;
       }
 
       if (!isHoidAuthorizedKnowledgeGraphResult(request.graph)) return unavailable("invalid-graph");
@@ -386,17 +394,26 @@ export function createHoidInvestigationContextPresenter(configInput: unknown): H
       }
       if (!sameProgress(before, after)) return unavailable("stale-progress");
 
-      return Object.freeze({
+      const presentation: HoidInvestigationContextReadyPresentation = Object.freeze({
         status: "ready",
         progressRevision: plan.progressRevision,
         progressFingerprint: plan.progressFingerprint,
         scopeFingerprint: plan.scopeFingerprint,
         links: Object.freeze(links),
       });
+      CONTEXT_PRESENTATIONS.add(presentation);
+      return presentation;
     },
   });
   PRESENTERS.add(presenter as object);
   return presenter;
+}
+
+/** Only ready projections created by the trusted local presenter carry this brand. */
+export function isHoidInvestigationContextPresentation(
+  value: unknown,
+): value is HoidInvestigationContextReadyPresentation {
+  return value !== null && typeof value === "object" && CONTEXT_PRESENTATIONS.has(value as object);
 }
 
 export function isHoidInvestigationContextPresenter(

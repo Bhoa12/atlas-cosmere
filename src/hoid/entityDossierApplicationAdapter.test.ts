@@ -56,6 +56,14 @@ function createDispatch(
   });
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(complete => {
+    resolve = complete;
+  });
+  return Object.freeze({ promise, resolve: (value: T) => resolve(value) });
+}
+
 describe("Hoid entity dossier application adapter", () => {
   it("dispatches only a ready dossier route through the existing local dossier adapter", async () => {
     const dossierResult = Object.freeze({ status: "not-found" as const });
@@ -186,22 +194,27 @@ describe("Hoid entity dossier application adapter", () => {
     expect(answer).not.toHaveBeenCalled();
   });
 
+  it("rejects provider-bearing application ports at construction", () => {
+    expect(() => createHoidEntityDossierApplicationAdapter({
+      readProgress: async () => progress,
+      getCurrentDispatch: () => null,
+      provider: { invoke: vi.fn() },
+    })).toThrow();
+  });
+
   it("invalidates an in-flight turn before it can dispatch", async () => {
-    let releaseProgress: ((value: unknown) => void) | null = null;
+    const pendingProgress = deferred<unknown>();
     const answer = vi.fn(async () => Object.freeze({ status: "not-found" as const }));
     const dispatch = createDispatch(answer);
     const adapter = createHoidEntityDossierApplicationAdapter({
-      readProgress: () => new Promise(resolve => {
-        releaseProgress = resolve;
-      }),
+      readProgress: () => pendingProgress.promise,
       getCurrentDispatch: () => dispatch,
     });
     if (!adapter) throw new Error("Expected dossier application adapter");
 
     const pending = adapter.execute(routeInput, progress);
     adapter.invalidate();
-    if (!releaseProgress) throw new Error("Expected pending progress read");
-    releaseProgress(progress);
+    pendingProgress.resolve(progress);
 
     const result = await pending;
     expect(result).toEqual({ status: "unavailable", reason: "cancelled" });

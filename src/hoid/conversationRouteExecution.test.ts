@@ -21,7 +21,26 @@ const unavailableScope = Object.freeze({
 const selectionRequiredScope = Object.freeze({
   status: "selection-required" as const,
   reason: "multiple-active-works" as const,
-  choices: Object.freeze([]),
+  choices: Object.freeze([
+    Object.freeze({
+      bookId: "tfe",
+      title: "El Imperio Final",
+      status: "in-progress" as const,
+      currentChapter: 1,
+      completedThroughChapter: 0,
+      completedThroughEntireWork: false,
+      chapterTracking: "verified" as const,
+    }),
+    Object.freeze({
+      bookId: "woa",
+      title: "El Pozo de la Ascensión",
+      status: "in-progress" as const,
+      currentChapter: 1,
+      completedThroughChapter: 0,
+      completedThroughEntireWork: false,
+      chapterTracking: "verified" as const,
+    }),
+  ]),
 }) satisfies HoidReadingFocusConversationScopeResolution;
 
 const base: HoidConversationRouteExecutionInput = Object.freeze({

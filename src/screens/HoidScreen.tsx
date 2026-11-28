@@ -31,6 +31,10 @@ import {
 } from '../hoid/magicSystemExplanation';
 import { classifyHoidMagicSystemExplanationIntent } from '../hoid/magicSystemExplanationIntent';
 import {
+  createHoidMagicSystemExplanationApplicationAdapter,
+  type HoidMagicSystemExplanationApplicationDispatch,
+} from '../hoid/magicSystemExplanationApplicationAdapter';
+import {
   createHoidCharacterEvolutionExplanationAdapter,
   createHoidCharacterEvolutionIndex,
   HOID_CHARACTER_EVOLUTION_ANNOTATIONS,
@@ -262,6 +266,7 @@ export const HoidScreen: React.FC<{
   const activeEntityRelationshipDispatchRef = useRef<HoidEntityRelationshipApplicationDispatch | null>(null);
   const activeEntityProgressTimelineDispatchRef = useRef<HoidEntityProgressTimelineApplicationDispatch | null>(null);
   const activeCharacterEvolutionDispatchRef = useRef<HoidCharacterEvolutionApplicationDispatch | null>(null);
+  const activeMagicSystemDispatchRef = useRef<HoidMagicSystemExplanationApplicationDispatch | null>(null);
   const [entityDossierApplicationAdapter] = useState(() =>
     createHoidEntityDossierApplicationAdapter({
       readProgress: async () => {
@@ -316,6 +321,20 @@ export const HoidScreen: React.FC<{
         });
       },
       getCurrentDispatch: () => activeCharacterEvolutionDispatchRef.current,
+    }),
+  );
+  const [magicSystemApplicationAdapter] = useState(() =>
+    createHoidMagicSystemExplanationApplicationAdapter({
+      readProgress: async () => {
+        const current = await progressRefreshRef.current();
+        const projection = current ? projectHoidCursorProgressSnapshot(current) : null;
+        if (projection?.status !== 'ready') throw new Error('Current reading progress is unavailable');
+        return Object.freeze({
+          revision: projection.revision,
+          fingerprint: fingerprintHoidCursorProgressProjection(projection),
+        });
+      },
+      getCurrentDispatch: () => activeMagicSystemDispatchRef.current,
     }),
   );
   const [trustedConversationApplicationAdapter] = useState(() =>
@@ -566,6 +585,8 @@ export const HoidScreen: React.FC<{
     activeEntityProgressTimelineDispatchRef.current = null;
     characterEvolutionApplicationAdapter.invalidate();
     activeCharacterEvolutionDispatchRef.current = null;
+    magicSystemApplicationAdapter.invalidate();
+    activeMagicSystemDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     investigationSession.reset();
@@ -584,7 +605,7 @@ export const HoidScreen: React.FC<{
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
-  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter, characterEvolutionApplicationAdapter]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter, characterEvolutionApplicationAdapter, magicSystemApplicationAdapter]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
@@ -598,6 +619,8 @@ export const HoidScreen: React.FC<{
     activeEntityProgressTimelineDispatchRef.current = null;
     characterEvolutionApplicationAdapter.invalidate();
     activeCharacterEvolutionDispatchRef.current = null;
+    magicSystemApplicationAdapter.invalidate();
+    activeMagicSystemDispatchRef.current = null;
     recommendationRequestSession.invalidate();
     investigationSession.reset();
     recommendationPresentationRef.current = null;
@@ -634,6 +657,8 @@ export const HoidScreen: React.FC<{
     activeEntityProgressTimelineDispatchRef.current = null;
     characterEvolutionApplicationAdapter.invalidate();
     activeCharacterEvolutionDispatchRef.current = null;
+    magicSystemApplicationAdapter.invalidate();
+    activeMagicSystemDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
@@ -1232,12 +1257,31 @@ export const HoidScreen: React.FC<{
           responseScope = requestScope;
           respuesta = 'Las explicaciones de sistemas de magia no están disponibles. No recurriré a un proveedor alternativo.';
         } else {
-          const magicResult = await magicSystemExplanation.answer({
+          const magicDispatch: HoidMagicSystemExplanationApplicationDispatch = Object.freeze({
+            adapter: magicSystemExplanation,
             question: textoUsuario,
+            systemName: routeExecution.intent.systemName,
+            facet: routeExecution.intent.facet ?? null,
             progress: currentProgress,
-            bookScope: routeExecution.scope,
             depth: explanationDepth,
-          }, { signal: ticket.signal });
+            isCurrent: () => conversationTurnSession.isCurrent(ticket),
+          });
+          activeMagicSystemDispatchRef.current = magicDispatch;
+          let magicResult: Awaited<ReturnType<typeof magicSystemApplicationAdapter.execute>>;
+          try {
+            magicResult = await magicSystemApplicationAdapter.execute(
+              routeInput,
+              requestScope,
+              {
+                signal: ticket.signal,
+                isCurrent: magicDispatch.isCurrent,
+              },
+            );
+          } finally {
+            if (activeMagicSystemDispatchRef.current === magicDispatch) {
+              activeMagicSystemDispatchRef.current = null;
+            }
+          }
           if (!conversationTurnSession.isCurrent(ticket)) return;
           if (ticket.signal.aborted) { commitCancelledTurn(); return; }
           if (magicResult.status === 'ready') {

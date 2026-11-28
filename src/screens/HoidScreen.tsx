@@ -39,6 +39,10 @@ import {
 } from '../hoid/entityEvolutionExplanation';
 import { classifyHoidCharacterEvolutionIntent } from '../hoid/entityEvolutionExplanationIntent';
 import {
+  createHoidCharacterEvolutionApplicationAdapter,
+  type HoidCharacterEvolutionApplicationDispatch,
+} from '../hoid/entityEvolutionExplanationApplicationAdapter';
+import {
   createHoidInvestigationSession,
   type HoidInvestigationDomain,
   type HoidInvestigationTopic,
@@ -257,6 +261,7 @@ export const HoidScreen: React.FC<{
   const activeEntityDossierDispatchRef = useRef<HoidEntityDossierApplicationDispatch | null>(null);
   const activeEntityRelationshipDispatchRef = useRef<HoidEntityRelationshipApplicationDispatch | null>(null);
   const activeEntityProgressTimelineDispatchRef = useRef<HoidEntityProgressTimelineApplicationDispatch | null>(null);
+  const activeCharacterEvolutionDispatchRef = useRef<HoidCharacterEvolutionApplicationDispatch | null>(null);
   const [entityDossierApplicationAdapter] = useState(() =>
     createHoidEntityDossierApplicationAdapter({
       readProgress: async () => {
@@ -297,6 +302,20 @@ export const HoidScreen: React.FC<{
         });
       },
       getCurrentDispatch: () => activeEntityProgressTimelineDispatchRef.current,
+    }),
+  );
+  const [characterEvolutionApplicationAdapter] = useState(() =>
+    createHoidCharacterEvolutionApplicationAdapter({
+      readProgress: async () => {
+        const current = await progressRefreshRef.current();
+        const projection = current ? projectHoidCursorProgressSnapshot(current) : null;
+        if (projection?.status !== 'ready') throw new Error('Current reading progress is unavailable');
+        return Object.freeze({
+          revision: projection.revision,
+          fingerprint: fingerprintHoidCursorProgressProjection(projection),
+        });
+      },
+      getCurrentDispatch: () => activeCharacterEvolutionDispatchRef.current,
     }),
   );
   const [trustedConversationApplicationAdapter] = useState(() =>
@@ -545,6 +564,8 @@ export const HoidScreen: React.FC<{
     activeEntityRelationshipDispatchRef.current = null;
     entityProgressTimelineApplicationAdapter.invalidate();
     activeEntityProgressTimelineDispatchRef.current = null;
+    characterEvolutionApplicationAdapter.invalidate();
+    activeCharacterEvolutionDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     investigationSession.reset();
@@ -563,7 +584,7 @@ export const HoidScreen: React.FC<{
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
-  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter, characterEvolutionApplicationAdapter]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
@@ -575,6 +596,8 @@ export const HoidScreen: React.FC<{
     activeEntityRelationshipDispatchRef.current = null;
     entityProgressTimelineApplicationAdapter.invalidate();
     activeEntityProgressTimelineDispatchRef.current = null;
+    characterEvolutionApplicationAdapter.invalidate();
+    activeCharacterEvolutionDispatchRef.current = null;
     recommendationRequestSession.invalidate();
     investigationSession.reset();
     recommendationPresentationRef.current = null;
@@ -609,6 +632,8 @@ export const HoidScreen: React.FC<{
     activeEntityRelationshipDispatchRef.current = null;
     entityProgressTimelineApplicationAdapter.invalidate();
     activeEntityProgressTimelineDispatchRef.current = null;
+    characterEvolutionApplicationAdapter.invalidate();
+    activeCharacterEvolutionDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
@@ -1121,12 +1146,31 @@ export const HoidScreen: React.FC<{
           responseScope = requestScope;
           respuesta = 'Los expedientes de evolución de personajes no están disponibles. No recurriré a un proveedor alternativo.';
         } else {
-          const evolutionResult = await characterEvolutionExplanation.answer({
+          const evolutionDispatch: HoidCharacterEvolutionApplicationDispatch = Object.freeze({
+            adapter: characterEvolutionExplanation,
             question: textoUsuario,
+            characterName: routeExecution.intent.characterName,
+            dimension: routeExecution.intent.dimension ?? null,
             progress: currentProgress,
-            bookScope: routeExecution.scope,
             depth: explanationDepth,
-          }, { signal: ticket.signal });
+            isCurrent: () => conversationTurnSession.isCurrent(ticket),
+          });
+          activeCharacterEvolutionDispatchRef.current = evolutionDispatch;
+          let evolutionResult: Awaited<ReturnType<typeof characterEvolutionApplicationAdapter.execute>>;
+          try {
+            evolutionResult = await characterEvolutionApplicationAdapter.execute(
+              routeInput,
+              requestScope,
+              {
+                signal: ticket.signal,
+                isCurrent: evolutionDispatch.isCurrent,
+              },
+            );
+          } finally {
+            if (activeCharacterEvolutionDispatchRef.current === evolutionDispatch) {
+              activeCharacterEvolutionDispatchRef.current = null;
+            }
+          }
           if (!conversationTurnSession.isCurrent(ticket)) return;
           if (ticket.signal.aborted) { commitCancelledTurn(); return; }
           if (evolutionResult.status === 'ready') {

@@ -9,14 +9,15 @@ import {
   resolveHoidNarrativeDomain,
 } from "./narrativeAnswerEnvelope";
 
-const availableSourceCandidate = HOID_SOURCE_BIBLIOGRAPHY.find(work => {
+const readySources = HOID_SOURCE_BIBLIOGRAPHY.filter(work => {
   const result = getHoidReadingManifest(work.id);
   return result.status === "ready" && result.manifest.units.length >= 2;
 });
-if (!availableSourceCandidate) {
-  throw new Error("Narrative envelope tests require one verified chapter manifest");
+if (readySources.length < 2) {
+  throw new Error("Narrative envelope tests require two verified chapter manifests");
 }
-const availableSource = availableSourceCandidate as (typeof HOID_SOURCE_BIBLIOGRAPHY)[number];
+const availableSource = readySources[0] as (typeof HOID_SOURCE_BIBLIOGRAPHY)[number];
+const secondSource = readySources[1] as (typeof HOID_SOURCE_BIBLIOGRAPHY)[number];
 
 function requireManifest(bookId: string) {
   const result = getHoidReadingManifest(bookId);
@@ -27,6 +28,7 @@ function requireManifest(bookId: string) {
 }
 
 const availableManifest = requireManifest(availableSource.id);
+const secondManifest = requireManifest(secondSource.id);
 const firstUnit = availableManifest.units[0];
 if (!firstUnit) {
   throw new Error("Narrative envelope tests require an indexed chapter unit");
@@ -34,26 +36,32 @@ if (!firstUnit) {
 const secondUnit = availableManifest.units.find(
   unit => unit.ordinal !== firstUnit.ordinal,
 );
-if (!secondUnit) {
-  throw new Error("Narrative envelope tests require two indexed chapter units");
+const secondSourceUnit = secondManifest.units[0];
+if (!secondUnit || !secondSourceUnit) {
+  throw new Error("Narrative envelope tests require two indexed chapter units per work");
 }
 
-function citationFor(unit: Readonly<{ ordinal: number; chapterNumber: number }>) {
-  const matching = availableManifest.units.filter(
+function citationFor(
+  source: (typeof HOID_SOURCE_BIBLIOGRAPHY)[number],
+  manifest: ReturnType<typeof requireManifest>,
+  unit: Readonly<{ ordinal: number; chapterNumber: number }>,
+) {
+  const matching = manifest.units.filter(
     candidate => candidate.chapterNumber === unit.chapterNumber,
   );
   return Object.freeze({
-    sourceBookId: availableSource.id,
-    title: availableSource.title,
+    sourceBookId: source.id,
+    title: source.title,
     chapter: unit.chapterNumber,
     chapterOrdinal: unit.ordinal,
     chapterLabelAmbiguous: matching.length > 1 ||
-      availableManifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
+      manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
   });
 }
 
-const firstCitation = citationFor(firstUnit);
-const secondCitation = citationFor(secondUnit);
+const firstCitation = citationFor(availableSource, availableManifest, firstUnit);
+const secondCitation = citationFor(availableSource, availableManifest, secondUnit);
+const secondSourceCitation = citationFor(secondSource, secondManifest, secondSourceUnit);
 const progressScope = Object.freeze({
   revision: 12,
   fingerprint: "a".repeat(64),
@@ -210,6 +218,46 @@ describe("Hoid narrative answer envelope", () => {
         epistemicLabel: "AFIRMACIÓN EDITORIAL CON EVIDENCIAS",
       }],
     })).toBeNull();
+  });
+
+  it("accepts a cross-work matrix only when it matches the exact cited works and chapters", () => {
+    const works = [
+      {
+        sourceBookId: availableSource.id,
+        title: availableSource.title,
+        chapters: [firstCitation.chapter],
+      },
+      {
+        sourceBookId: secondSource.id,
+        title: secondSource.title,
+        chapters: [secondSourceCitation.chapter],
+      },
+    ];
+    const envelope = createHoidNarrativeAnswerEnvelope({
+      ...validInput(),
+      bookScope: {
+        mode: "cross-work",
+        bookIds: [availableSource.id, secondSource.id],
+      },
+      citations: [firstCitation, secondSourceCitation],
+      segments: [{
+        claimId: "synthetic-claim-1",
+        text: "Afirmación sintética transversal.",
+        citations: [firstCitation, secondSourceCitation],
+      }],
+      crossBookEvidence: {
+        workCount: 2,
+        works,
+        segments: [{
+          claimId: "synthetic-claim-1",
+          works,
+        }],
+      },
+    });
+    expect(envelope?.status).toBe("ready");
+    if (envelope?.status !== "ready") return;
+    expect(envelope.crossBookEvidence?.workCount).toBe(2);
+    expect(envelope.crossBookEvidence?.works).toHaveLength(2);
   });
 
   it("rejects inconsistent cross-book matrices instead of partially rendering them", () => {

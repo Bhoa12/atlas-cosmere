@@ -605,7 +605,7 @@ export const HoidScreen: React.FC<{
     setTopicRecommendations([]);
     clearTopicRecommendationBinding();
     setTopicRecommendationMessage('');
-  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter, characterEvolutionApplicationAdapter]);
+  }, [liveProgressScope?.revision, liveProgressScope?.fingerprint, progresoPersistenciaEstado, trustedAnswerPort, trustedConversationPort, entityDossierApplicationAdapter, entityRelationshipApplicationAdapter, entityProgressTimelineApplicationAdapter, characterEvolutionApplicationAdapter, magicSystemApplicationAdapter]);
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();

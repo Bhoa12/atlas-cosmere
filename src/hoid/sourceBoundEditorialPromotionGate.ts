@@ -128,6 +128,25 @@ function plainRecord(value: unknown): Record<string, unknown> | null {
   }
 }
 
+function hasOnlyDataProperties(value: unknown): boolean {
+  const record = plainRecord(value);
+  if (!record) return false;
+  try {
+    for (const key of Reflect.ownKeys(record)) {
+      if (typeof key !== "string") return false;
+      const descriptor = Object.getOwnPropertyDescriptor(record, key);
+      if (
+        !descriptor ||
+        !Object.prototype.hasOwnProperty.call(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function ownDataValue(value: unknown, key: string): unknown {
   try {
     if (plainRecord(value) === null) return undefined;
@@ -518,7 +537,7 @@ export function createHoidSourceBoundEditorialPromotionGatePort(options: Readonl
     async authorize(
       input: HoidTrustedHostPromotionInput,
     ): Promise<HoidSourceBoundEditorialPromotionGateResult> {
-      if (plainRecord(input) === null) return blocked("invalid-input");
+      if (!hasOnlyDataProperties(input)) return blocked("invalid-input");
       if (!audit) return blocked("source-preflight-unavailable");
       if (!authorizeTrustedHost) return blocked("trusted-host-authority-unavailable");
 
@@ -530,6 +549,7 @@ export function createHoidSourceBoundEditorialPromotionGatePort(options: Readonl
       if (summaryCount === 0) return blocked("no-summary-packets");
 
       const request = ownDataValue(input, "request");
+      if (!hasOnlyDataProperties(request)) return blocked("invalid-input");
       const expectedBaseSha = ownDataValue(request, "expectedBaseSha");
       const expectedHeadSha = ownDataValue(request, "expectedHeadSha");
       if (

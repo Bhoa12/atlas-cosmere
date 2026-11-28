@@ -9,22 +9,29 @@ import {
   resolveHoidNarrativeDomain,
 } from "./narrativeAnswerEnvelope";
 
-const availableSource = HOID_SOURCE_BIBLIOGRAPHY.find(work => {
+const availableSourceCandidate = HOID_SOURCE_BIBLIOGRAPHY.find(work => {
   const result = getHoidReadingManifest(work.id);
   return result.status === "ready" && result.manifest.units.length >= 2;
 });
-if (!availableSource) throw new Error("Narrative envelope tests require one verified chapter manifest");
+if (!availableSourceCandidate) {
+  throw new Error("Narrative envelope tests require one verified chapter manifest");
+}
+const availableSource = availableSourceCandidate as (typeof HOID_SOURCE_BIBLIOGRAPHY)[number];
 
-const availableManifest = getHoidReadingManifest(availableSource.id);
-if (availableManifest.status !== "ready") {
-  throw new Error("Narrative envelope fixture manifest is unavailable");
+function requireManifest(bookId: string) {
+  const result = getHoidReadingManifest(bookId);
+  if (result.status !== "ready") {
+    throw new Error("Narrative envelope fixture manifest is unavailable");
+  }
+  return result.manifest;
 }
 
-const firstUnit = availableManifest.manifest.units[0];
+const availableManifest = requireManifest(availableSource.id);
+const firstUnit = availableManifest.units[0];
 if (!firstUnit) {
   throw new Error("Narrative envelope tests require an indexed chapter unit");
 }
-const secondUnit = availableManifest.manifest.units.find(
+const secondUnit = availableManifest.units.find(
   unit => unit.ordinal !== firstUnit.ordinal,
 );
 if (!secondUnit) {
@@ -32,7 +39,7 @@ if (!secondUnit) {
 }
 
 function citationFor(unit: Readonly<{ ordinal: number; chapterNumber: number }>) {
-  const matching = availableManifest.manifest.units.filter(
+  const matching = availableManifest.units.filter(
     candidate => candidate.chapterNumber === unit.chapterNumber,
   );
   return Object.freeze({
@@ -41,7 +48,7 @@ function citationFor(unit: Readonly<{ ordinal: number; chapterNumber: number }>)
     chapter: unit.chapterNumber,
     chapterOrdinal: unit.ordinal,
     chapterLabelAmbiguous: matching.length > 1 ||
-      availableManifest.manifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
+      availableManifest.ambiguousChapterNumbers.includes(unit.chapterNumber),
   });
 }
 

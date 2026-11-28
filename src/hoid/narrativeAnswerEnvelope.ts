@@ -203,7 +203,7 @@ function safeText(value: unknown, maximum: number): value is string {
     value.length > 0 &&
     value.length <= maximum &&
     value === value.trim() &&
-    !/[\u0000-\u001F\u007F\p{Cf}]/u.test(value);
+    !/[\u0000-\u0008\u000B-\u001F\u007F\p{Cf}]/u.test(value);
 }
 
 function canonicalDomain(value: unknown): HoidNarrativeDomain | null {
@@ -292,7 +292,7 @@ function canonicalCitations(
     const citation = canonicalCitation(entry);
     if (!citation) return null;
     const key = citationKey(citation);
-    if (seen.has(key)) return null;
+    if (seen.has(key)) continue;
     seen.add(key);
     citations.push(citation);
   }
@@ -320,6 +320,7 @@ function canonicalSegments(
     unclassified: 0,
   };
   const segments: HoidDisplaySegment[] = [];
+  const seenClaimIds = new Set<string>();
 
   for (const entry of entries) {
     const record = exactRecord(
@@ -331,8 +332,10 @@ function canonicalSegments(
       !record ||
       typeof record.claimId !== "string" ||
       !ID_PATTERN.test(record.claimId) ||
+      seenClaimIds.has(record.claimId) ||
       !safeText(record.text, 4_000)
     ) return null;
+    seenClaimIds.add(record.claimId);
 
     const citations = canonicalCitations(record.citations, 1);
     if (!citations) return null;

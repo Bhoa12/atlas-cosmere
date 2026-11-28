@@ -1,5 +1,6 @@
 import {
   buildHoidEditorialReviewPackets,
+  fingerprintHoidEditorialReviewDecision,
   validateHoidEditorialReviewReceipt,
 } from "./editorialReviewPackets";
 import {
@@ -30,6 +31,7 @@ export type HoidEditorialSummaryPromotionPreflightResult =
       editionId: string;
       progressRevision: number;
       receiptFingerprint: string;
+      reviewDecisionFingerprint: string;
       sourceDocumentVerified: true;
       reviewerIdentity: "unverified-local";
       promotionAllowed: false;
@@ -357,6 +359,7 @@ export function createHoidEditorialSummaryPromotionPreflightPort(options: Readon
         editionId: packet.source.editionId,
         progressRevision: firstProgress.revision,
         receiptFingerprint: firstReceiptValidation.fingerprint,
+        reviewDecisionFingerprint: fingerprintHoidEditorialReviewDecision(receiptValidation.receipt),
         sourceDocumentVerified: true,
         reviewerIdentity: "unverified-local",
         promotionAllowed: false,

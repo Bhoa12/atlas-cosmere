@@ -1,0 +1,80 @@
+name: Hoid Run 374 — source-bound signed promotion gate
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/sourceBoundEditorialPromotionGate.ts"
+      - "src/hoid/sourceBoundEditorialPromotionGate.test.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialSummaryPromotionPreflight.ts"
+      - "src/hoid/editorialSummaryPromotionPreflight.test.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "docs/hoid/RUN374_SOURCE_BOUND_SIGNED_PROMOTION_GATE.md"
+      - ".github/workflows/hoid-run374-source-bound-signed-promotion-gate.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run374"
+    paths:
+      - "src/hoid/sourceBoundEditorialPromotionGate.ts"
+      - "src/hoid/sourceBoundEditorialPromotionGate.test.ts"
+      - "src/hoid/editorialReviewPackets.ts"
+      - "src/hoid/editorialSummaryPromotionPreflight.ts"
+      - "src/hoid/editorialSummaryPromotionPreflight.test.ts"
+      - "src/hoid/editorialBundlePromotionAuthority.ts"
+      - "src/hoid/editorialReviewBundle.ts"
+      - "src/hoid/editorialReviewSignatures.ts"
+      - "src/hoid/editorialReviewBundleQuorum.ts"
+      - "src/hoid/signedEditorialBundlePromotionAuthority.ts"
+      - "src/hoid/trustRegistryRevisionStore.ts"
+      - "src/hoid/trustedHostPromotionAuthority.ts"
+      - "docs/hoid/RUN374_SOURCE_BOUND_SIGNED_PROMOTION_GATE.md"
+      - ".github/workflows/hoid-run374-source-bound-signed-promotion-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-bound-signed-promotion-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run source-bound promotion and trust regressions
+        run: >-
+          npx vitest run
+          src/hoid/sourceBoundEditorialPromotionGate.test.ts
+          src/hoid/editorialSummaryPromotionPreflight.test.ts
+          src/hoid/editorialReviewPackets.test.ts
+          src/hoid/editorialBundlePromotionAuthority.test.ts
+          src/hoid/editorialReviewBundleQuorum.test.ts
+          src/hoid/signedEditorialBundlePromotionAuthority.test.ts
+          src/hoid/trustedHostPromotionAuthority.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --esModuleInterop
+          --allowSyntheticDefaultImports
+          --jsx react-jsx
+          --lib ES2022,DOM
+          --skipLibCheck
+          src/hoid/sourceBoundEditorialPromotionGate.ts
+          src/hoid/sourceBoundEditorialPromotionGate.test.ts
+          src/hoid/editorialSummaryPromotionPreflight.ts
+          src/hoid/editorialSummaryPromotionPreflight.test.ts
+          src/hoid/editorialReviewPackets.ts
+          src/hoid/trustedHostPromotionAuthority.ts

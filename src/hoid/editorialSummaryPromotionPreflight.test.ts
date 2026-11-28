@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildHoidEditorialReviewPackets,
+  fingerprintHoidEditorialReviewDecision,
   validateHoidEditorialReviewReceipt,
 } from "./editorialReviewPackets";
 import { validateHoidEditorialReviewReceiptSnapshot } from "./editorialReviewReceiptStore";
@@ -153,11 +154,14 @@ describe("Hoid source-bound editorial summary promotion preflight", () => {
     if (result.status !== "ready-for-authenticated-review") return;
     expect(Object.keys(result).sort()).toEqual([
       "status", "packetId", "draftId", "workId", "chapterNumber", "editionId",
-      "progressRevision", "receiptFingerprint", "sourceDocumentVerified",
+      "progressRevision", "receiptFingerprint", "reviewDecisionFingerprint", "sourceDocumentVerified",
       "reviewerIdentity", "promotionAllowed", "productionWritePerformed",
       "answerAuthorizationEffect", "spoilerUnlockEffect",
     ].sort());
     const serialized = JSON.stringify(result);
+    expect(result.reviewDecisionFingerprint).toBe(
+      fingerprintHoidEditorialReviewDecision(receiptFor()),
+    );
     expect(serialized).not.toContain(value.packet.summary);
     expect(serialized).not.toContain(value.packet.source.locatorId);
     expect(serialized).not.toContain(value.packet.sourceDocumentSha256);

@@ -215,7 +215,7 @@ export function createHoidTopicInterestRecommendationEnvelope(
     !selectedTopicIds
   ) return null;
 
-  const selectedLabels = new Set(
+  const selectedLabels = new Set<string>(
     HOID_TOPIC_TAXONOMY
       .filter(topic => selectedTopicIds.includes(topic.id))
       .map(topic => topic.label),

@@ -200,7 +200,7 @@ export function createHoidConversationApplicationService<TValue = unknown>(
       progress: initialProgress,
     });
 
-    let value: unknown;
+    let value: TValue;
     try {
       value = await awaitHoidOperationWithSignal(
         () => ports.executeRoute(readyExecution, context, options.signal),

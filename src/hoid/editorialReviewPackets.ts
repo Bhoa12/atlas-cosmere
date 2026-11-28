@@ -440,3 +440,33 @@ export function validateHoidEditorialReviewReceipt(
     receipt,
   });
 }
+
+
+/**
+ * Fingerprint the editorial decision independently of reviewer identity and
+ * timestamp. A local unverified receipt can therefore be compared with the
+ * separately authenticated receipt for the same packet without treating the
+ * local identity as an authenticated reviewer.
+ *
+ * Callers must pass a receipt returned by validateHoidEditorialReviewReceipt.
+ */
+export function fingerprintHoidEditorialReviewDecision(
+  receipt: HoidEditorialReviewReceipt,
+): string {
+  return sha256Hex(JSON.stringify([
+    "hoid-editorial-review-decision-v1",
+    receipt.packetId,
+    receipt.draftId,
+    receipt.summarySha256,
+    receipt.sourceDocumentSha256,
+    receipt.decision,
+    [
+      receipt.checklist.factualAccuracy,
+      receipt.checklist.completeness,
+      receipt.checklist.originality,
+      receipt.checklist.spoilerCeiling,
+      receipt.checklist.provenance,
+    ],
+    receipt.noteCodes,
+  ]));
+}

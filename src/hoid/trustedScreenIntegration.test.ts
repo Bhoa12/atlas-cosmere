@@ -33,6 +33,13 @@ describe("Hoid screen trusted presentation wiring", () => {
     expect(screen).toContain("activeCharacterEvolutionDispatchRef.current = evolutionDispatch;");
     expect(screen).toContain("characterEvolutionApplicationAdapter.invalidate();");
     expect(screen).not.toContain("characterEvolutionExplanation.answer({");
+    expect(screen).toContain("createHoidMagicSystemExplanationApplicationAdapter({");
+    expect(screen).toContain("magicSystemApplicationAdapter.execute(");
+    expect(screen).toContain("activeMagicSystemDispatchRef.current = magicDispatch;");
+    expect(screen).toContain("magicSystemApplicationAdapter.invalidate();");
+    expect(screen).toContain("systemName: routeExecution.intent.systemName");
+    expect(screen).toContain("facet: routeExecution.intent.facet ?? null");
+    expect(screen).not.toContain("magicSystemExplanation.answer({");
     expect(screen).toContain("trustedConversationPort?.resetContext");
     expect(screen).toContain("result.presentation.text");
     expect(screen).not.toContain("conversationGateway.answer(");

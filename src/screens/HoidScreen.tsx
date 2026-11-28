@@ -62,6 +62,11 @@ import {
   type HoidDisplayCrossBookEvidenceSummary,
   type HoidDisplaySegment,
 } from '../hoid/answerDisplayProjection';
+import {
+  createHoidNarrativeAnswerEnvelope,
+  resolveHoidNarrativeDomain,
+  type HoidNarrativeAnswerEnvelope,
+} from '../hoid/narrativeAnswerEnvelope';
 import type { HoidExplanationDepth } from '../hoid/explanationDepth';
 import {
   isHoidTrustedScreenAnswerPort,
@@ -170,10 +175,7 @@ interface Mensaje {
   texto: string;
   kind?: typeof HOID_STATIC_GREETING_KIND;
   progressScope?: HoidConversationProgressScope;
-  citas?: readonly HoidDisplayCitation[];
-  segmentos?: readonly HoidDisplaySegment[];
-  formato?: HoidNarrativeLayout;
-  evidenciaTransversal?: HoidDisplayCrossBookEvidenceSummary;
+  answerEnvelope?: HoidNarrativeAnswerEnvelope;
   preguntasSugeridas?: readonly HoidCharacterInvestigationSuggestion[];
   contextLinks?: readonly HoidPresentedInvestigationContextLink[];
 }
@@ -1597,14 +1599,56 @@ export const HoidScreen: React.FC<{
         }
       }
 
+      let answerEnvelope: HoidNarrativeAnswerEnvelope | undefined;
+      const hasAnyProvenance = Boolean(
+        (citas && citas.length > 0) || segmentos || formato || evidenciaTransversal,
+      );
+      const hasPartialSegments = (segmentos === undefined) !== (formato === undefined);
+      if (
+        responseScope &&
+        citas &&
+        citas.length > 0 &&
+        !hasPartialSegments &&
+        (!evidenciaTransversal || segmentos)
+      ) {
+        const domain = routeExecution.status === 'ready'
+          ? resolveHoidNarrativeDomain(routeExecution.route)
+          : null;
+        const bookScope = routeExecution.status === 'ready' && 'scope' in routeExecution
+          ? routeExecution.scope
+          : null;
+        answerEnvelope = domain
+          ? createHoidNarrativeAnswerEnvelope({
+              domain,
+              progressScope: responseScope,
+              bookScope,
+              displayText: respuesta,
+              citations: citas,
+              ...(segmentos && formato ? { segments: segmentos, layout: formato } : {}),
+              ...(evidenciaTransversal ? { crossBookEvidence: evidenciaTransversal } : {}),
+            }) ?? undefined
+          : undefined;
+      }
+      if (!answerEnvelope && hasAnyProvenance) {
+        respuesta = 'No puedo validar la procedencia completa de esta respuesta. He descartado el contenido narrativo y sus citas.';
+        responseScope = requestScope;
+        citas = undefined;
+        segmentos = undefined;
+        formato = undefined;
+        evidenciaTransversal = undefined;
+        preguntasSugeridas = undefined;
+        contextLinks = undefined;
+        conversationContextRef.current = null;
+        typedConversationContextRef.current = null;
+        conversationScopeBindingRef.current = null;
+      }
+
       setMensajes(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         emisor: 'hoid',
         texto: respuesta,
         ...(responseScope ? { progressScope: responseScope } : {}),
-        ...(citas && citas.length > 0 ? { citas } : {}),
-        ...(segmentos && formato ? { segmentos, formato } : {}),
-        ...(evidenciaTransversal ? { evidenciaTransversal } : {}),
+        ...(answerEnvelope ? { answerEnvelope } : {}),
         ...(preguntasSugeridas && preguntasSugeridas.length > 0 ? { preguntasSugeridas } : {}),
         ...(contextLinks && contextLinks.length > 0 ? { contextLinks } : {}),
       }]);
@@ -2563,39 +2607,40 @@ export const HoidScreen: React.FC<{
         renderItem={({ item }) => (
           <View style={[styles.bubble, item.emisor === 'usuario' ? styles.userBubble : styles.hoidBubble]}>
             <Text style={styles.bubbleAuthor}>{item.emisor === 'usuario' ? 'TÚ' : 'HOID'}</Text>
-            {item.evidenciaTransversal && (              <View style={styles.citationBlock}>
+            {item.answerEnvelope?.crossBookEvidence && (
+              <View style={styles.citationBlock}>
                 <Text style={styles.citationHeading}>
-                  EVIDENCIA TRANSVERSAL · {item.evidenciaTransversal.workCount} OBRAS
+                  EVIDENCIA TRANSVERSAL · {item.answerEnvelope.crossBookEvidence.workCount} OBRAS
                 </Text>
-                {item.evidenciaTransversal.works.map(work => (
+                {item.answerEnvelope.crossBookEvidence.works.map(work => (
                   <Text key={work.sourceBookId} style={styles.citationText}>
                     {work.title} · capítulos {work.chapters.join(', ')}
                   </Text>
                 ))}
               </View>
             )}
-            {item.segmentos && item.formato ? (
+            {item.answerEnvelope?.segments && item.answerEnvelope.layout ? (
               <View>
-                {item.segmentos.map((segmento, index) => (
+                {item.answerEnvelope.segments.map((segmento, index) => (
                   <View key={segmento.claimId} style={styles.provenanceSegment}>
-                    {item.formato === 'grouped' && index % 3 === 0 && (
+                    {item.answerEnvelope?.layout === 'grouped' && index % 3 === 0 && (
                       <Text style={styles.provenanceHeading}>Bloque {Math.floor(index / 3) + 1}</Text>
                     )}
                     {segmento.epistemicLabel && (
                       <Text style={styles.recommendationItemMeta}>{segmento.epistemicLabel}</Text>
                     )}
                     <Text style={styles.bubbleText}>
-                      {item.formato === 'numbered' ? `${index + 1}. ` : item.formato === 'grouped' ? '• ' : ''}
+                      {item.answerEnvelope?.layout === 'numbered' ? `${index + 1}. ` : item.answerEnvelope?.layout === 'grouped' ? '• ' : ''}
                       {segmento.text}
                     </Text>
                     <View style={styles.segmentCitationBlock}>
                       <Text style={styles.citationHeading}>
-                        {item.evidenciaTransversal
+                        {item.answerEnvelope?.crossBookEvidence
                           ? 'OBRAS Y CAPÍTULOS DE ESTA AFIRMACIÓN'
                           : 'FUENTES DE ESTE SEGMENTO'}
                       </Text>
                       {(() => {
-                        const trace = item.evidenciaTransversal?.segments.find(
+                        const trace = item.answerEnvelope?.crossBookEvidence?.segments.find(
                           entry => entry.claimId === segmento.claimId,
                         );
                         return trace
@@ -2613,6 +2658,18 @@ export const HoidScreen: React.FC<{
                     </View>
                   </View>
                 ))}
+              </View>
+            ) : item.answerEnvelope ? (
+              <View>
+                <Text style={styles.bubbleText}>{item.answerEnvelope.displayText}</Text>
+                <View style={styles.segmentCitationBlock}>
+                  <Text style={styles.citationHeading}>FUENTES DE LA RESPUESTA</Text>
+                  {item.answerEnvelope.citations.map((citation, index) => (
+                    <Text key={`${citation.sourceBookId}:${citation.chapterOrdinal}:${index}`} style={styles.citationText}>
+                      {formatHoidCitationLocation(citation.title, citation.chapter, citation.chapterOrdinal, citation.chapterLabelAmbiguous)}
+                    </Text>
+                  ))}
+                </View>
               </View>
             ) : (
               <Text style={styles.bubbleText}>{item.texto}</Text>
@@ -2703,16 +2760,7 @@ export const HoidScreen: React.FC<{
                 })}
               </View>
             )}
-            {(!item.segmentos || item.segmentos.length === 0) && item.citas && item.citas.length > 0 && (
-              <View style={styles.citationBlock}>
-                <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
-                {item.citas.map((cita, citationIndex) => (
-                  <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
-                    {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal, cita.chapterLabelAmbiguous)}
-                  </Text>
-                ))}
-              </View>
-            )}
+
           </View>
         )}
       />

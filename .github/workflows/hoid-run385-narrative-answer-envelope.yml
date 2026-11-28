@@ -1,0 +1,73 @@
+name: Hoid Run 385 — canonical narrative answer envelope
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/narrativeAnswerEnvelope.ts"
+      - "src/hoid/narrativeAnswerEnvelope.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "src/hoid/claimEpistemicKind.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN385_NARRATIVE_ANSWER_ENVELOPE.md"
+      - ".github/workflows/hoid-run385-narrative-answer-envelope.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run385"
+    paths:
+      - "src/hoid/narrativeAnswerEnvelope.ts"
+      - "src/hoid/narrativeAnswerEnvelope.test.ts"
+      - "src/hoid/answerDisplayProjection.ts"
+      - "src/hoid/answerScope.ts"
+      - "src/hoid/bibliography.ts"
+      - "src/hoid/readingManifest.ts"
+      - "src/hoid/conversationHistoryPolicy.ts"
+      - "src/hoid/claimEpistemicKind.ts"
+      - "src/hoid/narrativeComposition.ts"
+      - "src/hoid/trustedScreenIntegration.test.ts"
+      - "src/screens/HoidScreen.tsx"
+      - "docs/hoid/RUN385_NARRATIVE_ANSWER_ENVELOPE.md"
+      - ".github/workflows/hoid-run385-narrative-answer-envelope.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  narrative-answer-envelope:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run envelope and screen integration tests
+        run: >-
+          npx vitest run
+          src/hoid/narrativeAnswerEnvelope.test.ts
+          src/hoid/trustedScreenIntegration.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module es2020
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/narrativeAnswerEnvelope.ts
+          src/hoid/narrativeAnswerEnvelope.test.ts
+          src/hoid/answerDisplayProjection.ts
+          src/hoid/conversationHistoryPolicy.ts
+          src/hoid/readingManifest.ts
+          src/hoid/claimEpistemicKind.ts
+          src/screens/HoidScreen.tsx
+          src/hoid/trustedScreenIntegration.test.ts

@@ -154,7 +154,7 @@ export function createHoidEntityDossierApplicationAdapter(portsInput: unknown) {
     !ports ||
     typeof ports.readProgress !== "function" ||
     typeof ports.getCurrentDispatch !== "function"
-  ) return null;
+  ) throw new TypeError("Invalid Hoid entity dossier application ports");
 
   const application = createHoidConversationApplicationService<HoidEntityDossierConversationResult>({
     readProgress: ports.readProgress as HoidEntityDossierApplicationPorts["readProgress"],

@@ -27,8 +27,11 @@ const SHA_C = "c".repeat(64);
 const SHA_D = "d".repeat(64);
 const SUMMARY_ID = "twok.chapter-001.cenn-battle";
 
-const summaryDraft = HOID_EDITORIAL_DRAFTS.find(item => item.id === SUMMARY_ID);
-if (!summaryDraft) throw new Error("Borrador de resumen sintético no disponible");
+const summaryDraft = (() => {
+  const value = HOID_EDITORIAL_DRAFTS.find(item => item.id === SUMMARY_ID);
+  if (!value) throw new Error("Borrador de resumen sintético no disponible");
+  return value;
+})();
 
 const sourceInput = Object.freeze({
   summaries: Object.freeze([summaryDraft]),

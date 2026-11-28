@@ -334,7 +334,7 @@ describe("Hoid source-bound signed editorial promotion gate", () => {
   });
 
   it("rebuilds the signed plan after authority to reject mutated bundle receipts", async () => {
-    const mutableReceipt = { ...bundleReceipt };
+    const mutableReceipt = { ...bundleReceipt, reviewerId: bundleReceipt.reviewerId as string };
     const mutableReceipts = { ...receipts, summaries: [mutableReceipt] };
     const mutableInput = {
       plan,

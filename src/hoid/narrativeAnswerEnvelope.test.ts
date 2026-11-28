@@ -9,9 +9,10 @@ import {
   resolveHoidNarrativeDomain,
 } from "./narrativeAnswerEnvelope";
 
-const availableSource = HOID_SOURCE_BIBLIOGRAPHY.find(
-  work => getHoidReadingManifest(work.id).status === "ready",
-);
+const availableSource = HOID_SOURCE_BIBLIOGRAPHY.find(work => {
+  const result = getHoidReadingManifest(work.id);
+  return result.status === "ready" && result.manifest.units.length >= 2;
+});
 if (!availableSource) throw new Error("Narrative envelope tests require one verified chapter manifest");
 
 const availableManifest = getHoidReadingManifest(availableSource.id);
@@ -30,7 +31,7 @@ if (!secondUnit) {
   throw new Error("Narrative envelope tests require two indexed chapter units");
 }
 
-function citationFor(unit: typeof firstUnit) {
+function citationFor(unit: Readonly<{ ordinal: number; chapterNumber: number }>) {
   const matching = availableManifest.manifest.units.filter(
     candidate => candidate.chapterNumber === unit.chapterNumber,
   );
@@ -237,7 +238,7 @@ describe("Hoid narrative abstention envelope", () => {
     expect(envelope).not.toBeNull();
     expect(envelope?.status).toBe("abstained");
     expect(envelope?.reason).toBe("spoiler-locked");
-    expect(envelope?.text).toContain("no mostraré su contenido");
+    expect(envelope?.text).toContain("No mostraré su contenido");
     expect(Object.isFrozen(envelope)).toBe(true);
   });
 

@@ -31,6 +31,14 @@ export type HoidCuratedPathRecommendationDisplayProjection =
 const WORKS = new Map(HOID_SOURCE_BIBLIOGRAPHY.map(work => [work.id, work]));
 const ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
 const MAX_ITEMS = 5;
+const CURATED_PATH_DISPLAY_PROJECTIONS = new WeakSet<object>();
+
+export function isHoidCuratedPathRecommendationDisplayProjection(
+  value: unknown,
+): value is Extract<HoidCuratedPathRecommendationDisplayProjection, { status: "ready" }> {
+  return value !== null && typeof value === "object" &&
+    CURATED_PATH_DISPLAY_PROJECTIONS.has(value as object);
+}
 const INPUT_KEYS = Object.freeze([
   "plan",
   "catalogue",
@@ -140,8 +148,10 @@ export async function projectHoidCuratedPathRecommendationsForDisplay(
     }));
   }
 
-  return Object.freeze({
-    status: "ready",
+  const projection = Object.freeze({
+    status: "ready" as const,
     items: Object.freeze(items),
   });
+  CURATED_PATH_DISPLAY_PROJECTIONS.add(projection);
+  return projection;
 }

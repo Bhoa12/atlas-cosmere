@@ -76,14 +76,15 @@ function canonicalDispatch(value: unknown): HoidEntityDossierApplicationDispatch
     "depth",
     "isCurrent",
   ]);
-  if (!record) return null;
+  if (!record || !Object.isFrozen(value)) return null;
 
   const adapter = record.adapter;
   if (
     adapter === null ||
     typeof adapter !== "object" ||
     Array.isArray(adapter) ||
-    Object.getPrototypeOf(adapter) !== Object.prototype
+    Object.getPrototypeOf(adapter) !== Object.prototype ||
+    !Object.isFrozen(adapter)
   ) return null;
   const adapterKeys = Reflect.ownKeys(adapter);
   const answer = Object.getOwnPropertyDescriptor(adapter, "answer");
@@ -93,7 +94,9 @@ function canonicalDispatch(value: unknown): HoidEntityDossierApplicationDispatch
     !answer ||
     !Object.prototype.hasOwnProperty.call(answer, "value") ||
     typeof answer.value !== "function" ||
-    answer.enumerable !== true
+    answer.enumerable !== true ||
+    answer.writable !== false ||
+    answer.configurable !== false
   ) return null;
 
   const question = record.question;

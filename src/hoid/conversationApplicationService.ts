@@ -188,19 +188,22 @@ export function createHoidConversationApplicationService(
     } catch {
       return unavailable("route-unavailable");
     }
-    if (!("route" in execution)) return unavailable("route-unavailable");
+    if (execution.status !== "ready") return unavailable("route-unavailable");
+    // The runtime discriminant above is the authority; this alias makes the
+    // ready-only contract explicit across the async callback boundary.
+    const readyExecution = execution as HoidReadyConversationRouteExecution;
 
     const context: HoidConversationApplicationContext = Object.freeze({
       schemaVersion: 1,
       turnSequence: sequence,
-      route: execution.route,
+      route: readyExecution.route,
       progress: initialProgress,
     });
 
     let value: unknown;
     try {
       value = await awaitHoidOperationWithSignal(
-        () => ports.executeRoute(execution, context, options.signal),
+        () => ports.executeRoute(readyExecution, context, options.signal),
         options.signal,
       );
     } catch {

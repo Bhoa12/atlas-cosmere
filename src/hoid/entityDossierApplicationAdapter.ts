@@ -7,7 +7,10 @@ import type {
   HoidEntityDossierConversationAdapter,
   HoidEntityDossierConversationResult,
 } from "./entityDossierConversation";
-import type { HoidConversationRouteExecutionInput } from "./conversationRouteExecution";
+import {
+  resolveHoidConversationRouteExecution,
+  type HoidConversationRouteExecutionInput,
+} from "./conversationRouteExecution";
 import {
   isHoidExplanationDepth,
   type HoidExplanationDepth,
@@ -188,6 +191,10 @@ export function createHoidEntityDossierApplicationAdapter(portsInput: unknown) {
       expectedProgress: unknown,
       options: HoidConversationApplicationOptions = {},
     ): Promise<HoidEntityDossierConversationResult> {
+      const route = resolveHoidConversationRouteExecution(routeInput);
+      if (route.status !== "ready" || route.route !== "dossier") {
+        return unavailable("invalid-request");
+      }
       const result = await application.execute(routeInput, expectedProgress, options);
       return result.status === "completed"
         ? result.value

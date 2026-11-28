@@ -160,6 +160,22 @@ describe("Hoid entity dossier application adapter", () => {
     expect(answer).not.toHaveBeenCalled();
   });
 
+  it("rejects a mutable dispatch snapshot before calling the dossier adapter", async () => {
+    const answer = vi.fn(async () => Object.freeze({ status: "not-found" as const }));
+    const frozenDispatch = createDispatch(answer);
+    const mutableDispatch = { ...frozenDispatch };
+    const adapter = createHoidEntityDossierApplicationAdapter({
+      readProgress: async () => progress,
+      getCurrentDispatch: () => mutableDispatch,
+    });
+    if (!adapter) throw new Error("Expected dossier application adapter");
+
+    const result = await adapter.execute(routeInput, progress);
+
+    expect(result).toEqual({ status: "unavailable", reason: "invalid-dossier" });
+    expect(answer).not.toHaveBeenCalled();
+  });
+
   it("does not dispatch when the UI turn is no longer current", async () => {
     const answer = vi.fn(async () => Object.freeze({ status: "not-found" as const }));
     const dispatch = createDispatch(answer, { isCurrent: () => false });

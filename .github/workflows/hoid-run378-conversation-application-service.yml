@@ -1,0 +1,64 @@
+name: Hoid Run 378 — provider-neutral conversation application service
+
+on:
+  pull_request:
+    paths:
+      - "src/hoid/conversationApplicationService.ts"
+      - "src/hoid/conversationApplicationService.test.ts"
+      - "src/hoid/conversationRouteExecution.ts"
+      - "src/hoid/conversationRouteExecution.test.ts"
+      - "src/hoid/conversationRoutePlan.ts"
+      - "src/hoid/conversationRoutePlan.test.ts"
+      - "src/hoid/abortableOperation.ts"
+      - "docs/hoid/RUN378_PROVIDER_NEUTRAL_CONVERSATION_APPLICATION_SERVICE.md"
+      - ".github/workflows/hoid-run378-conversation-application-service.yml"
+  push:
+    branches:
+      - "feat/hoid-ia-core-run378"
+    paths:
+      - "src/hoid/conversationApplicationService.ts"
+      - "src/hoid/conversationApplicationService.test.ts"
+      - "src/hoid/conversationRouteExecution.ts"
+      - "src/hoid/conversationRouteExecution.test.ts"
+      - "src/hoid/conversationRoutePlan.ts"
+      - "src/hoid/conversationRoutePlan.test.ts"
+      - "src/hoid/abortableOperation.ts"
+      - "docs/hoid/RUN378_PROVIDER_NEUTRAL_CONVERSATION_APPLICATION_SERVICE.md"
+      - ".github/workflows/hoid-run378-conversation-application-service.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-application-service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run application-service and route regressions
+        run: >-
+          npx vitest run
+          src/hoid/conversationApplicationService.test.ts
+          src/hoid/conversationRouteExecution.test.ts
+          src/hoid/conversationRoutePlan.test.ts
+      - name: Strict TypeScript check
+        run: >-
+          npx tsc --noEmit --strict
+          --target ES2020
+          --module commonjs
+          --moduleResolution node
+          --skipLibCheck
+          --esModuleInterop
+          --jsx react-native
+          src/hoid/conversationApplicationService.ts
+          src/hoid/conversationApplicationService.test.ts
+          src/hoid/conversationRouteExecution.ts
+          src/hoid/conversationRouteExecution.test.ts
+          src/hoid/conversationRoutePlan.ts
+          src/hoid/conversationRoutePlan.test.ts

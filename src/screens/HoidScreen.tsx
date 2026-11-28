@@ -61,7 +61,14 @@ import type { HoidNarrativeLayout } from '../hoid/narrativeComposition';
 
 
 import { classifyHoidConversationIntent } from '../hoid/conversationIntent';
-import { resolveHoidConversationRouteExecution } from '../hoid/conversationRouteExecution';
+import {
+  resolveHoidConversationRouteExecution,
+  type HoidConversationRouteExecutionInput,
+} from '../hoid/conversationRouteExecution';
+import {
+  createHoidTrustedConversationApplicationAdapter,
+  type HoidTrustedConversationApplicationDispatch,
+} from '../hoid/trustedConversationApplicationAdapter';
 import { resolveHoidRereadRequest } from '../hoid/rereadRequest';
 import type { HoidConversationContext } from '../hoid/conversationContext';
 import type { HoidTypedConversationContext } from '../hoid/typedConversationContext';
@@ -234,6 +241,21 @@ export const HoidScreen: React.FC<{
   const typedConversationContextRef = useRef<HoidTypedConversationContext | null>(null);
   const conversationScopeBindingRef = useRef<HoidConversationScopeBinding | null>(null);
   const [conversationTurnSession] = useState(() => createHoidConversationTurnSession());
+  const activeTrustedConversationDispatchRef = useRef<HoidTrustedConversationApplicationDispatch | null>(null);
+  const [trustedConversationApplicationAdapter] = useState(() =>
+    createHoidTrustedConversationApplicationAdapter({
+      readProgress: async () => {
+        const current = await progressRefreshRef.current();
+        const projection = current ? projectHoidCursorProgressSnapshot(current) : null;
+        if (projection?.status !== 'ready') throw new Error('Current reading progress is unavailable');
+        return Object.freeze({
+          revision: projection.revision,
+          fingerprint: fingerprintHoidCursorProgressProjection(projection),
+        });
+      },
+      getCurrentDispatch: () => activeTrustedConversationDispatchRef.current,
+    }),
+  );
   const [recommendationRequestSession] = useState(() => createHoidRecommendationRequestSession());
   const [investigationSession] = useState(() => createHoidInvestigationSession());
   const conversationGateway = hoidRuntime
@@ -458,6 +480,8 @@ export const HoidScreen: React.FC<{
 
   useEffect(() => {
     conversationTurnSession.invalidate();
+    trustedConversationApplicationAdapter.invalidate();
+    activeTrustedConversationDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     recommendationRequestSession.invalidate();
     investigationSession.reset();
@@ -480,6 +504,8 @@ export const HoidScreen: React.FC<{
 
   useEffect(() => () => {
     conversationTurnSession.invalidate();
+    trustedConversationApplicationAdapter.invalidate();
+    activeTrustedConversationDispatchRef.current = null;
     recommendationRequestSession.invalidate();
     investigationSession.reset();
     recommendationPresentationRef.current = null;
@@ -506,6 +532,8 @@ export const HoidScreen: React.FC<{
     typedConversationContextRef.current = null;
     conversationScopeBindingRef.current = null;
     conversationTurnSession.invalidate();
+    trustedConversationApplicationAdapter.invalidate();
+    activeTrustedConversationDispatchRef.current = null;
     trustedConversationPort?.resetContext();
     setCanCancelAnswer(false);
     setCargando(false);
@@ -653,7 +681,7 @@ export const HoidScreen: React.FC<{
       const investigationBookScope = answerScopeSelection.status === 'ready'
         ? answerScopeSelection.scope
         : null;
-      const routeExecution = resolveHoidConversationRouteExecution({
+      const routeInput: HoidConversationRouteExecutionInput = {
         intentPlan,
         dossierIntent,
         relationshipIntent,
@@ -662,7 +690,8 @@ export const HoidScreen: React.FC<{
         characterEvolutionIntent,
         answerScope: answerScopeSelection,
         trustedConversationAvailable: trustedConversationPort !== null,
-      });
+      };
+      const routeExecution = resolveHoidConversationRouteExecution(routeInput);
       let respuesta: string;
       let citas: readonly HoidDisplayCitation[] | undefined;
       let segmentos: readonly HoidDisplaySegment[] | undefined;
@@ -1169,45 +1198,90 @@ export const HoidScreen: React.FC<{
         conversationContextRef.current = null;
         typedConversationContextRef.current = null;
         conversationScopeBindingRef.current = null;
-        const result = await trustedConversationPort.send({
-          question: textoUsuario,
-          intent: routeExecution.intent.intent,
-          depth: explanationDepth,
-          bookScope: routeExecution.scope,
-        }, { signal: ticket.signal });
-        if (!conversationTurnSession.isCurrent(ticket)) return;
-        if (ticket.signal.aborted) { commitCancelledTurn(); return; }
 
-        if (result.status === 'ready') {
-          responseScope = {
-            revision: result.progressRevision,
-            fingerprint: result.progressFingerprint,
-          };
-          respuesta = result.presentation.text;
-          citas = result.presentation.citations;
-          segmentos = result.presentation.segments;
-          formato = result.presentation.layout;
-          evidenciaTransversal = result.crossBookEvidence ?? undefined;
-        } else if (result.status === 'needs-clarification') {
-          responseScope = requestScope;
-          respuesta = result.reason === 'ambiguous-entity'
-            ? 'No puedo identificar con seguridad el referente. Repite los nombres de los personajes para evitar una suposición.'
-            : 'No hay un contexto anterior vigente para resolver esa pregunta. Vuelve a mencionar los personajes.';
-        } else if (result.status === 'cancelled') {
+        if (!requestScope) {
           responseScope = null;
-          respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
+          respuesta = 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.';
         } else {
-          responseScope = requestScope;
-          respuesta = result.reason === 'progress-changed'
-            ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
-            : result.reason === 'progress-unavailable'
-              ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
-              : result.reason === 'invalid-request'
-                ? 'No he podido validar la pregunta. No la enviaré a ningún proveedor.'
-                : result.reason === 'host-blocked' &&
-                    (result.hostReason === 'evidence-locked' || result.hostReason === 'trust-source-unavailable')
-                  ? 'No hay afirmaciones editoriales verificadas y autorizadas para esta pregunta y tu progreso. Hoid no inventará una explicación.'
-                  : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
+          const dispatch: HoidTrustedConversationApplicationDispatch = Object.freeze({
+            port: trustedConversationPort,
+            question: textoUsuario,
+            depth: explanationDepth,
+            isCurrent: () => conversationTurnSession.isCurrent(ticket),
+          });
+          activeTrustedConversationDispatchRef.current = dispatch;
+
+          let applicationResult: Awaited<ReturnType<typeof trustedConversationApplicationAdapter.execute>>;
+          try {
+            applicationResult = await trustedConversationApplicationAdapter.execute(
+              routeInput,
+              requestScope,
+              {
+                signal: ticket.signal,
+                isCurrent: dispatch.isCurrent,
+              },
+            );
+          } finally {
+            if (activeTrustedConversationDispatchRef.current === dispatch) {
+              activeTrustedConversationDispatchRef.current = null;
+            }
+          }
+
+          if (!conversationTurnSession.isCurrent(ticket)) return;
+          if (ticket.signal.aborted) { commitCancelledTurn(); return; }
+
+          if (applicationResult.status === 'completed') {
+            const result = applicationResult.value;
+            if (result.status === 'ready') {
+              responseScope = {
+                revision: result.progressRevision,
+                fingerprint: result.progressFingerprint,
+              };
+              respuesta = result.presentation.text;
+              citas = result.presentation.citations;
+              segmentos = result.presentation.segments;
+              formato = result.presentation.layout;
+              evidenciaTransversal = result.crossBookEvidence ?? undefined;
+            } else if (result.status === 'needs-clarification') {
+              responseScope = requestScope;
+              respuesta = result.reason === 'ambiguous-entity'
+                ? 'No puedo identificar con seguridad el referente. Repite los nombres de los personajes para evitar una suposición.'
+                : 'No hay un contexto anterior vigente para resolver esa pregunta. Vuelve a mencionar los personajes.';
+            } else if (result.status === 'cancelled') {
+              responseScope = null;
+              respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
+            } else {
+              responseScope = requestScope;
+              respuesta = result.reason === 'progress-changed'
+                ? 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.'
+                : result.reason === 'progress-unavailable'
+                  ? 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.'
+                  : result.reason === 'invalid-request'
+                    ? 'No he podido validar la pregunta. No la enviaré a ningún proveedor.'
+                    : result.reason === 'host-blocked' &&
+                        (result.hostReason === 'evidence-locked' || result.hostReason === 'trust-source-unavailable')
+                      ? 'No hay afirmaciones editoriales verificadas y autorizadas para esta pregunta y tu progreso. Hoid no inventará una explicación.'
+                      : 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
+            }
+          } else if (applicationResult.reason === 'cancelled') {
+            responseScope = null;
+            respuesta = 'Consulta cancelada. Hoid ha descartado cualquier resultado parcial o tardío.';
+          } else if (
+            applicationResult.reason === 'stale-before-execution' ||
+            applicationResult.reason === 'stale-after-execution'
+          ) {
+            responseScope = null;
+            respuesta = 'Tu progreso de lectura ha cambiado mientras preparaba la respuesta. He descartado el resultado; vuelve a formular la pregunta.';
+          } else if (
+            applicationResult.reason === 'invalid-progress' ||
+            applicationResult.reason === 'progress-unavailable'
+          ) {
+            responseScope = null;
+            respuesta = 'No puedo verificar el progreso actual. La respuesta queda bloqueada para evitar spoilers.';
+          } else {
+            responseScope = requestScope;
+            respuesta = 'No hay una respuesta verificable disponible. No recurriré a un proveedor alternativo ni completaré la respuesta mediante suposiciones.';
+          }
         }
       } else {
         conversationContextRef.current = null;

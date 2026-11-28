@@ -21,11 +21,11 @@ export type HoidConversationApplicationContext = Readonly<{
   progress: HoidConversationApplicationProgress;
 }>;
 
-export type HoidConversationApplicationResult =
+export type HoidConversationApplicationResult<TValue = unknown> =
   | Readonly<{
       status: "completed";
       context: HoidConversationApplicationContext;
-      value: unknown;
+      value: TValue;
     }>
   | Readonly<{
       status: "unavailable";
@@ -46,7 +46,7 @@ export type HoidConversationApplicationOptions = Readonly<{
   isCurrent?: () => boolean;
 }>;
 
-export type HoidConversationApplicationPorts = Readonly<{
+export type HoidConversationApplicationPorts<TValue = unknown> = Readonly<{
   /** Returns only the current durable progress identity, never narrative data. */
   readProgress: (signal?: AbortSignal) => unknown | PromiseLike<unknown>;
   /** Dispatches the typed route to its existing local/trusted gateway. */
@@ -54,7 +54,7 @@ export type HoidConversationApplicationPorts = Readonly<{
     execution: HoidReadyConversationRouteExecution,
     context: HoidConversationApplicationContext,
     signal?: AbortSignal,
-  ) => unknown | PromiseLike<unknown>;
+  ) => TValue | PromiseLike<TValue>;
 }>;
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -105,7 +105,7 @@ function sameProgress(
 
 function unavailable(
   reason: Extract<HoidConversationApplicationResult, { status: "unavailable" }>["reason"],
-): HoidConversationApplicationResult {
+): HoidConversationApplicationResult<never> {
   return Object.freeze({ status: "unavailable" as const, reason });
 }
 
@@ -117,8 +117,8 @@ function unavailable(
  * The service never persists data, reads EPUB content, authorizes claims or
  * projects provider output for display. Those remain gateway/presenter duties.
  */
-export function createHoidConversationApplicationService(
-  ports: HoidConversationApplicationPorts,
+export function createHoidConversationApplicationService<TValue = unknown>(
+  ports: HoidConversationApplicationPorts<TValue>,
 ) {
   if (
     ports === null ||
@@ -154,7 +154,7 @@ export function createHoidConversationApplicationService(
     routeInput: unknown,
     expectedProgressInput: unknown,
     options: HoidConversationApplicationOptions = {},
-  ): Promise<HoidConversationApplicationResult> => {
+  ): Promise<HoidConversationApplicationResult<TValue>> => {
     const sequence = nextSequence();
     const expectedProgress = canonicalProgress(expectedProgressInput);
     if (!expectedProgress) return unavailable("invalid-progress");
@@ -200,7 +200,7 @@ export function createHoidConversationApplicationService(
       progress: initialProgress,
     });
 
-    let value: unknown;
+    let value: TValue;
     try {
       value = await awaitHoidOperationWithSignal(
         () => ports.executeRoute(readyExecution, context, options.signal),

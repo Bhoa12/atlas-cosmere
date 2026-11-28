@@ -16,7 +16,7 @@ function intent(
     mode === "relationship-explanation" ? "relationship-cue" :
     "default-explanation";
   return Object.freeze({
-    status: "ready",
+    status: "ready" as const,
     intent: mode === "catalogue-recommendation" || mode === "curated-discovery" || mode === "reread-request"
       ? "recommend"
       : mode === "reading-progress" || mode === "narrative-context" ? "context" : "explain",
@@ -27,12 +27,12 @@ function intent(
 
 const BASE: HoidConversationRoutePlanInput = Object.freeze({
   intentPlan: intent(),
-  dossierIntent: Object.freeze({ status: "not-dossier" }),
-  relationshipIntent: Object.freeze({ status: "not-relationship" }),
-  timelineIntent: Object.freeze({ status: "not-timeline" }),
-  magicSystemIntent: Object.freeze({ status: "not-magic" }),
-  characterEvolutionIntent: Object.freeze({ status: "not-evolution" }),
-  answerScopeStatus: "ready",
+  dossierIntent: Object.freeze({ status: "not-dossier" as const }),
+  relationshipIntent: Object.freeze({ status: "not-relationship" as const }),
+  timelineIntent: Object.freeze({ status: "not-timeline" as const }),
+  magicSystemIntent: Object.freeze({ status: "not-magic" as const }),
+  characterEvolutionIntent: Object.freeze({ status: "not-evolution" as const }),
+  answerScopeStatus: "ready" as const,
   trustedConversationAvailable: true,
 });
 
@@ -54,32 +54,32 @@ describe("Hoid conversation route plan", () => {
 
   it("rejects malformed general intent before any broad fallback", () => {
     expect(route({
-      intentPlan: Object.freeze({ status: "unavailable", reason: "invalid-question" }),
+      intentPlan: Object.freeze({ status: "unavailable" as const, reason: "invalid-question" }),
     })).toBe("invalid-request");
   });
 
   it("keeps dossier validation ahead of all broad routes", () => {
     expect(route({
-      dossierIntent: Object.freeze({ status: "invalid" }),
+      dossierIntent: Object.freeze({ status: "invalid" as const }),
       intentPlan: intent("catalogue-recommendation"),
     })).toBe("dossier-invalid");
     expect(route({
-      dossierIntent: Object.freeze({ status: "needs-name" }),
+      dossierIntent: Object.freeze({ status: "needs-name" as const }),
       intentPlan: intent("reread-request"),
     })).toBe("dossier-needs-name");
   });
 
   it("keeps malformed and incomplete relationship requests terminal", () => {
-    expect(route({ relationshipIntent: Object.freeze({ status: "invalid" }) }))
+    expect(route({ relationshipIntent: Object.freeze({ status: "invalid" as const }) }))
       .toBe("relationship-invalid");
-    expect(route({ relationshipIntent: Object.freeze({ status: "needs-names" }) }))
+    expect(route({ relationshipIntent: Object.freeze({ status: "needs-names" as const }) }))
       .toBe("relationship-needs-names");
   });
 
   it("keeps malformed and incomplete timeline requests terminal", () => {
-    expect(route({ timelineIntent: Object.freeze({ status: "invalid" }) }))
+    expect(route({ timelineIntent: Object.freeze({ status: "invalid" as const }) }))
       .toBe("timeline-invalid");
-    expect(route({ timelineIntent: Object.freeze({ status: "needs-name" }) }))
+    expect(route({ timelineIntent: Object.freeze({ status: "needs-name" as const }) }))
       .toBe("timeline-needs-name");
   });
 
@@ -109,56 +109,56 @@ describe("Hoid conversation route plan", () => {
 
   it("requires a reading focus before dispatching narrative entity routes", () => {
     expect(route({
-      relationshipIntent: Object.freeze({ status: "ready", leftEntityName: "A", rightEntityName: "B" }),
+      relationshipIntent: Object.freeze({ status: "ready" as const, leftEntityName: "A", rightEntityName: "B" }),
       answerScopeStatus: "selection-required",
     })).toBe("scope-selection-required");
     expect(route({
-      timelineIntent: Object.freeze({ status: "ready", entityName: "A" }),
+      timelineIntent: Object.freeze({ status: "ready" as const, entityName: "A" }),
       answerScopeStatus: "unavailable",
     })).toBe("scope-unavailable");
   });
 
   it("preserves relationship-before-timeline precedence", () => {
     expect(route({
-      relationshipIntent: Object.freeze({ status: "ready", leftEntityName: "A", rightEntityName: "B" }),
-      timelineIntent: Object.freeze({ status: "ready", entityName: "A" }),
+      relationshipIntent: Object.freeze({ status: "ready" as const, leftEntityName: "A", rightEntityName: "B" }),
+      timelineIntent: Object.freeze({ status: "ready" as const, entityName: "A" }),
     })).toBe("relationship");
   });
 
   it("preserves timeline-before-evolution precedence", () => {
     expect(route({
-      timelineIntent: Object.freeze({ status: "ready", entityName: "A" }),
-      characterEvolutionIntent: Object.freeze({ status: "ready", characterName: "A" }),
+      timelineIntent: Object.freeze({ status: "ready" as const, entityName: "A" }),
+      characterEvolutionIntent: Object.freeze({ status: "ready" as const, characterName: "A" }),
     })).toBe("timeline");
   });
 
   it("preserves evolution-before-magic precedence", () => {
     expect(route({
-      characterEvolutionIntent: Object.freeze({ status: "ready", characterName: "A" }),
-      magicSystemIntent: Object.freeze({ status: "ready", systemName: "A" }),
+      characterEvolutionIntent: Object.freeze({ status: "ready" as const, characterName: "A" }),
+      magicSystemIntent: Object.freeze({ status: "ready" as const, systemName: "A" }),
     })).toBe("character-evolution");
   });
 
   it("preserves magic-before-dossier precedence", () => {
     expect(route({
-      magicSystemIntent: Object.freeze({ status: "ready", systemName: "A" }),
-      dossierIntent: Object.freeze({ status: "ready", entityName: "A" }),
+      magicSystemIntent: Object.freeze({ status: "ready" as const, systemName: "A" }),
+      dossierIntent: Object.freeze({ status: "ready" as const, entityName: "A" }),
     })).toBe("magic-system");
   });
 
   it("routes a recognized dossier only after the higher-priority specialist routes", () => {
     expect(route({
-      dossierIntent: Object.freeze({ status: "ready", entityName: "A" }),
+      dossierIntent: Object.freeze({ status: "ready" as const, entityName: "A" }),
     })).toBe("dossier");
   });
 
   it("rejects unknown status values and additional input fields", () => {
     expect(resolveHoidConversationRoutePlan({
       ...BASE,
-      dossierIntent: Object.freeze({ status: "future-route" }),
-    })).toEqual({ status: "unavailable", reason: "invalid-input" });
+      dossierIntent: Object.freeze({ status: "future-route" as const }),
+    })).toEqual({ status: "unavailable" as const, reason: "invalid-input" });
     expect(resolveHoidConversationRoutePlan({ ...BASE, unexpected: true }))
-      .toEqual({ status: "unavailable", reason: "invalid-input" });
+      .toEqual({ status: "unavailable" as const, reason: "invalid-input" });
   });
 
   it("rejects accessors without invoking them", () => {
@@ -174,7 +174,7 @@ describe("Hoid conversation route plan", () => {
       ...BASE,
       dossierIntent: dossier,
     });
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-input" });
+    expect(result).toEqual({ status: "unavailable" as const, reason: "invalid-input" });
     expect(invoked).toBe(false);
   });
 
@@ -189,13 +189,13 @@ describe("Hoid conversation route plan", () => {
     const result = resolveHoidConversationRoutePlan({
       ...BASE,
       intentPlan: Object.freeze({
-        status: "ready",
+        status: "ready" as const,
         intent: hostileIntent,
         mode: "explanation",
         signal: "default-explanation",
       }),
     });
-    expect(result).toEqual({ status: "unavailable", reason: "invalid-input" });
+    expect(result).toEqual({ status: "unavailable" as const, reason: "invalid-input" });
     expect(invoked).toBe(false);
   });
 
@@ -203,26 +203,26 @@ describe("Hoid conversation route plan", () => {
     expect(resolveHoidConversationRoutePlan({
       ...BASE,
       relationshipIntent: Object.freeze({
-        status: "ready",
+        status: "ready" as const,
         leftEntityName: "A",
         rightEntityName: "a",
       }),
-    })).toEqual({ status: "unavailable", reason: "invalid-input" });
+    })).toEqual({ status: "unavailable" as const, reason: "invalid-input" });
   });
 
   it("routes missing names for evolution and magic to their specialized handlers", () => {
     expect(route({
-      characterEvolutionIntent: Object.freeze({ status: "needs-name" }),
+      characterEvolutionIntent: Object.freeze({ status: "needs-name" as const }),
     })).toBe("character-evolution");
     expect(route({
-      magicSystemIntent: Object.freeze({ status: "needs-name" }),
+      magicSystemIntent: Object.freeze({ status: "needs-name" as const }),
     })).toBe("magic-system");
   });
 
   it("rejects malformed ready intents rather than guessing a route", () => {
     expect(resolveHoidConversationRoutePlan({
       ...BASE,
-      magicSystemIntent: Object.freeze({ status: "ready", systemName: " " }),
-    })).toEqual({ status: "unavailable", reason: "invalid-input" });
+      magicSystemIntent: Object.freeze({ status: "ready" as const, systemName: " " }),
+    })).toEqual({ status: "unavailable" as const, reason: "invalid-input" });
   });
 });

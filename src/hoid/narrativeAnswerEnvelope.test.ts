@@ -20,10 +20,13 @@ if (availableManifest.status !== "ready") {
 }
 
 const firstUnit = availableManifest.manifest.units[0];
+if (!firstUnit) {
+  throw new Error("Narrative envelope tests require an indexed chapter unit");
+}
 const secondUnit = availableManifest.manifest.units.find(
   unit => unit.ordinal !== firstUnit.ordinal,
 );
-if (!firstUnit || !secondUnit) {
+if (!secondUnit) {
   throw new Error("Narrative envelope tests require two indexed chapter units");
 }
 
@@ -95,11 +98,13 @@ describe("Hoid narrative answer envelope", () => {
 
   it("derives epistemic labels from approved classification metadata", () => {
     const input = validInput();
-    input.segments[0] = {
-      ...input.segments[0],
-      epistemicKind: "evidence-backed-assertion",
-    };
-    const envelope = createHoidNarrativeAnswerEnvelope(input);
+    const envelope = createHoidNarrativeAnswerEnvelope({
+      ...input,
+      segments: [{
+        ...input.segments[0],
+        epistemicKind: "evidence-backed-assertion",
+      }],
+    });
     expect(envelope?.status).toBe("ready");
     if (envelope?.status !== "ready") return;
     expect(envelope.segments?.[0].epistemicKind).toBe("evidence-backed-assertion");
@@ -189,12 +194,14 @@ describe("Hoid narrative answer envelope", () => {
 
   it("rejects epistemic labels that do not match their classification", () => {
     const input = validInput();
-    input.segments[0] = {
-      ...input.segments[0],
-      epistemicKind: "editorial-interpretation",
-      epistemicLabel: "AFIRMACIÓN EDITORIAL CON EVIDENCIAS",
-    };
-    expect(createHoidNarrativeAnswerEnvelope(input)).toBeNull();
+    expect(createHoidNarrativeAnswerEnvelope({
+      ...input,
+      segments: [{
+        ...input.segments[0],
+        epistemicKind: "editorial-interpretation",
+        epistemicLabel: "AFIRMACIÓN EDITORIAL CON EVIDENCIAS",
+      }],
+    })).toBeNull();
   });
 
   it("rejects inconsistent cross-book matrices instead of partially rendering them", () => {

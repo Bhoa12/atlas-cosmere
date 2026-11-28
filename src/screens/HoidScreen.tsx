@@ -2116,6 +2116,10 @@ export const HoidScreen: React.FC<{
       return;
     }
 
+    const requestScope = Object.freeze({
+      revision: liveProgressScope.revision,
+      fingerprint: liveProgressScope.fingerprint,
+    });
     curatedPathAbortControllerRef.current?.abort();
     const controller = new AbortController();
     curatedPathAbortControllerRef.current = controller;
@@ -2132,16 +2136,73 @@ export const HoidScreen: React.FC<{
         controller.signal.aborted ||
         generation !== curatedPathRequestGenerationRef.current
       ) return;
-      setCuratedPathProjection(result);
-      setCuratedPathMessage(result.status === 'ready'
-        ? 'Itinerarios revalidados. La elección de una obra sigue siendo manual.'
-        : 'No hay un itinerario que pueda mostrarse con seguridad. No se ha abierto ninguna obra.');
+
+      // Bind the display envelope to a second authoritative progress read.
+      const latestProgress = await awaitHoidOperationWithSignal(
+        () => progressRefreshRef.current(),
+        controller.signal,
+      );
+      if (
+        controller.signal.aborted ||
+        generation !== curatedPathRequestGenerationRef.current
+      ) return;
+      const latestProjection = latestProgress
+        ? projectHoidCursorProgressSnapshot(latestProgress)
+        : null;
+      const latestScope = latestProjection?.status === 'ready'
+        ? {
+            revision: latestProjection.revision,
+            fingerprint: fingerprintHoidCursorProgressProjection(latestProjection),
+          }
+        : null;
+      if (
+        !latestScope ||
+        latestScope.revision !== requestScope.revision ||
+        latestScope.fingerprint !== requestScope.fingerprint
+      ) {
+        setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+          kind: 'curated-path',
+          progressScope: requestScope,
+          reason: 'progress-changed',
+        }));
+        setCuratedPathMessage('Tu progreso ha cambiado. Los itinerarios anteriores se han descartado.');
+        return;
+      }
+
+      if (result.status === 'ready') {
+        const envelope = createHoidCuratedPathRecommendationEnvelope({
+          display: result,
+          progressScope: requestScope,
+        });
+        if (!envelope) {
+          setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+            kind: 'curated-path',
+            progressScope: requestScope,
+            reason: 'invalid-projection',
+          }));
+          setCuratedPathMessage('No se pudo validar la presentación firmada. No se mostrará ninguna ruta parcial.');
+          return;
+        }
+        setCuratedPathProjection(envelope);
+        setCuratedPathMessage('Itinerarios revalidados. La elección de una obra sigue siendo manual.');
+      } else {
+        setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+          kind: 'curated-path',
+          progressScope: requestScope,
+          reason: 'trust-unavailable',
+        }));
+        setCuratedPathMessage('No hay un itinerario que pueda mostrarse con seguridad. No se ha abierto ninguna obra.');
+      }
     } catch {
       if (
         controller.signal.aborted ||
         generation !== curatedPathRequestGenerationRef.current
       ) return;
-      setCuratedPathProjection(null);
+      setCuratedPathProjection(createHoidRecommendationAbstentionEnvelope({
+        kind: 'curated-path',
+        progressScope: requestScope,
+        reason: 'unavailable',
+      }));
       setCuratedPathMessage(
         'No se pudo verificar el catálogo editorial. Las recomendaciones permanecen ocultas.',
       );
@@ -2158,7 +2219,13 @@ export const HoidScreen: React.FC<{
     curatedPathAbortControllerRef.current?.abort();
     curatedPathAbortControllerRef.current = null;
     setCuratedPathLoading(false);
-    setCuratedPathProjection(null);
+    setCuratedPathProjection(liveProgressScope
+      ? createHoidRecommendationAbstentionEnvelope({
+          kind: 'curated-path',
+          progressScope: liveProgressScope,
+          reason: 'cancelled',
+        })
+      : null);
     setCuratedPathMessage('Consulta cancelada. No se ha modificado el progreso.');
   };
 

@@ -2760,16 +2760,7 @@ export const HoidScreen: React.FC<{
                 })}
               </View>
             )}
-            {(!item.segmentos || item.segmentos.length === 0) && item.citas && item.citas.length > 0 && (
-              <View style={styles.citationBlock}>
-                <Text style={styles.citationHeading}>FUENTES VERIFICADAS</Text>
-                {item.citas.map((cita, citationIndex) => (
-                  <Text key={`${cita.sourceBookId}:${cita.chapter}:${citationIndex}`} style={styles.citationText}>
-                    {formatHoidCitationLocation(cita.title, cita.chapter, cita.chapterOrdinal, cita.chapterLabelAmbiguous)}
-                  </Text>
-                ))}
-              </View>
-            )}
+
           </View>
         )}
       />

@@ -9,9 +9,9 @@ export type HoidConversationApplicationProgress = Readonly<{
   fingerprint: string;
 }>;
 
-export type HoidReadyConversationRouteExecution = Extract<
+export type HoidReadyConversationRouteExecution = Exclude<
   HoidConversationRouteExecutionResult,
-  { status: "ready" }
+  { status: "unavailable" }
 >;
 
 export type HoidConversationApplicationContext = Readonly<{
@@ -188,7 +188,7 @@ export function createHoidConversationApplicationService(
     } catch {
       return unavailable("route-unavailable");
     }
-    if (execution.status !== "ready") return unavailable("route-unavailable");
+    if (!("route" in execution)) return unavailable("route-unavailable");
 
     const context: HoidConversationApplicationContext = Object.freeze({
       schemaVersion: 1,
